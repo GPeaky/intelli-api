@@ -1,8 +1,8 @@
 use crate::dtos::f123_dto::{
     PacketCarDamageData, PacketCarSetupData, PacketCarStatusData, PacketCarTelemetryData,
     PacketEventData, PacketFinalClassificationData, PacketHeader, PacketLapData,
-    PacketLobbyInfoData, PacketMotionData, PacketParticipantsData, PacketSessionData,
-    PacketSessionHistoryData,
+    PacketLobbyInfoData, PacketMotionData, PacketMotionExData, PacketParticipantsData,
+    PacketSessionData, PacketSessionHistoryData, PacketTyreSetsData,
 };
 use bincode::deserialize;
 
@@ -19,6 +19,8 @@ pub enum F123Packet {
     LobbyInfo(PacketLobbyInfoData),
     CarDamage(PacketCarDamageData),
     SessionHistory(PacketSessionHistoryData),
+    TyresSets(PacketTyreSetsData),
+    MotionExData(PacketMotionExData),
 }
 
 pub fn deserialize_packet(
@@ -42,6 +44,8 @@ pub fn deserialize_packet(
         9 => Ok(F123Packet::LobbyInfo(deserialize(data)?)),
         10 => Ok(F123Packet::CarDamage(deserialize(data)?)),
         11 => Ok(F123Packet::SessionHistory(deserialize(data)?)),
+        12 => Ok(F123Packet::TyresSets(deserialize(data)?)),
+        13 => Ok(F123Packet::MotionExData(deserialize(data)?)),
         _ => Err("ID de paquete desconocido".into()),
     }
 }

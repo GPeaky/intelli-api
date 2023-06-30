@@ -53,6 +53,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     F123Packet::SessionHistory(session_history) => {
                         println!("SessionHistory: {:#?}", session_history);
                     }
+                    F123Packet::TyresSets(tyres_sets) => {
+                        println!("TyresSets: {:#?}", tyres_sets);
+                    }
+                    F123Packet::MotionExData(motion_ex_data) => {
+                        println!("MotionExData: {:#?}", motion_ex_data);
+                    }
                 },
                 Err(e) => {
                     eprintln!("Error al deserializar el paquete: {}", e);

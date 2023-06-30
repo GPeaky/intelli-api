@@ -9,3 +9,11 @@ edition = "2021"
 bincode = "1.3.3"
 serde = { version = "1.0.164", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["full"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+split-debuginfo = "off"
+panic = "abort"
+debug = false
