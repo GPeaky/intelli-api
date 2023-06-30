@@ -46,7 +46,7 @@ pub fn deserialize_packet(
         11 => Ok(F123Packet::SessionHistory(deserialize(data)?)),
         12 => Ok(F123Packet::TyresSets(deserialize(data)?)),
         13 => Ok(F123Packet::MotionExData(deserialize(data)?)),
-        _ => Err("ID de paquete desconocido".into()),
+        _ => Err("Unknown packet type".into()),
     }
 }
 
