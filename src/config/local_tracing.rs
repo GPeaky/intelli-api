@@ -5,6 +5,4 @@ pub fn initialize_tracing_subscriber() {
     let subscriber = FmtSubscriber::builder().without_time().finish();
 
     set_global_default(subscriber).unwrap();
-
-    tracing::info!("Tracing initialized");
 }
