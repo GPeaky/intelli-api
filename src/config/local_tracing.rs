@@ -3,8 +3,11 @@ use tracing_subscriber::FmtSubscriber;
 
 pub fn initialize_tracing_subscriber() {
     let subscriber = FmtSubscriber::builder()
-        .with_env_filter("intelli-telemetry-f123=trace")
+        .with_env_filter("intelli-telemetry-f123=info")
+        .without_time()
         .finish();
 
     set_global_default(subscriber).unwrap();
+
+    tracing::info!("Tracing initialized");
 }
