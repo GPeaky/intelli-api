@@ -4,6 +4,7 @@ use hyper::Error;
 use routes::service_routes;
 use std::net::TcpListener;
 
+mod config;
 mod dtos;
 mod handlers;
 mod routes;
@@ -12,6 +13,7 @@ mod services;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
+    config::tracing::initialize_tracing_subscriber();
 
     let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
 
