@@ -27,10 +27,6 @@ pub fn deserialize_packet(
     packet_id: u8,
     data: &[u8],
 ) -> Result<F123Packet, Box<dyn std::error::Error>> {
-    // let deserializer = bincode::options()
-    //     .with_varint_encoding()
-    //     .with_little_endian();
-
     match packet_id {
         0 => Ok(F123Packet::Motion(deserialize(data)?)),
         1 => Ok(F123Packet::Session(deserialize(data)?)),
