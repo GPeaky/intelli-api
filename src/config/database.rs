@@ -1,5 +1,5 @@
 use dotenvy::var;
-use redis::Client;
+use redis::{Client, Connection};
 use tracing::info;
 
 pub struct Database {
@@ -13,5 +13,9 @@ impl Database {
         Self {
             redis: Client::open(var("REDIS_URL").unwrap()).unwrap(),
         }
+    }
+
+    pub fn get_redis(&self) -> Connection {
+        self.redis.get_connection().unwrap()
     }
 }

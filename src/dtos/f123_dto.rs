@@ -1,8 +1,10 @@
-use serde::Deserialize;
+use std::os::raw::c_char;
+
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketHeader {
     pub m_packetFormat: u16,           // 2023
     pub m_gameYear: u8,                // Game year - last two digits e.g. 23
@@ -19,8 +21,8 @@ pub struct PacketHeader {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CarMotionData {
     pub m_worldPositionX: f32,     // World space X position - metres
     pub m_worldPositionY: f32,     // World space Y position
@@ -43,24 +45,24 @@ pub struct CarMotionData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketMotionData {
     pub m_header: PacketHeader,               // Header
     pub m_carMotionData: [CarMotionData; 22], // Data for all cars on track
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MarshalZone {
     pub m_zoneStart: f32, // Fraction (0..1) of way through the lap the marshal zone starts
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WeatherForecastSample {
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P, 5 = Q1
     // 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ, 10 = R, 11 = R2
@@ -76,8 +78,8 @@ pub struct WeatherForecastSample {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketSessionData {
     pub m_header: PacketHeader, // Header
     pub m_weather: u8,          // Weather - 0 = clear, 1 = light cloud, 2 = overcast
@@ -106,6 +108,7 @@ pub struct PacketSessionData {
     // 2 = virtual, 3 = formation lap
     pub m_networkGame: u8,               // 0 = offline, 1 = online
     pub m_numWeatherForecastSamples: u8, // Number of weather samples to follow
+    #[serde(skip)]
     pub m_weatherForecastSamples: Vec<WeatherForecastSample>, // Array of weather forecast samples
     pub m_forecastAccuracy: u8,          // 0 = Perfect, 1 = Approximate
     pub m_aiDifficulty: u8,              // AI Difficulty rating – 0-110
@@ -139,8 +142,8 @@ pub struct PacketSessionData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LapData {
     pub m_lastLapTimeInMS: u32,            // Last lap time in milliseconds
     pub m_currentLapTimeInMS: u32,         // Current time around the lap in milliseconds
@@ -174,8 +177,8 @@ pub struct LapData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketLapData {
     pub m_header: PacketHeader,     // Header
     pub m_lapData: [LapData; 22],   // Lap data for all cars on track
@@ -184,8 +187,8 @@ pub struct PacketLapData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum EventDataDetails {
     FastestLap {
         vehicleIdx: u8, // Vehicle index of car achieving fastest lap
@@ -240,8 +243,8 @@ pub enum EventDataDetails {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
@@ -249,8 +252,8 @@ pub struct PacketEventData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ParticipantData {
     pub m_aiControlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub m_driverId: u8,     // Driver id - see appendix, 255 if network human
@@ -259,7 +262,8 @@ pub struct ParticipantData {
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
     pub m_nationality: u8,  // Nationality of the driver
-    pub m_name: String,     // Name of participant in UTF-8 format – null terminated
+    #[serde(skip)]
+    pub m_name: Vec<c_char>, // Name of participant in UTF-8 format – null terminated
     // Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub m_showOnlineNames: u8, // The player's show online names setting, 0 = off, 1 = on
@@ -267,8 +271,8 @@ pub struct ParticipantData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketParticipantsData {
     pub m_header: PacketHeader, // Header
     pub m_numActiveCars: u8, // Number of active cars in the data – should match number of cars on HUD
@@ -276,8 +280,8 @@ pub struct PacketParticipantsData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CarSetupData {
     pub m_frontWing: u8,               // Front wing aero
     pub m_rearWing: u8,                // Rear wing aero
@@ -304,16 +308,16 @@ pub struct CarSetupData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketCarSetupData {
     pub m_header: PacketHeader, // Header
     pub m_carSetups: [CarSetupData; 22],
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CarTelemetryData {
     pub m_speed: u16,                       // Speed of car in kilometres per hour
     pub m_throttle: f32,                    // Amount of throttle applied (0.0 to 1.0)
@@ -334,8 +338,8 @@ pub struct CarTelemetryData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketCarTelemetryData {
     pub m_header: PacketHeader, // Header
     pub m_carTelemetryData: [CarTelemetryData; 22],
@@ -348,8 +352,8 @@ pub struct PacketCarTelemetryData {
                                             // 0 if no gear suggested
 }
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CarStatusData {
     pub m_tractionControl: u8, // Traction control - 0 = off, 1 = medium, 2 = full
     pub m_antiLockBrakes: u8,  // 0 (off) - 1 (on)
@@ -387,16 +391,16 @@ pub struct CarStatusData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketCarStatusData {
     pub m_header: PacketHeader, // Header
     pub m_carStatusData: [CarStatusData; 22],
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FinalClassificationData {
     pub m_position: u8,     // Finishing position
     pub m_numLaps: u8,      // Number of laps completed
@@ -417,31 +421,32 @@ pub struct FinalClassificationData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketFinalClassificationData {
     pub m_header: PacketHeader, // Header
     pub m_numCars: u8,          // Number of cars in the final classification
     pub m_classificationData: [FinalClassificationData; 22],
 }
 
-#[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+// #[repr(C)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LobbyInfoData {
     pub m_aiControlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub m_teamId: u8,       // Team id - see appendix (255 if no team currently selected)
     pub m_nationality: u8,  // Nationality of the driver
     pub m_platform: u8,     // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
-    pub m_name: String,     // Name of participant in UTF-8 format – null terminated
+    #[serde(skip)]
+    pub m_name: Vec<u8>, // Name of participant in UTF-8 format – null terminated
     // Will be truncated with ... (U+2026) if too long
     pub m_carNumber: u8,   // Car number of the player
     pub m_readyStatus: u8, // 0 = not ready, 1 = ready, 2 = spectating
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketLobbyInfoData {
     pub m_header: PacketHeader, // Header
     pub m_numPlayers: u8,       // Number of players in the lobby data
@@ -449,8 +454,8 @@ pub struct PacketLobbyInfoData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CarDamageData {
     pub m_tyresWear: [f32; 4],      // Tyre wear (percentage)
     pub m_tyresDamage: [u8; 4],     // Tyre damage (percentage)
@@ -476,16 +481,16 @@ pub struct CarDamageData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PacketCarDamageData {
     pub m_header: PacketHeader, // Header
-    pub m_carDamageData: [CarDamageData; 22],
+    pub m_carDamageData: Vec<CarDamageData>,
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LapHistoryData {
     pub m_lapTimeInMS: u32,       // Lap time in milliseconds
     pub m_sector1TimeInMS: u16,   // Sector 1 time in milliseconds
@@ -499,8 +504,8 @@ pub struct LapHistoryData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TyreStintHistoryData {
     pub m_endLap: u8,             // Lap the tyre usage ends on (255 of current tyre)
     pub m_tyreActualCompound: u8, // Actual tyres used by this driver
@@ -508,8 +513,8 @@ pub struct TyreStintHistoryData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketSessionHistoryData {
     pub m_header: PacketHeader,                // Header
     pub m_carIdx: u8,                          // Index of the car this lap data relates to
@@ -524,8 +529,8 @@ pub struct PacketSessionHistoryData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TyreSetData {
     pub m_actualTyreCompound: u8, // Actual tyre compound used
     pub m_visualTyreCompound: u8, // Visual tyre compound used
@@ -539,8 +544,8 @@ pub struct TyreSetData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketTyreSetsData {
     pub m_header: PacketHeader,           // Header
     pub m_carIdx: u8,                     // Index of the car this data relates to
@@ -549,8 +554,8 @@ pub struct PacketTyreSetsData {
 }
 
 #[repr(C)]
-#[allow(dead_code, non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketMotionExData {
     pub m_header: PacketHeader, // Header
 
