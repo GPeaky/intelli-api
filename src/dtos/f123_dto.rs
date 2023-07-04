@@ -1,6 +1,6 @@
-use std::os::raw::c_char;
-
+use scylla::{FromUserType, IntoUserType};
 use serde::{Deserialize, Serialize};
+use std::os::raw::c_char;
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -54,7 +54,7 @@ pub struct PacketMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromUserType)]
 pub struct MarshalZone {
     pub m_zoneStart: f32, // Fraction (0..1) of way through the lap the marshal zone starts
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
