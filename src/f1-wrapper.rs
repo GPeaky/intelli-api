@@ -1,6 +1,5 @@
 use bincode::serialize;
-use dotenvy::var;
-use scylla::SessionBuilder;
+use config::Database;
 use services::f123::{deserialize_header, deserialize_packet, F123Packet};
 use std::{
     collections::HashMap,
@@ -18,13 +17,12 @@ mod services;
 async fn main() {
     let mut last_session_update: HashMap<i64, Instant> = HashMap::new();
     let mut last_car_motion_update: HashMap<i64, Instant> = HashMap::new();
+
+    let db = Database::default().await;
+    let session = db.get_scylla();
+
     let socket = UdpSocket::bind("127.0.0.1:20777").await.unwrap();
     let mut stream = UdpFramed::new(socket, BytesCodec::new());
-    let session = SessionBuilder::new()
-        .known_node(var("DB_URL").unwrap())
-        .build()
-        .await
-        .unwrap();
 
     // session.query("CREATE KEYSPACE IF NOT EXISTS intelli_api WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'replication_factor' : 1}", &[]).await.unwrap();
 

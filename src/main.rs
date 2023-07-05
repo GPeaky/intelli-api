@@ -16,12 +16,12 @@ mod services;
 async fn main() -> Result<(), Error> {
     dotenv().ok();
     initialize_tracing_subscriber();
-    let db = Database::default();
+    let db = Database::default().await;
 
     let listener = TcpListener::bind(var("HOST").unwrap()).unwrap();
 
     info!("Server listening on {}", listener.local_addr().unwrap());
-    Server::from_tcp(listener)?.serve(service_routes()).await?;
+    Server::from_tcp(listener)?.serve(service_routes(db)).await?;
 
     Ok(())
 }

@@ -1,21 +1,25 @@
 use dotenvy::var;
-use redis::{Client, Connection};
+use scylla::{Session, SessionBuilder};
 use tracing::info;
 
 pub struct Database {
-    pub redis: Client,
+    scylla: Session,
 }
 
 impl Database {
-    pub fn default() -> Self {
+    pub async fn default() -> Self {
         info!("Connecting Databases...");
 
         Self {
-            redis: Client::open(var("REDIS_URL").unwrap()).unwrap(),
+            scylla: SessionBuilder::new()
+                .known_node(var("DB_URL").unwrap())
+                .build()
+                .await
+                .unwrap(),
         }
     }
 
-    pub fn get_redis(&self) -> Connection {
-        self.redis.get_connection().unwrap()
+    pub fn get_scylla(&self) -> &Session {
+        &self.scylla
     }
 }
