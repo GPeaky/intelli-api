@@ -1,8 +1,6 @@
 use crate::dtos::f123_dto::{
-    PacketCarDamageData, PacketCarSetupData, PacketCarStatusData, PacketCarTelemetryData,
-    PacketEventData, PacketFinalClassificationData, PacketHeader, PacketLapData,
-    PacketLobbyInfoData, PacketMotionData, PacketMotionExData, PacketParticipantsData,
-    PacketSessionData, PacketSessionHistoryData, PacketTyreSetsData,
+    PacketEventData, PacketFinalClassificationData, PacketHeader, PacketLapData, PacketMotionData,
+    PacketParticipantsData, PacketSessionData, PacketTyreSetsData,
 };
 use bincode::deserialize;
 
@@ -12,15 +10,8 @@ pub enum F123Packet {
     LapData(PacketLapData),
     Event(PacketEventData),
     Participants(PacketParticipantsData),
-    CarSetups(PacketCarSetupData),
-    CarTelemetry(PacketCarTelemetryData),
-    CarStatus(PacketCarStatusData),
     FinalClassification(PacketFinalClassificationData),
-    LobbyInfo(PacketLobbyInfoData),
-    CarDamage(PacketCarDamageData),
-    SessionHistory(PacketSessionHistoryData),
     TyresSets(PacketTyreSetsData),
-    MotionExData(PacketMotionExData),
 }
 
 pub fn deserialize_packet(
@@ -33,15 +24,8 @@ pub fn deserialize_packet(
         2 => Ok(F123Packet::LapData(deserialize(data)?)),
         3 => Ok(F123Packet::Event(deserialize(data)?)),
         4 => Ok(F123Packet::Participants(deserialize(data)?)),
-        5 => Ok(F123Packet::CarSetups(deserialize(data)?)),
-        6 => Ok(F123Packet::CarTelemetry(deserialize(data)?)),
-        7 => Ok(F123Packet::CarStatus(deserialize(data)?)),
         8 => Ok(F123Packet::FinalClassification(deserialize(data)?)),
-        9 => Ok(F123Packet::LobbyInfo(deserialize(data)?)),
-        10 => Ok(F123Packet::CarDamage(deserialize(data)?)),
-        11 => Ok(F123Packet::SessionHistory(deserialize(data)?)),
         12 => Ok(F123Packet::TyresSets(deserialize(data)?)),
-        13 => Ok(F123Packet::MotionExData(deserialize(data)?)),
         _ => Err("Unknown packet type".into()),
     }
 }

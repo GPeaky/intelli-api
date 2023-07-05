@@ -26,96 +26,74 @@ async fn main() {
         .await
         .unwrap();
 
-    session.query("CREATE KEYSPACE IF NOT EXISTS intelli_api WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'replication_factor' : 1}", &[]).await.unwrap();
+    // session.query("CREATE KEYSPACE IF NOT EXISTS intelli_api WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'replication_factor' : 1}", &[]).await.unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.game_sessions (
-                id bigint PRIMARY KEY,
-                data BLOB
-            )",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.game_sessions (
+    //             id bigint PRIMARY KEY,
+    //             data BLOB
+    //         )",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.car_motion (
-                session_id bigint PRIMARY KEY,
-                data BLOB
-            )",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.car_motion (
+    //             session_id bigint PRIMARY KEY,
+    //             data BLOB
+    //         )",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.session_data (
-                session_id bigint PRIMARY KEY,
-                data BLOB
-            )",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.lap_data (
+    //             session_id bigint PRIMARY KEY,
+    //             lap BLOB,
+    //         );",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.lap_data (
-                session_id bigint PRIMARY KEY,
-                lap BLOB,
-            );",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.event_data (
+    //         session_id bigint PRIMARY KEY,
+    //         string_code text,
+    //         event BLOB
+    //     );",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.event_data (
-            session_id bigint PRIMARY KEY,
-            string_code text,
-            event BLOB
-        );",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.participants_data (
+    //             session_id bigint PRIMARY KEY,
+    //             participants BLOB,
+    //         );",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.participants_data (
-                session_id bigint PRIMARY KEY,
-                participants BLOB,
-            );",
-            &[],
-        )
-        .await
-        .unwrap();
-
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.final_classification_data (
-            session_id bigint PRIMARY KEY,
-            classification BLOB,
-        );",
-            &[],
-        )
-        .await
-        .unwrap();
-
-    session
-        .query(
-            "CREATE TABLE IF NOT EXISTS intelli_api.lobby_info (
-            session_id bigint PRIMARY KEY,
-            lobby_players BLOB
-        );",
-            &[],
-        )
-        .await
-        .unwrap();
+    // session
+    //     .query(
+    //         "CREATE TABLE IF NOT EXISTS intelli_api.final_classification_data (
+    //         session_id bigint PRIMARY KEY,
+    //         classification BLOB,
+    //     );",
+    //         &[],
+    //     )
+    //     .await
+    //     .unwrap();
 
     let insert_game_session = session
         .prepare("INSERT INTO intelli_api.game_sessions (id, data) VALUES (?,?);")
@@ -148,15 +126,6 @@ async fn main() {
 
     let insert_final_classification_data = session
         .prepare("INSERT INTO intelli_api.final_classification_data (session_id, classification) VALUES (?,?);")
-        .await
-        .unwrap();
-
-    let insert_lobby_info_data = session
-        .prepare(
-            "
-        INSERT INTO intelli_api.lobby_info (session_id, lobby_players) VALUES (?,?);
-    ",
-        )
         .await
         .unwrap();
 
@@ -193,7 +162,7 @@ async fn main() {
 
                     if !last_session_update.contains_key(&session_id)
                         || now.duration_since(last_session_update[&session_id])
-                            >= Duration::from_secs(60)
+                            >= Duration::from_secs(30)
                     {
                         let data = serialize(&session_data).unwrap();
 
@@ -209,6 +178,7 @@ async fn main() {
                 F123Packet::LapData(lap_data) => {
                     let lap_info = serialize(&lap_data.m_lapData).unwrap();
 
+                    // TODO: Save lap data to database
                     session
                         .execute(&insert_lap_data, (session_id, lap_info))
                         .await
@@ -245,15 +215,6 @@ async fn main() {
                             &insert_final_classification_data,
                             (session_id, classifications),
                         )
-                        .await
-                        .unwrap();
-                }
-
-                F123Packet::LobbyInfo(lobby_info) => {
-                    let lobby_players: Vec<u8> = serialize(&lobby_info.m_lobbyPlayers).unwrap();
-
-                    session
-                        .execute(&insert_lobby_info_data, (session_id, lobby_players))
                         .await
                         .unwrap();
                 }
