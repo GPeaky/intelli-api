@@ -11,6 +11,7 @@ mod dtos;
 mod entity;
 mod error;
 mod handlers;
+mod repositories;
 mod response;
 mod routes;
 mod services;
@@ -21,22 +22,6 @@ async fn main() -> Result<(), Error> {
     dotenv().ok();
     initialize_tracing_subscriber();
     let db = Database::default().await;
-
-    //     db.get_scylla()
-    //         .query(
-    //             "CREATE TABLE IF NOT EXISTS intelli_api.users (
-    //     id UUID,
-    //     username varchar,
-    //     password varchar,
-    //     email varchar,
-    //     created_at timestamp,
-    //     updated_at timestamp,
-    //     PRIMARY KEY (id, username, email)
-    // )",
-    //             &[],
-    //         )
-    //         .await
-    //         .unwrap();
 
     let listener = TcpListener::bind(var("HOST").unwrap()).unwrap();
 

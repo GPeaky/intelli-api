@@ -6,16 +6,12 @@ use axum::{
 
 pub struct AppErrorResponse {
     message: Option<String>,
-    status_code: StatusCode,
+    code: StatusCode,
 }
 
 impl AppErrorResponse {
     pub fn send(code: StatusCode, message: Option<String>) -> Response {
-        AppErrorResponse {
-            message,
-            status_code: code,
-        }
-        .into_response()
+        AppErrorResponse { code, message }.into_response()
     }
 }
 
@@ -23,8 +19,9 @@ impl AppErrorResponse {
 impl IntoResponse for AppErrorResponse {
     fn into_response(self) -> Response {
         (
-            self.status_code,
-            self.message.unwrap_or_else(|| "Unknown Error".to_string()),
+            self.code,
+            self.message
+                .unwrap_or_else(|| "Internal Server Error".to_string()),
         )
             .into_response()
     }

@@ -13,7 +13,7 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            AppError::User(err) => err.into_response(),
+            AppError::User(e) => e.into_response(),
         }
     }
 }

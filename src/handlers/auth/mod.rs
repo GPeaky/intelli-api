@@ -20,8 +20,8 @@ pub(crate) async fn register(
 }
 
 pub(crate) async fn login(
-    State(state): State<AuthState>,
-    Form(form): Form<LoginUserDto>,
+    State(_state): State<AuthState>,
+    Form(_form): Form<LoginUserDto>,
 ) -> AppResult<Response> {
     // state.user_service.login(form).await?;
 

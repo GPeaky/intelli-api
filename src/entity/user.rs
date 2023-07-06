@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
+use scylla::FromRow;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: i64,
     pub username: String,

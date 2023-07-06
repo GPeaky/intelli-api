@@ -4,14 +4,14 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum UserError {
-    #[error("User not found")]
-    NotFound,
+    #[error("User already exists")]
+    AlreadyExists,
 }
 
 impl IntoResponse for UserError {
     fn into_response(self) -> axum::response::Response {
         let status_code = match self {
-            UserError::NotFound => StatusCode::NOT_FOUND,
+            UserError::AlreadyExists => StatusCode::CONFLICT,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

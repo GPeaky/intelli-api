@@ -23,10 +23,11 @@ axum = { version = "0.6.18", features = [
     "headers",
 ] }
 chrono = { version = "0.4.26", features = ["serde"] }
-uuid = { version = "1.4.0", features = ["v4", "fast-rng"] }
 thiserror = "1.0.41"
 garde = "0.11.2"
 serde_trim = "0.4.0"
+rs-nanoid = "0.1.0"
+rust-argon2 = "1.0.0"
 
 [profile.release]
 opt-level = "z"
