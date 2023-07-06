@@ -37,24 +37,29 @@ impl UserServiceTrait for UserService {
     }
 
     async fn register(&self, register: RegisterUserDto) -> AppResult<()> {
+        let time = Utc::now().timestamp();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
             return Err(UserError::AlreadyExists)?;
         }
 
-        self
-            .db_conn
+        self.db_conn
             .get_scylla()
-            .query(
-                "INSERT INTO intelli_api.users (id, username, password, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+            .execute(
+                self.db_conn.statements.get("insert_user").unwrap(),
                 (
                     standard::<16>().to_string(),
                     register.username,
-                    argon2::hash_encoded(register.password.as_bytes(), &self.pass_salt, &self.argon2_config).unwrap(),
+                    argon2::hash_encoded(
+                        register.password.as_bytes(),
+                        &self.pass_salt,
+                        &self.argon2_config,
+                    )
+                    .unwrap(),
                     register.email,
-                    Utc::now().timestamp(),
-                    Utc::now().timestamp(),
+                    time,
+                    time,
                 ),
             )
             .await
