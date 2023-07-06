@@ -1,9 +1,10 @@
-use crate::dtos::f123_dto::{
+use crate::dtos::{
     PacketEventData, PacketFinalClassificationData, PacketHeader, PacketLapData, PacketMotionData,
     PacketParticipantsData, PacketSessionData, PacketTyreSetsData,
 };
 use bincode::deserialize;
 
+#[allow(dead_code)]
 pub enum F123Packet {
     Motion(PacketMotionData),
     Session(PacketSessionData),
@@ -14,6 +15,7 @@ pub enum F123Packet {
     TyresSets(PacketTyreSetsData),
 }
 
+#[allow(dead_code)]
 pub fn deserialize_packet(
     packet_id: u8,
     data: &[u8],
@@ -30,6 +32,7 @@ pub fn deserialize_packet(
     }
 }
 
+#[allow(dead_code)]
 pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, Box<dyn std::error::Error>> {
     Ok(deserialize::<PacketHeader>(data)?)
 }
