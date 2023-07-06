@@ -3,7 +3,7 @@ use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use hyper::Error;
 use routes::service_routes;
-use std::net::TcpListener;
+use std::{net::TcpListener, sync::Arc};
 use tracing::info;
 
 mod config;
@@ -14,6 +14,7 @@ mod handlers;
 mod response;
 mod routes;
 mod services;
+mod states;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -41,7 +42,7 @@ async fn main() -> Result<(), Error> {
 
     info!("Server listening on {}", listener.local_addr().unwrap());
     Server::from_tcp(listener)?
-        .serve(service_routes(db))
+        .serve(service_routes(Arc::new(db)))
         .await?;
 
     Ok(())
