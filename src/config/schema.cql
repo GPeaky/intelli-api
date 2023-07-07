@@ -2,6 +2,7 @@ CREATE KEYSPACE IF NOT EXISTS intelli_api WITH REPLICATION = {'class' : 'Network
 
 CREATE TABLE IF NOT EXISTS intelli_api.game_sessions (
     id bigint PRIMARY KEY,
+    championship_id text,
     data BLOB
 );
 
@@ -40,4 +41,11 @@ CREATE TABLE IF NOT EXISTS intelli_api.users (
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, email)
+);
+
+CREATE TABLE IF NOT EXISTS intelli_api.championships (
+    id text PRIMARY KEY,
+    port int,
+    name text,
+    user_id text
 );

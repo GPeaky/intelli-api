@@ -43,10 +43,7 @@ impl Database {
             let query = q.to_owned() + ";";
 
             if query.len() > 1 {
-                session
-                    .query(query, &[])
-                    .await
-                    .expect("Error Creating Schema");
+                session.query(query, &[]).await.unwrap();
             }
         }
     }
