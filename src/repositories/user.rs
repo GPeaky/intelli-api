@@ -10,7 +10,8 @@ pub struct UserRepository {
 #[async_trait]
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn find(&self, email: &str) -> AppResult<User>;
+    async fn find(&self, id: &str) -> AppResult<User>;
+    async fn find_by_email(&self, email: &str) -> AppResult<User>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     fn validate_password(&self, password: &str, hash: &str) -> bool;
 }
@@ -23,13 +24,27 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn find(&self, email: &str) -> AppResult<User> {
+    async fn find_by_email(&self, email: &str) -> AppResult<User> {
         let session = self.db_conn.get_scylla();
 
         let user = session
             .execute(
-                self.db_conn.statements.get("select_user").unwrap(),
+                self.db_conn.statements.get("select_user_by_email").unwrap(),
                 (email,),
+            )
+            .await?
+            .single_row_typed::<User>()?;
+
+        Ok(user)
+    }
+
+    async fn find(&self, id: &str) -> AppResult<User> {
+        let session = self.db_conn.get_scylla();
+
+        let user = session
+            .execute(
+                self.db_conn.statements.get("select_user_by_id").unwrap(),
+                (id,),
             )
             .await?
             .single_row_typed::<User>()?;

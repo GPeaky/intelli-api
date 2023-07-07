@@ -11,6 +11,7 @@ mod dtos;
 mod entity;
 mod error;
 mod handlers;
+mod middlewares;
 mod repositories;
 mod response;
 mod routes;

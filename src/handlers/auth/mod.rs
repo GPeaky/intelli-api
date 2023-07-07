@@ -36,7 +36,7 @@ pub(crate) async fn login(
 
     let user = state
         .user_repository
-        .find(&form.email)
+        .find_by_email(&form.email)
         .await
         .map_err(|_| UserError::NotFound)?;
 

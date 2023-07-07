@@ -68,12 +68,19 @@ impl Database {
 
         statements.insert("find_by_email".to_string(), find_by_email);
 
-        let select_user = session
+        let select_user_by_id = session
+            .prepare("SELECT * FROM intelli_api.users where id = ? ALLOW FILTERING")
+            .await
+            .unwrap();
+
+        statements.insert("select_user_by_id".to_string(), select_user_by_id);
+
+        let select_user_by_email = session
             .prepare("SELECT * FROM intelli_api.users where email = ? ALLOW FILTERING")
             .await
             .unwrap();
 
-        statements.insert("select_user".to_string(), select_user);
+        statements.insert("select_user_by_email".to_string(), select_user_by_email);
 
         statements
     }
