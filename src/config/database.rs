@@ -55,7 +55,7 @@ impl Database {
         let mut statements: HashMap<String, PreparedStatement> = HashMap::new();
 
         let insert_user = session
-            .prepare("INSERT INTO intelli_api.users (id, username, password, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
+            .prepare("INSERT INTO intelli_api.users (id, username, password, email, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
             .await
             .unwrap();
 
@@ -66,7 +66,7 @@ impl Database {
             .await
             .unwrap();
 
-        statements.insert("find_by_email".to_string(), find_by_email);
+        statements.insert("select_email_by_email".to_string(), find_by_email);
 
         let select_user_by_id = session
             .prepare("SELECT * FROM intelli_api.users where id = ? ALLOW FILTERING")

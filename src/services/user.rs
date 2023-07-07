@@ -58,6 +58,7 @@ impl UserServiceTrait for UserService {
                     )
                     .unwrap(),
                     register.email,
+                    false,
                     time,
                     time,
                 ),

@@ -57,7 +57,10 @@ impl UserRepositoryTrait for UserRepository {
 
         let rows = session
             .execute(
-                self.db_conn.statements.get("find_by_email").unwrap(),
+                self.db_conn
+                    .statements
+                    .get("select_email_by_email")
+                    .unwrap(),
                 (email,),
             )
             .await?

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS intelli_api.users (
     email text,
     username text,
     password text,
+    active boolean,
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, email)

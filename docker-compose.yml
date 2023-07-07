@@ -4,6 +4,11 @@ services:
     ports:
       - "6379:6379"
 
+  scylladb:
+    image: scylladb/scylla
+    ports:
+      - 9042:9042
+
   api:
     build: .
     ports:
@@ -14,3 +19,4 @@ services:
 
     depends_on:
       - redis
+      - scylladb
