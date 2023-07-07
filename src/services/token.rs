@@ -22,8 +22,8 @@ pub struct TokenService {
 #[async_trait]
 pub trait TokenServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    fn generate_token(&self, sub: String, token_type: TokenType) -> AppResult<String>;
     fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>>;
+    fn generate_token(&self, sub: &str, token_type: TokenType) -> AppResult<String>;
     async fn generate_refresh_token(&self, user_id: String, device_id: &str) -> AppResult<String>;
     async fn remove_refresh_token(&self, user_id: String, device_id: &str) -> AppResult<()>;
 }
@@ -42,11 +42,11 @@ impl TokenServiceTrait for TokenService {
         }
     }
 
-    fn generate_token(&self, sub: String, token_type: TokenType) -> AppResult<String> {
+    fn generate_token(&self, sub: &str, token_type: TokenType) -> AppResult<String> {
         let token_claim = TokenClaim {
             exp: token_type.get_expiration(),
+            sub: sub.to_owned(),
             token_type,
-            sub,
         };
 
         encode(&self.header, &token_claim, &self.encoding_key)
@@ -59,7 +59,7 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn generate_refresh_token(&self, user_id: String, device_id: &str) -> AppResult<String> {
-        let token = self.generate_token(device_id.to_owned(), TokenType::RefreshBearer)?;
+        let token = self.generate_token(device_id, TokenType::RefreshBearer)?;
 
         self.db_conn
             .get_redis()

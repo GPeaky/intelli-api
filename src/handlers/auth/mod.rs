@@ -2,7 +2,7 @@ use crate::{
     dtos::{AuthResponse, LoginUserDto, RegisterUserDto, TokenType},
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
-    services::{TokenServiceTrait, UserServiceTrait},
+    services::{TokenServiceTrait, UserServiceTrait, VerifyEmailTemplate},
     states::AuthState,
 };
 use axum::{
@@ -21,9 +21,25 @@ pub(crate) async fn register(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    state.user_service.new_user(form).await?;
+    state.user_service.new_user(&form).await?;
 
-    Ok(StatusCode::OK.into_response())
+    let token = state
+        .token_service
+        .generate_token(&form.email, TokenType::Email)?;
+
+    state
+        .email_service
+        .send_mail(
+            &form,
+            VerifyEmailTemplate {
+                username: &form.username,
+                token: &token,
+            },
+        )
+        .await
+        .map_err(|_| UserError::MailError)?;
+
+    Ok(StatusCode::CREATED.into_response())
 }
 
 pub(crate) async fn login(
@@ -40,6 +56,10 @@ pub(crate) async fn login(
         .await
         .map_err(|_| UserError::NotFound)?;
 
+    if !user.active {
+        return Err(UserError::NotVerified)?;
+    }
+
     if !state
         .user_repository
         .validate_password(&form.password, &user.password)
@@ -49,7 +69,7 @@ pub(crate) async fn login(
 
     let access_token = state
         .token_service
-        .generate_token(user.id.clone(), TokenType::Bearer)?;
+        .generate_token(&user.id, TokenType::Bearer)?;
 
     let refresh_token = state
         .token_service

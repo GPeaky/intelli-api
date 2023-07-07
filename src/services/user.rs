@@ -22,7 +22,8 @@ pub struct UserService {
 #[async_trait]
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn new_user(&self, register: RegisterUserDto) -> AppResult<()>;
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()>;
+    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -36,7 +37,19 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn new_user(&self, register: RegisterUserDto) -> AppResult<()> {
+    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()> {
+        self.db_conn
+            .get_scylla()
+            .execute(
+                self.db_conn.statements.get("activate_user").unwrap(),
+                (id, email),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()> {
         let time = Utc::now().timestamp();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
@@ -50,14 +63,14 @@ impl UserServiceTrait for UserService {
                 self.db_conn.statements.get("insert_user").unwrap(),
                 (
                     standard::<16>().to_string(),
-                    register.username,
+                    register.username.clone(),
                     argon2::hash_encoded(
                         register.password.as_bytes(),
                         &self.pass_salt,
                         &self.argon2_config,
                     )
                     .unwrap(),
-                    register.email,
+                    register.email.clone(),
                     false,
                     time,
                     time,

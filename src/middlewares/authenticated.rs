@@ -41,6 +41,10 @@ pub async fn auth_handler<T>(
         .await
         .map_err(|_| UserError::NotFound)?;
 
+    if !user.active {
+        return Err(UserError::NotVerified)?;
+    }
+
     req.extensions_mut().insert(user);
     Ok(next.run(req).await)
 }

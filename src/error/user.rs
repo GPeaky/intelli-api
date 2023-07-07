@@ -10,6 +10,10 @@ pub enum UserError {
     NotFound,
     #[error("Invalid credentials")]
     InvalidCredentials,
+    #[error("Error sending mail")]
+    MailError,
+    #[error("Not verified user")]
+    NotVerified,
 }
 
 impl IntoResponse for UserError {
@@ -18,6 +22,8 @@ impl IntoResponse for UserError {
             UserError::AlreadyExists => StatusCode::CONFLICT,
             UserError::NotFound => StatusCode::NOT_FOUND,
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
+            UserError::MailError => StatusCode::INTERNAL_SERVER_ERROR,
+            UserError::NotVerified => StatusCode::UNAUTHORIZED,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

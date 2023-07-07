@@ -82,6 +82,13 @@ impl Database {
 
         statements.insert("select_user_by_email".to_string(), select_user_by_email);
 
+        let activate_user = session
+            .prepare("UPDATE intelli_api.users SET active = true WHERE id = ? AND email = ?")
+            .await
+            .unwrap();
+
+        statements.insert("activate_user".to_string(), activate_user);
+
         statements
     }
 
