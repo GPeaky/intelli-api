@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::RegisterUserDto,
+    dtos::{LoginUserDto, RegisterUserDto},
     error::{AppResult, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
@@ -23,6 +23,7 @@ pub struct UserService {
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn register(&self, register: RegisterUserDto) -> AppResult<()>;
+    async fn login(&self, login: LoginUserDto) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -64,6 +65,24 @@ impl UserServiceTrait for UserService {
             )
             .await
             .unwrap();
+
+        Ok(())
+    }
+
+    async fn login(&self, login: LoginUserDto) -> AppResult<()> {
+        // let user = self.user_repo.get_user_by_email(&login.email).await?;
+
+        // if user.is_none() {
+        //     return Err(UserError::NotFound)?;
+        // }
+
+        // let user = user.unwrap();
+
+        // if !argon2::verify_encoded(&user.password, login.password.as_bytes()).unwrap() {
+        //     return Err(UserError::InvalidPassword)?;
+        // }
+
+        // Ok(())
 
         Ok(())
     }

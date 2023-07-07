@@ -1,10 +1,12 @@
 use dotenvy::var;
+use redis::{aio::Connection, Client};
 use scylla::{prepared_statement::PreparedStatement, Session, SessionBuilder};
 use std::{collections::HashMap, sync::Arc};
 use tokio::fs;
 use tracing::info;
 
 pub struct Database {
+    redis: Client,
     scylla: Session,
     pub statements: Arc<HashMap<String, PreparedStatement>>,
 }
@@ -12,22 +14,24 @@ pub struct Database {
 impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
-
-        let session = SessionBuilder::new()
+        let scylla = SessionBuilder::new()
             .known_node(var("DB_URL").unwrap())
             .build()
             .await
             .unwrap();
 
+        let redis = Client::open(var("REDIS_URL").unwrap()).unwrap();
+
         info!("Connected To Database! Parsing Schema...");
-        Self::parse_schema(&session).await;
+        Self::parse_schema(&scylla).await;
 
         info!("Schema Parsed!, Saving Prepared Statements...");
-        let statements = Self::prepared_statements(&session).await;
+        let statements = Self::prepared_statements(&scylla).await;
 
         info!("Prepared Statements Saved!, Returning Database Instance");
         Self {
-            scylla: session,
+            redis,
+            scylla,
             statements: Arc::new(statements),
         }
     }
@@ -57,10 +61,21 @@ impl Database {
 
         statements.insert("insert_user".to_string(), insert_user);
 
+        let select_user = session
+            .prepare("SELECT * FROM intelli_api.users WHERE email = ? ALLOW FILTERING")
+            .await
+            .unwrap();
+
+        statements.insert("select_user".to_string(), select_user);
+
         statements
     }
 
     pub fn get_scylla(&self) -> &Session {
         &self.scylla
+    }
+
+    pub async fn get_redis(&self) -> Connection {
+        self.redis.get_async_connection().await.unwrap()
     }
 }
