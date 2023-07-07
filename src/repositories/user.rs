@@ -12,6 +12,7 @@ pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn find(&self, email: &str) -> AppResult<User>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
+    fn validate_password(&self, password: &str, hash: &str) -> bool;
 }
 
 #[async_trait]
@@ -22,37 +23,35 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn find(&self, _email: &str) -> AppResult<User> {
-        // let session = self.db_conn.get_scylla();
+    async fn find(&self, email: &str) -> AppResult<User> {
+        let session = self.db_conn.get_scylla();
 
-        // let user = session
-        //     .execute(
-        //         self.db_conn.statements.get("select_user").unwrap(),
-        //         (email,),
-        //     )
-        //     .await
-        //     .unwrap()
-        //     .single_row_typed::<User>()
-        //     .unwrap();
+        let user = session
+            .execute(
+                self.db_conn.statements.get("select_user").unwrap(),
+                (email,),
+            )
+            .await?
+            .single_row_typed::<User>()?;
 
-        // Ok(Some(user))
-
-        unimplemented!()
+        Ok(user)
     }
 
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
         let session = self.db_conn.get_scylla();
 
         let rows = session
-            .query(
-                "SELECT email FROM intelli_api.users where email = ? ALLOW FILTERING",
+            .execute(
+                self.db_conn.statements.get("find_by_email").unwrap(),
                 (email,),
             )
-            .await
-            .unwrap()
-            .rows_num()
-            .unwrap();
+            .await?
+            .rows_num()?;
 
         Ok(rows > 0)
+    }
+
+    fn validate_password(&self, pwd: &str, hash: &str) -> bool {
+        argon2::verify_encoded(hash, pwd.as_bytes()).unwrap()
     }
 }

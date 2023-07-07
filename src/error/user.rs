@@ -6,12 +6,18 @@ use thiserror::Error;
 pub enum UserError {
     #[error("User already exists")]
     AlreadyExists,
+    #[error("User not found")]
+    NotFound,
+    #[error("Invalid credentials")]
+    InvalidCredentials,
 }
 
 impl IntoResponse for UserError {
     fn into_response(self) -> axum::response::Response {
         let status_code = match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
+            UserError::NotFound => StatusCode::NOT_FOUND,
+            UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

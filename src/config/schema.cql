@@ -33,10 +33,10 @@ CREATE TABLE IF NOT EXISTS intelli_api.final_classification_data (
 
 CREATE TABLE IF NOT EXISTS intelli_api.users (
     id text,
+    email text,
     username text,
     password text,
-    email text,
-    created_at timestamp,
     updated_at timestamp,
+    created_at timestamp,
     PRIMARY KEY (id, email)
 );

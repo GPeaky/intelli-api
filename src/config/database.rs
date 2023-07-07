@@ -61,8 +61,15 @@ impl Database {
 
         statements.insert("insert_user".to_string(), insert_user);
 
+        let find_by_email = session
+            .prepare("SELECT email FROM intelli_api.users where email = ? ALLOW FILTERING")
+            .await
+            .unwrap();
+
+        statements.insert("find_by_email".to_string(), find_by_email);
+
         let select_user = session
-            .prepare("SELECT * FROM intelli_api.users WHERE email = ? ALLOW FILTERING")
+            .prepare("SELECT * FROM intelli_api.users where email = ? ALLOW FILTERING")
             .await
             .unwrap();
 

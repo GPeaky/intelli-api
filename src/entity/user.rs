@@ -4,11 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub id: i64,
-    pub username: String,
-    #[serde(skip_serializing)]
-    pub password: String,
+    pub id: String,
     pub email: String,
     pub created_at: DateTime<Utc>,
+    pub password: String,
     pub updated_at: DateTime<Utc>,
+    pub username: String,
 }

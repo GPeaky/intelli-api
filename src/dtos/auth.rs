@@ -1,6 +1,12 @@
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_trim::string_trim;
+
+#[derive(Serialize)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+}
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct RegisterUserDto {
@@ -17,9 +23,9 @@ pub struct RegisterUserDto {
 
 #[derive(Deserialize, Validate)]
 pub struct LoginUserDto {
-    #[garde(length(min = 3, max = 20))]
+    #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
-    pub username: String,
+    pub email: String,
     #[garde(length(min = 8, max = 20))]
     #[serde(deserialize_with = "string_trim")]
     pub password: String,
