@@ -15,7 +15,7 @@ use crate::{
 
 pub async fn create_championship(
     Extension(user): Extension<User>,
-    State(state): State<UserState>,
+    State(mut state): State<UserState>,
     Form(form): Form<CreateChampionshipDto>,
 ) -> AppResult<Response> {
     if form.validate(&()).is_err() {

@@ -28,7 +28,7 @@ async fn main() -> Result<(), Error> {
 
     info!("Server listening on {}", listener.local_addr().unwrap());
     Server::from_tcp(listener)?
-        .serve(service_routes(Arc::new(db)))
+        .serve(service_routes(Arc::new(db)).await)
         .await?;
 
     Ok(())

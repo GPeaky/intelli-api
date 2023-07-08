@@ -102,6 +102,13 @@ impl Database {
 
         statements.insert("select_name_by_name".to_string(), find_by_name);
 
+        let get_championships_ports = session
+            .prepare("SELECT port FROM intelli_api.championships")
+            .await
+            .unwrap();
+
+        statements.insert("select_ports".to_string(), get_championships_ports);
+
         statements
     }
 

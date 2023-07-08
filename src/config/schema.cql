@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS intelli_api.users (
 
 CREATE TABLE IF NOT EXISTS intelli_api.championships (
     id text PRIMARY KEY,
-    port int,
+    port smallint,
     name text,
     user_id text,
     updated_at timestamp,

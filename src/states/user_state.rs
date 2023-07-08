@@ -17,12 +17,12 @@ pub struct UserState {
 }
 
 impl UserState {
-    pub fn new(db_conn: &Arc<Database>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             user_service: UserService::new(db_conn),
             user_repository: UserRepository::new(db_conn),
             token_service: TokenService::new(db_conn),
-            championship_service: ChampionshipService::new(db_conn),
+            championship_service: ChampionshipService::new(db_conn).await,
             championship_repository: ChampionshipRepository::new(db_conn),
         }
     }

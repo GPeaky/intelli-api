@@ -15,9 +15,9 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub(crate) fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
+pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
-    let user_state = UserState::new(&database);
+    let user_state = UserState::new(&database).await;
 
     let auth_router = Router::new()
         .route("/register", post(register))
