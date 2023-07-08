@@ -1,5 +1,6 @@
 use crate::{
     dtos::{AuthResponse, LoginUserDto, RegisterUserDto, TokenType},
+    entity::User,
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait, VerifyEmailTemplate},
@@ -9,9 +10,10 @@ use axum::{
     extract::{Form, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    Extension, Json,
 };
 use garde::Validate;
+use hyper::HeaderMap;
 
 pub(crate) async fn register(
     State(state): State<AuthState>,
@@ -43,12 +45,19 @@ pub(crate) async fn register(
 }
 
 pub(crate) async fn login(
+    headers: HeaderMap,
     State(state): State<AuthState>,
     Form(form): Form<LoginUserDto>,
 ) -> AppResult<Json<AuthResponse>> {
     if form.validate(&()).is_err() {
         return Err(CommonError::FormValidationFailed)?;
     }
+
+    let fingerprint = headers
+        .get("Fingerprint")
+        .ok_or(UserError::InvalidFingerprint)?
+        .to_str()
+        .map_err(|_| UserError::InvalidFingerprint)?;
 
     let user = state
         .user_repository
@@ -73,11 +82,30 @@ pub(crate) async fn login(
 
     let refresh_token = state
         .token_service
-        .generate_refresh_token(user.id, "refresh")
+        .generate_refresh_token(user.id, fingerprint)
         .await?;
 
     Ok(Json(AuthResponse {
         access_token,
         refresh_token,
     }))
+}
+
+pub(crate) async fn logout(
+    headers: HeaderMap,
+    State(state): State<AuthState>,
+    Extension(user): Extension<User>,
+) -> AppResult<Response> {
+    let fingerprint = headers
+        .get("Fingerprint")
+        .ok_or(UserError::InvalidFingerprint)?
+        .to_str()
+        .map_err(|_| UserError::InvalidFingerprint)?;
+
+    state
+        .token_service
+        .remove_refresh_token(user.id, fingerprint)
+        .await?;
+
+    Ok(StatusCode::OK.into_response())
 }

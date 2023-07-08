@@ -14,6 +14,8 @@ pub enum UserError {
     MailError,
     #[error("Not verified user")]
     NotVerified,
+    #[error("Invalid fingerprint")]
+    InvalidFingerprint,
 }
 
 impl IntoResponse for UserError {
@@ -24,6 +26,7 @@ impl IntoResponse for UserError {
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             UserError::MailError => StatusCode::INTERNAL_SERVER_ERROR,
             UserError::NotVerified => StatusCode::UNAUTHORIZED,
+            UserError::InvalidFingerprint => StatusCode::BAD_REQUEST,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

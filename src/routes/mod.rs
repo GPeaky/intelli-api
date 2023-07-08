@@ -1,7 +1,7 @@
 use crate::{
     config::Database,
     handlers::{
-        auth::{login, register},
+        auth::{login, logout, register},
         championships::create_championship,
         verify::verify_email,
     },
@@ -22,6 +22,13 @@ pub(crate) fn service_routes(database: Arc<Database>) -> IntoMakeService<Router>
     let auth_router = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route(
+            "/logout",
+            get(logout).route_layer(middleware::from_fn_with_state(
+                user_state.clone(),
+                auth_handler,
+            )),
+        )
         .with_state(auth_state.clone());
 
     let verify_router = Router::new()
