@@ -2,7 +2,7 @@ use crate::{
     config::Database,
     handlers::{
         auth::{login, register},
-        init,
+        championships::create_championship,
         verify::verify_email,
     },
     middlewares::auth_handler,
@@ -29,7 +29,7 @@ pub(crate) fn service_routes(database: Arc<Database>) -> IntoMakeService<Router>
         .with_state(auth_state);
 
     let championships_router = Router::new()
-        .route("/", get(init))
+        .route("/", post(create_championship))
         .route_layer(middleware::from_fn_with_state(
             user_state.clone(),
             auth_handler,

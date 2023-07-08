@@ -3,12 +3,11 @@ use scylla::FromRow;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
-pub struct User {
+pub struct Championship {
     pub id: String,
-    pub email: String,
-    pub active: bool,
     pub created_at: DateTime<Utc>,
-    pub password: String,
+    pub name: String,
+    pub port: i32,
     pub updated_at: DateTime<Utc>,
-    pub username: String,
+    pub user_id: String,
 }

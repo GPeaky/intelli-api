@@ -1,4 +1,4 @@
-use super::{user::UserError, CommonError, TokenError};
+use super::{user::UserError, ChampionshipError, CommonError, TokenError};
 use crate::response::AppErrorResponse;
 use axum::{
     http::StatusCode,
@@ -17,6 +17,8 @@ pub enum AppError {
     #[error(transparent)]
     User(#[from] UserError),
     #[error(transparent)]
+    Championship(#[from] ChampionshipError),
+    #[error(transparent)]
     Token(#[from] TokenError),
     #[error(transparent)]
     Common(#[from] CommonError),
@@ -34,6 +36,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
             AppError::User(e) => e.into_response(),
+            AppError::Championship(e) => e.into_response(),
             AppError::Token(e) => e.into_response(),
             AppError::Common(e) => e.into_response(),
             AppError::Query(e) => {

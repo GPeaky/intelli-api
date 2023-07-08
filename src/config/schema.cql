@@ -47,5 +47,7 @@ CREATE TABLE IF NOT EXISTS intelli_api.championships (
     id text PRIMARY KEY,
     port int,
     name text,
-    user_id text
+    user_id text,
+    updated_at timestamp,
+    created_at timestamp,
 );

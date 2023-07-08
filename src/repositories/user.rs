@@ -1,4 +1,4 @@
-use crate::{config::Database, entity::user::User, error::AppResult};
+use crate::{config::Database, entity::User, error::AppResult};
 use axum::async_trait;
 use std::sync::Arc;
 

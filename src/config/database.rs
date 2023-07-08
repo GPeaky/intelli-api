@@ -86,6 +86,22 @@ impl Database {
 
         statements.insert("activate_user".to_string(), activate_user);
 
+        let insert_championships = session
+            .prepare(
+                "INSERT INTO intelli_api.championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .await
+            .unwrap();
+
+        statements.insert("insert_championship".to_owned(), insert_championships);
+
+        let find_by_name = session
+            .prepare("SELECT name FROM intelli_api.championships where name = ? ALLOW FILTERING")
+            .await
+            .unwrap();
+
+        statements.insert("select_name_by_name".to_string(), find_by_name);
+
         statements
     }
 
