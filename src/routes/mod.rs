@@ -35,6 +35,7 @@ pub(crate) fn service_routes(database: Arc<Database>) -> IntoMakeService<Router>
         .route("/email", get(verify_email))
         .with_state(auth_state);
 
+    // todo: Delete Championship, Get Championship
     let championships_router = Router::new()
         .route("/", post(create_championship))
         .route_layer(middleware::from_fn_with_state(
@@ -42,6 +43,8 @@ pub(crate) fn service_routes(database: Arc<Database>) -> IntoMakeService<Router>
             auth_handler,
         ))
         .with_state(user_state);
+
+    // todo: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
 
     Router::new()
         .nest("/auth", auth_router)
