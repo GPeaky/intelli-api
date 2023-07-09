@@ -29,7 +29,7 @@ impl UserRepositoryTrait for UserRepository {
 
         let user = session
             .execute(
-                self.db_conn.statements.get("select_user_by_email").unwrap(),
+                self.db_conn.statements.get("user_by_email").unwrap(),
                 (email,),
             )
             .await?
@@ -42,10 +42,7 @@ impl UserRepositoryTrait for UserRepository {
         let session = self.db_conn.get_scylla();
 
         let user = session
-            .execute(
-                self.db_conn.statements.get("select_user_by_id").unwrap(),
-                (id,),
-            )
+            .execute(self.db_conn.statements.get("user_by_id").unwrap(), (id,))
             .await?
             .single_row_typed::<User>()?;
 
@@ -57,10 +54,7 @@ impl UserRepositoryTrait for UserRepository {
 
         let rows = session
             .execute(
-                self.db_conn
-                    .statements
-                    .get("select_email_by_email")
-                    .unwrap(),
+                self.db_conn.statements.get("user_email_by_email").unwrap(),
                 (email,),
             )
             .await?

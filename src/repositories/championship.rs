@@ -19,7 +19,10 @@ impl ChampionshipRepository {
         let ports_in_use = self
             .database
             .get_scylla()
-            .execute(self.database.statements.get("select_ports").unwrap(), &[])
+            .execute(
+                self.database.statements.get("championships_ports").unwrap(),
+                &[],
+            )
             .await?
             .rows_typed_or_empty::<(i16,)>();
 
@@ -31,7 +34,10 @@ impl ChampionshipRepository {
             .database
             .get_scylla()
             .execute(
-                self.database.statements.get("select_name_by_name").unwrap(),
+                self.database
+                    .statements
+                    .get("championship_name_by_name")
+                    .unwrap(),
                 (name,),
             )
             .await?
