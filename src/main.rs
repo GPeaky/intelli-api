@@ -1,4 +1,5 @@
 use axum::Server;
+use axum_server::{tls_rustls::RustlsConfig, HttpConfig};
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use hyper::Error;
@@ -27,9 +28,24 @@ async fn main() -> Result<(), Error> {
     let listener = TcpListener::bind(var("HOST").unwrap()).unwrap();
 
     info!("Server listening on {}", listener.local_addr().unwrap());
-    Server::from_tcp(listener)?
-        .serve(service_routes(Arc::new(db)).await)
-        .await?;
+    if cfg!(debug_assertions) {
+        Server::from_tcp(listener)?
+            .serve(service_routes(Arc::new(db)).await)
+            .await?;
+    } else {
+        let config = RustlsConfig::from_pem(
+            include_bytes!("../certs/cert.pem").to_vec(),
+            include_bytes!("../certs/key.pem").to_vec(),
+        )
+        .await
+        .unwrap();
+
+        axum_server::from_tcp_rustls(listener, config)
+            .http_config(HttpConfig::new().http2_only(true).build())
+            .serve(service_routes(Arc::new(db)).await)
+            .await
+            .unwrap();
+    }
 
     Ok(())
 }

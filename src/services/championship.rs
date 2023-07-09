@@ -6,7 +6,8 @@ use crate::{
 };
 use chrono::Utc;
 use rs_nanoid::standard;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct ChampionshipService {
@@ -43,6 +44,7 @@ impl ChampionshipService {
             return Err(ChampionshipError::AlreadyExists)?;
         }
 
+        // todo: restrict port to receive only one connection, and release it when the connection is closed
         let port = self.get_port().await?;
         let time = Utc::now().timestamp();
 
@@ -85,12 +87,12 @@ impl ChampionshipService {
     }
 
     async fn get_port(&self) -> AppResult<i16> {
-        let ports = self.ports.read().unwrap();
+        let ports = self.ports.read().await;
         Ok(*ports.first().unwrap())
     }
 
     async fn remove_port(&self, port: i16) -> AppResult<()> {
-        let mut ports = self.ports.write().unwrap();
+        let mut ports = self.ports.write().await;
         let port_index = ports.iter().position(|&p| p == port).unwrap();
 
         ports.remove(port_index);
