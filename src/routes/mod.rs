@@ -1,7 +1,7 @@
 use crate::{
     config::Database,
     handlers::{
-        auth::{login, logout, register},
+        auth::{login, logout, refresh_token, register},
         championships::create_championship,
         init,
         verify::verify_email,
@@ -23,6 +23,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     let auth_router = Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/refresh", get(refresh_token))
         .route(
             "/logout",
             get(logout).route_layer(middleware::from_fn_with_state(

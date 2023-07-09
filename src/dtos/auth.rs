@@ -8,6 +8,11 @@ pub struct AuthResponse {
     pub refresh_token: String,
 }
 
+#[derive(Serialize)]
+pub struct RefreshResponse {
+    pub access_token: String,
+}
+
 #[derive(Clone, Deserialize, Debug, Validate)]
 pub struct RegisterUserDto {
     #[garde(length(min = 3, max = 20))]

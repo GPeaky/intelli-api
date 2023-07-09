@@ -1,5 +1,5 @@
 use crate::{
-    dtos::{AuthResponse, LoginUserDto, RegisterUserDto, TokenType},
+    dtos::{AuthResponse, LoginUserDto, RefreshResponse, RegisterUserDto, TokenType},
     entity::User,
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
@@ -88,6 +88,32 @@ pub(crate) async fn login(
     Ok(Json(AuthResponse {
         access_token,
         refresh_token,
+    }))
+}
+
+pub(crate) async fn refresh_token(
+    headers: HeaderMap,
+    State(state): State<AuthState>,
+) -> AppResult<Json<RefreshResponse>> {
+    let fingerprint = headers
+        .get("Fingerprint")
+        .ok_or(UserError::InvalidFingerprint)?
+        .to_str()
+        .map_err(|_| UserError::InvalidFingerprint)?;
+
+    let refresh_token = headers
+        .get("RefreshToken")
+        .ok_or(UserError::InvalidRefreshToken)?
+        .to_str()
+        .map_err(|_| UserError::InvalidRefreshToken)?;
+
+    let new_token = state
+        .token_service
+        .refresh_access_token(refresh_token, fingerprint)
+        .await?;
+
+    Ok(Json(RefreshResponse {
+        access_token: new_token,
     }))
 }
 

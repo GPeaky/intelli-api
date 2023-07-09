@@ -16,6 +16,8 @@ pub enum TokenError {
     MissingToken,
     #[error("Token error: {0}")]
     TokenCreationError(String),
+    #[error("Invalid token type")]
+    InvalidTokenType,
 }
 
 impl IntoResponse for TokenError {
@@ -25,6 +27,7 @@ impl IntoResponse for TokenError {
             TokenError::TokenExpired => StatusCode::BAD_REQUEST,
             TokenError::MissingToken => StatusCode::BAD_REQUEST,
             TokenError::TokenCreationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            TokenError::InvalidTokenType => StatusCode::BAD_REQUEST,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))
