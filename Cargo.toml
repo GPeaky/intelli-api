@@ -33,6 +33,7 @@ redis = { version = "0.23.0", features = ["tokio-comp"] }
 lettre = { version = "0.10.4", features = ["tokio1-native-tls", "builder"] }
 askama = "0.12.0"
 axum-server = { version = "0.5.1", features = ["tls-rustls"] }
+tower = { version = "0.4.13", features = ["limit", "buffer", "tokio", "timeout"] }
 
 [profile.release]
 opt-level = "z"
