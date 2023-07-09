@@ -3,6 +3,7 @@ use crate::{
     handlers::{
         auth::{login, logout, register},
         championships::create_championship,
+        init,
         verify::verify_email,
     },
     middlewares::auth_handler,
@@ -47,6 +48,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     // todo: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
 
     Router::new()
+        .route("/", get(init))
         .nest("/auth", auth_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
