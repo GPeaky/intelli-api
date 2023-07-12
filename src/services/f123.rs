@@ -9,8 +9,8 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{net::UdpSocket, sync::RwLock, task::JoinHandle};
-use tracing::error;
+use tokio::{net::UdpSocket, process::Command, sync::RwLock, task::JoinHandle};
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -27,6 +27,7 @@ impl F123Service {
     }
 
     pub async fn new_socket(&self, port: i16, championship_id: String) {
+        self.open_machine_port(port).await.unwrap();
         let db = self.db_conn.clone();
 
         let socket = tokio::spawn(async move {
@@ -189,15 +190,8 @@ impl F123Service {
         }
     }
 
-    // pub async fn active_sockets(&self) {
-    //     let sockets = self.sockets.read().await;
-
-    //     for socket in sockets.iter() {
-    //         println!("Socket: {:?}", socket);
-    //     }
-    // }
-
-    pub async fn stop_socket(&self, championship_id: String) -> AppResult<()> {
+    pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
+        self.close_machine_port(port).await.unwrap();
         let mut sockets = self.sockets.write().await;
 
         let Some(socket) = sockets.remove(&championship_id) else {
@@ -208,6 +202,14 @@ impl F123Service {
         Ok(())
     }
 
+    // pub async fn active_sockets(&self) {
+    //     let sockets = self.sockets.read().await;
+
+    //     for socket in sockets.iter() {
+    //         println!("Socket: {:?}", socket);
+    //     }
+    // }
+
     // pub async fn stop_all_sockets(&self) {
     //     let mut sockets = self.sockets.write().await;
 
@@ -217,4 +219,62 @@ impl F123Service {
 
     //     sockets.clear();
     // }
+
+    async fn open_machine_port(&self, port: i16) -> tokio::io::Result<()> {
+        let port_str = port.to_string();
+
+        if cfg!(unix) {
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-A")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(port_str)
+                .arg("-j")
+                .arg("ACCEPT")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to open port with iptables",
+                ));
+            }
+        } else {
+            info!("The machine is not running a unix based OS, so the port will not be opened automatically");
+        }
+
+        Ok(())
+    }
+
+    async fn close_machine_port(&self, port: i16) -> tokio::io::Result<()> {
+        if cfg!(unix) {
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-D")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(port.to_string())
+                .arg("-j")
+                .arg("ACCEPT")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to close port with iptables",
+                ));
+            }
+        } else {
+            info!("The machine is not running a unix based OS, so the port will not be closed automatically");
+        }
+
+        Ok(())
+    }
 }

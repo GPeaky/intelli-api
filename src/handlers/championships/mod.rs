@@ -56,7 +56,12 @@ pub async fn stop_socket(
     State(state): State<UserState>,
     Path(championship_id): Path<String>,
 ) -> AppResult<Response> {
-    state.f123_service.stop_socket(championship_id).await?;
+    let championship = state.championship_repository.find(&championship_id).await?;
+
+    state
+        .f123_service
+        .stop_socket(championship_id, championship.port)
+        .await?;
 
     Ok(StatusCode::OK.into_response())
 }
