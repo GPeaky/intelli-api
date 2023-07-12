@@ -38,7 +38,8 @@ impl F123Service {
             let session = db.get_scylla();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
-            let close_port_for_all_except = Self::close_port_for_all_except;
+            let (close_port_for_all_except, close_machine_port) =
+                (Self::close_port_for_all_except, Self::close_machine_port);
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
@@ -48,6 +49,7 @@ impl F123Service {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, address)) => {
                         if !closed_ports {
+                            close_machine_port(port).await.unwrap();
                             close_port_for_all_except(port as u16, address.ip())
                                 .await
                                 .unwrap();
@@ -219,7 +221,7 @@ impl F123Service {
     // }
 
     pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
-        self.close_machine_port(port).await.unwrap();
+        Self::close_machine_port(port).await.unwrap();
         let mut sockets = self.sockets.write().await;
 
         let Some(socket) = sockets.remove(&championship_id) else {
@@ -311,7 +313,7 @@ impl F123Service {
         Ok(())
     }
 
-    async fn close_machine_port(&self, port: i16) -> tokio::io::Result<()> {
+    async fn close_machine_port(port: i16) -> tokio::io::Result<()> {
         if cfg!(unix) {
             let output = Command::new("sudo")
                 .arg("iptables")
