@@ -28,7 +28,6 @@ impl F123Service {
     }
 
     pub async fn new_socket(&self, port: i16, championship_id: String) {
-        self.open_machine_port(port).await.unwrap();
         let db = self.db_conn.clone();
 
         let socket = tokio::spawn(async move {
@@ -38,11 +37,14 @@ impl F123Service {
             let session = db.get_scylla();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
-            let close_port_for_all_except = Self::close_port_for_all_except;
+            let (open_machine_port, close_port_for_all_except) =
+                (Self::open_machine_port, Self::close_port_for_all_except);
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
             };
+
+            open_machine_port(port).await.unwrap();
 
             loop {
                 match socket.recv_from(&mut buf).await {
@@ -231,7 +233,7 @@ impl F123Service {
         Ok(())
     }
 
-    async fn open_machine_port(&self, port: i16) -> tokio::io::Result<()> {
+    async fn open_machine_port(port: i16) -> tokio::io::Result<()> {
         let port_str = port.to_string();
 
         if cfg!(unix) {
