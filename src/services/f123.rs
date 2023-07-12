@@ -17,6 +17,7 @@ use tracing::{error, info};
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Arc<RwLock<HashMap<String, JoinHandle<()>>>>,
+    ip_addresses: Arc<RwLock<HashMap<String, IpAddr>>>,
 }
 
 impl F123Service {
@@ -24,16 +25,18 @@ impl F123Service {
         Self {
             db_conn: db_conn.clone(),
             sockets: Arc::new(RwLock::new(HashMap::new())),
+            ip_addresses: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     pub async fn new_socket(&self, port: i16, championship_id: String) {
         let db = self.db_conn.clone();
+        let ip_addresses = self.ip_addresses.clone();
+        let chm_id = championship_id.clone();
 
         let socket = tokio::spawn(async move {
             let mut buf = vec![0; 2048];
             let mut closed_ports = false;
-            let db = db.clone();
             let session = db.get_scylla();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -55,10 +58,14 @@ impl F123Service {
                                 .unwrap();
 
                             closed_ports = true;
+
+                            {
+                                let mut ip_addresses = ip_addresses.write().await;
+                                ip_addresses.insert(championship_id.clone(), address.ip());
+                            }
                         }
 
                         let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
-                            error!("There was an error parsing the header");
                             continue;
                         };
                         let session_id = header.m_sessionUID as i64;
@@ -199,7 +206,7 @@ impl F123Service {
 
         {
             let mut sockets = self.sockets.write().await;
-            sockets.insert(championship_id, socket);
+            sockets.insert(chm_id, socket);
         }
     }
 
@@ -222,7 +229,12 @@ impl F123Service {
     // }
 
     pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
-        Self::close_machine_port(port).await.unwrap();
+        {
+            let ip_addresses = self.ip_addresses.read().await;
+            let ip = ip_addresses.get(&championship_id).unwrap();
+            Self::close_machine_port(port, *ip).await.unwrap();
+        }
+
         let mut sockets = self.sockets.write().await;
 
         let Some(socket) = sockets.remove(&championship_id) else {
@@ -345,12 +357,13 @@ impl F123Service {
         Ok(())
     }
 
-    async fn close_machine_port(port: i16) -> tokio::io::Result<()> {
+    async fn close_machine_port(port: i16, ip: IpAddr) -> tokio::io::Result<()> {
         if cfg!(unix) {
             let port_str = port.to_string();
+            let ip_str = ip.to_string();
 
             // Elimina la regla que permite las conexiones desde una IP específica
-            let output = Command::new("sudo")
+            match Command::new("sudo")
                 .arg("iptables")
                 .arg("-D")
                 .arg("INPUT")
@@ -359,21 +372,22 @@ impl F123Service {
                 .arg("--dport")
                 .arg(&port_str)
                 .arg("-s")
-                .arg("IP_ESPECÍFICA")
+                .arg(&ip_str)
                 .arg("-j")
                 .arg("ACCEPT")
                 .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to remove specific IP rule with iptables",
-                ));
+                .await
+            {
+                Ok(output) => {
+                    if !output.status.success() {
+                        eprintln!("Failed to remove specific IP rule with iptables");
+                    }
+                }
+                Err(e) => eprintln!("Failed to execute command: {}", e),
             }
 
             // Elimina la regla que bloquea todas las demás conexiones
-            let output = Command::new("sudo")
+            match Command::new("sudo")
                 .arg("iptables")
                 .arg("-D")
                 .arg("INPUT")
@@ -384,13 +398,14 @@ impl F123Service {
                 .arg("-j")
                 .arg("DROP")
                 .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to remove drop rule with iptables",
-                ));
+                .await
+            {
+                Ok(output) => {
+                    if !output.status.success() {
+                        eprintln!("Failed to remove drop rule with iptables");
+                    }
+                }
+                Err(e) => eprintln!("Failed to execute command: {}", e),
             }
         } else {
             info!("The machine is not running a unix based OS, so the port will not be closed automatically");
