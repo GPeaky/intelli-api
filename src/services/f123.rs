@@ -6,6 +6,7 @@ use crate::{
 use bincode::serialize;
 use std::{
     collections::HashMap,
+    net::IpAddr,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -31,19 +32,28 @@ impl F123Service {
         let db = self.db_conn.clone();
 
         let socket = tokio::spawn(async move {
+            let mut buf = vec![0; 2048];
+            let mut closed_ports = false;
+            let db = db.clone();
             let session = db.get_scylla();
-            let statements = &db.statements;
-            let mut last_session_update: HashMap<i64, Instant> = HashMap::new();
-            let mut last_car_motion_update: HashMap<i64, Instant> = HashMap::new();
+            let mut last_session_update = Instant::now();
+            let mut last_car_motion_update = Instant::now();
+            let close_port_for_all_except = Self::close_port_for_all_except;
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
             };
-            let mut buf = vec![0; 2048];
 
             loop {
                 match socket.recv_from(&mut buf).await {
-                    Ok((size, _)) => {
+                    Ok((size, address)) => {
+                        if !closed_ports {
+                            close_port_for_all_except(port as u16, address.ip())
+                                .await
+                                .unwrap();
+                            closed_ports = true;
+                        }
+
                         let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
                             error!("There was an error parsing the header");
                             continue;
@@ -63,9 +73,8 @@ impl F123Service {
                             F123Packet::Motion(motion_data) => {
                                 let now = Instant::now();
 
-                                if !last_car_motion_update.contains_key(&session_id)
-                                    || now.duration_since(last_car_motion_update[&session_id])
-                                        >= Duration::from_millis(500)
+                                if now.duration_since(last_car_motion_update)
+                                    >= Duration::from_millis(500)
                                 {
                                     let Ok(data) = serialize(&motion_data) else {
                                         error!("There was an error serializing the motion data");
@@ -74,22 +83,21 @@ impl F123Service {
 
                                     session
                                         .execute(
-                                            statements.get("insert_car_motion").unwrap(),
+                                            db.statements.get("insert_car_motion").unwrap(),
                                             (session_id, data),
                                         )
                                         .await
                                         .unwrap();
 
-                                    last_car_motion_update.insert(session_id, now);
+                                    last_car_motion_update = now;
                                 }
                             }
 
                             F123Packet::Session(session_data) => {
                                 let now = Instant::now();
 
-                                if !last_session_update.contains_key(&session_id)
-                                    || now.duration_since(last_session_update[&session_id])
-                                        >= Duration::from_secs(30)
+                                if now.duration_since(last_session_update)
+                                    >= Duration::from_secs(30)
                                 {
                                     let Ok(data) = serialize(&session_data) else {
                                         error!("There was an error serializing the session data");
@@ -98,13 +106,13 @@ impl F123Service {
 
                                     session
                                         .execute(
-                                            statements.get("insert_game_session").unwrap(),
+                                            db.statements.get("insert_game_session").unwrap(),
                                             (session_id, data),
                                         )
                                         .await
                                         .unwrap();
 
-                                    last_session_update.insert(session_id, now);
+                                    last_session_update = now;
                                 }
                             }
 
@@ -117,7 +125,7 @@ impl F123Service {
                                 // TODO: Save lap data to database
                                 session
                                     .execute(
-                                        statements.get("insert_lap_data").unwrap(),
+                                        db.statements.get("insert_lap_data").unwrap(),
                                         (session_id, lap_info),
                                     )
                                     .await
@@ -132,7 +140,7 @@ impl F123Service {
 
                                 session
                                     .execute(
-                                        statements.get("insert_event_data").unwrap(),
+                                        db.statements.get("insert_event_data").unwrap(),
                                         (session_id, event_data.m_eventStringCode, event),
                                     )
                                     .await
@@ -148,7 +156,7 @@ impl F123Service {
 
                                 session
                                     .execute(
-                                        statements.get("insert_participant_data").unwrap(),
+                                        db.statements.get("insert_participant_data").unwrap(),
                                         (session_id, participants),
                                     )
                                     .await
@@ -165,7 +173,9 @@ impl F123Service {
 
                                 session
                                     .execute(
-                                        statements.get("insert_final_classification_data").unwrap(),
+                                        db.statements
+                                            .get("insert_final_classification_data")
+                                            .unwrap(),
                                         (session_id, classifications),
                                     )
                                     .await
@@ -190,18 +200,6 @@ impl F123Service {
         }
     }
 
-    pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
-        self.close_machine_port(port).await.unwrap();
-        let mut sockets = self.sockets.write().await;
-
-        let Some(socket) = sockets.remove(&championship_id) else {
-            Err(SocketError::NotFound)?
-        };
-
-        socket.abort();
-        Ok(())
-    }
-
     // pub async fn active_sockets(&self) {
     //     let sockets = self.sockets.read().await;
 
@@ -219,6 +217,18 @@ impl F123Service {
 
     //     sockets.clear();
     // }
+
+    pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
+        self.close_machine_port(port).await.unwrap();
+        let mut sockets = self.sockets.write().await;
+
+        let Some(socket) = sockets.remove(&championship_id) else {
+            Err(SocketError::NotFound)?
+        };
+
+        socket.abort();
+        Ok(())
+    }
 
     async fn open_machine_port(&self, port: i16) -> tokio::io::Result<()> {
         let port_str = port.to_string();
@@ -245,6 +255,57 @@ impl F123Service {
             }
         } else {
             info!("The machine is not running a unix based OS, so the port will not be opened automatically");
+        }
+
+        Ok(())
+    }
+
+    async fn close_port_for_all_except(port: u16, ip: IpAddr) -> std::io::Result<()> {
+        if cfg!(unix) {
+            let port_str = port.to_string();
+            let ip_str = ip.to_string();
+
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-A")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-s")
+                .arg(&ip_str)
+                .arg("-j")
+                .arg("ACCEPT")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to open port for specific IP with iptables",
+                ));
+            }
+
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-A")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-j")
+                .arg("DROP")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to close port for all with iptables",
+                ));
+            }
         }
 
         Ok(())
