@@ -38,8 +38,7 @@ impl F123Service {
             let session = db.get_scylla();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
-            let (close_port_for_all_except, close_machine_port) =
-                (Self::close_port_for_all_except, Self::close_machine_port);
+            let close_port_for_all_except = Self::close_port_for_all_except;
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
@@ -268,7 +267,7 @@ impl F123Service {
             let ip_str = ip.to_string();
 
             // Primero, borramos cualquier regla existente que afecte al puerto especificado.
-            Command::new("sudo")
+            let _ = Command::new("sudo")
                 .arg("iptables")
                 .arg("-D")
                 .arg("INPUT")
@@ -281,7 +280,7 @@ impl F123Service {
                 .output()
                 .await?;
 
-            Command::new("sudo")
+            let _ = Command::new("sudo")
                 .arg("iptables")
                 .arg("-D")
                 .arg("INPUT")
@@ -295,28 +294,7 @@ impl F123Service {
                 .await?;
 
             // Luego, agregamos las nuevas reglas.
-            let output = Command::new("sudo")
-                .arg("iptables")
-                .arg("-A")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-s")
-                .arg(&ip_str)
-                .arg("-j")
-                .arg("ACCEPT")
-                .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to open port for specific IP with iptables",
-                ));
-            }
-
+            // Bloquear todas las conexiones a este puerto
             let output = Command::new("sudo")
                 .arg("iptables")
                 .arg("-A")
@@ -334,6 +312,30 @@ impl F123Service {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     "Failed to close port for all with iptables",
+                ));
+            }
+
+            // Permitir conexiones desde la IP específica
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-I")
+                .arg("INPUT")
+                .arg("1")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-s")
+                .arg(&ip_str)
+                .arg("-j")
+                .arg("ACCEPT")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to open port for specific IP with iptables",
                 ));
             }
         }
