@@ -10,6 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{net::UdpSocket, sync::RwLock, task::JoinHandle};
+use tracing::error;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -25,7 +26,7 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: String) -> AppResult<()> {
+    pub async fn new_socket(&self, port: i16, championship_id: String) {
         let db = self.db_conn.clone();
 
         let socket = tokio::spawn(async move {
@@ -33,15 +34,19 @@ impl F123Service {
             let statements = &db.statements;
             let mut last_session_update: HashMap<i64, Instant> = HashMap::new();
             let mut last_car_motion_update: HashMap<i64, Instant> = HashMap::new();
-            let socket = UdpSocket::bind(format!("127.0.0.1:{}", port))
-                .await
-                .unwrap();
+            let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
+                error!("There was an error binding to the socket");
+                return;
+            };
             let mut buf = vec![0; 2048];
 
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _)) => {
-                        let header = F123Packet::parse_header(&buf[..size]).unwrap();
+                        let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
+                            error!("There was an error parsing the header");
+                            continue;
+                        };
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id == 0 {
@@ -61,7 +66,10 @@ impl F123Service {
                                     || now.duration_since(last_car_motion_update[&session_id])
                                         >= Duration::from_millis(500)
                                 {
-                                    let data = serialize(&motion_data).unwrap();
+                                    let Ok(data) = serialize(&motion_data) else {
+                                        error!("There was an error serializing the motion data");
+                                        continue;
+                                    };
 
                                     session
                                         .execute(
@@ -82,7 +90,10 @@ impl F123Service {
                                     || now.duration_since(last_session_update[&session_id])
                                         >= Duration::from_secs(30)
                                 {
-                                    let data = serialize(&session_data).unwrap();
+                                    let Ok(data) = serialize(&session_data) else {
+                                        error!("There was an error serializing the session data");
+                                        continue;
+                                    };
 
                                     session
                                         .execute(
@@ -97,7 +108,10 @@ impl F123Service {
                             }
 
                             F123Packet::LapData(lap_data) => {
-                                let lap_info = serialize(&lap_data.m_lapData).unwrap();
+                                let Ok(lap_info) = serialize(&lap_data.m_lapData) else {
+                                    error!("There was an error serializing the lap data");
+                                    continue;
+                                };
 
                                 // TODO: Save lap data to database
                                 session
@@ -110,7 +124,10 @@ impl F123Service {
                             }
 
                             F123Packet::Event(event_data) => {
-                                let event = serialize(&event_data.m_eventDetails).unwrap();
+                                let Ok(event) = serialize(&event_data.m_eventDetails) else {
+                                    error!("There was an error serializing the event data");
+                                    continue;
+                                };
 
                                 session
                                     .execute(
@@ -122,8 +139,11 @@ impl F123Service {
                             }
 
                             F123Packet::Participants(participants_data) => {
-                                let participants =
-                                    serialize(&participants_data.m_participants).unwrap();
+                                let Ok(participants) = serialize(&participants_data.m_participants)
+                                else {
+                                    error!("There was an error serializing the participants data");
+                                    continue;
+                                };
 
                                 session
                                     .execute(
@@ -135,8 +155,12 @@ impl F123Service {
                             }
 
                             F123Packet::FinalClassification(classification_data) => {
-                                let classifications =
-                                    serialize(&classification_data.m_classificationData).unwrap();
+                                let Ok(classifications) =
+                                    serialize(&classification_data.m_classificationData)
+                                else {
+                                    error!("There was an error serializing the final classification data");
+                                    continue;
+                                };
 
                                 session
                                     .execute(
@@ -153,7 +177,7 @@ impl F123Service {
                     }
 
                     Err(e) => {
-                        println!("Error receiving packet: {}", e);
+                        error!("Error receiving packet: {}", e);
                     }
                 }
             }
@@ -163,8 +187,6 @@ impl F123Service {
             let mut sockets = self.sockets.write().await;
             sockets.insert(championship_id, socket);
         }
-
-        Ok(())
     }
 
     // pub async fn active_sockets(&self) {

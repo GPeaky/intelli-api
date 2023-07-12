@@ -47,7 +47,7 @@ pub async fn start_socket(
     state
         .f123_service
         .new_socket(championship.port, championship_id)
-        .await?;
+        .await;
 
     Ok(StatusCode::CREATED.into_response())
 }
