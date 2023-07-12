@@ -267,6 +267,34 @@ impl F123Service {
             let port_str = port.to_string();
             let ip_str = ip.to_string();
 
+            // Primero, borramos cualquier regla existente que afecte al puerto especificado.
+            Command::new("sudo")
+                .arg("iptables")
+                .arg("-D")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-j")
+                .arg("ACCEPT")
+                .output()
+                .await?;
+
+            Command::new("sudo")
+                .arg("iptables")
+                .arg("-D")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-j")
+                .arg("DROP")
+                .output()
+                .await?;
+
+            // Luego, agregamos las nuevas reglas.
             let output = Command::new("sudo")
                 .arg("iptables")
                 .arg("-A")
@@ -315,6 +343,9 @@ impl F123Service {
 
     async fn close_machine_port(port: i16) -> tokio::io::Result<()> {
         if cfg!(unix) {
+            let port_str = port.to_string();
+
+            // Elimina la regla que permite las conexiones desde una IP específica
             let output = Command::new("sudo")
                 .arg("iptables")
                 .arg("-D")
@@ -322,7 +353,9 @@ impl F123Service {
                 .arg("-p")
                 .arg("udp")
                 .arg("--dport")
-                .arg(port.to_string())
+                .arg(&port_str)
+                .arg("-s")
+                .arg("IP_ESPECÍFICA")
                 .arg("-j")
                 .arg("ACCEPT")
                 .output()
@@ -331,7 +364,28 @@ impl F123Service {
             if !output.status.success() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
-                    "Failed to close port with iptables",
+                    "Failed to remove specific IP rule with iptables",
+                ));
+            }
+
+            // Elimina la regla que bloquea todas las demás conexiones
+            let output = Command::new("sudo")
+                .arg("iptables")
+                .arg("-D")
+                .arg("INPUT")
+                .arg("-p")
+                .arg("udp")
+                .arg("--dport")
+                .arg(&port_str)
+                .arg("-j")
+                .arg("DROP")
+                .output()
+                .await?;
+
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to remove drop rule with iptables",
                 ));
             }
         } else {
