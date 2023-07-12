@@ -2,7 +2,8 @@ use crate::{
     config::Database,
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
     services::{
-        ChampionshipService, TokenService, TokenServiceTrait, UserService, UserServiceTrait,
+        ChampionshipService, F123Service, TokenService, TokenServiceTrait, UserService,
+        UserServiceTrait,
     },
 };
 use std::sync::Arc;
@@ -14,12 +15,14 @@ pub struct UserState {
     pub token_service: TokenService,
     pub championship_service: ChampionshipService,
     pub championship_repository: ChampionshipRepository,
+    pub f123_service: F123Service,
 }
 
 impl UserState {
     pub async fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             user_service: UserService::new(db_conn),
+            f123_service: F123Service::new(db_conn),
             user_repository: UserRepository::new(db_conn),
             token_service: TokenService::new(db_conn),
             championship_service: ChampionshipService::new(db_conn).await,

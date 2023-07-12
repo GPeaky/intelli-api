@@ -11,9 +11,9 @@ use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct ChampionshipService {
-    pub db: Arc<Database>,
-    pub ports: Arc<RwLock<Vec<i16>>>,
-    pub championship_repository: ChampionshipRepository,
+    db: Arc<Database>,
+    ports: Arc<RwLock<Vec<i16>>>,
+    championship_repository: ChampionshipRepository,
 }
 
 impl ChampionshipService {

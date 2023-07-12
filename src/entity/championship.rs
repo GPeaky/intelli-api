@@ -7,7 +7,7 @@ pub struct Championship {
     pub id: String,
     pub created_at: DateTime<Utc>,
     pub name: String,
-    pub port: i32,
+    pub port: i16,
     pub updated_at: DateTime<Utc>,
     pub user_id: String,
 }

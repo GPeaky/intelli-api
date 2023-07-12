@@ -71,11 +71,34 @@ impl Database {
                 "INSERT INTO intelli_api.championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             );
 
+        let championship_by_id_task =
+            session.prepare("SELECT * FROM intelli_api.championships where id = ? ALLOW FILTERING");
+
         let championship_by_name_task = session
             .prepare("SELECT name FROM intelli_api.championships where name = ? ALLOW FILTERING");
 
         let championships_ports_task =
             session.prepare("SELECT port FROM intelli_api.championships");
+
+        let insert_game_session_task =
+            session.prepare("INSERT INTO intelli_api.game_sessions (id, data) VALUES (?,?);");
+
+        let insert_car_motion_task =
+            session.prepare("INSERT INTO intelli_api.car_motion (session_id, data) VALUES (?,?);");
+
+        let insert_lap_data_task =
+            session.prepare("INSERT INTO intelli_api.lap_data (session_id, lap) VALUES (?,?);");
+
+        let insert_event_data_task = session.prepare(
+            "INSERT INTO intelli_api.event_data (session_id, string_code, event) VALUES (?,?,?);",
+        );
+
+        let insert_participant_data_task = session.prepare(
+            "INSERT INTO intelli_api.participants_data (session_id, participants) VALUES (?,?);",
+        );
+
+        let insert_final_classification_data_task = session
+        .prepare("INSERT INTO intelli_api.final_classification_data (session_id, classification) VALUES (?,?);");
 
         let (
             insert_user,
@@ -86,6 +109,13 @@ impl Database {
             insert_championships,
             championship_by_name,
             championships_ports,
+            championship_by_id,
+            insert_game_session,
+            insert_car_motion,
+            insert_lap_data,
+            insert_event_data,
+            insert_participant_data,
+            insert_final_classification_data,
         ) = try_join!(
             insert_user_task,
             user_email_by_email_task,
@@ -94,7 +124,14 @@ impl Database {
             activate_user_task,
             insert_championships_task,
             championship_by_name_task,
-            championships_ports_task
+            championships_ports_task,
+            championship_by_id_task,
+            insert_game_session_task,
+            insert_car_motion_task,
+            insert_lap_data_task,
+            insert_event_data_task,
+            insert_participant_data_task,
+            insert_final_classification_data_task
         )
         .unwrap();
 
@@ -109,6 +146,19 @@ impl Database {
             championship_by_name,
         );
         statements.insert("championships_ports".to_string(), championships_ports);
+        statements.insert("championship_by_id".to_string(), championship_by_id);
+        statements.insert("insert_game_session".to_string(), insert_game_session);
+        statements.insert("insert_car_motion".to_string(), insert_car_motion);
+        statements.insert("insert_lap_data".to_string(), insert_lap_data);
+        statements.insert("insert_event_data".to_string(), insert_event_data);
+        statements.insert(
+            "insert_participant_data".to_string(),
+            insert_participant_data,
+        );
+        statements.insert(
+            "insert_final_classification_data".to_string(),
+            insert_final_classification_data,
+        );
 
         statements
     }

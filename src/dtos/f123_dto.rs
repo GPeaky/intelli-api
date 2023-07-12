@@ -1,3 +1,4 @@
+use bincode::{deserialize, Error};
 use serde::{Deserialize, Serialize};
 
 //*  --- F1 2023 Packet Data Structures ---
@@ -338,4 +339,34 @@ pub struct TyreSetData {
     pub m_usableLife: u8,         // Max number of laps recommended for this compound
     pub m_lapDeltaTime: i16,      // Lap delta time in milliseconds compared to fitted set
     pub m_fitted: u8,             // Whether the set is fitted or not
+}
+
+#[derive()]
+pub enum F123Packet {
+    Motion(PacketMotionData),
+    Session(PacketSessionData),
+    LapData(PacketLapData),
+    Event(PacketEventData),
+    Participants(PacketParticipantsData),
+    FinalClassification(PacketFinalClassificationData),
+    TyresSets(PacketTyreSetsData),
+}
+
+impl F123Packet {
+    pub fn parse(packet_id: u8, data: &[u8]) -> Result<Option<F123Packet>, Error> {
+        match packet_id {
+            0 => Ok(Some(F123Packet::Motion(deserialize(data)?))),
+            1 => Ok(Some(F123Packet::Session(deserialize(data)?))),
+            2 => Ok(Some(F123Packet::LapData(deserialize(data)?))),
+            3 => Ok(Some(F123Packet::Event(deserialize(data)?))),
+            4 => Ok(Some(F123Packet::Participants(deserialize(data)?))),
+            8 => Ok(Some(F123Packet::FinalClassification(deserialize(data)?))),
+            12 => Ok(Some(F123Packet::TyresSets(deserialize(data)?))),
+            _ => Ok(None),
+        }
+    }
+
+    pub fn parse_header(data: &[u8]) -> Result<PacketHeader, Error> {
+        deserialize::<PacketHeader>(data)
+    }
 }

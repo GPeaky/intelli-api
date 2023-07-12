@@ -1,6 +1,6 @@
 use scylla::transport::session::TypedRowIter;
 
-use crate::{config::Database, error::AppResult};
+use crate::{config::Database, entity::Championship, error::AppResult};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -27,6 +27,20 @@ impl ChampionshipRepository {
             .rows_typed_or_empty::<(i16,)>();
 
         Ok(ports_in_use)
+    }
+
+    pub async fn find(&self, id: &str) -> AppResult<Championship> {
+        let championship = self
+            .database
+            .get_scylla()
+            .execute(
+                self.database.statements.get("championship_by_id").unwrap(),
+                (id,),
+            )
+            .await?
+            .single_row_typed::<Championship>()?;
+
+        Ok(championship)
     }
 
     pub async fn championships_exists(&self, name: &str) -> AppResult<bool> {

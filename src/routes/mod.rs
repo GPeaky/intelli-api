@@ -2,7 +2,7 @@ use crate::{
     config::Database,
     handlers::{
         auth::{login, logout, refresh_token, register},
-        championships::create_championship,
+        championships::{create_championship, get_championship, start_socket, stop_socket},
         init,
         verify::verify_email,
     },
@@ -66,6 +66,9 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     // todo: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
     let championships_router = Router::new()
         .route("/", post(create_championship))
+        .route("/:id", get(get_championship))
+        .route("/:id/start_socket", get(start_socket))
+        .route("/:id/stop_socket", get(stop_socket))
         .route_layer(middleware::from_fn_with_state(
             user_state.clone(),
             auth_handler,

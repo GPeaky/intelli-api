@@ -1,4 +1,4 @@
-use super::{user::UserError, ChampionshipError, CommonError, TokenError};
+use super::{user::UserError, ChampionshipError, CommonError, SocketError, TokenError};
 use crate::response::AppErrorResponse;
 use axum::{
     http::StatusCode,
@@ -27,6 +27,8 @@ pub enum AppError {
     #[error(transparent)]
     Db(#[from] DbError),
     #[error(transparent)]
+    Socket(#[from] SocketError),
+    #[error(transparent)]
     RowsExpected(#[from] RowsExpectedError),
     #[error(transparent)]
     SingleRowTyped(#[from] SingleRowTypedError),
@@ -39,6 +41,7 @@ impl IntoResponse for AppError {
             AppError::Championship(e) => e.into_response(),
             AppError::Token(e) => e.into_response(),
             AppError::Common(e) => e.into_response(),
+            AppError::Socket(e) => e.into_response(),
             AppError::Query(e) => {
                 AppErrorResponse::send(StatusCode::INTERNAL_SERVER_ERROR, Some(e.to_string()))
             }
