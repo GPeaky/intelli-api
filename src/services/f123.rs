@@ -49,10 +49,10 @@ impl F123Service {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, address)) => {
                         if !closed_ports {
-                            close_machine_port(port).await.unwrap();
                             close_port_for_all_except(port as u16, address.ip())
                                 .await
                                 .unwrap();
+
                             closed_ports = true;
                         }
 
