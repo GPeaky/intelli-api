@@ -17,6 +17,7 @@ pub struct VerifyEmailParams {
     token: String,
 }
 
+#[inline]
 pub async fn verify_email(
     State(state): State<AuthState>,
     Query(query): Query<VerifyEmailParams>,

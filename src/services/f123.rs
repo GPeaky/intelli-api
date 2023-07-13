@@ -29,16 +29,16 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: String) {
+    pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) {
         let db = self.db_conn.clone();
         let ip_addresses = self.ip_addresses.clone();
-        let chm_id = championship_id.clone();
+        let championship_clone = championship_id.clone();
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = tokio::spawn(async move {
-            let mut buf = vec![0; 1460];
             let mut closed_ports = false;
             let session = db.get_scylla();
+            let mut buf = Vec::with_capacity(1460);
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (open_machine_port, close_port_for_all_except) =
@@ -62,7 +62,7 @@ impl F123Service {
 
                             {
                                 let mut ip_addresses = ip_addresses.write().await;
-                                ip_addresses.insert(championship_id.clone(), address.ip());
+                                ip_addresses.insert(championship_id.to_string(), address.ip());
                             }
                         }
 
@@ -207,7 +207,7 @@ impl F123Service {
 
         {
             let mut sockets = self.sockets.write().await;
-            sockets.insert(chm_id, socket);
+            sockets.insert(championship_clone.to_string(), socket);
         }
     }
 

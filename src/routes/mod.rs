@@ -19,6 +19,7 @@ use hyper::StatusCode;
 use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
 
+#[inline]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
     let user_state = UserState::new(&database).await;

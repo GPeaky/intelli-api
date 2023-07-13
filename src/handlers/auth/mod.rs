@@ -15,6 +15,7 @@ use axum::{
 use garde::Validate;
 use hyper::HeaderMap;
 
+#[inline]
 pub(crate) async fn register(
     State(state): State<AuthState>,
     Form(form): Form<RegisterUserDto>,
@@ -44,6 +45,7 @@ pub(crate) async fn register(
     Ok(StatusCode::CREATED.into_response())
 }
 
+#[inline]
 pub(crate) async fn login(
     headers: HeaderMap,
     State(state): State<AuthState>,
@@ -91,6 +93,7 @@ pub(crate) async fn login(
     }))
 }
 
+#[inline]
 pub(crate) async fn refresh_token(
     headers: HeaderMap,
     State(state): State<AuthState>,
@@ -117,6 +120,7 @@ pub(crate) async fn refresh_token(
     }))
 }
 
+#[inline]
 pub(crate) async fn logout(
     headers: HeaderMap,
     State(state): State<AuthState>,
