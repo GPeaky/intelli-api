@@ -23,10 +23,8 @@ impl Database {
         let redis = Client::open(var("REDIS_URL").unwrap()).unwrap();
 
         info!("Connected To Database! Parsing Schema & Saving Prepared Statements...");
-        let schema_task = Self::parse_schema(&scylla);
-        let statements_task = Self::prepared_statements(&scylla);
-
-        let (_, statements) = join!(schema_task, statements_task);
+        Self::parse_schema(&scylla).await;
+        let statements = Self::prepared_statements(&scylla).await;
 
         info!("Prepared Statements Saved!, Returning Database Instance");
         Self {
