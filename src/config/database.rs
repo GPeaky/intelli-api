@@ -2,7 +2,7 @@ use dotenvy::var;
 use redis::{aio::Connection, Client};
 use scylla::{prepared_statement::PreparedStatement, Session, SessionBuilder};
 use std::{collections::HashMap, sync::Arc};
-use tokio::{fs, join, try_join};
+use tokio::{fs, try_join};
 use tracing::info;
 
 pub struct Database {
