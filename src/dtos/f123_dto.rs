@@ -341,7 +341,6 @@ pub struct TyreSetData {
     pub m_fitted: u8,             // Whether the set is fitted or not
 }
 
-#[derive()]
 pub enum F123Packet {
     Motion(PacketMotionData),
     Session(PacketSessionData),
