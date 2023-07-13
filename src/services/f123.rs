@@ -34,8 +34,9 @@ impl F123Service {
         let ip_addresses = self.ip_addresses.clone();
         let chm_id = championship_id.clone();
 
+        // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = tokio::spawn(async move {
-            let mut buf = vec![0; 2048];
+            let mut buf = vec![0; 1460];
             let mut closed_ports = false;
             let session = db.get_scylla();
             let mut last_session_update = Instant::now();
