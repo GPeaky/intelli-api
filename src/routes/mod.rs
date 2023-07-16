@@ -89,7 +89,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
                         format!("Unhandled internal error: {}", e),
                     )
                 }))
-                .layer(TimeoutLayer::new(Duration::from_secs(5))),
+                .layer(TimeoutLayer::new(Duration::from_secs(30))),
         )
         .into_make_service()
 }
