@@ -81,15 +81,15 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/auth", auth_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
-        // .layer(
-        //     ServiceBuilder::new()
-        //         .layer(HandleErrorLayer::new(|e| async move {
-        //             (
-        //                 StatusCode::INTERNAL_SERVER_ERROR,
-        //                 format!("Unhandled internal error: {}", e),
-        //             )
-        //         }))
-        //         .layer(TimeoutLayer::new(Duration::from_secs(30))),
-        // )
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|e| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled internal error: {}", e),
+                    )
+                }))
+                .layer(TimeoutLayer::new(Duration::from_secs(3))),
+        )
         .into_make_service()
 }
