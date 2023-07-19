@@ -30,6 +30,7 @@ pub(crate) async fn register(
         .token_service
         .generate_token(&form.email, TokenType::Email)?;
 
+    // TODO: Check why this is not working in production
     state
         .email_service
         .send_mail(
