@@ -11,8 +11,8 @@ dotenvy = "0.15.7"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 tokio = { version = "1.29.1", features = ["full"] }
-serde = { version = "1.0.167", features = ["derive"] }
-axum = { version = "0.6.18", features = [
+serde = { version = "1.0.171", features = ["derive"] }
+axum = { version = "0.6.19", features = [
     "form",
     "macros",
     "multipart",
