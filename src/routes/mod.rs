@@ -19,6 +19,14 @@ use hyper::StatusCode;
 use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
 
+// Handles Service Errors
+async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCode, String) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Unhandled internal error: {}", e),
+    )
+}
+
 #[inline]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
@@ -38,12 +46,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .with_state(auth_state.clone())
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|e| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", e),
-                    )
-                }))
+                .layer(HandleErrorLayer::new(handle_error))
                 .layer(BufferLayer::new(1024))
                 .layer(RateLimitLayer::new(5, Duration::from_secs(120))),
         );
@@ -53,12 +56,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .with_state(auth_state)
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|e| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", e),
-                    )
-                }))
+                .layer(HandleErrorLayer::new(handle_error))
                 .layer(BufferLayer::new(1024))
                 .layer(RateLimitLayer::new(3, Duration::from_secs(30))),
         );
@@ -83,12 +81,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/championships", championships_router)
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|e| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", e),
-                    )
-                }))
+                .layer(HandleErrorLayer::new(handle_error))
                 .layer(TimeoutLayer::new(Duration::from_secs(3))),
         )
         .into_make_service()
