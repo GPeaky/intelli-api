@@ -27,7 +27,7 @@ async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCod
     )
 }
 
-#[inline]
+#[inline(always)]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
     let user_state = UserState::new(&database).await;
@@ -82,7 +82,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
-                .layer(TimeoutLayer::new(Duration::from_secs(3))),
+                .layer(TimeoutLayer::new(Duration::from_secs(5))),
         )
         .into_make_service()
 }

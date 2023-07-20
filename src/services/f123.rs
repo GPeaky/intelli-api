@@ -3,9 +3,9 @@ use crate::{
     dtos::F123Packet,
     error::{AppResult, SocketError},
 };
+use ahash::AHashMap;
 use bincode::serialize;
 use std::{
-    collections::HashMap,
     net::IpAddr,
     sync::Arc,
     time::{Duration, Instant},
@@ -16,16 +16,16 @@ use tracing::{error, info};
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<HashMap<String, JoinHandle<()>>>>,
-    ip_addresses: Arc<RwLock<HashMap<String, IpAddr>>>,
+    sockets: Arc<RwLock<AHashMap<String, JoinHandle<()>>>>,
+    ip_addresses: Arc<RwLock<AHashMap<String, IpAddr>>>,
 }
 
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
-            sockets: Arc::new(RwLock::new(HashMap::new())),
-            ip_addresses: Arc::new(RwLock::new(HashMap::new())),
+            sockets: Arc::new(RwLock::new(AHashMap::new())),
+            ip_addresses: Arc::new(RwLock::new(AHashMap::new())),
         }
     }
 
