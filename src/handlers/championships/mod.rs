@@ -11,7 +11,9 @@ use axum::{
 };
 use garde::Validate;
 use hyper::StatusCode;
-use std::sync::Arc;
+pub(crate) use sockets::*;
+
+mod sockets;
 
 #[inline(always)]
 pub async fn create_championship(
@@ -39,34 +41,4 @@ pub async fn get_championship(
     let championship = state.championship_repository.find(&championship_id).await?;
 
     Ok(Json(championship))
-}
-
-#[inline(always)]
-pub async fn start_socket(
-    State(state): State<UserState>,
-    Path(championship_id): Path<String>,
-) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
-
-    state
-        .f123_service
-        .new_socket(championship.port, Arc::new(championship_id))
-        .await;
-
-    Ok(StatusCode::CREATED.into_response())
-}
-
-#[inline(always)]
-pub async fn stop_socket(
-    State(state): State<UserState>,
-    Path(championship_id): Path<String>,
-) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
-
-    state
-        .f123_service
-        .stop_socket(championship_id, championship.port)
-        .await?;
-
-    Ok(StatusCode::OK.into_response())
 }
