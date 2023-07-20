@@ -5,6 +5,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use bincode::serialize;
+use bytes::BytesMut;
 use std::{
     net::IpAddr,
     sync::Arc,
@@ -29,16 +30,24 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) {
+    pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) -> AppResult<()> {
+        {
+            let sockets = self.sockets.read().await;
+
+            if sockets.contains_key(&championship_id.to_string()) {
+                return Err(SocketError::AlreadyExists.into());
+            }
+        }
+
         let db = self.db_conn.clone();
-        let ip_addresses = self.ip_addresses.clone();
         let championship_clone = championship_id.clone();
+        let ip_addresses = self.ip_addresses.clone();
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
-        let socket = tokio::spawn(async move {
+        let socket = tokio::task::spawn(async move {
             let mut closed_ports = false;
             let session = db.get_scylla();
-            let mut buf = Vec::with_capacity(1460);
+            let mut buf = BytesMut::with_capacity(1460);
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (open_machine_port, close_port_for_all_except) =
@@ -209,15 +218,15 @@ impl F123Service {
             let mut sockets = self.sockets.write().await;
             sockets.insert(championship_clone.to_string(), socket);
         }
+
+        Ok(())
     }
 
-    // pub async fn active_sockets(&self) {
-    //     let sockets = self.sockets.read().await;
+    pub async fn active_sockets(&self) -> AppResult<Vec<String>> {
+        let sockets = self.sockets.read().await;
 
-    //     for socket in sockets.iter() {
-    //         println!("Socket: {:?}", socket);
-    //     }
-    // }
+        Ok(sockets.keys().cloned().collect())
+    }
 
     // pub async fn stop_all_sockets(&self) {
     //     let mut sockets = self.sockets.write().await;

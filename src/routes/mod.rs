@@ -2,7 +2,9 @@ use crate::{
     config::Database,
     handlers::{
         auth::{login, logout, refresh_token, register},
-        championships::{create_championship, get_championship, start_socket, stop_socket},
+        championships::{
+            active_sockets, create_championship, get_championship, start_socket, stop_socket,
+        },
         init,
         verify::verify_email,
     },
@@ -68,6 +70,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .route("/:id", get(get_championship))
         .route("/:id/start_socket", get(start_socket))
         .route("/:id/stop_socket", get(stop_socket))
+        .route("/sockets", get(active_sockets))
         .route_layer(middleware::from_fn_with_state(
             user_state.clone(),
             auth_handler,
