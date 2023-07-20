@@ -32,6 +32,7 @@ impl EmailService {
                 dotenvy::var("EMAIL_HOST").unwrap().as_str(),
             )
             .unwrap()
+            .port(587)
             .credentials(Credentials::new(
                 dotenvy::var("EMAIL_NAME").unwrap(),
                 dotenvy::var("EMAIL_PASS").unwrap(),
