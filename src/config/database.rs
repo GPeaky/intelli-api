@@ -1,14 +1,15 @@
+use ahash::AHashMap;
 use dotenvy::var;
 use redis::{aio::Connection, Client};
 use scylla::{prepared_statement::PreparedStatement, Session, SessionBuilder};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 use tokio::{fs, try_join};
 use tracing::info;
 
 pub struct Database {
     redis: Client,
     scylla: Session,
-    pub statements: Arc<HashMap<String, PreparedStatement>>,
+    pub statements: Arc<AHashMap<String, PreparedStatement>>,
 }
 
 impl Database {
@@ -46,8 +47,8 @@ impl Database {
         }
     }
 
-    async fn prepared_statements(session: &Session) -> HashMap<String, PreparedStatement> {
-        let mut statements: HashMap<String, PreparedStatement> = HashMap::new();
+    async fn prepared_statements(session: &Session) -> AHashMap<String, PreparedStatement> {
+        let mut statements: AHashMap<String, PreparedStatement> = AHashMap::new();
 
         let insert_user_task = session
             .prepare("INSERT INTO intelli_api.users (id, username, password, email, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)");

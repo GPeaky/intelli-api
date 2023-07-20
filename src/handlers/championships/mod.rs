@@ -13,7 +13,7 @@ use garde::Validate;
 use hyper::StatusCode;
 use std::sync::Arc;
 
-#[inline]
+#[inline(always)]
 pub async fn create_championship(
     Extension(user): Extension<User>,
     State(mut state): State<UserState>,
@@ -31,7 +31,7 @@ pub async fn create_championship(
     Ok(StatusCode::OK.into_response())
 }
 
-#[inline]
+#[inline(always)]
 pub async fn get_championship(
     State(state): State<UserState>,
     Path(championship_id): Path<String>,
@@ -41,7 +41,7 @@ pub async fn get_championship(
     Ok(Json(championship))
 }
 
-#[inline]
+#[inline(always)]
 pub async fn start_socket(
     State(state): State<UserState>,
     Path(championship_id): Path<String>,
@@ -56,7 +56,7 @@ pub async fn start_socket(
     Ok(StatusCode::CREATED.into_response())
 }
 
-#[inline]
+#[inline(always)]
 pub async fn stop_socket(
     State(state): State<UserState>,
     Path(championship_id): Path<String>,
