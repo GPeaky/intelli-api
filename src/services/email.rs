@@ -28,11 +28,11 @@ impl EmailService {
                 Some("Intelli Telemetry".to_owned()),
                 Address::from_str(dotenvy::var("EMAIL_NAME").as_ref().unwrap()).unwrap(),
             ),
-
-            mailer: AsyncSmtpTransport::<Tokio1Executor>::relay(
+            mailer: AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
                 dotenvy::var("EMAIL_HOST").unwrap().as_str(),
             )
             .unwrap()
+            .port(587)
             .credentials(Credentials::new(
                 dotenvy::var("EMAIL_NAME").unwrap(),
                 dotenvy::var("EMAIL_PASS").unwrap(),
