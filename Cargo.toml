@@ -26,7 +26,13 @@ rs-nanoid = "0.1.0"
 rust-argon2 = "1.0.0"
 jsonwebtoken = "8.3.0"
 redis = { version = "0.23.0", features = ["tokio-comp"] }
-lettre = { version = "0.10.4", features = ["tokio1-native-tls", "builder"] }
+lettre = { version = "0.10.4", default-features = false, features = [
+    "tokio1-rustls-tls",
+    "smtp-transport",
+    "pool",
+    "hostname",
+    "builder",
+] }
 askama = "0.12.0"
 axum-server = { version = "0.5.1", features = ["tls-rustls"] }
 tower = { version = "0.4.13", features = [
