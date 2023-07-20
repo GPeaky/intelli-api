@@ -29,8 +29,6 @@ redis = { version = "0.23.0", features = ["tokio-comp"] }
 lettre = { version = "0.10.4", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
-    "pool",
-    "hostname",
     "builder",
 ] }
 askama = "0.12.0"
