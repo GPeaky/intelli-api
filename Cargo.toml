@@ -4,43 +4,43 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ahash = "0.8.3"
 scylla = "0.8.2"
 hyper = "0.14.27"
+garde = "0.11.2"
 bincode = "1.3.3"
+askama = "0.12.0"
 dotenvy = "0.15.7"
 tracing = "0.1.37"
-tracing-subscriber = "0.3.17"
-tokio = { version = "1.29.1", features = ["full"] }
-serde = { version = "1.0.173", features = ["derive"] }
-axum = { version = "0.6.19", features = [
-    "form",
-    "macros",
-    "multipart",
-    "headers",
-] }
-chrono = { version = "0.4.26", features = ["serde"] }
 thiserror = "1.0.43"
-garde = "0.11.2"
 serde_trim = "0.4.0"
 rs-nanoid = "0.1.0"
 rust-argon2 = "1.0.0"
 jsonwebtoken = "8.3.0"
+serde-big-array = "0.5.1"
+tracing-subscriber = "0.3.17"
+axum-server = { version = "0.5.1", features = ["tls-rustls"] }
+tokio = { version = "1.29.1", features = ["full"] }
+chrono = { version = "0.4.26", features = ["serde"] }
+serde = { version = "1.0.174", features = ["derive"] }
 redis = { version = "0.23.0", features = ["tokio-comp"] }
 lettre = { version = "0.10.4", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
 ] }
-askama = "0.12.0"
-axum-server = { version = "0.5.1", features = ["tls-rustls"] }
+axum = { version = "0.6.19", features = [
+    "form",
+    "macros",
+    "multipart",
+    "headers",
+] }
 tower = { version = "0.4.13", features = [
     "limit",
     "buffer",
     "tokio",
     "timeout",
 ] }
-ahash = "0.8.3"
-serde-big-array = "0.5.1"
 
 [profile.release]
 debug = 0
