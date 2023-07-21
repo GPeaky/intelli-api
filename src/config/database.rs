@@ -16,7 +16,9 @@ impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
         let scylla = SessionBuilder::new()
-            .known_node(var("DB_URL").unwrap())
+            .known_node(var("SCYLLA_URI").unwrap())
+            .user(var("SCYLLA_USER").unwrap(), var("SCYLLA_PASS").unwrap())
+            .use_keyspace(var("SCYLLA_KEYSPACE").unwrap(), true)
             .build()
             .await
             .unwrap();
@@ -51,53 +53,50 @@ impl Database {
         let mut statements: AHashMap<String, PreparedStatement> = AHashMap::new();
 
         let insert_user_task = session
-            .prepare("INSERT INTO intelli_api.users (id, username, password, email, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            .prepare("INSERT INTO users (id, username, password, email, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         let user_email_by_email_task =
-            session.prepare("SELECT email FROM intelli_api.users where email = ? ALLOW FILTERING");
+            session.prepare("SELECT email FROM users where email = ? ALLOW FILTERING");
 
-        let user_by_id_task =
-            session.prepare("SELECT * FROM intelli_api.users where id = ? ALLOW FILTERING");
+        let user_by_id_task = session.prepare("SELECT * FROM users where id = ? ALLOW FILTERING");
 
         let user_by_email_task =
-            session.prepare("SELECT * FROM intelli_api.users where email = ? ALLOW FILTERING");
+            session.prepare("SELECT * FROM users where email = ? ALLOW FILTERING");
 
-        let activate_user_task = session
-            .prepare("UPDATE intelli_api.users SET active = true WHERE id = ? AND email = ?");
+        let activate_user_task =
+            session.prepare("UPDATE users SET active = true WHERE id = ? AND email = ?");
 
         let insert_championships_task = session
             .prepare(
-                "INSERT INTO intelli_api.championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             );
 
         let championship_by_id_task =
-            session.prepare("SELECT * FROM intelli_api.championships where id = ? ALLOW FILTERING");
+            session.prepare("SELECT * FROM championships where id = ? ALLOW FILTERING");
 
-        let championship_by_name_task = session
-            .prepare("SELECT name FROM intelli_api.championships where name = ? ALLOW FILTERING");
+        let championship_by_name_task =
+            session.prepare("SELECT name FROM championships where name = ? ALLOW FILTERING");
 
-        let championships_ports_task =
-            session.prepare("SELECT port FROM intelli_api.championships");
+        let championships_ports_task = session.prepare("SELECT port FROM championships");
 
         let insert_game_session_task =
-            session.prepare("INSERT INTO intelli_api.game_sessions (id, data) VALUES (?,?);");
+            session.prepare("INSERT INTO game_sessions (id, data) VALUES (?,?);");
 
         let insert_car_motion_task =
-            session.prepare("INSERT INTO intelli_api.car_motion (session_id, data) VALUES (?,?);");
+            session.prepare("INSERT INTO car_motion (session_id, data) VALUES (?,?);");
 
         let insert_lap_data_task =
-            session.prepare("INSERT INTO intelli_api.lap_data (session_id, lap) VALUES (?,?);");
+            session.prepare("INSERT INTO lap_data (session_id, lap) VALUES (?,?);");
 
-        let insert_event_data_task = session.prepare(
-            "INSERT INTO intelli_api.event_data (session_id, string_code, event) VALUES (?,?,?);",
+        let insert_event_data_task = session
+            .prepare("INSERT INTO event_data (session_id, string_code, event) VALUES (?,?,?);");
+
+        let insert_participant_data_task = session
+            .prepare("INSERT INTO participants_data (session_id, participants) VALUES (?,?);");
+
+        let insert_final_classification_data_task = session.prepare(
+            "INSERT INTO final_classification_data (session_id, classification) VALUES (?,?);",
         );
-
-        let insert_participant_data_task = session.prepare(
-            "INSERT INTO intelli_api.participants_data (session_id, participants) VALUES (?,?);",
-        );
-
-        let insert_final_classification_data_task = session
-        .prepare("INSERT INTO intelli_api.final_classification_data (session_id, classification) VALUES (?,?);");
 
         let (
             insert_user,
