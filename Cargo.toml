@@ -40,6 +40,7 @@ tower = { version = "0.4.13", features = [
     "timeout",
 ] }
 ahash = "0.8.3"
+serde-big-array = "0.5.1"
 
 [profile.release]
 debug = 0

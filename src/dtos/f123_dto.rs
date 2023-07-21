@@ -1,5 +1,6 @@
 use bincode::{deserialize, Error};
 use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 //*  --- F1 2023 Packet Data Structures ---
 
@@ -101,8 +102,8 @@ pub struct PacketSessionData {
     pub m_safetyCarStatus: u8, // 0 = no safety car, 1 = full, 2 = virtual, 3 = formation lap
     pub m_networkGame: u8, // 0 = offline, 1 = online
     pub m_numWeatherForecastSamples: u8, // Number of weather samples to follow
-    #[serde(skip)]
-    pub m_weatherForecastSamples: Vec<WeatherForecastSample>, // Array of weather forecast samples
+    #[serde(with = "BigArray")]
+    pub m_weatherForecastSamples: [WeatherForecastSample; 56], // Array of weather forecast samples
     pub m_forecastAccuracy: u8, // 0 = Perfect, 1 = Approximate
     pub m_aiDifficulty: u8, // AI Difficulty rating – 0-110
     pub m_seasonLinkIdentifier: u32, // Identifier for season - persists across saves
@@ -294,8 +295,8 @@ pub struct ParticipantData {
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
     pub m_nationality: u8,  // Nationality of the driver
-    #[serde(skip)]
-    pub m_name: Vec<u8>, // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
+    #[serde(with = "BigArray", )]
+    pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub m_showOnlineNames: u8, // The player's show online names setting, 0 = off, 1 = on
     pub m_platform: u8,      // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
