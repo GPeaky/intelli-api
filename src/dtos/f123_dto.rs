@@ -295,7 +295,7 @@ pub struct ParticipantData {
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
     pub m_nationality: u8,  // Nationality of the driver
-    #[serde(with = "BigArray", )]
+    #[serde(with = "BigArray")]
     pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub m_showOnlineNames: u8, // The player's show online names setting, 0 = off, 1 = on
