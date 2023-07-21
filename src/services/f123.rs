@@ -246,6 +246,7 @@ impl F123Service {
 
             socket.abort();
         }
+        // TODO: Check if the port is closed
         {
             let ip_addresses = self.ip_addresses.read().await;
             let ip = ip_addresses.get(&championship_id).unwrap();
