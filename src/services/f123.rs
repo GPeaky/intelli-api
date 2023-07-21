@@ -5,7 +5,6 @@ use crate::{
 };
 use ahash::AHashMap;
 use bincode::serialize;
-use bytes::BytesMut;
 use std::{
     net::IpAddr,
     sync::Arc,
@@ -47,7 +46,7 @@ impl F123Service {
         let socket = tokio::task::spawn(async move {
             let mut closed_ports = false;
             let session = db.get_scylla();
-            let mut buf = BytesMut::with_capacity(1460);
+            let mut buf = [0; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (open_machine_port, close_port_for_all_except) =
@@ -240,18 +239,20 @@ impl F123Service {
 
     pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
         {
+            let mut sockets = self.sockets.write().await;
+            let Some(socket) = sockets.remove(&championship_id) else {
+                Err(SocketError::NotFound)?
+            };
+
+            socket.abort();
+        }
+        // TODO: Check if the port is closed
+        {
             let ip_addresses = self.ip_addresses.read().await;
             let ip = ip_addresses.get(&championship_id).unwrap();
             Self::close_machine_port(port, *ip).await.unwrap();
         }
 
-        let mut sockets = self.sockets.write().await;
-
-        let Some(socket) = sockets.remove(&championship_id) else {
-            Err(SocketError::NotFound)?
-        };
-
-        socket.abort();
         Ok(())
     }
 

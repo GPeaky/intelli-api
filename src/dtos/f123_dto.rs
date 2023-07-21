@@ -1,8 +1,10 @@
 use bincode::{deserialize, Error};
 use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 //*  --- F1 2023 Packet Data Structures ---
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketMotionData {
@@ -10,6 +12,7 @@ pub struct PacketMotionData {
     pub m_carMotionData: [CarMotionData; 22], // Data for all cars on track
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketLapData {
@@ -19,6 +22,7 @@ pub struct PacketLapData {
     pub m_timeTrialRivalCarIdx: u8, // Index of Rival car in time trial (255 if invalid)
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketEventData {
@@ -27,6 +31,7 @@ pub struct PacketEventData {
     pub m_eventDetails: EventDataDetails, // Event details - should be interpreted differently for each type
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketFinalClassificationData {
@@ -35,6 +40,7 @@ pub struct PacketFinalClassificationData {
     pub m_classificationData: [FinalClassificationData; 22],
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketParticipantsData {
@@ -43,6 +49,7 @@ pub struct PacketParticipantsData {
     pub m_participants: [ParticipantData; 22],
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketTyreSetsData {
@@ -52,6 +59,7 @@ pub struct PacketTyreSetsData {
     pub m_fittedIdx: u8,                  // Index into array of fitted tyre
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketHeader {
@@ -69,6 +77,7 @@ pub struct PacketHeader {
     pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PacketSessionData {
@@ -93,8 +102,8 @@ pub struct PacketSessionData {
     pub m_safetyCarStatus: u8, // 0 = no safety car, 1 = full, 2 = virtual, 3 = formation lap
     pub m_networkGame: u8, // 0 = offline, 1 = online
     pub m_numWeatherForecastSamples: u8, // Number of weather samples to follow
-    #[serde(skip)]
-    pub m_weatherForecastSamples: Vec<WeatherForecastSample>, // Array of weather forecast samples
+    #[serde(with = "BigArray")]
+    pub m_weatherForecastSamples: [WeatherForecastSample; 56], // Array of weather forecast samples
     pub m_forecastAccuracy: u8, // 0 = Perfect, 1 = Approximate
     pub m_aiDifficulty: u8, // AI Difficulty rating – 0-110
     pub m_seasonLinkIdentifier: u32, // Identifier for season - persists across saves
@@ -125,6 +134,7 @@ pub struct PacketSessionData {
     pub m_numRedFlagPeriods: u8, // Number of red flags called during session
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CarMotionData {
@@ -150,6 +160,7 @@ pub struct CarMotionData {
 
 //* --- F1 23 Unpacked Data ---
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MarshalZone {
@@ -157,6 +168,7 @@ pub struct MarshalZone {
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeatherForecastSample {
@@ -170,6 +182,7 @@ pub struct WeatherForecastSample {
     pub m_rainPercentage: u8, // Rain percentage (0-100)
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LapData {
@@ -204,6 +217,7 @@ pub struct LapData {
     pub m_pitStopShouldServePen: u8, // Whether the car should serve a penalty at this stop
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum EventDataDetails {
@@ -270,6 +284,7 @@ pub enum EventDataDetails {
     },
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParticipantData {
@@ -280,13 +295,14 @@ pub struct ParticipantData {
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
     pub m_nationality: u8,  // Nationality of the driver
-    #[serde(skip)]
-    pub m_name: Vec<u8>, // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
+    #[serde(with = "BigArray")]
+    pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub m_showOnlineNames: u8, // The player's show online names setting, 0 = off, 1 = on
     pub m_platform: u8,      // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FinalClassificationData {
@@ -306,6 +322,7 @@ pub struct FinalClassificationData {
     pub m_tyreStintsEndLaps: [u8; 8], // The lap number stints end on
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LapHistoryData {
@@ -319,6 +336,7 @@ pub struct LapHistoryData {
     pub m_lapValidBitFlags: u8, // 0x01 bit set - lap valid, 0x02 bit set - sector 1 valid, 0x04 bit set - sector 2 valid, 0x08 bit set - sector 3 valid
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TyreStintHistoryData {
@@ -327,6 +345,7 @@ pub struct TyreStintHistoryData {
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
 }
 
+#[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TyreSetData {
