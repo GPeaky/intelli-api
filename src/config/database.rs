@@ -88,8 +88,15 @@ impl Database {
         let insert_lap_data_task =
             session.prepare("INSERT INTO lap_data (session_id, lap) VALUES (?,?);");
 
+        let select_event_data_task =
+            session.prepare("SELECT * FROM event_data WHERE session_id = ? AND string_code = ?;");
+
         let insert_event_data_task = session
-            .prepare("INSERT INTO event_data (session_id, string_code, event) VALUES (?,?,?);");
+            .prepare("INSERT INTO event_data (session_id, string_code, events) VALUES (?,?,?);");
+
+        let update_event_data_task = session.prepare(
+            "UPDATE event_data SET events = events + ? WHERE session_id = ? AND string_code = ?;",
+        );
 
         let insert_participant_data_task = session
             .prepare("INSERT INTO participants_data (session_id, participants) VALUES (?,?);");
@@ -111,7 +118,9 @@ impl Database {
             insert_game_session,
             insert_car_motion,
             insert_lap_data,
+            select_event_data,
             insert_event_data,
+            update_event_data,
             insert_participant_data,
             insert_final_classification_data,
         ) = try_join!(
@@ -127,7 +136,9 @@ impl Database {
             insert_game_session_task,
             insert_car_motion_task,
             insert_lap_data_task,
+            select_event_data_task,
             insert_event_data_task,
+            update_event_data_task,
             insert_participant_data_task,
             insert_final_classification_data_task
         )
@@ -148,7 +159,9 @@ impl Database {
         statements.insert("insert_game_session".to_string(), insert_game_session);
         statements.insert("insert_car_motion".to_string(), insert_car_motion);
         statements.insert("insert_lap_data".to_string(), insert_lap_data);
+        statements.insert("select_event_data".to_string(), select_event_data);
         statements.insert("insert_event_data".to_string(), insert_event_data);
+        statements.insert("update_event_data".to_string(), update_event_data);
         statements.insert(
             "insert_participant_data".to_string(),
             insert_participant_data,

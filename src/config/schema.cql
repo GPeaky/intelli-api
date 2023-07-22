@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS lap_data (
 );
 
 CREATE TABLE IF NOT EXISTS event_data (
-    session_id bigint PRIMARY KEY,
+    session_id bigint,
     string_code text,
-    event BLOB
+    events list<BLOB>,
+    PRIMARY KEY (session_id, string_code)
 );
 
 CREATE TABLE IF NOT EXISTS participants_data (

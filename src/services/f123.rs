@@ -45,8 +45,8 @@ impl F123Service {
         // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = tokio::task::spawn(async move {
             let mut closed_ports = false;
-            let session = db.get_scylla();
             let mut buf = [0; 1460];
+            let session = db.get_scylla();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (open_machine_port, close_port_for_all_except) =
@@ -157,13 +157,32 @@ impl F123Service {
                                     continue;
                                 };
 
-                                session
+                                let table_exists = session
                                     .execute(
-                                        db.statements.get("insert_event_data").unwrap(),
-                                        (session_id, event_data.m_eventStringCode, event),
+                                        db.statements.get("select_event_data").unwrap(),
+                                        (session_id, event_data.m_eventStringCode),
                                     )
                                     .await
-                                    .unwrap();
+                                    .unwrap()
+                                    .rows_or_empty();
+
+                                if table_exists.is_empty() {
+                                    session
+                                        .execute(
+                                            db.statements.get("insert_event_data").unwrap(),
+                                            (session_id, event_data.m_eventStringCode, vec![event]),
+                                        )
+                                        .await
+                                        .unwrap();
+                                } else {
+                                    session
+                                        .execute(
+                                            db.statements.get("update_event_data").unwrap(),
+                                            (vec![event], session_id, event_data.m_eventStringCode),
+                                        )
+                                        .await
+                                        .unwrap();
+                                }
                             }
 
                             F123Packet::Participants(participants_data) => {
