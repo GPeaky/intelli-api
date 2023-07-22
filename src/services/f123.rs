@@ -5,6 +5,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use bincode::serialize;
+use redis::Commands;
 use std::{
     net::IpAddr,
     sync::Arc,
@@ -47,6 +48,7 @@ impl F123Service {
             let mut closed_ports = false;
             let mut buf = [0; 1460];
             let session = db.get_scylla();
+            let mut redis = db.get_redis();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (open_machine_port, close_port_for_all_except) =
@@ -58,6 +60,7 @@ impl F123Service {
 
             open_machine_port(port).await.unwrap();
 
+            // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, address)) => {
@@ -100,12 +103,15 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    session
-                                        .execute(
-                                            db.statements.get("insert_car_motion").unwrap(),
-                                            (session_id, data),
+                                    redis
+                                        .set_ex::<String, Vec<u8>, String>(
+                                            format!(
+                                                "f123:championship:{}:session:{session_id}:motion",
+                                                championship_id
+                                            ),
+                                            data,
+                                            60 * 60,
                                         )
-                                        .await
                                         .unwrap();
 
                                     last_car_motion_update = now;
@@ -133,23 +139,6 @@ impl F123Service {
 
                                     last_session_update = now;
                                 }
-                            }
-
-                            F123Packet::LapData(lap_data) => {
-                                let Ok(lap_info) = serialize(&lap_data.m_lapData) else {
-                                    error!("There was an error serializing the lap data");
-                                    continue;
-                                };
-
-
-                                // TODO: Save lap data to database
-                                session
-                                    .execute(
-                                        db.statements.get("insert_lap_data").unwrap(),
-                                        (session_id, lap_info),
-                                    )
-                                    .await
-                                    .unwrap();
                             }
 
                             F123Packet::Event(event_data) => {
@@ -210,6 +199,8 @@ impl F123Service {
                                     continue;
                                 };
 
+                                // TODO: Save all laps for each driver in the final classification
+
                                 session
                                     .execute(
                                         db.statements
@@ -221,8 +212,20 @@ impl F123Service {
                                     .unwrap();
                             }
 
-                            // TODO: use unused packets
-                            _ => {}
+                            F123Packet::SessionHistory(session_history) => {
+                                let Ok(data) = serialize(&session_history) else {
+                                    error!("There was an error serializing the session history data");
+                                    continue;
+                                };
+
+                                redis
+                                    .set_ex::<String, Vec<u8>, String>(
+                                        format!("f123:championship:{championship_id}:session:{session_id}:history:car:{}", session_history.m_carIdx),
+                                        data,
+                                        60 * 60,
+                                    )
+                                    .unwrap();
+                            }
                         }
                     }
 

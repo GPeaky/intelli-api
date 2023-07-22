@@ -178,7 +178,11 @@ impl Database {
         &self.scylla
     }
 
-    pub async fn get_redis(&self) -> Connection {
+    pub fn get_redis(&self) -> redis::Connection {
+        self.redis.get_connection().unwrap()
+    }
+
+    pub async fn get_redis_async(&self) -> Connection {
         self.redis.get_async_connection().await.unwrap()
     }
 }

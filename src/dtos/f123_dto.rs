@@ -15,16 +15,6 @@ pub struct PacketMotionData {
 #[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PacketLapData {
-    pub m_header: PacketHeader,     // Header
-    pub m_lapData: [LapData; 22],   // Lap data for all cars on track
-    pub m_timeTrialPBCarIdx: u8,    // Index of Personal Best car in time trial (255 if invalid)
-    pub m_timeTrialRivalCarIdx: u8, // Index of Rival car in time trial (255 if invalid)
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
@@ -47,16 +37,6 @@ pub struct PacketParticipantsData {
     pub m_header: PacketHeader, // Header
     pub m_numActiveCars: u8, // Number of active cars in the data – should match number of cars on HUD
     pub m_participants: [ParticipantData; 22],
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PacketTyreSetsData {
-    pub m_header: PacketHeader,           // Header
-    pub m_carIdx: u8,                     // Index of the car this data relates to
-    pub m_tyreSetData: [TyreSetData; 20], // 13 (dry) + 7 (wet)
-    pub m_fittedIdx: u8,                  // Index into array of fitted tyre
 }
 
 #[repr(C)]
@@ -180,41 +160,6 @@ pub struct WeatherForecastSample {
     pub m_airTemperature: i8, // Air temp. in degrees Celsius
     pub m_airTemperatureChange: i8, // Air temp. change – 0 = up, 1 = down, 2 = no change
     pub m_rainPercentage: u8, // Rain percentage (0-100)
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LapData {
-    pub m_lastLapTimeInMS: u32,            // Last lap time in milliseconds
-    pub m_currentLapTimeInMS: u32,         // Current time around the lap in milliseconds
-    pub m_sector1TimeInMS: u16,            // Sector 1 time in milliseconds
-    pub m_sector1TimeMinutes: u8,          // Sector 1 whole minute part
-    pub m_sector2TimeInMS: u16,            // Sector 2 time in milliseconds
-    pub m_sector2TimeMinutes: u8,          // Sector 2 whole minute part
-    pub m_deltaToCarInFrontInMS: u16,      // Time delta to car in front in milliseconds
-    pub m_deltaToRaceLeaderInMS: u16,      // Time delta to race leader in milliseconds
-    pub m_lapDistance: f32, // Distance vehicle is around current lap in metres – could be negative if line hasn’t been crossed yet
-    pub m_totalDistance: f32, // Total distance travelled in session in metres – could be negative if line hasn’t been crossed yet
-    pub m_safetyCarDelta: f32, // Delta in seconds for safety car
-    pub m_carPosition: u8,    // Car race position
-    pub m_currentLapNum: u8,  // Current lap number
-    pub m_pitStatus: u8,      // 0 = none, 1 = pitting, 2 = in pit area
-    pub m_numPitStops: u8,    // Number of pit stops taken in this race
-    pub m_sector: u8,         // 0 = sector1, 1 = sector2, 2 = sector3
-    pub m_currentLapInvalid: u8, // Current lap invalid - 0 = valid, 1 = invalid
-    pub m_penalties: u8,      // Accumulated time penalties in seconds to be added
-    pub m_totalWarnings: u8,  // Accumulated number of warnings issued
-    pub m_cornerCuttingWarnings: u8, // Accumulated number of corner cutting warnings issued
-    pub m_numUnservedDriveThroughPens: u8, // Num drive through pens left to serve
-    pub m_numUnservedStopGoPens: u8, // Num stop go pens left to serve
-    pub m_gridPosition: u8,   // Grid position the vehicle started the race in
-    pub m_driverStatus: u8, // Status of driver - 0 = in garage, 1 = flying lap, 2 = in lap, 3 = out lap, 4 = on track
-    pub m_resultStatus: u8, // Result status - 0 = invalid, 1 = inactive, 2 = active, 3 = finished, 4 = didnotfinish, 5 = disqualified, 6 = not classified, 7 = retired
-    pub m_pitLaneTimerActive: u8, // Pit lane timing, 0 = inactive, 1 = active
-    pub m_pitLaneTimeInLaneInMS: u16, // If active, the current time spent in the pit lane in ms
-    pub m_pitStopTimerInMS: u16, // Time of the actual pit stop in ms
-    pub m_pitStopShouldServePen: u8, // Whether the car should serve a penalty at this stop
 }
 
 #[repr(C)]
@@ -348,26 +293,27 @@ pub struct TyreStintHistoryData {
 #[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TyreSetData {
-    pub m_actualTyreCompound: u8, // Actual tyre compound used
-    pub m_visualTyreCompound: u8, // Visual tyre compound used
-    pub m_wear: u8,               // Tyre wear (percentage)
-    pub m_available: u8,          // Whether this set is currently available
-    pub m_recommendedSession: u8, // Recommended session for tyre set
-    pub m_lifeSpan: u8,           // Laps left in this tyre set
-    pub m_usableLife: u8,         // Max number of laps recommended for this compound
-    pub m_lapDeltaTime: i16,      // Lap delta time in milliseconds compared to fitted set
-    pub m_fitted: u8,             // Whether the set is fitted or not
+pub struct PacketSessionHistoryData {
+    pub m_header: PacketHeader,
+    pub m_carIdx: u8,
+    pub m_numLaps: u8,
+    pub m_numTyreStints: u8,
+    pub m_bestLapTimeLapNum: u8,
+    pub m_bestSector1LapNum: u8,
+    pub m_bestSector2LapNum: u8,
+    pub m_bestSector3LapNum: u8,
+    #[serde(with = "BigArray")]
+    pub m_lapHistoryData: [LapHistoryData; 100],
+    pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
 pub enum F123Packet {
     Motion(PacketMotionData),
     Session(PacketSessionData),
-    LapData(PacketLapData),
     Event(PacketEventData),
     Participants(PacketParticipantsData),
     FinalClassification(PacketFinalClassificationData),
-    TyresSets(PacketTyreSetsData),
+    SessionHistory(Box<PacketSessionHistoryData>),
 }
 
 impl F123Packet {
@@ -375,11 +321,10 @@ impl F123Packet {
         match packet_id {
             0 => Ok(Some(F123Packet::Motion(deserialize(data)?))),
             1 => Ok(Some(F123Packet::Session(deserialize(data)?))),
-            2 => Ok(Some(F123Packet::LapData(deserialize(data)?))),
             3 => Ok(Some(F123Packet::Event(deserialize(data)?))),
             4 => Ok(Some(F123Packet::Participants(deserialize(data)?))),
             8 => Ok(Some(F123Packet::FinalClassification(deserialize(data)?))),
-            12 => Ok(Some(F123Packet::TyresSets(deserialize(data)?))),
+            11 => Ok(Some(F123Packet::SessionHistory(deserialize(data)?))),
             _ => Ok(None),
         }
     }

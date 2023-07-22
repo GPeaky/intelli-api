@@ -77,7 +77,7 @@ impl TokenServiceTrait for TokenService {
 
         let db_token: String = self
             .db_conn
-            .get_redis()
+            .get_redis_async()
             .await
             .get(format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
@@ -98,7 +98,7 @@ impl TokenServiceTrait for TokenService {
         let token = self.generate_token(&user_id, TokenType::RefreshBearer)?;
 
         self.db_conn
-            .get_redis()
+            .get_redis_async()
             .await
             .set_ex(
                 format!("rf_tokens:{}:{}", user_id, fingerprint),
@@ -113,7 +113,7 @@ impl TokenServiceTrait for TokenService {
 
     async fn remove_refresh_token(&self, user_id: String, fingerprint: &str) -> AppResult<()> {
         self.db_conn
-            .get_redis()
+            .get_redis_async()
             .await
             .del(format!("rf_tokens:{}:{}", user_id, fingerprint))
             .await
