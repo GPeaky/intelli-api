@@ -141,6 +141,7 @@ impl F123Service {
                                     continue;
                                 };
 
+
                                 // TODO: Save lap data to database
                                 session
                                     .execute(
