@@ -47,10 +47,9 @@ impl F123Service {
         let socket = tokio::task::spawn(async move {
             let mut closed_ports = false;
             let mut buf = [0; 1460];
-            let session = db.get_scylla();
-            let mut redis = db.get_redis();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
+            let (session, mut redis) = (db.get_scylla(), db.get_redis());
             let (open_machine_port, close_port_for_all_except) =
                 (Self::open_machine_port, Self::close_port_for_all_except);
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
@@ -80,8 +79,8 @@ impl F123Service {
                         let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
                             continue;
                         };
-                        let session_id = header.m_sessionUID as i64;
 
+                        let session_id = header.m_sessionUID as i64;
                         if session_id == 0 {
                             continue;
                         }
@@ -92,6 +91,21 @@ impl F123Service {
                         };
 
                         match packet {
+                            F123Packet::SessionHistory(session_history) => {
+                                let Ok(data) = serialize(&session_history) else {
+                                    error!("There was an error serializing the session history data");
+                                    continue;
+                                };
+
+                                redis
+                                    .set_ex::<String, Vec<u8>, String>(
+                                        format!("f123:championship:{championship_id}:session:{session_id}:history:car:{}", session_history.m_carIdx),
+                                        data,
+                                        60 * 60,
+                                    )
+                                    .unwrap();
+                            }
+
                             F123Packet::Motion(motion_data) => {
                                 let now = Instant::now();
 
@@ -129,18 +143,22 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    session
-                                        .execute(
-                                            db.statements.get("insert_game_session").unwrap(),
-                                            (session_id, data),
+                                    redis
+                                        .set_ex::<String, Vec<u8>, String>(
+                                            format!(
+                                                "f123:championship:{}:session:{session_id}:session",
+                                                championship_id
+                                            ),
+                                            data,
+                                            60 * 60,
                                         )
-                                        .await
                                         .unwrap();
 
                                     last_session_update = now;
                                 }
                             }
 
+                            // We don't save events in redis because redis doesn't support lists of lists
                             F123Packet::Event(event_data) => {
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");
@@ -182,12 +200,15 @@ impl F123Service {
                                     continue;
                                 };
 
-                                session
-                                    .execute(
-                                        db.statements.get("insert_participant_data").unwrap(),
-                                        (session_id, participants),
+                                redis
+                                    .set_ex::<String, Vec<u8>, String>(
+                                        format!(
+                                        "f123:championship:{}:session:{session_id}:participants",
+                                        championship_id
+                                    ),
+                                        participants.clone(),
+                                        60 * 60,
                                     )
-                                    .await
                                     .unwrap();
                             }
 
@@ -200,7 +221,6 @@ impl F123Service {
                                 };
 
                                 // TODO: Save all laps for each driver in the final classification
-
                                 session
                                     .execute(
                                         db.statements
@@ -209,21 +229,6 @@ impl F123Service {
                                         (session_id, classifications),
                                     )
                                     .await
-                                    .unwrap();
-                            }
-
-                            F123Packet::SessionHistory(session_history) => {
-                                let Ok(data) = serialize(&session_history) else {
-                                    error!("There was an error serializing the session history data");
-                                    continue;
-                                };
-
-                                redis
-                                    .set_ex::<String, Vec<u8>, String>(
-                                        format!("f123:championship:{championship_id}:session:{session_id}:history:car:{}", session_history.m_carIdx),
-                                        data,
-                                        60 * 60,
-                                    )
                                     .unwrap();
                             }
                         }

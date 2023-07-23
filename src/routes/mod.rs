@@ -17,9 +17,10 @@ use axum::{
     routing::{get, post, IntoMakeService},
     Router,
 };
-use hyper::StatusCode;
+use hyper::{header, http::HeaderValue, Method, StatusCode};
 use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
+use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 
 // Handles Service Errors
 async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCode, String) {
@@ -33,6 +34,17 @@ async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCod
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
     let user_state = UserState::new(&database).await;
+
+    let cors_layer = CorsLayer::new()
+        .allow_origin(AllowOrigin::exact(HeaderValue::from_static(
+            "https://intelli.gerardz.de",
+        )))
+        .allow_headers(vec![
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        ])
+        .allow_methods(AllowMethods::list([Method::GET, Method::POST]));
 
     let auth_router = Router::new()
         .route("/register", post(register))
@@ -87,5 +99,6 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
                 .layer(HandleErrorLayer::new(handle_error))
                 .layer(TimeoutLayer::new(Duration::from_secs(5))),
         )
+        .layer(cors_layer)
         .into_make_service()
 }
