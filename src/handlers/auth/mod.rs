@@ -144,7 +144,7 @@ pub(crate) async fn logout(
     Ok(StatusCode::OK.into_response())
 }
 
-// Reset Password
+// TODO: Save the token in the database
 #[inline(always)]
 pub(crate) async fn forgot_password(
     State(state): State<AuthState>,
