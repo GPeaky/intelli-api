@@ -49,4 +49,4 @@ lto = "fat"
 opt-level = "z"
 codegen-units = 1
 split-debuginfo = "off"
-panic = "abort"
+# panic = "abort"

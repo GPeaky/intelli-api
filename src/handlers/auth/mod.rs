@@ -1,9 +1,12 @@
 use crate::{
-    dtos::{AuthResponse, LoginUserDto, RefreshResponse, RegisterUserDto, TokenType},
+    dtos::{
+        AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
+        ResetPasswordTemplate, Templates, TokenType, VerifyEmailTemplate,
+    },
     entity::User,
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
-    services::{TokenServiceTrait, UserServiceTrait, VerifyEmailTemplate},
+    services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
 };
 use axum::{
@@ -30,15 +33,15 @@ pub(crate) async fn register(
         .token_service
         .generate_token(&form.email, TokenType::Email)?;
 
-    // TODO: Check why this is not working in production
     state
         .email_service
         .send_mail(
-            &form,
-            VerifyEmailTemplate {
+            // TODO: Remove this unnecessary clone
+            &form.clone().into(),
+            Templates::VerifyEmail(VerifyEmailTemplate {
                 username: &form.username,
                 token: &token,
-            },
+            }),
         )
         .await
         .map_err(|_| UserError::MailError)?;
@@ -137,6 +140,37 @@ pub(crate) async fn logout(
         .token_service
         .remove_refresh_token(user.id, fingerprint)
         .await?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
+// Reset Password
+#[inline(always)]
+pub(crate) async fn forgot_password(
+    State(state): State<AuthState>,
+    Form(form): Form<ForgotPasswordDto>,
+) -> AppResult<Response> {
+    let user = state.user_repository.find_by_email(&form.email).await?;
+
+    let token = state
+        .token_service
+        .generate_token(&user.id, TokenType::ResetPassword)?;
+
+    state
+        .email_service
+        .send_mail(
+            &EmailUser {
+                // TODO: Check this unnecessary clone
+                username: user.username.clone(),
+                email: user.email.clone(),
+            },
+            Templates::ResetPassword(ResetPasswordTemplate {
+                name: &user.username,
+                token: &token,
+            }),
+        )
+        .await
+        .map_err(|_| UserError::MailError)?;
 
     Ok(StatusCode::OK.into_response())
 }

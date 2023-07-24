@@ -23,7 +23,7 @@
       rel="stylesheet"
     />
 
-    <title>Verify</title>
+    <title>Forgot Password</title>
   </head>
 
   <body
@@ -67,9 +67,9 @@
                           padding-bottom: 42px;
                         "
                       >
-                        Intelli Telemetry
+                        Fukre Championships
                         <br />
-                        Email Verification
+                        Forgot Password
                       </td>
                     </tr>
 
@@ -91,7 +91,7 @@
                                 padding: 32px 32px 0;
                               "
                             >
-                              Confirm Your E-Mail Address 📮
+                              Do you want to reset your password? 🔑
                             </td>
                           </tr>
 
@@ -105,23 +105,22 @@
                                 padding: 32px;
                               "
                             >
-                              Hi {{username}},
+                              Hi {{name}},
                               <br />
-                              <br />
-                              Welcome!
                               <br />
                               You are receiving this email because you have
-                              registered on our site.
+                              requested to reset your password for your Fukre
+                              account.
                               <br />
                               <br />
-                              Click the link below to active your Fukre account.
+                              Click the link below to reset your Fukre account.
                               <br />
                               <br />
-                              This link will expire in 15 minutes and can only
+                              This link will expire in 20 minutes and can only
                               be used once.
                               <br />
                               <a
-                                href="https//intelli.gerardz.de/verify/email?token={{token}}"
+                                href="https//intelli.gerardz.de/auth/reset-password?token={{token}}"
                                 target="_blank"
                                 style="
                                   color: #ffffff;
@@ -134,7 +133,7 @@
                                   text-decoration: none;
                                 "
                               >
-                                Verify Email
+                                Reset Password
                               </a>
                             </td>
                           </tr>
@@ -160,7 +159,7 @@
                                 target="_black"
                                 style="text-decoration: none; color: #0010f7"
                               >
-                                https//intelli.gerardz.de/verify/email?token={{token}}</a
+                                https//intelli.gerardz.de/auth/reset-password?token={{token}}</a
                               >
                               <br />
                               If you did not make this request, please contact
@@ -169,7 +168,7 @@
                               <br />
                               This is an automatically generated email please do
                               not reply to this email. If you face any issues,
-                              please contact us at intelli.telemetry@gmail.com
+                              please contact us at fukrechampionships@gmail.com
                             </td>
                           </tr>
                         </table>

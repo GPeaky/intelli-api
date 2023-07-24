@@ -35,3 +35,10 @@ pub struct LoginUserDto {
     #[serde(deserialize_with = "string_trim")]
     pub password: String,
 }
+
+#[derive(Deserialize, Validate)]
+pub struct ForgotPasswordDto {
+    #[garde(email)]
+    #[serde(deserialize_with = "string_trim")]
+    pub email: String,
+}
