@@ -1,7 +1,7 @@
 use crate::{
     config::Database,
     handlers::{
-        auth::{forgot_password, login, logout, refresh_token, register},
+        auth::{forgot_password, login, logout, refresh_token, register, reset_password},
         championships::{
             active_sockets, create_championship, get_championship, start_socket, stop_socket,
         },
@@ -48,6 +48,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .route("/login", post(login))
         .route("/refresh", get(refresh_token))
         .route("/forgot-password", post(forgot_password))
+        .route("/reset-password", post(reset_password))
         .route(
             "/logout",
             get(logout).route_layer(middleware::from_fn_with_state(
@@ -60,7 +61,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
                 .layer(BufferLayer::new(1024))
-                .layer(RateLimitLayer::new(5, Duration::from_secs(120))),
+                .layer(RateLimitLayer::new(8, Duration::from_secs(120))),
         );
 
     let user_router = Router::new()

@@ -1,16 +1,17 @@
 use crate::{
     dtos::{
         AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
-        ResetPasswordTemplate, Templates, TokenType, VerifyEmailTemplate,
+        ResetPasswordDto, ResetPasswordQuery, ResetPasswordTemplate, Templates, TokenType,
+        VerifyEmailTemplate,
     },
     entity::User,
-    error::{AppResult, CommonError, UserError},
+    error::{AppResult, CommonError, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
 };
 use axum::{
-    extract::{Form, State},
+    extract::{Form, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension, Json,
@@ -108,6 +109,7 @@ pub(crate) async fn refresh_token(
         .to_str()
         .map_err(|_| UserError::InvalidFingerprint)?;
 
+    // TODO: Change this to a more generic way. Like query params
     let refresh_token = headers
         .get("RefreshToken")
         .ok_or(UserError::InvalidRefreshToken)?
@@ -150,6 +152,10 @@ pub(crate) async fn forgot_password(
     State(state): State<AuthState>,
     Form(form): Form<ForgotPasswordDto>,
 ) -> AppResult<Response> {
+    if form.validate(&()).is_err() {
+        return Err(CommonError::FormValidationFailed)?;
+    }
+
     let user = state.user_repository.find_by_email(&form.email).await?;
 
     let token = state
@@ -171,6 +177,27 @@ pub(crate) async fn forgot_password(
         )
         .await
         .map_err(|_| UserError::MailError)?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
+#[inline(always)]
+pub async fn reset_password(
+    Query(ResetPasswordQuery { token }): Query<ResetPasswordQuery>,
+    State(state): State<AuthState>,
+    Form(form): Form<ResetPasswordDto>,
+) -> AppResult<Response> {
+    if form.validate(&()).is_err() {
+        return Err(CommonError::FormValidationFailed)?;
+    }
+
+    let token_data = state.token_service.validate(&token)?;
+
+    if token_data.claims.token_type != TokenType::ResetPassword {
+        Err(TokenError::InvalidTokenType)?
+    }
+
+    // TODO: Check if toke is on the db and search user by id and change password
 
     Ok(StatusCode::OK.into_response())
 }

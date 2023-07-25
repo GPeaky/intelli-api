@@ -42,3 +42,15 @@ pub struct ForgotPasswordDto {
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct ResetPasswordDto {
+    #[garde(length(min = 8, max = 20))]
+    #[serde(deserialize_with = "string_trim")]
+    pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct ResetPasswordQuery {
+    pub token: String,
+}
