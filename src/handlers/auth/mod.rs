@@ -198,6 +198,5 @@ pub async fn reset_password(
     }
 
     // TODO: Check if toke is on the db and search user by id and change password
-
     Ok(StatusCode::OK.into_response())
 }

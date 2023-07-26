@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS users (
     username text,
     password text,
     active boolean,
+    otp_enabled boolean,
+    otp_verified boolean,
+    otp_base32 text,
+    otp_auth_url text,
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, email)

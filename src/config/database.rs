@@ -53,7 +53,7 @@ impl Database {
         let mut statements: AHashMap<String, PreparedStatement> = AHashMap::new();
 
         let insert_user_task = session
-            .prepare("INSERT INTO users (id, username, password, email, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            .prepare("INSERT INTO users (id, username, password, email, active, otp_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         let user_email_by_email_task =
             session.prepare("SELECT email FROM users where email = ? ALLOW FILTERING");

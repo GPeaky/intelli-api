@@ -72,6 +72,7 @@ impl UserServiceTrait for UserService {
                     .unwrap(),
                     register.email.clone(),
                     false,
+                    false,
                     time,
                     time,
                 ),
