@@ -1,22 +1,10 @@
+version: "3.8"
+
 services:
-  redis:
-    image: eqalpha/keydb
-    ports:
-      - "6379:6379"
-
-  scylladb:
-    image: scylladb/scylla
-    ports:
-      - 9042:9042
-
   api:
     build: .
     ports:
-      - "3000:3000"
+      - "443:443"
 
     env_file:
       - .env
-
-    depends_on:
-      - redis
-      - scylladb
