@@ -37,9 +37,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     let user_state = UserState::new(&database).await;
 
     let cors_layer = CorsLayer::new()
-        .allow_origin(AllowOrigin::exact(HeaderValue::from_static(
-            "https://intelli.gerardz.de/",
-        )))
+        .allow_origin(AllowOrigin::any())
         .allow_headers(Any)
         .allow_methods(AllowMethods::list([Method::GET, Method::POST]));
 
