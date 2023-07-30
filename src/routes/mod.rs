@@ -18,7 +18,7 @@ use axum::{
     routing::{get, post, IntoMakeService},
     Router,
 };
-use hyper::{http::HeaderValue, Method, StatusCode};
+use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::cors::{AllowMethods, AllowOrigin, Any, CorsLayer};
