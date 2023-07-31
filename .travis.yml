@@ -1,0 +1,7 @@
+language: rust
+sudo: required
+services:
+  - docker
+
+script:
+  - echo "Hello World"
