@@ -5,25 +5,25 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.3"
-scylla = "0.8.2"
+scylla = "0.9.0"
 hyper = "0.14.27"
-garde = "0.11.2"
+garde = "0.12.0"
 bincode = "1.3.3"
 askama = "0.12.0"
 dotenvy = "0.15.7"
 tracing = "0.1.37"
-thiserror = "1.0.43"
-serde_trim = "0.4.0"
+thiserror = "1.0.44"
+serde_trim = "1.0.0"
 rs-nanoid = "0.1.0"
 rust-argon2 = "1.0.0"
 jsonwebtoken = "8.3.0"
 serde-big-array = "0.5.1"
+tracing-subscriber = "0.3.17"
 tokio = { version = "1.29.1", features = ["full"] }
 chrono = { version = "0.4.26", features = ["serde"] }
-serde = { version = "1.0.174", features = ["derive"] }
-redis = { version = "0.23.0", features = ["tokio-comp"] }
+serde = { version = "1.0.177", features = ["derive"] }
+redis = { version = "0.23.1", features = ["tokio-comp"] }
 axum-server = { version = "0.5.1", features = ["tls-rustls"] }
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 lettre = { version = "0.10.4", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
@@ -41,6 +41,8 @@ tower = { version = "0.4.13", features = [
     "tokio",
     "timeout",
 ] }
+tower-http = { version = "0.4.3", features = ["cors"] }
+totp-rs = "5.1.0"
 
 [profile.release]
 debug = 0
@@ -48,4 +50,4 @@ lto = "fat"
 opt-level = "z"
 codegen-units = 1
 split-debuginfo = "off"
-panic = "abort"
+# panic = "abort"

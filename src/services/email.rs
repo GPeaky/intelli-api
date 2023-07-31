@@ -1,4 +1,4 @@
-use crate::dtos::RegisterUserDto;
+use crate::dtos::{EmailUser, Templates};
 use askama::Template;
 use lettre::{
     error::Error,
@@ -7,13 +7,6 @@ use lettre::{
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use std::str::FromStr;
-
-#[derive(Template)]
-#[template(path = "verify.html")]
-pub struct VerifyEmailTemplate<'a> {
-    pub username: &'a str,
-    pub token: &'a str,
-}
 
 #[derive(Clone)]
 pub struct EmailService {
@@ -43,9 +36,14 @@ impl EmailService {
 
     pub async fn send_mail<'a>(
         &self,
-        user: &RegisterUserDto,
-        template: VerifyEmailTemplate<'a>,
+        user: &EmailUser,
+        template: Templates<'a>,
     ) -> Result<bool, Error> {
+        let (body, subject) = match template {
+            Templates::VerifyEmail(template) => (template.render().unwrap(), "Verify Email"),
+            Templates::ResetPassword(template) => (template.render().unwrap(), "Reset Password"),
+        };
+
         let message = Message::builder()
             .from(self.from_mailbox.to_owned())
             .to(Mailbox::new(
@@ -53,8 +51,8 @@ impl EmailService {
                 Address::from_str(&user.email).unwrap(),
             ))
             .header(ContentType::TEXT_HTML)
-            .subject("Hello!, verify your email")
-            .body(template.render().unwrap())?;
+            .subject(subject)
+            .body(body)?;
 
         Ok(self.mailer.send(message).await.is_ok())
     }

@@ -5,6 +5,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use bincode::serialize;
+use redis::Commands;
 use std::{
     net::IpAddr,
     sync::Arc,
@@ -45,10 +46,10 @@ impl F123Service {
         // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = tokio::task::spawn(async move {
             let mut closed_ports = false;
-            let session = db.get_scylla();
             let mut buf = [0; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
+            let (session, mut redis) = (db.get_scylla(), db.get_redis());
             let (open_machine_port, close_port_for_all_except) =
                 (Self::open_machine_port, Self::close_port_for_all_except);
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
@@ -58,6 +59,7 @@ impl F123Service {
 
             open_machine_port(port).await.unwrap();
 
+            // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, address)) => {
@@ -77,8 +79,8 @@ impl F123Service {
                         let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
                             continue;
                         };
-                        let session_id = header.m_sessionUID as i64;
 
+                        let session_id = header.m_sessionUID as i64;
                         if session_id == 0 {
                             continue;
                         }
@@ -89,6 +91,21 @@ impl F123Service {
                         };
 
                         match packet {
+                            F123Packet::SessionHistory(session_history) => {
+                                let Ok(data) = serialize(&session_history) else {
+                                    error!("There was an error serializing the session history data");
+                                    continue;
+                                };
+
+                                redis
+                                    .set_ex::<String, Vec<u8>, String>(
+                                        format!("f123:championship:{championship_id}:session:{session_id}:history:car:{}", session_history.m_carIdx),
+                                        data,
+                                        60 * 60,
+                                    )
+                                    .unwrap();
+                            }
+
                             F123Packet::Motion(motion_data) => {
                                 let now = Instant::now();
 
@@ -100,12 +117,15 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    session
-                                        .execute(
-                                            db.statements.get("insert_car_motion").unwrap(),
-                                            (session_id, data),
+                                    redis
+                                        .set_ex::<String, Vec<u8>, String>(
+                                            format!(
+                                                "f123:championship:{}:session:{session_id}:motion",
+                                                championship_id
+                                            ),
+                                            data,
+                                            60 * 60,
                                         )
-                                        .await
                                         .unwrap();
 
                                     last_car_motion_update = now;
@@ -123,47 +143,54 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    session
-                                        .execute(
-                                            db.statements.get("insert_game_session").unwrap(),
-                                            (session_id, data),
+                                    redis
+                                        .set_ex::<String, Vec<u8>, String>(
+                                            format!(
+                                                "f123:championship:{}:session:{session_id}:session",
+                                                championship_id
+                                            ),
+                                            data,
+                                            60 * 60,
                                         )
-                                        .await
                                         .unwrap();
 
                                     last_session_update = now;
                                 }
                             }
 
-                            F123Packet::LapData(lap_data) => {
-                                let Ok(lap_info) = serialize(&lap_data.m_lapData) else {
-                                    error!("There was an error serializing the lap data");
-                                    continue;
-                                };
-
-                                // TODO: Save lap data to database
-                                session
-                                    .execute(
-                                        db.statements.get("insert_lap_data").unwrap(),
-                                        (session_id, lap_info),
-                                    )
-                                    .await
-                                    .unwrap();
-                            }
-
+                            // We don't save events in redis because redis doesn't support lists of lists
                             F123Packet::Event(event_data) => {
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");
                                     continue;
                                 };
 
-                                session
+                                let table_exists = session
                                     .execute(
-                                        db.statements.get("insert_event_data").unwrap(),
-                                        (session_id, event_data.m_eventStringCode, event),
+                                        db.statements.get("select_event_data").unwrap(),
+                                        (session_id, event_data.m_eventStringCode),
                                     )
                                     .await
-                                    .unwrap();
+                                    .unwrap()
+                                    .rows_or_empty();
+
+                                if table_exists.is_empty() {
+                                    session
+                                        .execute(
+                                            db.statements.get("insert_event_data").unwrap(),
+                                            (session_id, event_data.m_eventStringCode, vec![event]),
+                                        )
+                                        .await
+                                        .unwrap();
+                                } else {
+                                    session
+                                        .execute(
+                                            db.statements.get("update_event_data").unwrap(),
+                                            (vec![event], session_id, event_data.m_eventStringCode),
+                                        )
+                                        .await
+                                        .unwrap();
+                                }
                             }
 
                             F123Packet::Participants(participants_data) => {
@@ -173,12 +200,15 @@ impl F123Service {
                                     continue;
                                 };
 
-                                session
-                                    .execute(
-                                        db.statements.get("insert_participant_data").unwrap(),
-                                        (session_id, participants),
+                                redis
+                                    .set_ex::<String, Vec<u8>, String>(
+                                        format!(
+                                        "f123:championship:{}:session:{session_id}:participants",
+                                        championship_id
+                                    ),
+                                        participants.clone(),
+                                        60 * 60,
                                     )
-                                    .await
                                     .unwrap();
                             }
 
@@ -190,6 +220,7 @@ impl F123Service {
                                     continue;
                                 };
 
+                                // TODO: Save all laps for each driver in the final classification
                                 session
                                     .execute(
                                         db.statements
@@ -200,9 +231,6 @@ impl F123Service {
                                     .await
                                     .unwrap();
                             }
-
-                            // TODO: use unused packets
-                            _ => {}
                         }
                     }
 

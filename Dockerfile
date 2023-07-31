@@ -10,5 +10,4 @@ RUN apt-get update && apt-get install -y libssl-dev ca-certificates pkg-config &
 RUN cargo build --release
 
 RUN ["cp", "./target/release/intelli-telemetry-f123", "/usr/local/bin/intelli-telemetry-f123"]
-RUN ["rm", "-rf", "../telemety-api"]
 CMD ["intelli-telemetry-f123"]

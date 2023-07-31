@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS lap_data (
 );
 
 CREATE TABLE IF NOT EXISTS event_data (
-    session_id bigint PRIMARY KEY,
+    session_id bigint,
     string_code text,
-    event BLOB
+    events list<BLOB>,
+    PRIMARY KEY (session_id, string_code)
 );
 
 CREATE TABLE IF NOT EXISTS participants_data (
@@ -38,6 +39,10 @@ CREATE TABLE IF NOT EXISTS users (
     username text,
     password text,
     active boolean,
+    otp_enabled boolean,
+    otp_verified boolean,
+    otp_base32 text,
+    otp_auth_url text,
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, email)
