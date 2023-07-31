@@ -1,4 +1,4 @@
-language: rust
+language: bash
 sudo: required
 services:
   - docker
