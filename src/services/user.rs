@@ -16,7 +16,7 @@ pub struct UserService {
     pass_salt: Vec<u8>,
     db_conn: Arc<Database>,
     user_repo: UserRepository,
-    argon2_config: argon2::Config<'static>,
+    argon2_config: Config<'static>,
 }
 
 #[async_trait]
@@ -37,20 +37,8 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()> {
-        self.db_conn
-            .get_scylla()
-            .execute(
-                self.db_conn.statements.get("activate_user").unwrap(),
-                (id, email),
-            )
-            .await?;
-
-        Ok(())
-    }
-
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()> {
-        let time = Utc::now().timestamp();
+        let time = Utc::now();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -79,6 +67,18 @@ impl UserServiceTrait for UserService {
             )
             .await
             .unwrap();
+
+        Ok(())
+    }
+
+    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()> {
+        self.db_conn
+            .get_scylla()
+            .execute(
+                self.db_conn.statements.get("activate_user").unwrap(),
+                (id, email),
+            )
+            .await?;
 
         Ok(())
     }
