@@ -34,8 +34,8 @@ async fn main() -> Result<(), Error> {
             .await?;
     } else {
         let config = RustlsConfig::from_pem(
-            include_bytes!("../certs/cert.pem").to_vec(),
-            include_bytes!("../certs/key.pem").to_vec(),
+            include_bytes!("../certs/intelli.gerardz.de.crt").to_vec(),
+            include_bytes!("../certs/intelli.gerardz.de.key").to_vec(),
         )
         .await
         .unwrap();
