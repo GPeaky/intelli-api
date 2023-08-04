@@ -20,3 +20,6 @@ Cargo.lock
 
 # Added Ignore for env file
 .env
+
+# Ignore for Certs
+certs/
