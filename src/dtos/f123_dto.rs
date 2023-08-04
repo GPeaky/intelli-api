@@ -2,6 +2,333 @@ use bincode::{deserialize, Error};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
+//*  --- F1 2023 Packet Data Enums ---
+
+#[repr(C)]
+#[derive(Debug, Serialize)]
+pub enum TeamIds {
+    Mercedes,
+    Ferrari,
+    RedBullRacing,
+    Williams,
+    AstonMartin,
+    Alpine,
+    AlphaTauri,
+    Haas,
+    McLaren,
+    AlfaRomeo,
+    CustomTeam,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum RuleSetIds {
+    PracticeAndQualifying,
+    Race,
+    TimeTrial,
+    TimeAttack,
+    CheckPointChallenge,
+    AutoCross,
+    Drift,
+    AverageSpeedZone,
+    RivalDuel,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum GameModeIds {
+    EventMode,
+    GrandPrix,
+    GrandPrix23,
+    TimeTrial,
+    SliptScreen,
+    OnlineCustom,
+    OnlineLeague,
+    CareerInvitational,
+    ChampionshipInvitational,
+    Championship,
+    OnlineChampionship,
+    OnlineWeeklyEvent,
+    StoryMode,
+    Career22,
+    Career22Online,
+    Career23,
+    Career23Online,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TrackIds {
+    Melbourne,
+    PaulRicard,
+    Shanghai,
+    Sakhir,
+    Catalunya,
+    Monaco,
+    Montreal,
+    Silverstone,
+    HockenHeim,
+    Hungaroring,
+    Spa,
+    Monza,
+    Singapore,
+    Suzuka,
+    AbuDhabi,
+    Texas,
+    Brazil,
+    Austria,
+    Sochi,
+    Mexico,
+    Baku,
+    SakhirShort,
+    SilverstoneShort,
+    TexasShort,
+    SuzukaShort,
+    Hanoi,
+    Zandvoort,
+    Imola,
+    Portimao,
+    Jeddah,
+    Miami,
+    LasVegas,
+    Losail,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum PenaltyTypes {
+    DriveThrough,
+    StopGo,
+    GridPenalty,
+    PenaltyReminder,
+    TimePenalty,
+    Warning,
+    Disqualified,
+    RemovedFromFormationLap,
+    ParkedTooLongTimer,
+    TyreRegulations,
+    ThisLapInvalidated,
+    ThisAndNextLapInvalidated,
+    ThisLapInvalidatedWithoutReason,
+    ThisAndPreviousLapInvalidated,
+    ThisAndPreviousLapInvalidatedWithoutReason,
+    Retired,
+    BlackFlagTimer,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum InfringementTypes {
+    BlockingBySlowDriving,
+    BlockingByWrongWayDriving,
+    ReversingOffTheStartLine,
+    BigCollision,
+    SmallCollision,
+    CollisionFailedToHandBackPositionSingle,
+    CollisionFailedToHandBackPositionMultiple,
+    CornerCuttingGainedTime,
+    CornerCuttingOvertakeSingle,
+    CornerCuttingOvertakeMultiple,
+    CrossedPitExitLane,
+    IgnoringBlueFlags,
+    IgnoringYellowFlags,
+    IgnoringDriveThrough,
+    TooManyDriveThroughs,
+    DriveThroughReminderServeWithinNLaps,
+    DriveThroughReminderServeThisLap,
+    PitLaneSpeeding,
+    ParkedForTooLong,
+    IgnoringTyreRegulations,
+    TooManyPenalties,
+    MultipleWarnings,
+    ApproachingDisqualification,
+    TyreRegulationsSelectSingle,
+    TyreRegulationsSelectMultiple,
+    LapInvalidatedCornerCutting,
+    LapInvalidatedRunningWide,
+    CornerCuttingRanWideGainedTimeMinor,
+    CornerCuttingRanWideGainedTimeSignificant,
+    CornerCuttingRanWideGainedTimeExtreme,
+    LapInvalidatedWallRiding,
+    LapInvalidatedFlashbackUsed,
+    LapInvalidatedResetToTrack,
+    BlockingThePitLane,
+    JumpStart,
+    SafetyCarToCarCollision,
+    SafetyCarIllegalOvertake,
+    SafetyCarExceedingAllowedPace,
+    VirtualSafetyCarExceedingAllowedPace,
+    FormationLapBelowAllowedSpeed,
+    FormationLapParking,
+    RetiredMechanicalFailure,
+    RetiredTerminallyDamaged,
+    SafetyCarFallingTooFarBack,
+    BlackFlagTimer,
+    UnservedStopGoPenalty,
+    UnservedDriveThroughPenalty,
+    EngineComponentChange,
+    GearboxChange,
+    LeagueGridPenalty,
+    RetryPenalty,
+    IllegalTimeGain,
+    MandatoryPitStop,
+    AttributeAssigned,
+}
+
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ParticipantNationality {
+    American,
+    Argentinean,
+    Australian,
+    Austrian,
+    Azerbaijani,
+    Bahraini,
+    Belgian,
+    Bolivian,
+    Brazilian,
+    British,
+    Bulgarian,
+    Cameroonian,
+    Canadian,
+    Chilean,
+    Chinese,
+    Colombian,
+    CostaRican,
+    Croatian,
+    Cypriot,
+    Czech,
+    Danish,
+    Dutch,
+    Ecuadorian,
+    English,
+    Emirian,
+    Estonian,
+    Finnish,
+    French,
+    German,
+    Ghanaian,
+    Greek,
+    Guatemalan,
+    Honduran,
+    HongKonger,
+    Hungarian,
+    Icelander,
+    Indian,
+    Indonesian,
+    Irish,
+    Israeli,
+    Italian,
+    Jamaican,
+    Japanese,
+    Jordanian,
+    Kuwaiti,
+    Latvian,
+    Lebanese,
+    Lithuanian,
+    Luxembourger,
+    Malaysian,
+    Maltese,
+    Mexican,
+    Monegasque,
+    NewZealander,
+    Nicaraguan,
+    NorthernIrish,
+    Norwegian,
+    Omani,
+    Pakistani,
+    Panamanian,
+    Paraguayan,
+    Peruvian,
+    Polish,
+    Portuguese,
+    Qatari,
+    Romanian,
+    Russian,
+    Salvadoran,
+    Saudi,
+    Scottish,
+    Serbian,
+    Singaporean,
+    Slovakian,
+    Slovenian,
+    SouthKorean,
+    SouthAfrican,
+    Spanish,
+    Swedish,
+    Swiss,
+    Thai,
+    Turkish,
+    Uruguayan,
+    Ukrainian,
+    Venezuelan,
+    Barbadian,
+    Welsh,
+    Vietnamese,
+}
+
+pub enum PacketIds {
+    Motion,
+    Session,
+    LapData,
+    Event,
+    Participants,
+    CarSetups,
+    CarTelemetry,
+    CarStatus,
+    FinalClassification,
+    LobbyInfo,
+    CarDamage,
+    SessionHistory,
+    TyreSets,
+    MotionEx,
+}
+
+impl From<u8> for PacketIds {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => PacketIds::Motion,
+            1 => PacketIds::Session,
+            2 => PacketIds::LapData,
+            3 => PacketIds::Event,
+            4 => PacketIds::Participants,
+            5 => PacketIds::CarSetups,
+            6 => PacketIds::CarTelemetry,
+            7 => PacketIds::CarStatus,
+            8 => PacketIds::FinalClassification,
+            9 => PacketIds::LobbyInfo,
+            10 => PacketIds::CarDamage,
+            11 => PacketIds::SessionHistory,
+            12 => PacketIds::TyreSets,
+            13 => PacketIds::MotionEx,
+            _ => panic!("Unknown packet id {}", value),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TeamIds {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let i = i8::deserialize(deserializer)?;
+
+        match i {
+            0 => Ok(TeamIds::Mercedes),
+            1 => Ok(TeamIds::Ferrari),
+            2 => Ok(TeamIds::RedBullRacing),
+            3 => Ok(TeamIds::Williams),
+            4 => Ok(TeamIds::AstonMartin),
+            5 => Ok(TeamIds::Alpine),
+            6 => Ok(TeamIds::AlphaTauri),
+            7 => Ok(TeamIds::Haas),
+            8 => Ok(TeamIds::McLaren),
+            9 => Ok(TeamIds::AlfaRomeo),
+            _ => Ok(TeamIds::CustomTeam),
+        }
+    }
+}
+
 //*  --- F1 2023 Packet Data Structures ---
 
 #[repr(C)]
@@ -68,7 +395,7 @@ pub struct PacketSessionData {
     pub m_totalLaps: u8, // Total number of laps in this race
     pub m_trackLength: u16, // Track length in metres
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
-    pub m_trackId: i8,     // -1 for unknown, see appendix
+    pub m_trackId: TrackIds, // -1 for unknown, see appendix
     pub m_formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 5 = Supercars, 6 = Esports, 7 = F2 2021
     pub m_sessionTimeLeft: u16, // Time left in session in seconds
     pub m_sessionDuration: u16, // Session duration in seconds
@@ -101,8 +428,8 @@ pub struct PacketSessionData {
     pub m_DRSAssist: u8, // 0 = off, 1 = on
     pub m_dynamicRacingLine: u8, // 0 = off, 1 = corners only, 2 = full
     pub m_dynamicRacingLineType: u8, // 0 = 2D, 1 = 3D
-    pub m_gameMode: u8, // Game mode id - see appendix
-    pub m_ruleSet: u8, // Ruleset - see appendix
+    pub m_gameMode: GameModeIds, //u8 // Game mode id - see appendix
+    pub m_ruleSet: RuleSetIds, // Ruleset - see appendix
     pub m_timeOfDay: u32, // Local time of day - minutes since midnight
     pub m_sessionLength: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium 5 = Medium Long, 6 = Long, 7 = Full
     pub m_speedUnitsLeadPlayer: u8, // 0 = MPH, 1 = KPH
@@ -184,13 +511,13 @@ pub enum EventDataDetails {
     },
 
     Penalty {
-        penaltyType: u8,      // Penalty type – see Appendices
-        infringementType: u8, // Infringement type – see Appendices
-        vehicleIdx: u8,       // Vehicle index of the car the penalty is applied to
-        otherVehicleIdx: u8,  // Vehicle index of the other car involved
-        time: u8,             // Time gained, or time spent doing action in seconds
-        lapNum: u8,           // Lap the penalty occurred on
-        placesGained: u8,     // Number of places gained by this
+        penaltyType: PenaltyTypes,           // Penalty type – see Appendices
+        infringementType: InfringementTypes, // Infringement type – see Appendices
+        vehicleIdx: u8,                      // Vehicle index of the car the penalty is applied to
+        otherVehicleIdx: u8,                 // Vehicle index of the other car involved
+        time: u8,                            // Time gained, or time spent doing action in seconds
+        lapNum: u8,                          // Lap the penalty occurred on
+        placesGained: u8,                    // Number of places gained by this
     },
 
     SpeedTrap {
@@ -239,7 +566,7 @@ pub struct ParticipantData {
     pub m_teamId: u8,       // Team id - see appendix
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
-    pub m_nationality: u8,  // Nationality of the driver
+    pub m_nationality: ParticipantNationality, // Nationality of the driver
     #[serde(with = "BigArray")]
     pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
@@ -307,7 +634,7 @@ pub struct PacketSessionHistoryData {
     pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
-pub enum F123Packet {
+pub enum F123Data {
     Motion(PacketMotionData),
     Session(PacketSessionData),
     Event(PacketEventData),
@@ -316,20 +643,22 @@ pub enum F123Packet {
     SessionHistory(Box<PacketSessionHistoryData>),
 }
 
-impl F123Packet {
-    pub fn parse(packet_id: u8, data: &[u8]) -> Result<Option<F123Packet>, Error> {
+impl F123Data {
+    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, Error> {
         match packet_id {
-            0 => Ok(Some(F123Packet::Motion(deserialize(data)?))),
-            1 => Ok(Some(F123Packet::Session(deserialize(data)?))),
-            3 => Ok(Some(F123Packet::Event(deserialize(data)?))),
-            4 => Ok(Some(F123Packet::Participants(deserialize(data)?))),
-            8 => Ok(Some(F123Packet::FinalClassification(deserialize(data)?))),
-            11 => Ok(Some(F123Packet::SessionHistory(deserialize(data)?))),
+            PacketIds::Motion => Ok(Some(F123Data::Motion(deserialize(data)?))),
+            PacketIds::Session => Ok(Some(F123Data::Session(deserialize(data)?))),
+            PacketIds::Event => Ok(Some(F123Data::Event(deserialize(data)?))),
+            PacketIds::Participants => Ok(Some(F123Data::Participants(deserialize(data)?))),
+            PacketIds::FinalClassification => {
+                Ok(Some(F123Data::FinalClassification(deserialize(data)?)))
+            }
+            PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(deserialize(data)?))),
             _ => Ok(None),
         }
     }
 
-    pub fn parse_header(data: &[u8]) -> Result<PacketHeader, Error> {
+    pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, Error> {
         deserialize::<PacketHeader>(data)
     }
 }

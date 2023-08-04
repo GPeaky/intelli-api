@@ -2,9 +2,10 @@ version: "3.8"
 
 services:
   api:
+    container_name: intelli-api
     build: .
     ports:
-      - "443:443"
+      - "8000:8000"
 
     env_file:
       - .env

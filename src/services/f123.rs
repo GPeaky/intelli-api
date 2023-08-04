@@ -1,24 +1,22 @@
 use crate::{
     config::Database,
-    dtos::F123Packet,
+    dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
 use bincode::serialize;
 use redis::Commands;
 use std::{
-    net::IpAddr,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{net::UdpSocket, process::Command, sync::RwLock, task::JoinHandle};
-use tracing::{error, info};
+use tokio::{net::UdpSocket, sync::RwLock, task::JoinHandle};
+use tracing::error;
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Arc<RwLock<AHashMap<String, JoinHandle<()>>>>,
-    ip_addresses: Arc<RwLock<AHashMap<String, IpAddr>>>,
 }
 
 impl F123Service {
@@ -26,7 +24,6 @@ impl F123Service {
         Self {
             db_conn: db_conn.clone(),
             sockets: Arc::new(RwLock::new(AHashMap::new())),
-            ip_addresses: Arc::new(RwLock::new(AHashMap::new())),
         }
     }
 
@@ -41,42 +38,33 @@ impl F123Service {
 
         let db = self.db_conn.clone();
         let championship_clone = championship_id.clone();
-        let ip_addresses = self.ip_addresses.clone();
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = tokio::task::spawn(async move {
-            let mut closed_ports = false;
             let mut buf = [0; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let (session, mut redis) = (db.get_scylla(), db.get_redis());
-            let (open_machine_port, close_port_for_all_except) =
-                (Self::open_machine_port, Self::close_port_for_all_except);
+
+            // Session History Data
+            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
+            let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
+            let (ms_interval, secs_interval, sec_interval) = (
+                Duration::from_millis(700),
+                Duration::from_secs(2),
+                Duration::from_secs(30),
+            );
+
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
             };
 
-            open_machine_port(port).await.unwrap();
-
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match socket.recv_from(&mut buf).await {
-                    Ok((size, address)) => {
-                        if !closed_ports {
-                            close_port_for_all_except(port as u16, address.ip())
-                                .await
-                                .unwrap();
-
-                            closed_ports = true;
-
-                            {
-                                let mut ip_addresses = ip_addresses.write().await;
-                                ip_addresses.insert(championship_id.to_string(), address.ip());
-                            }
-                        }
-
-                        let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
+                    Ok((size, _address)) => {
+                        let Ok(header) = F123Data::deserialize_header(&buf[..size]) else {
                             continue;
                         };
 
@@ -85,33 +73,70 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(Some(packet)) = F123Packet::parse(header.m_packetId, &buf[..size])
+                        let Ok(Some(packet)) =
+                            F123Data::deserialize(header.m_packetId.into(), &buf[..size])
                         else {
                             continue;
                         };
 
                         match packet {
-                            F123Packet::SessionHistory(session_history) => {
-                                let Ok(data) = serialize(&session_history) else {
-                                    error!("There was an error serializing the session history data");
+                            F123Data::SessionHistory(session_history) => {
+                                let now = Instant::now();
+
+                                let Some(last_update) =
+                                    last_car_lap_update.get(&session_history.m_carIdx)
+                                else {
+                                    last_car_lap_update.insert(session_history.m_carIdx, now);
                                     continue;
                                 };
 
-                                redis
-                                    .set_ex::<String, Vec<u8>, String>(
-                                        format!("f123:championship:{championship_id}:session:{session_id}:history:car:{}", session_history.m_carIdx),
-                                        data,
-                                        60 * 60,
-                                    )
-                                    .unwrap();
+                                if now.duration_since(*last_update) >= secs_interval {
+                                    let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
+
+                                    let sectors = (
+                                        session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
+                                        session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
+                                        session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
+                                    );
+
+                                    let Some(last_sectors) =
+                                        car_lap_sector_data.get(&session_history.m_carIdx)
+                                    else {
+                                        car_lap_sector_data
+                                            .insert(session_history.m_carIdx, sectors);
+                                        continue;
+                                    };
+
+                                    if sectors != *last_sectors {
+                                        let Ok(data) = serialize(&session_history) else {
+                                            error!("There was an error serializing the session history data");
+                                            continue;
+                                        };
+
+                                        tracing::info!(
+                                            "Saving session history for car: {}",
+                                            session_history.m_carIdx
+                                        );
+
+                                        redis
+                                            .set_ex::<String, Vec<u8>, String>(
+                                                format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
+                                                data,
+                                                60 * 60,
+                                            )
+                                            .unwrap();
+
+                                        last_car_lap_update.insert(session_history.m_carIdx, now);
+                                        car_lap_sector_data
+                                            .insert(session_history.m_carIdx, sectors);
+                                    }
+                                }
                             }
 
-                            F123Packet::Motion(motion_data) => {
+                            F123Data::Motion(motion_data) => {
                                 let now = Instant::now();
 
-                                if now.duration_since(last_car_motion_update)
-                                    >= Duration::from_millis(500)
-                                {
+                                if now.duration_since(last_car_motion_update) >= ms_interval {
                                     let Ok(data) = serialize(&motion_data) else {
                                         error!("There was an error serializing the motion data");
                                         continue;
@@ -132,12 +157,10 @@ impl F123Service {
                                 }
                             }
 
-                            F123Packet::Session(session_data) => {
+                            F123Data::Session(session_data) => {
                                 let now = Instant::now();
 
-                                if now.duration_since(last_session_update)
-                                    >= Duration::from_secs(30)
-                                {
+                                if now.duration_since(last_session_update) >= sec_interval {
                                     let Ok(data) = serialize(&session_data) else {
                                         error!("There was an error serializing the session data");
                                         continue;
@@ -159,7 +182,11 @@ impl F123Service {
                             }
 
                             // We don't save events in redis because redis doesn't support lists of lists
-                            F123Packet::Event(event_data) => {
+                            F123Data::Event(event_data) => {
+                                let select_stmt = db.statements.get("select_event_data").unwrap();
+                                let insert_stmt = db.statements.get("insert_event_data").unwrap();
+                                let update_stmt = db.statements.get("update_event_data").unwrap();
+
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");
                                     continue;
@@ -167,7 +194,7 @@ impl F123Service {
 
                                 let table_exists = session
                                     .execute(
-                                        db.statements.get("select_event_data").unwrap(),
+                                        select_stmt,
                                         (session_id, event_data.m_eventStringCode),
                                     )
                                     .await
@@ -177,7 +204,7 @@ impl F123Service {
                                 if table_exists.is_empty() {
                                     session
                                         .execute(
-                                            db.statements.get("insert_event_data").unwrap(),
+                                            insert_stmt,
                                             (session_id, event_data.m_eventStringCode, vec![event]),
                                         )
                                         .await
@@ -185,7 +212,7 @@ impl F123Service {
                                 } else {
                                     session
                                         .execute(
-                                            db.statements.get("update_event_data").unwrap(),
+                                            update_stmt,
                                             (vec![event], session_id, event_data.m_eventStringCode),
                                         )
                                         .await
@@ -193,7 +220,10 @@ impl F123Service {
                                 }
                             }
 
-                            F123Packet::Participants(participants_data) => {
+                            // TODO: Check why this is never saving to redis
+                            F123Data::Participants(participants_data) => {
+                                tracing::info!("Saving participants data");
+
                                 let Ok(participants) = serialize(&participants_data.m_participants)
                                 else {
                                     error!("There was an error serializing the participants data");
@@ -212,7 +242,8 @@ impl F123Service {
                                     .unwrap();
                             }
 
-                            F123Packet::FinalClassification(classification_data) => {
+                            //TODO Collect All data from redis and save it to the scylla database
+                            F123Data::FinalClassification(classification_data) => {
                                 let Ok(classifications) =
                                     serialize(&classification_data.m_classificationData)
                                 else {
@@ -220,7 +251,7 @@ impl F123Service {
                                     continue;
                                 };
 
-                                // TODO: Save all laps for each driver in the final classification
+                                // TODO Save all laps for each driver in the final classification
                                 session
                                     .execute(
                                         db.statements
@@ -255,6 +286,19 @@ impl F123Service {
         Ok(sockets.keys().cloned().collect())
     }
 
+    pub async fn stop_socket(&self, championship_id: String) -> AppResult<()> {
+        {
+            let mut sockets = self.sockets.write().await;
+            let Some(socket) = sockets.remove(&championship_id) else {
+                Err(SocketError::NotFound)?
+            };
+
+            socket.abort();
+        }
+
+        Ok(())
+    }
+
     // pub async fn stop_all_sockets(&self) {
     //     let mut sockets = self.sockets.write().await;
 
@@ -264,192 +308,4 @@ impl F123Service {
 
     //     sockets.clear();
     // }
-
-    pub async fn stop_socket(&self, championship_id: String, port: i16) -> AppResult<()> {
-        {
-            let mut sockets = self.sockets.write().await;
-            let Some(socket) = sockets.remove(&championship_id) else {
-                Err(SocketError::NotFound)?
-            };
-
-            socket.abort();
-        }
-        // TODO: Check if the port is closed
-        {
-            let ip_addresses = self.ip_addresses.read().await;
-            let ip = ip_addresses.get(&championship_id).unwrap();
-            Self::close_machine_port(port, *ip).await.unwrap();
-        }
-
-        Ok(())
-    }
-
-    async fn open_machine_port(port: i16) -> tokio::io::Result<()> {
-        let port_str = port.to_string();
-
-        if cfg!(unix) {
-            let output = Command::new("sudo")
-                .arg("iptables")
-                .arg("-A")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(port_str)
-                .arg("-j")
-                .arg("ACCEPT")
-                .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to open port with iptables",
-                ));
-            }
-        } else {
-            info!("The machine is not running a unix based OS, so the port will not be opened automatically");
-        }
-
-        Ok(())
-    }
-
-    async fn close_port_for_all_except(port: u16, ip: IpAddr) -> std::io::Result<()> {
-        if cfg!(unix) {
-            let port_str = port.to_string();
-            let ip_str = ip.to_string();
-
-            // Primero, borramos cualquier regla existente que afecte al puerto especificado.
-            let _ = Command::new("sudo")
-                .arg("iptables")
-                .arg("-D")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-j")
-                .arg("ACCEPT")
-                .output()
-                .await?;
-
-            let _ = Command::new("sudo")
-                .arg("iptables")
-                .arg("-D")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-j")
-                .arg("DROP")
-                .output()
-                .await?;
-
-            // Luego, agregamos las nuevas reglas.
-            // Bloquear todas las conexiones a este puerto
-            let output = Command::new("sudo")
-                .arg("iptables")
-                .arg("-A")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-j")
-                .arg("DROP")
-                .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to close port for all with iptables",
-                ));
-            }
-
-            // Permitir conexiones desde la IP específica
-            let output = Command::new("sudo")
-                .arg("iptables")
-                .arg("-I")
-                .arg("INPUT")
-                .arg("1")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-s")
-                .arg(&ip_str)
-                .arg("-j")
-                .arg("ACCEPT")
-                .output()
-                .await?;
-
-            if !output.status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to open port for specific IP with iptables",
-                ));
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn close_machine_port(port: i16, ip: IpAddr) -> tokio::io::Result<()> {
-        if cfg!(unix) {
-            let port_str = port.to_string();
-            let ip_str = ip.to_string();
-
-            // Elimina la regla que permite las conexiones desde una IP específica
-            match Command::new("sudo")
-                .arg("iptables")
-                .arg("-D")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-s")
-                .arg(&ip_str)
-                .arg("-j")
-                .arg("ACCEPT")
-                .output()
-                .await
-            {
-                Ok(output) => {
-                    if !output.status.success() {
-                        eprintln!("Failed to remove specific IP rule with iptables");
-                    }
-                }
-                Err(e) => eprintln!("Failed to execute command: {}", e),
-            }
-
-            // Elimina la regla que bloquea todas las demás conexiones
-            match Command::new("sudo")
-                .arg("iptables")
-                .arg("-D")
-                .arg("INPUT")
-                .arg("-p")
-                .arg("udp")
-                .arg("--dport")
-                .arg(&port_str)
-                .arg("-j")
-                .arg("DROP")
-                .output()
-                .await
-            {
-                Ok(output) => {
-                    if !output.status.success() {
-                        eprintln!("Failed to remove drop rule with iptables");
-                    }
-                }
-                Err(e) => eprintln!("Failed to execute command: {}", e),
-            }
-        } else {
-            info!("The machine is not running a unix based OS, so the port will not be closed automatically");
-        }
-
-        Ok(())
-    }
 }

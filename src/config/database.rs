@@ -82,9 +82,6 @@ impl Database {
         let insert_game_session_task =
             session.prepare("INSERT INTO game_sessions (id, data) VALUES (?,?);");
 
-        let insert_car_motion_task =
-            session.prepare("INSERT INTO car_motion (session_id, data) VALUES (?,?);");
-
         let insert_lap_data_task =
             session.prepare("INSERT INTO lap_data (session_id, lap) VALUES (?,?);");
 
@@ -116,7 +113,6 @@ impl Database {
             championships_ports,
             championship_by_id,
             insert_game_session,
-            insert_car_motion,
             insert_lap_data,
             select_event_data,
             insert_event_data,
@@ -134,7 +130,6 @@ impl Database {
             championships_ports_task,
             championship_by_id_task,
             insert_game_session_task,
-            insert_car_motion_task,
             insert_lap_data_task,
             select_event_data_task,
             insert_event_data_task,
@@ -157,7 +152,6 @@ impl Database {
         statements.insert("championships_ports".to_string(), championships_ports);
         statements.insert("championship_by_id".to_string(), championship_by_id);
         statements.insert("insert_game_session".to_string(), insert_game_session);
-        statements.insert("insert_car_motion".to_string(), insert_car_motion);
         statements.insert("insert_lap_data".to_string(), insert_lap_data);
         statements.insert("select_event_data".to_string(), select_event_data);
         statements.insert("insert_event_data".to_string(), insert_event_data);

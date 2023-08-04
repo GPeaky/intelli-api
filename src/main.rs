@@ -31,11 +31,12 @@ async fn main() -> Result<(), Error> {
     if cfg!(debug_assertions) {
         Server::from_tcp(listener)?
             .serve(service_routes(Arc::new(db)).await)
+            // .with_graceful_shutdown()
             .await?;
     } else {
         let config = RustlsConfig::from_pem(
-            include_bytes!("../certs/cert.pem").to_vec(),
-            include_bytes!("../certs/key.pem").to_vec(),
+            include_bytes!("../certs/intelli.gerardz.de.crt").to_vec(),
+            include_bytes!("../certs/intelli.gerardz.de.key").to_vec(),
         )
         .await
         .unwrap();

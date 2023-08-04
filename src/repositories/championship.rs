@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ChampionshipRepository {
-    pub database: Arc<Database>,
+    database: Arc<Database>,
 }
 
 impl ChampionshipRepository {

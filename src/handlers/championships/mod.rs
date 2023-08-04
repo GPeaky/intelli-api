@@ -12,8 +12,10 @@ use axum::{
 use garde::Validate;
 use hyper::StatusCode;
 pub(crate) use sockets::*;
+pub(crate) use web_socket::*;
 
 mod sockets;
+mod web_socket;
 
 #[inline(always)]
 pub async fn create_championship(
