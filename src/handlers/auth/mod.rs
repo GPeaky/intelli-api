@@ -1,5 +1,5 @@
-mod two_fa;
 mod user;
 
-pub(crate) use two_fa::*;
+// TODO: Add Two Factor Authentication
+// pub(crate) use two_fa::*;
 pub(crate) use user::*;

@@ -31,6 +31,7 @@ async fn main() -> Result<(), Error> {
     if cfg!(debug_assertions) {
         Server::from_tcp(listener)?
             .serve(service_routes(Arc::new(db)).await)
+            // .with_graceful_shutdown()
             .await?;
     } else {
         let config = RustlsConfig::from_pem(

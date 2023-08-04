@@ -3,7 +3,8 @@ use crate::{
     handlers::{
         auth::{forgot_password, login, logout, refresh_token, register, reset_password},
         championships::{
-            active_sockets, create_championship, get_championship, start_socket, stop_socket,
+            active_sockets, create_championship, get_championship, session_socket, start_socket,
+            stop_socket,
         },
         init,
         user::user_data,
@@ -85,6 +86,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     let championships_router = Router::new()
         .route("/", post(create_championship))
         .route("/:id", get(get_championship))
+        // .route("/:id/web_socket", get(session_socket))
         .route("/:id/start_socket", get(start_socket))
         .route("/:id/stop_socket", get(stop_socket))
         .route("/sockets", get(active_sockets))
@@ -96,6 +98,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
 
     Router::new()
         .route("/", get(init))
+        .route("/web_socket", get(session_socket))
         .nest("/auth", auth_router)
         .nest("/user", user_router)
         .nest("/verify", verify_router)
