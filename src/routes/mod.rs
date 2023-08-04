@@ -94,11 +94,11 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
             user_state.clone(),
             auth_handler,
         ))
-        .with_state(user_state);
+        .with_state(user_state.clone());
 
     Router::new()
         .route("/", get(init))
-        .route("/web_socket", get(session_socket))
+        .route("/web_socket", get(session_socket).with_state(user_state))
         .nest("/auth", auth_router)
         .nest("/user", user_router)
         .nest("/verify", verify_router)
