@@ -4,7 +4,7 @@ use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use hyper::Error;
 use routes::service_routes;
-use std::{net::TcpListener, sync::Arc};
+use std::{net::TcpListener, path::PathBuf, sync::Arc};
 use tracing::info;
 
 mod config;
@@ -34,13 +34,18 @@ async fn main() -> Result<(), Error> {
             // .with_graceful_shutdown()
             .await?;
     } else {
-        let config = RustlsConfig::from_pem(
-            include_bytes!("../certs/intelli.gerardz.de.crt").to_vec(),
-            include_bytes!("../certs/intelli.gerardz.de.key").to_vec(),
+        let config = RustlsConfig::from_pem_file(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("certs")
+                .join("intelli.gerardz.de.crt"),
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("certs")
+                .join("intelli.gerardz.de.key"),
         )
         .await
         .unwrap();
 
+        // TODO: Check how to implement graceful shutdown
         axum_server::from_tcp_rustls(listener, config)
             .http_config(HttpConfig::new().http2_only(true).build())
             .serve(service_routes(Arc::new(db)).await)
