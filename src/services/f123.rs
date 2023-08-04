@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::F123Packet,
+    dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
@@ -64,7 +64,7 @@ impl F123Service {
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
-                        let Ok(header) = F123Packet::parse_header(&buf[..size]) else {
+                        let Ok(header) = F123Data::deserialize_header(&buf[..size]) else {
                             continue;
                         };
 
@@ -73,13 +73,14 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(Some(packet)) = F123Packet::parse(header.m_packetId, &buf[..size])
+                        let Ok(Some(packet)) =
+                            F123Data::deserialize(header.m_packetId.into(), &buf[..size])
                         else {
                             continue;
                         };
 
                         match packet {
-                            F123Packet::SessionHistory(session_history) => {
+                            F123Data::SessionHistory(session_history) => {
                                 let now = Instant::now();
 
                                 let Some(last_update) =
@@ -132,7 +133,7 @@ impl F123Service {
                                 }
                             }
 
-                            F123Packet::Motion(motion_data) => {
+                            F123Data::Motion(motion_data) => {
                                 let now = Instant::now();
 
                                 if now.duration_since(last_car_motion_update) >= ms_interval {
@@ -156,7 +157,7 @@ impl F123Service {
                                 }
                             }
 
-                            F123Packet::Session(session_data) => {
+                            F123Data::Session(session_data) => {
                                 let now = Instant::now();
 
                                 if now.duration_since(last_session_update) >= sec_interval {
@@ -181,7 +182,7 @@ impl F123Service {
                             }
 
                             // We don't save events in redis because redis doesn't support lists of lists
-                            F123Packet::Event(event_data) => {
+                            F123Data::Event(event_data) => {
                                 let select_stmt = db.statements.get("select_event_data").unwrap();
                                 let insert_stmt = db.statements.get("insert_event_data").unwrap();
                                 let update_stmt = db.statements.get("update_event_data").unwrap();
@@ -219,7 +220,10 @@ impl F123Service {
                                 }
                             }
 
-                            F123Packet::Participants(participants_data) => {
+                            // TODO: Check why this is never saving to redis
+                            F123Data::Participants(participants_data) => {
+                                tracing::info!("Saving participants data");
+
                                 let Ok(participants) = serialize(&participants_data.m_participants)
                                 else {
                                     error!("There was an error serializing the participants data");
@@ -238,7 +242,8 @@ impl F123Service {
                                     .unwrap();
                             }
 
-                            F123Packet::FinalClassification(classification_data) => {
+                            //TODO Collect All data from redis and save it to the scylla database
+                            F123Data::FinalClassification(classification_data) => {
                                 let Ok(classifications) =
                                     serialize(&classification_data.m_classificationData)
                                 else {
@@ -246,7 +251,7 @@ impl F123Service {
                                     continue;
                                 };
 
-                                // TODO: Save all laps for each driver in the final classification
+                                // TODO Save all laps for each driver in the final classification
                                 session
                                     .execute(
                                         db.statements

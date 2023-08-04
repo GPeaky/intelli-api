@@ -6,11 +6,6 @@ CREATE TABLE IF NOT EXISTS game_sessions (
     data BLOB
 );
 
-CREATE TABLE IF NOT EXISTS car_motion (
-    session_id bigint PRIMARY KEY,
-    data BLOB
-);
-
 CREATE TABLE IF NOT EXISTS lap_data (
     session_id bigint PRIMARY KEY,
     lap BLOB,

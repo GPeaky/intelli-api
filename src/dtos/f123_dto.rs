@@ -267,6 +267,45 @@ pub enum ParticipantNationality {
     Vietnamese,
 }
 
+pub enum PacketIds {
+    Motion,
+    Session,
+    LapData,
+    Event,
+    Participants,
+    CarSetups,
+    CarTelemetry,
+    CarStatus,
+    FinalClassification,
+    LobbyInfo,
+    CarDamage,
+    SessionHistory,
+    TyreSets,
+    MotionEx,
+}
+
+impl From<u8> for PacketIds {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => PacketIds::Motion,
+            1 => PacketIds::Session,
+            2 => PacketIds::LapData,
+            3 => PacketIds::Event,
+            4 => PacketIds::Participants,
+            5 => PacketIds::CarSetups,
+            6 => PacketIds::CarTelemetry,
+            7 => PacketIds::CarStatus,
+            8 => PacketIds::FinalClassification,
+            9 => PacketIds::LobbyInfo,
+            10 => PacketIds::CarDamage,
+            11 => PacketIds::SessionHistory,
+            12 => PacketIds::TyreSets,
+            13 => PacketIds::MotionEx,
+            _ => panic!("Unknown packet id {}", value),
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for TeamIds {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -595,7 +634,7 @@ pub struct PacketSessionHistoryData {
     pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
-pub enum F123Packet {
+pub enum F123Data {
     Motion(PacketMotionData),
     Session(PacketSessionData),
     Event(PacketEventData),
@@ -604,20 +643,22 @@ pub enum F123Packet {
     SessionHistory(Box<PacketSessionHistoryData>),
 }
 
-impl F123Packet {
-    pub fn parse(packet_id: u8, data: &[u8]) -> Result<Option<F123Packet>, Error> {
+impl F123Data {
+    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, Error> {
         match packet_id {
-            0 => Ok(Some(F123Packet::Motion(deserialize(data)?))),
-            1 => Ok(Some(F123Packet::Session(deserialize(data)?))),
-            3 => Ok(Some(F123Packet::Event(deserialize(data)?))),
-            4 => Ok(Some(F123Packet::Participants(deserialize(data)?))),
-            8 => Ok(Some(F123Packet::FinalClassification(deserialize(data)?))),
-            11 => Ok(Some(F123Packet::SessionHistory(deserialize(data)?))),
+            PacketIds::Motion => Ok(Some(F123Data::Motion(deserialize(data)?))),
+            PacketIds::Session => Ok(Some(F123Data::Session(deserialize(data)?))),
+            PacketIds::Event => Ok(Some(F123Data::Event(deserialize(data)?))),
+            PacketIds::Participants => Ok(Some(F123Data::Participants(deserialize(data)?))),
+            PacketIds::FinalClassification => {
+                Ok(Some(F123Data::FinalClassification(deserialize(data)?)))
+            }
+            PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(deserialize(data)?))),
             _ => Ok(None),
         }
     }
 
-    pub fn parse_header(data: &[u8]) -> Result<PacketHeader, Error> {
+    pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, Error> {
         deserialize::<PacketHeader>(data)
     }
 }
