@@ -1,7 +1,13 @@
 [package]
-name = "intelli-api"
 version = "0.1.0"
+name = "intelli-api"
 edition = "2021"
+readme = "README.md"
+rust-version = "1.71.1"
+description = "F123 Championship Tool"
+authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
+license = "MIT"
+repository = "https://github.com/GPeaky/intelli-api"
 
 [dependencies]
 ahash = "0.8.3"
@@ -29,7 +35,14 @@ lettre = { version = "0.10.4", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
-axum = { version = "0.6.20", features = ["form", "macros", "multipart", "headers", "http2", "ws"] }
+axum = { version = "0.6.20", features = [
+    "form",
+    "macros",
+    "multipart",
+    "headers",
+    "http2",
+    "ws",
+] }
 tower = { version = "0.4.13", features = [
     "limit",
     "buffer",
