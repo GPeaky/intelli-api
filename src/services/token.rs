@@ -48,6 +48,11 @@ impl TokenServiceTrait for TokenService {
         }
     }
 
+    fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>> {
+        decode::<TokenClaim>(token, &self.decoding_key, &self.validation)
+            .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
+    }
+
     fn generate_token(&self, sub: &str, token_type: TokenType) -> AppResult<String> {
         let token_claim = TokenClaim {
             exp: token_type.get_expiration(),
@@ -56,11 +61,6 @@ impl TokenServiceTrait for TokenService {
         };
 
         encode(&self.header, &token_claim, &self.encoding_key)
-            .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
-    }
-
-    fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>> {
-        decode::<TokenClaim>(token, &self.decoding_key, &self.validation)
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
     }
 
