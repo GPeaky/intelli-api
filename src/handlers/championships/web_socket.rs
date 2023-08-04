@@ -15,7 +15,7 @@ pub async fn session_socket(State(state): State<UserState>, ws: WebSocketUpgrade
 }
 
 #[inline(always)]
-async fn handle_socket(state: UserState, mut socket: WebSocket) {
+async fn handle_socket(_state: UserState, mut socket: WebSocket) {
     while let Some(msg) = socket.recv().await {
         let Ok(msg) = msg else {
             break;
