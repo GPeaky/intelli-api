@@ -21,5 +21,5 @@ Cargo.lock
 # Added Ignore for env file
 .env
 
-# Ignore Key Pem
-certs/intelli.gerardz.de.key
+# Ignore for Certs
+certs/
