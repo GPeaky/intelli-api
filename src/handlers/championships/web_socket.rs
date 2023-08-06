@@ -1,4 +1,8 @@
-use crate::{entity::Championship, error::AppResult, states::WebSocketState};
+use crate::{
+    entity::Championship,
+    error::{AppResult, ChampionshipError},
+    states::WebSocketState,
+};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -15,10 +19,14 @@ pub async fn session_socket(
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&championship_id).await?;
-    state
+    let session_exists = state
         .championship_repository
         .session_exists(&championship_id, session_id)
         .await?;
+
+    if !session_exists {
+        return Err(ChampionshipError::SessionNotFound)?;
+    }
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship, session_id)))
 }
