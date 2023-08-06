@@ -1,3 +1,4 @@
+use redis::AsyncCommands;
 use scylla::transport::session::TypedRowIter;
 
 use crate::{config::Database, entity::Championship, error::AppResult};
@@ -41,6 +42,18 @@ impl ChampionshipRepository {
             .single_row_typed::<Championship>()?;
 
         Ok(championship)
+    }
+
+    pub async fn session_exists(&self, id: &str, session_id: i64) -> AppResult<bool> {
+        let res: bool = self
+            .database
+            .get_redis_async()
+            .await
+            .exists(format!("championship:{id:?}:session:{session_id:?}"))
+            .await
+            .unwrap();
+
+        Ok(res)
     }
 
     pub async fn championships_exists(&self, name: &str) -> AppResult<bool> {

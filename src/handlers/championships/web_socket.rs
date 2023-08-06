@@ -15,6 +15,10 @@ pub async fn session_socket(
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&championship_id).await?;
+    state
+        .championship_repository
+        .session_exists(&championship_id, session_id)
+        .await?;
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship, session_id)))
 }
@@ -31,8 +35,6 @@ async fn handle_socket(
             break;
         };
 
-        // TODO: Check if the user is authenticated
-        // TODO: Check if the user is authorized to access the data
         // TODO: handle a message when data is updated and send it to the client
         // TODO: Think about how to handle the data & send it to the client (maybe a stream?)
         match msg {
