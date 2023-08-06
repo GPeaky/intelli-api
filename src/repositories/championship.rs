@@ -49,7 +49,9 @@ impl ChampionshipRepository {
             .database
             .get_redis_async()
             .await
-            .exists(format!("championship:{id:?}:session:{session_id:?}"))
+            .exists(format!(
+                "f123:championship:{id}:session:{session_id}:motion" // Motion is a key that is always present
+            ))
             .await
             .unwrap();
 
