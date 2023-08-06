@@ -71,8 +71,7 @@ impl Database {
                 "INSERT INTO championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             );
 
-        let championship_by_id_task =
-            session.prepare("SELECT * FROM championships where id = ? ALLOW FILTERING");
+        let championship_by_id_task = session.prepare("SELECT * FROM championships where id = ?");
 
         let championship_by_name_task =
             session.prepare("SELECT name FROM championships where name = ? ALLOW FILTERING");

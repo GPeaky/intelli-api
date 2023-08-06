@@ -11,7 +11,7 @@ use crate::{
         verify::verify_email,
     },
     middlewares::auth_handler,
-    states::{AuthState, UserState},
+    states::{AuthState, UserState, WebSocketState},
 };
 use axum::{
     error_handling::HandleErrorLayer,
@@ -36,6 +36,7 @@ async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCod
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
     let user_state = UserState::new(&database).await;
+    let web_socket_state = WebSocketState::new(&database);
 
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::any())
@@ -98,11 +99,15 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
 
     Router::new()
         .route("/", get(init))
-        .route("/web_socket", get(session_socket).with_state(user_state))
+        // .route("/web_socket", get(session_socket).with_state(user_state))
         .nest("/auth", auth_router)
         .nest("/user", user_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
+        .route(
+            "/championships/:id/session/:session_id/web_socket",
+            get(session_socket).with_state(web_socket_state),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))

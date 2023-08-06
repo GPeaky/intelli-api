@@ -22,7 +22,7 @@ pub async fn start_socket(
 
     state
         .f123_service
-        .new_socket(championship.port, Arc::new(championship_id))
+        .new_socket(championship.port, Arc::new(championship.id))
         .await?;
 
     Ok(StatusCode::CREATED.into_response())
