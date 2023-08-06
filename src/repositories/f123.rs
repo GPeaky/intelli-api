@@ -14,6 +14,7 @@ impl F123Repository {
         }
     }
 
+    #[allow(unused)]
     pub async fn events_data(&self, id: i64) -> AppResult<TypedRowIter<EventData>> {
         let events_dat = self
             .database
