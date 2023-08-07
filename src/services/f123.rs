@@ -15,9 +15,9 @@ use tokio::{
     sync::{mpsc::Receiver, Mutex, RwLock},
     task::JoinHandle,
 };
-use tracing::error;
+use tracing::{error, info};
 
-type F123Receiver = Receiver<String>;
+type F123Receiver = Receiver<F123Data>;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -86,17 +86,11 @@ impl F123Service {
             );
 
             // Define channel
-            let (_tx, rx) = tokio::sync::mpsc::channel::<String>(1000);
+            let (tx, rx) = tokio::sync::mpsc::channel::<F123Data>(1000);
 
             {
                 let mut channels = channels.write().await;
                 channels.insert(championship_id.to_string(), Arc::new(Mutex::new(rx)));
-            }
-
-            // FIX: Here we can check that the channel is not empty and if it is we can close the socket
-            {
-                let channels = channels.read().await;
-                tracing::info!("Channels: {:#?}", channels);
             }
 
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
@@ -185,6 +179,8 @@ impl F123Service {
                                         error!("There was an error serializing the motion data");
                                         continue;
                                     };
+
+                                    tx.send(F123Data::Motion(motion_data)).await.unwrap();
 
                                     redis
                                         .set_ex::<String, Vec<u8>, String>(
@@ -336,16 +332,14 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &str) -> Option<String> {
+    pub async fn get_receiver(&self, championship_id: &str) -> Option<F123Data> {
         let channels = self.channels.read().await;
 
         if let Some(channel_mutex) = channels.get(championship_id) {
             let mut channel = channel_mutex.lock().await;
             channel.recv().await
         } else {
-            // Fix: But here we can't access to the championship data
-            tracing::info!("Channels: {:?}", channels);
-            tracing::info!("Championship {}", championship_id);
+            info!("No channel found for championship {}", championship_id);
             None
         }
     }

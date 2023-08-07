@@ -36,7 +36,7 @@ async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCod
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
     let user_state = UserState::new(&database).await;
-    let web_socket_state = WebSocketState::new(&database);
+    // let web_socket_state = WebSocketState::new(&database);
 
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::any())
@@ -106,7 +106,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/championships", championships_router)
         .route(
             "/championships/:id/session/:session_id/web_socket",
-            get(session_socket).with_state(web_socket_state),
+            get(session_socket).with_state(user_state),
         )
         .layer(
             ServiceBuilder::new()
