@@ -10,12 +10,19 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{net::UdpSocket, sync::RwLock, task::JoinHandle};
+use tokio::{
+    net::UdpSocket,
+    sync::{mpsc::Receiver, Mutex, RwLock},
+    task::JoinHandle,
+};
 use tracing::error;
+
+type F123Receiver = Receiver<String>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
+    channels: Arc<RwLock<AHashMap<String, Arc<Mutex<F123Receiver>>>>>,
     sockets: Arc<RwLock<AHashMap<String, JoinHandle<()>>>>,
 }
 
@@ -23,11 +30,13 @@ impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
+            channels: Arc::new(RwLock::new(AHashMap::new())),
             sockets: Arc::new(RwLock::new(AHashMap::new())),
         }
     }
 
     pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) -> AppResult<()> {
+        //  Check if socket already exists
         {
             let sockets = self.sockets.read().await;
 
@@ -36,14 +45,35 @@ impl F123Service {
             }
         }
 
-        let db = self.db_conn.clone();
-        let championship_clone = championship_id.clone();
+        // Check if channel already exists
+        {
+            let channels = self.channels.read().await;
+
+            if channels.contains_key(&championship_id.to_string()) {
+                return Err(SocketError::AlreadyExists.into());
+            }
+        }
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
-        let socket = tokio::task::spawn(async move {
+        let socket = self.socket_task(championship_id.clone(), port).await;
+
+        {
+            let mut sockets = self.sockets.write().await;
+            sockets.insert(championship_id.to_string(), socket);
+        }
+
+        Ok(())
+    }
+
+    async fn socket_task(&self, championship_id: Arc<String>, port: i16) -> JoinHandle<()> {
+        let db = self.db_conn.clone();
+        let channels = self.channels.clone();
+
+        tokio::task::spawn(async move {
             let mut buf = [0; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
+            let championship_id = championship_id.clone();
             let (session, mut redis) = (db.get_scylla(), db.get_redis());
 
             // Session History Data
@@ -54,6 +84,20 @@ impl F123Service {
                 Duration::from_secs(2),
                 Duration::from_secs(30),
             );
+
+            // Define channel
+            let (_tx, rx) = tokio::sync::mpsc::channel::<String>(1000);
+
+            {
+                let mut channels = channels.write().await;
+                channels.insert(championship_id.to_string(), Arc::new(Mutex::new(rx)));
+            }
+
+            // FIX: Here we can check that the channel is not empty and if it is we can close the socket
+            {
+                let channels = channels.read().await;
+                tracing::info!("Channels: {:#?}", channels);
+            }
 
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
@@ -270,14 +314,7 @@ impl F123Service {
                     }
                 }
             }
-        });
-
-        {
-            let mut sockets = self.sockets.write().await;
-            sockets.insert(championship_clone.to_string(), socket);
-        }
-
-        Ok(())
+        })
     }
 
     pub async fn active_sockets(&self) -> AppResult<Vec<String>> {
@@ -299,13 +336,17 @@ impl F123Service {
         Ok(())
     }
 
-    // pub async fn stop_all_sockets(&self) {
-    //     let mut sockets = self.sockets.write().await;
+    pub async fn get_receiver(&self, championship_id: &str) -> Option<String> {
+        let channels = self.channels.read().await;
 
-    //     for socket in sockets.iter() {
-    //         socket.1.abort();
-    //     }
-
-    //     sockets.clear();
-    // }
+        if let Some(channel_mutex) = channels.get(championship_id) {
+            let mut channel = channel_mutex.lock().await;
+            channel.recv().await
+        } else {
+            // Fix: But here we can't access to the championship data
+            tracing::info!("Channels: {:?}", channels);
+            tracing::info!("Championship {}", championship_id);
+            None
+        }
+    }
 }

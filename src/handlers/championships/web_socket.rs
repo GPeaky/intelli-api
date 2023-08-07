@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError},
@@ -5,11 +7,12 @@ use crate::{
 };
 use axum::{
     extract::{
-        ws::{WebSocket, WebSocketUpgrade},
+        ws::{Message, WebSocket, WebSocketUpgrade},
         Path, State,
     },
     response::Response, // IntoResponse
 };
+use tokio::time::sleep;
 // use rmp_serde::{Deserializer, Serializer};
 
 #[inline(always)]
@@ -33,10 +36,20 @@ pub async fn session_socket(
 
 #[inline(always)]
 async fn handle_socket(
-    mut _socket: WebSocket,
-    _state: WebSocketState,
-    _championship: Championship,
+    mut socket: WebSocket,
+    state: WebSocketState,
+    championship: Championship,
     _session_id: i64,
 ) {
     // TODO: Implement all the socket logic (Only Send data)
+    loop {
+        let Some(message) = state.f123_service.get_receiver(&championship.id).await else {
+            sleep(Duration::from_millis(700)).await;
+            continue;
+        };
+
+        let _ = socket.send(Message::Text(message)).await;
+
+        sleep(Duration::from_millis(700)).await
+    }
 }
