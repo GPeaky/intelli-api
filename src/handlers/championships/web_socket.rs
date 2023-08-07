@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::{
     dtos::F123Data,
     entity::Championship,
@@ -13,9 +11,8 @@ use axum::{
     },
     response::Response, // IntoResponse
 };
+use std::time::Duration;
 use tokio::time::sleep;
-use tracing::info;
-// use rmp_serde::{Deserializer, Serializer};
 
 #[inline(always)]
 pub async fn session_socket(
@@ -45,50 +42,46 @@ async fn handle_socket(
 ) {
     // TODO: Implement all the socket logic (Only Send data)
     loop {
-        let Some(f123_data) = state.f123_service.get_receiver(&championship.id).await else {
+        let Some((packet_id, data)) = state.f123_service.get_receiver(&championship.id).await
+        else {
             sleep(Duration::from_millis(700)).await;
             continue;
         };
 
-        match f123_data {
+        let Ok(Some(packet)) = F123Data::deserialize(packet_id.into(), data.as_slice()) else {
+            sleep(Duration::from_millis(700)).await;
+            continue;
+        };
+
+        match packet {
             F123Data::Motion(motion_data) => {
-                let _ = socket
-                    .send(Message::Text(
-                        serde_json::to_string(&motion_data.m_carMotionData).unwrap(),
-                    ))
-                    .await;
+                let data = rmp_serde::to_vec(&motion_data.m_carMotionData).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
 
             F123Data::SessionHistory(history_data) => {
-                let _ = socket
-                    .send(Message::Text(serde_json::to_string(&history_data).unwrap()))
-                    .await;
+                let data = rmp_serde::to_vec(&history_data).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
 
             F123Data::Session(session_data) => {
-                let _ = socket
-                    .send(Message::Text(serde_json::to_string(&session_data).unwrap()))
-                    .await;
+                let data = rmp_serde::to_vec(&session_data).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
 
             F123Data::Event(event) => {
-                let _ = socket
-                    .send(Message::Text(serde_json::to_string(&event).unwrap()))
-                    .await;
+                let data = rmp_serde::to_vec(&event).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
 
             F123Data::Participants(participants) => {
-                let _ = socket
-                    .send(Message::Text(serde_json::to_string(&participants).unwrap()))
-                    .await;
+                let data = rmp_serde::to_vec(&participants).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
 
             F123Data::FinalClassification(classification) => {
-                let _ = socket
-                    .send(Message::Text(
-                        serde_json::to_string(&classification).unwrap(),
-                    ))
-                    .await;
+                let data = rmp_serde::to_vec(&classification).unwrap();
+                let _ = socket.send(Message::Binary(data)).await;
             }
         }
 

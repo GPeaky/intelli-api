@@ -17,7 +17,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-type F123Receiver = Receiver<F123Data>;
+type F123Receiver = Receiver<(u8, Vec<u8>)>;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -86,7 +86,7 @@ impl F123Service {
             );
 
             // Define channel
-            let (tx, rx) = tokio::sync::mpsc::channel::<F123Data>(1000);
+            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Vec<u8>)>(1460);
 
             {
                 let mut channels = channels.write().await;
@@ -151,10 +151,7 @@ impl F123Service {
                                             continue;
                                         };
 
-                                        tracing::info!(
-                                            "Saving session history for car: {}",
-                                            session_history.m_carIdx
-                                        );
+                                        tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                         redis
                                             .set_ex::<String, Vec<u8>, String>(
@@ -180,7 +177,7 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    tx.send(F123Data::Motion(motion_data)).await.unwrap();
+                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                     redis
                                         .set_ex::<String, Vec<u8>, String>(
@@ -205,6 +202,8 @@ impl F123Service {
                                         error!("There was an error serializing the session data");
                                         continue;
                                     };
+
+                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                     redis
                                         .set_ex::<String, Vec<u8>, String>(
@@ -231,6 +230,8 @@ impl F123Service {
                                     error!("There was an error serializing the event data");
                                     continue;
                                 };
+
+                                tx.send((header.m_packetId, event.clone())).await.unwrap();
 
                                 let table_exists = session
                                     .execute(
@@ -270,6 +271,10 @@ impl F123Service {
                                     continue;
                                 };
 
+                                tx.send((header.m_packetId, participants.clone()))
+                                    .await
+                                    .unwrap();
+
                                 redis
                                     .set_ex::<String, Vec<u8>, String>(
                                         format!(
@@ -290,6 +295,10 @@ impl F123Service {
                                     error!("There was an error serializing the final classification data");
                                     continue;
                                 };
+
+                                tx.send((header.m_packetId, classifications.clone()))
+                                    .await
+                                    .unwrap();
 
                                 // TODO Save all laps for each driver in the final classification
                                 session
@@ -332,7 +341,7 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &str) -> Option<F123Data> {
+    pub async fn get_receiver(&self, championship_id: &str) -> Option<(u8, Vec<u8>)> {
         let channels = self.channels.read().await;
 
         if let Some(channel_mutex) = channels.get(championship_id) {

@@ -51,6 +51,7 @@ tower = { version = "0.4.13", features = [
 ] }
 tower-http = { version = "0.4.3", features = ["cors"] }
 serde_json = "1.0.104"
+rmp-serde = "1.1.2"
 
 [profile.release]
 debug = 0
