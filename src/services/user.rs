@@ -23,7 +23,7 @@ pub struct UserService {
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()>;
-    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()>;
+    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -72,7 +72,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn verify_email(&self, id: &str, email: &str) -> AppResult<()> {
+    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()> {
         self.db_conn
             .get_scylla()
             .execute(

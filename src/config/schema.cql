@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS championships (
     id int PRIMARY KEY,
     port smallint,
     name text,
-    user_id text,
+    user_id int,
     updated_at timestamp,
     created_at timestamp,
 );

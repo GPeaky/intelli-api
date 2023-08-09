@@ -30,7 +30,7 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
-    pub async fn find(&self, id: &str) -> AppResult<Championship> {
+    pub async fn find(&self, id: &i32) -> AppResult<Championship> {
         let championship = self
             .database
             .get_scylla()
@@ -44,7 +44,7 @@ impl ChampionshipRepository {
         Ok(championship)
     }
 
-    pub async fn session_exists(&self, id: &str, session_id: i64) -> AppResult<bool> {
+    pub async fn session_exists(&self, id: &i32, session_id: i64) -> AppResult<bool> {
         let res: bool = self
             .database
             .get_redis_async()

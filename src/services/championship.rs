@@ -33,7 +33,7 @@ impl ChampionshipService {
     pub async fn create_championship(
         &mut self,
         payload: CreateChampionshipDto,
-        user_id: &str,
+        user_id: &i32,
     ) -> AppResult<()> {
         let mut rng = Rand::new();
         let championship_exist = self

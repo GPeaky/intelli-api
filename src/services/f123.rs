@@ -22,8 +22,8 @@ type F123Receiver = Receiver<(u8, Vec<u8>)>;
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    channels: Arc<RwLock<AHashMap<String, Arc<Mutex<F123Receiver>>>>>,
-    sockets: Arc<RwLock<AHashMap<String, JoinHandle<()>>>>,
+    channels: Arc<RwLock<AHashMap<i32, Arc<Mutex<F123Receiver>>>>>,
+    sockets: Arc<RwLock<AHashMap<i32, JoinHandle<()>>>>,
 }
 
 impl F123Service {
@@ -35,12 +35,12 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) -> AppResult<()> {
+    pub async fn new_socket(&self, port: i16, championship_id: Arc<i32>) -> AppResult<()> {
         //  Check if socket already exists
         {
             let sockets = self.sockets.read().await;
 
-            if sockets.contains_key(&championship_id.to_string()) {
+            if sockets.contains_key(&championship_id) {
                 return Err(SocketError::AlreadyExists.into());
             }
         }
@@ -49,7 +49,7 @@ impl F123Service {
         {
             let channels = self.channels.read().await;
 
-            if channels.contains_key(&championship_id.to_string()) {
+            if channels.contains_key(&championship_id) {
                 return Err(SocketError::AlreadyExists.into());
             }
         }
@@ -59,18 +59,18 @@ impl F123Service {
 
         {
             let mut sockets = self.sockets.write().await;
-            sockets.insert(championship_id.to_string(), socket);
+            sockets.insert(*championship_id, socket);
         }
 
         Ok(())
     }
 
-    async fn socket_task(&self, championship_id: Arc<String>, port: i16) -> JoinHandle<()> {
+    async fn socket_task(&self, championship_id: Arc<i32>, port: i16) -> JoinHandle<()> {
         let db = self.db_conn.clone();
         let channels = self.channels.clone();
 
         tokio::task::spawn(async move {
-            let mut buf = [0; 1460];
+            let mut buf = [0u8; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let championship_id = championship_id.clone();
@@ -90,7 +90,7 @@ impl F123Service {
 
             {
                 let mut channels = channels.write().await;
-                channels.insert(championship_id.to_string(), Arc::new(Mutex::new(rx)));
+                channels.insert(*championship_id, Arc::new(Mutex::new(rx)));
             }
 
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
@@ -100,9 +100,13 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
+                // buf.clear();
+
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
-                        let Ok(header) = F123Data::deserialize_header(&buf[..size]) else {
+                        let buf = &buf[..size];
+
+                        let Ok(header) = F123Data::deserialize_header(buf) else {
                             continue;
                         };
 
@@ -111,8 +115,7 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(Some(packet)) =
-                            F123Data::deserialize(header.m_packetId.into(), &buf[..size])
+                        let Ok(Some(packet)) = F123Data::deserialize(header.m_packetId.into(), buf)
                         else {
                             continue;
                         };
@@ -322,13 +325,13 @@ impl F123Service {
         })
     }
 
-    pub async fn active_sockets(&self) -> AppResult<Vec<String>> {
+    pub async fn active_sockets(&self) -> AppResult<Vec<i32>> {
         let sockets = self.sockets.read().await;
 
         Ok(sockets.keys().cloned().collect())
     }
 
-    pub async fn stop_socket(&self, championship_id: String) -> AppResult<()> {
+    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         {
             let mut sockets = self.sockets.write().await;
             let Some(socket) = sockets.remove(&championship_id) else {
@@ -341,7 +344,7 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &str) -> Option<(u8, Vec<u8>)> {
+    pub async fn get_receiver(&self, championship_id: &i32) -> Option<(u8, Vec<u8>)> {
         let channels = self.channels.read().await;
 
         if let Some(channel_mutex) = channels.get(championship_id) {
