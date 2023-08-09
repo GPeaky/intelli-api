@@ -179,16 +179,16 @@ impl F123Service {
 
                                     tx.send((header.m_packetId, data.clone())).await.unwrap();
 
-                                    redis
-                                        .set_ex::<String, Vec<u8>, String>(
-                                            format!(
-                                                "f123:championship:{}:session:{session_id}:motion",
-                                                championship_id
-                                            ),
-                                            data,
-                                            60 * 60,
-                                        )
-                                        .unwrap();
+                                    // redis
+                                    //     .set_ex::<String, Vec<u8>, String>(
+                                    //         format!(
+                                    //             "f123:championship:{}:session:{session_id}:motion",
+                                    //             championship_id
+                                    //         ),
+                                    //         data,
+                                    //         60 * 60,
+                                    //     )
+                                    //     .unwrap();
 
                                     last_car_motion_update = now;
                                 }

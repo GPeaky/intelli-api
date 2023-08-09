@@ -8,7 +8,7 @@ use argon2::{self, Config};
 use axum::async_trait;
 use chrono::Utc;
 use dotenvy::var;
-use rs_nanoid::standard;
+use frand::Rand;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -39,6 +39,7 @@ impl UserServiceTrait for UserService {
 
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()> {
         let time = Utc::now();
+        let mut rng = Rand::new();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -50,7 +51,7 @@ impl UserServiceTrait for UserService {
             .execute(
                 self.db_conn.statements.get("insert_user").unwrap(),
                 (
-                    standard::<16>().to_string(),
+                    rng.gen::<i32>(),
                     register.username.clone(),
                     argon2::hash_encoded(
                         register.password.as_bytes(),

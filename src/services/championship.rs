@@ -5,7 +5,7 @@ use crate::{
     repositories::ChampionshipRepository,
 };
 use chrono::Utc;
-use rs_nanoid::standard;
+use frand::Rand;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -35,6 +35,7 @@ impl ChampionshipService {
         payload: CreateChampionshipDto,
         user_id: &str,
     ) -> AppResult<()> {
+        let mut rng = Rand::new();
         let championship_exist = self
             .championship_repository
             .championships_exists(&payload.name)
@@ -52,14 +53,7 @@ impl ChampionshipService {
             .get_scylla()
             .execute(
                 self.db.statements.get("insert_championship").unwrap(),
-                (
-                    standard::<16>().to_string(),
-                    payload.name,
-                    port,
-                    user_id,
-                    time,
-                    time,
-                ),
+                (rng.gen::<i32>(), payload.name, port, user_id, time, time),
             )
             .await?;
 

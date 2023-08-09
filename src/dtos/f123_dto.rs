@@ -267,6 +267,8 @@ pub enum ParticipantNationality {
     Vietnamese,
 }
 
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum PacketIds {
     Motion,
     Session,
@@ -346,6 +348,12 @@ pub struct PacketHeader {
     pub m_overallFrameIdentifier: u32, // Overall identifier for the frame the data was retrieved  // on, doesn't go back after flashbacks
     pub m_playerCarIndex: u8,          // Index of player's car in the array
     pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OwnPacketData {
+    pub packet_id: PacketIds,
+    pub data: Vec<u8>,
 }
 
 #[repr(C)]
