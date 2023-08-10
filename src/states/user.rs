@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
+    repositories::{ChampionshipRepository, F123Repository, UserRepository, UserRepositoryTrait},
     services::{
         ChampionshipService, F123Service, TokenService, TokenServiceTrait, UserService,
         UserServiceTrait,
@@ -16,6 +16,7 @@ pub struct UserState {
     pub championship_service: ChampionshipService,
     pub championship_repository: ChampionshipRepository,
     pub f123_service: F123Service,
+    pub f123_repository: F123Repository,
 }
 
 impl UserState {
@@ -23,6 +24,7 @@ impl UserState {
         Self {
             user_service: UserService::new(db_conn),
             f123_service: F123Service::new(db_conn),
+            f123_repository: F123Repository::new(db_conn),
             user_repository: UserRepository::new(db_conn),
             token_service: TokenService::new(db_conn),
             championship_service: ChampionshipService::new(db_conn).await,

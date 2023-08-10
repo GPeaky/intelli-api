@@ -267,6 +267,8 @@ pub enum ParticipantNationality {
     Vietnamese,
 }
 
+#[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum PacketIds {
     Motion,
     Session,
@@ -330,6 +332,29 @@ impl<'de> Deserialize<'de> for TeamIds {
 }
 
 //*  --- F1 2023 Packet Data Structures ---
+#[repr(C)]
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PacketHeader {
+    pub m_packetFormat: u16,           // 2023
+    pub m_gameYear: u8,                // Game year - last two digits e.g. 23
+    pub m_gameMajorVersion: u8,        // Game major version - "X.00"
+    pub m_gameMinorVersion: u8,        // Game minor version - "1.XX"
+    pub m_packetVersion: u8,           // Version of this packet type, all start from 1
+    pub m_packetId: u8,                // Identifier for the packet type, see below
+    pub m_sessionUID: u64,             // Unique identifier for the session
+    pub m_sessionTime: f32,            // Session timestamp
+    pub m_frameIdentifier: u32,        // Identifier for the frame the data was retrieved on
+    pub m_overallFrameIdentifier: u32, // Overall identifier for the frame the data was retrieved  // on, doesn't go back after flashbacks
+    pub m_playerCarIndex: u8,          // Index of player's car in the array
+    pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OwnPacketData {
+    pub packet_id: PacketIds,
+    pub data: Vec<u8>,
+}
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -369,19 +394,18 @@ pub struct PacketParticipantsData {
 #[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PacketHeader {
-    pub m_packetFormat: u16,           // 2023
-    pub m_gameYear: u8,                // Game year - last two digits e.g. 23
-    pub m_gameMajorVersion: u8,        // Game major version - "X.00"
-    pub m_gameMinorVersion: u8,        // Game minor version - "1.XX"
-    pub m_packetVersion: u8,           // Version of this packet type, all start from 1
-    pub m_packetId: u8,                // Identifier for the packet type, see below
-    pub m_sessionUID: u64,             // Unique identifier for the session
-    pub m_sessionTime: f32,            // Session timestamp
-    pub m_frameIdentifier: u32,        // Identifier for the frame the data was retrieved on
-    pub m_overallFrameIdentifier: u32, // Overall identifier for the frame the data was retrieved  // on, doesn't go back after flashbacks
-    pub m_playerCarIndex: u8,          // Index of player's car in the array
-    pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
+pub struct PacketSessionHistoryData {
+    pub m_header: PacketHeader,
+    pub m_carIdx: u8,
+    pub m_numLaps: u8,
+    pub m_numTyreStints: u8,
+    pub m_bestLapTimeLapNum: u8,
+    pub m_bestSector1LapNum: u8,
+    pub m_bestSector2LapNum: u8,
+    pub m_bestSector3LapNum: u8,
+    #[serde(with = "BigArray")]
+    pub m_lapHistoryData: [LapHistoryData; 100],
+    pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
 #[repr(C)]
@@ -441,6 +465,8 @@ pub struct PacketSessionData {
     pub m_numRedFlagPeriods: u8, // Number of red flags called during session
 }
 
+//* --- F1 23 Unpacked Data ---
+
 #[repr(C)]
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -464,8 +490,6 @@ pub struct CarMotionData {
     pub m_pitch: f32,              // Pitch angle in radians
     pub m_roll: f32,               // Roll angle in radians
 }
-
-//* --- F1 23 Unpacked Data ---
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -615,23 +639,6 @@ pub struct TyreStintHistoryData {
     pub m_endLap: u8,             // Lap the tyre usage ends on (255 of current tyre)
     pub m_tyreActualCompound: u8, // Actual tyres used by this driver
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PacketSessionHistoryData {
-    pub m_header: PacketHeader,
-    pub m_carIdx: u8,
-    pub m_numLaps: u8,
-    pub m_numTyreStints: u8,
-    pub m_bestLapTimeLapNum: u8,
-    pub m_bestSector1LapNum: u8,
-    pub m_bestSector2LapNum: u8,
-    pub m_bestSector3LapNum: u8,
-    #[serde(with = "BigArray")]
-    pub m_lapHistoryData: [LapHistoryData; 100],
-    pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
 pub enum F123Data {

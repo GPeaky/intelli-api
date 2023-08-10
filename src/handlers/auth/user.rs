@@ -85,11 +85,11 @@ pub(crate) async fn login(
 
     let access_token = state
         .token_service
-        .generate_token(&user.id, TokenType::Bearer)?;
+        .generate_token(&user.id.to_string(), TokenType::Bearer)?;
 
     let refresh_token = state
         .token_service
-        .generate_refresh_token(user.id, fingerprint)
+        .generate_refresh_token(user.id.to_string(), fingerprint)
         .await?;
 
     Ok(Json(AuthResponse {
@@ -140,7 +140,7 @@ pub(crate) async fn logout(
 
     state
         .token_service
-        .remove_refresh_token(user.id, fingerprint)
+        .remove_refresh_token(user.id.to_string(), fingerprint)
         .await?;
 
     Ok(StatusCode::OK.into_response())
@@ -160,7 +160,7 @@ pub(crate) async fn forgot_password(
 
     let token = state
         .token_service
-        .generate_token(&user.id, TokenType::ResetPassword)?;
+        .generate_token(&user.id.to_string(), TokenType::ResetPassword)?;
 
     state
         .email_service

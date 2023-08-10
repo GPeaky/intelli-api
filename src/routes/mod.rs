@@ -98,11 +98,15 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
 
     Router::new()
         .route("/", get(init))
-        .route("/web_socket", get(session_socket).with_state(user_state))
+        // .route("/web_socket", get(session_socket).with_state(user_state))
         .nest("/auth", auth_router)
         .nest("/user", user_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
+        .route(
+            "/championships/:id/session/:session_id/web_socket",
+            get(session_socket).with_state(user_state),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))

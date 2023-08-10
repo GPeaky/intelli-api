@@ -10,40 +10,70 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{net::UdpSocket, sync::RwLock, task::JoinHandle};
-use tracing::error;
+use tokio::{
+    net::UdpSocket,
+    sync::{mpsc::Receiver, Mutex, RwLock},
+    task::JoinHandle,
+};
+use tracing::{error, info};
+
+type F123Receiver = Receiver<(u8, Vec<u8>)>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<AHashMap<String, JoinHandle<()>>>>,
+    channels: Arc<RwLock<AHashMap<i32, Arc<Mutex<F123Receiver>>>>>,
+    sockets: Arc<RwLock<AHashMap<i32, JoinHandle<()>>>>,
 }
 
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
+            channels: Arc::new(RwLock::new(AHashMap::new())),
             sockets: Arc::new(RwLock::new(AHashMap::new())),
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: Arc<String>) -> AppResult<()> {
+    pub async fn new_socket(&self, port: i16, championship_id: Arc<i32>) -> AppResult<()> {
+        //  Check if socket already exists
         {
             let sockets = self.sockets.read().await;
 
-            if sockets.contains_key(&championship_id.to_string()) {
+            if sockets.contains_key(&championship_id) {
                 return Err(SocketError::AlreadyExists.into());
             }
         }
 
-        let db = self.db_conn.clone();
-        let championship_clone = championship_id.clone();
+        // Check if channel already exists
+        {
+            let channels = self.channels.read().await;
+
+            if channels.contains_key(&championship_id) {
+                return Err(SocketError::AlreadyExists.into());
+            }
+        }
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
-        let socket = tokio::task::spawn(async move {
-            let mut buf = [0; 1460];
+        let socket = self.socket_task(championship_id.clone(), port).await;
+
+        {
+            let mut sockets = self.sockets.write().await;
+            sockets.insert(*championship_id, socket);
+        }
+
+        Ok(())
+    }
+
+    async fn socket_task(&self, championship_id: Arc<i32>, port: i16) -> JoinHandle<()> {
+        let db = self.db_conn.clone();
+        let channels = self.channels.clone();
+
+        tokio::task::spawn(async move {
+            let mut buf = [0u8; 1460];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
+            let championship_id = championship_id.clone();
             let (session, mut redis) = (db.get_scylla(), db.get_redis());
 
             // Session History Data
@@ -55,6 +85,14 @@ impl F123Service {
                 Duration::from_secs(30),
             );
 
+            // Define channel
+            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Vec<u8>)>(1460);
+
+            {
+                let mut channels = channels.write().await;
+                channels.insert(*championship_id, Arc::new(Mutex::new(rx)));
+            }
+
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
                 error!("There was an error binding to the socket");
                 return;
@@ -62,9 +100,13 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
+                // buf.clear();
+
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
-                        let Ok(header) = F123Data::deserialize_header(&buf[..size]) else {
+                        let buf = &buf[..size];
+
+                        let Ok(header) = F123Data::deserialize_header(buf) else {
                             continue;
                         };
 
@@ -73,8 +115,7 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(Some(packet)) =
-                            F123Data::deserialize(header.m_packetId.into(), &buf[..size])
+                        let Ok(Some(packet)) = F123Data::deserialize(header.m_packetId.into(), buf)
                         else {
                             continue;
                         };
@@ -113,10 +154,7 @@ impl F123Service {
                                             continue;
                                         };
 
-                                        tracing::info!(
-                                            "Saving session history for car: {}",
-                                            session_history.m_carIdx
-                                        );
+                                        tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                         redis
                                             .set_ex::<String, Vec<u8>, String>(
@@ -142,16 +180,18 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    redis
-                                        .set_ex::<String, Vec<u8>, String>(
-                                            format!(
-                                                "f123:championship:{}:session:{session_id}:motion",
-                                                championship_id
-                                            ),
-                                            data,
-                                            60 * 60,
-                                        )
-                                        .unwrap();
+                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
+
+                                    // redis
+                                    //     .set_ex::<String, Vec<u8>, String>(
+                                    //         format!(
+                                    //             "f123:championship:{}:session:{session_id}:motion",
+                                    //             championship_id
+                                    //         ),
+                                    //         data,
+                                    //         60 * 60,
+                                    //     )
+                                    //     .unwrap();
 
                                     last_car_motion_update = now;
                                 }
@@ -165,6 +205,8 @@ impl F123Service {
                                         error!("There was an error serializing the session data");
                                         continue;
                                     };
+
+                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                     redis
                                         .set_ex::<String, Vec<u8>, String>(
@@ -191,6 +233,8 @@ impl F123Service {
                                     error!("There was an error serializing the event data");
                                     continue;
                                 };
+
+                                tx.send((header.m_packetId, event.clone())).await.unwrap();
 
                                 let table_exists = session
                                     .execute(
@@ -230,6 +274,10 @@ impl F123Service {
                                     continue;
                                 };
 
+                                tx.send((header.m_packetId, participants.clone()))
+                                    .await
+                                    .unwrap();
+
                                 redis
                                     .set_ex::<String, Vec<u8>, String>(
                                         format!(
@@ -251,6 +299,10 @@ impl F123Service {
                                     continue;
                                 };
 
+                                tx.send((header.m_packetId, classifications.clone()))
+                                    .await
+                                    .unwrap();
+
                                 // TODO Save all laps for each driver in the final classification
                                 session
                                     .execute(
@@ -270,23 +322,16 @@ impl F123Service {
                     }
                 }
             }
-        });
-
-        {
-            let mut sockets = self.sockets.write().await;
-            sockets.insert(championship_clone.to_string(), socket);
-        }
-
-        Ok(())
+        })
     }
 
-    pub async fn active_sockets(&self) -> AppResult<Vec<String>> {
+    pub async fn active_sockets(&self) -> AppResult<Vec<i32>> {
         let sockets = self.sockets.read().await;
 
         Ok(sockets.keys().cloned().collect())
     }
 
-    pub async fn stop_socket(&self, championship_id: String) -> AppResult<()> {
+    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         {
             let mut sockets = self.sockets.write().await;
             let Some(socket) = sockets.remove(&championship_id) else {
@@ -299,13 +344,15 @@ impl F123Service {
         Ok(())
     }
 
-    // pub async fn stop_all_sockets(&self) {
-    //     let mut sockets = self.sockets.write().await;
+    pub async fn get_receiver(&self, championship_id: &i32) -> Option<(u8, Vec<u8>)> {
+        let channels = self.channels.read().await;
 
-    //     for socket in sockets.iter() {
-    //         socket.1.abort();
-    //     }
-
-    //     sockets.clear();
-    // }
+        if let Some(channel_mutex) = channels.get(championship_id) {
+            let mut channel = channel_mutex.lock().await;
+            channel.recv().await
+        } else {
+            info!("No channel found for championship {}", championship_id);
+            None
+        }
+    }
 }

@@ -9,5 +9,5 @@ COPY templates/ ./templates
 RUN apt-get update && apt-get install -y libssl-dev ca-certificates pkg-config && rm -rf /var/lib/apt/lists/*
 RUN cargo build --release
 
-RUN ["cp", "./target/release/intelli-telemetry-f123", "/usr/local/bin/intelli-telemetry-f123"]
-CMD ["intelli-telemetry-f123"]
+RUN ["cp", "./target/release/intelli-api", "/usr/local/bin/intelli-api"]
+CMD ["intelli-api"]

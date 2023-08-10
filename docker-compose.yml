@@ -5,7 +5,7 @@ services:
     container_name: intelli-api
     build: .
     ports:
-      - "8000:8000"
+      - "443:443"
 
     env_file:
       - .env

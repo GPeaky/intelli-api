@@ -71,8 +71,7 @@ impl Database {
                 "INSERT INTO championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             );
 
-        let championship_by_id_task =
-            session.prepare("SELECT * FROM championships where id = ? ALLOW FILTERING");
+        let championship_by_id_task = session.prepare("SELECT * FROM championships where id = ?");
 
         let championship_by_name_task =
             session.prepare("SELECT name FROM championships where name = ? ALLOW FILTERING");
@@ -102,6 +101,8 @@ impl Database {
             "INSERT INTO final_classification_data (session_id, classification) VALUES (?,?);",
         );
 
+        let events_data_task = session.prepare("SELECT * FROM event_data WHERE session_id = ?;");
+
         let (
             insert_user,
             user_email_by_email,
@@ -119,6 +120,7 @@ impl Database {
             update_event_data,
             insert_participant_data,
             insert_final_classification_data,
+            events_data,
         ) = try_join!(
             insert_user_task,
             user_email_by_email_task,
@@ -135,7 +137,8 @@ impl Database {
             insert_event_data_task,
             update_event_data_task,
             insert_participant_data_task,
-            insert_final_classification_data_task
+            insert_final_classification_data_task,
+            events_data_task
         )
         .unwrap();
 
@@ -164,6 +167,8 @@ impl Database {
             "insert_final_classification_data".to_string(),
             insert_final_classification_data,
         );
+
+        statements.insert("events_data".to_string(), events_data);
 
         statements
     }
