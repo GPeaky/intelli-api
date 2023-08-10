@@ -100,8 +100,6 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
-                // buf.clear();
-
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
