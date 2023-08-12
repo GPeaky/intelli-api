@@ -18,6 +18,8 @@ pub enum UserError {
     InvalidFingerprint,
     #[error("Invalid Refresh Token")]
     InvalidRefreshToken,
+    #[error("Unauthorized user")]
+    Unauthorized,
 }
 
 impl IntoResponse for UserError {
@@ -30,6 +32,7 @@ impl IntoResponse for UserError {
             UserError::NotVerified => StatusCode::UNAUTHORIZED,
             UserError::InvalidFingerprint => StatusCode::BAD_REQUEST,
             UserError::InvalidRefreshToken => StatusCode::BAD_REQUEST,
+            UserError::Unauthorized => StatusCode::UNAUTHORIZED,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

@@ -1,6 +1,7 @@
 use crate::{
     config::Database,
     dtos::RegisterUserDto,
+    entity::Role,
     error::{AppResult, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
@@ -61,7 +62,7 @@ impl UserServiceTrait for UserService {
                     .unwrap(),
                     register.email.clone(),
                     false,
-                    false,
+                    Role::User as i16,
                     time,
                     time,
                 ),

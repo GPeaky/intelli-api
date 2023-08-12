@@ -10,7 +10,7 @@ use crate::{
         user::user_data,
         verify::verify_email,
     },
-    middlewares::auth_handler,
+    middlewares::{admin_handler, auth_handler},
     states::{AuthState, UserState},
 };
 use axum::{
@@ -89,7 +89,15 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .route("/all", get(all_championships))
         .route("/:id/start_socket", get(start_socket))
         .route("/:id/stop_socket", get(stop_socket))
+        .route_layer(middleware::from_fn_with_state(
+            user_state.clone(),
+            auth_handler,
+        ))
+        .with_state(user_state.clone());
+
+    let admin_router = Router::new()
         .route("/sockets", get(active_sockets))
+        .route_layer(middleware::from_fn(admin_handler))
         .route_layer(middleware::from_fn_with_state(
             user_state.clone(),
             auth_handler,
@@ -103,6 +111,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/user", user_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
+        .nest("/admin", admin_router)
         .route(
             "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
             get(session_socket).with_state(user_state),
@@ -110,8 +119,8 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
-                .layer(TimeoutLayer::new(Duration::from_secs(5))),
+                .layer(TimeoutLayer::new(Duration::from_secs(5)))
+                .layer(cors_layer),
         )
-        .layer(cors_layer)
         .into_make_service()
 }
