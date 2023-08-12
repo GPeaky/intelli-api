@@ -44,6 +44,23 @@ impl ChampionshipRepository {
         Ok(championship)
     }
 
+    pub async fn find_all(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
+        let championships = self
+            .database
+            .get_scylla()
+            .execute(
+                self.database
+                    .statements
+                    .get("championships_by_user_id")
+                    .unwrap(),
+                (user_id,),
+            )
+            .await?
+            .rows_typed::<Championship>()?;
+
+        Ok(championships)
+    }
+
     pub async fn session_exists(&self, id: &i32, session_id: i64) -> AppResult<bool> {
         let res: bool = self
             .database

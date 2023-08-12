@@ -11,6 +11,7 @@ use axum::{
 };
 use garde::Validate;
 use hyper::StatusCode;
+use scylla::cql_to_rust::FromRowError;
 pub(crate) use sockets::*;
 pub(crate) use web_socket::*;
 
@@ -43,4 +44,23 @@ pub async fn get_championship(
     let championship = state.championship_repository.find(&championship_id).await?;
 
     Ok(Json(championship))
+}
+
+#[inline(always)]
+pub async fn all_championships(
+    State(state): State<UserState>,
+    Extension(user): Extension<User>,
+) -> AppResult<Json<Vec<Championship>>> {
+    let championships = state
+        .championship_repository
+        .find_all(&user.id)
+        .await?
+        .collect::<Vec<Result<Championship, FromRowError>>>();
+
+    let championships = championships
+        .into_iter()
+        .collect::<Result<Vec<Championship>, FromRowError>>()
+        .unwrap();
+
+    Ok(Json(championships))
 }

@@ -44,10 +44,11 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS championships (
-    id int PRIMARY KEY,
+    id int,
     port smallint,
     name text,
     user_id int,
     updated_at timestamp,
     created_at timestamp,
+    PRIMARY KEY (id, user_id)
 );
