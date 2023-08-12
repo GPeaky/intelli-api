@@ -17,7 +17,7 @@ use tokio::time::sleep;
 #[inline(always)]
 pub async fn session_socket(
     State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
+    Path(championship_id): Path<i64>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&championship_id).await?;

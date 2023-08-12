@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 pub struct Championship {
-    pub id: i32,
-    pub user_id: i32,
+    pub id: i64,
+    pub user_id: i64,
     pub created_at: DateTime<Utc>,
     pub name: String,
     pub port: i16,

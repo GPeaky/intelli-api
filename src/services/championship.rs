@@ -33,7 +33,7 @@ impl ChampionshipService {
     pub async fn create_championship(
         &mut self,
         payload: CreateChampionshipDto,
-        user_id: &i32,
+        user_id: &i64,
     ) -> AppResult<()> {
         let mut rng = Rand::new();
         let championship_exist = self
@@ -53,7 +53,7 @@ impl ChampionshipService {
             .get_scylla()
             .execute(
                 self.db.statements.get("insert_championship").unwrap(),
-                (rng.gen::<i32>(), payload.name, port, user_id, time, time),
+                (rng.gen::<i64>(), payload.name, port, user_id, time, time),
             )
             .await?;
 

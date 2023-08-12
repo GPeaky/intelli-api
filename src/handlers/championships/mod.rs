@@ -39,7 +39,7 @@ pub async fn create_championship(
 #[inline(always)]
 pub async fn get_championship(
     State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
+    Path(championship_id): Path<i64>,
 ) -> AppResult<Json<Championship>> {
     let championship = state.championship_repository.find(&championship_id).await?;
 
