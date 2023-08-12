@@ -1,4 +1,9 @@
-use crate::{dtos::F123Data, entity::Championship, error::AppResult, states::UserState};
+use crate::{
+    dtos::F123Data,
+    entity::Championship,
+    error::{AppResult, SocketError},
+    states::UserState,
+};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -16,6 +21,15 @@ pub async fn session_socket(
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&championship_id).await?;
+
+    let socket_active = state
+        .f123_service
+        .championship_socket(&championship.id)
+        .await;
+
+    if !socket_active {
+        Err(SocketError::NotActive)?
+    }
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship)))
 }

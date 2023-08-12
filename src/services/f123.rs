@@ -329,6 +329,11 @@ impl F123Service {
         Ok(sockets.keys().cloned().collect())
     }
 
+    pub async fn championship_socket(&self, id: &i32) -> bool {
+        let sockets = self.sockets.read().await;
+        sockets.contains_key(id)
+    }
+
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         {
             let mut sockets = self.sockets.write().await;
