@@ -323,10 +323,9 @@ impl F123Service {
         })
     }
 
-    pub async fn active_sockets(&self) -> AppResult<Vec<i32>> {
+    pub async fn active_sockets(&self) -> Vec<i32> {
         let sockets = self.sockets.read().await;
-
-        Ok(sockets.keys().cloned().collect())
+        sockets.keys().cloned().collect()
     }
 
     pub async fn championship_socket(&self, id: &i32) -> bool {

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[inline(always)]
 pub async fn active_sockets(State(state): State<UserState>) -> AppResult<Json<Vec<i32>>> {
-    let sockets = state.f123_service.active_sockets().await?;
+    let sockets = state.f123_service.active_sockets().await;
     Ok(Json(sockets))
 }
 
