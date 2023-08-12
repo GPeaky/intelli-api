@@ -1,7 +1,5 @@
-use redis::AsyncCommands;
-use scylla::transport::session::TypedRowIter;
-
 use crate::{config::Database, entity::Championship, error::AppResult};
+use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -59,20 +57,6 @@ impl ChampionshipRepository {
             .rows_typed::<Championship>()?;
 
         Ok(championships)
-    }
-
-    pub async fn session_exists(&self, id: &i32, session_id: i64) -> AppResult<bool> {
-        let res: bool = self
-            .database
-            .get_redis_async()
-            .await
-            .exists(format!(
-                "f123:championship:{id}:session:{session_id}:motion" // Motion is a key that is always present
-            ))
-            .await
-            .unwrap();
-
-        Ok(res)
     }
 
     pub async fn championships_exists(&self, name: &str) -> AppResult<bool> {

@@ -104,7 +104,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
         .route(
-            "/championships/:id/session/:session_id/web_socket",
+            "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
             get(session_socket).with_state(user_state),
         )
         .layer(
