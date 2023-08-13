@@ -94,7 +94,7 @@ impl F123Service {
             }
 
             let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
-                error!("There was an error binding to the socket");
+                error!("There was an error binding at socket binding");
                 return;
             };
 
