@@ -1,6 +1,7 @@
 use crate::{
     config::Database,
     dtos::RegisterUserDto,
+    entity::Role,
     error::{AppResult, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
@@ -8,7 +9,7 @@ use argon2::{self, Config};
 use axum::async_trait;
 use chrono::Utc;
 use dotenvy::var;
-use frand::Rand;
+use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -39,7 +40,7 @@ impl UserServiceTrait for UserService {
 
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()> {
         let time = Utc::now();
-        let mut rng = Rand::new();
+        let mut rng = Rand::from_entropy();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -61,7 +62,7 @@ impl UserServiceTrait for UserService {
                     .unwrap(),
                     register.email.clone(),
                     false,
-                    false,
+                    Role::User as i16,
                     time,
                     time,
                 ),

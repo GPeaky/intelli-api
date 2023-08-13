@@ -53,7 +53,7 @@ impl Database {
         let mut statements: AHashMap<String, PreparedStatement> = AHashMap::new();
 
         let insert_user_task = session
-            .prepare("INSERT INTO users (id, username, password, email, active, otp_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            .prepare("INSERT INTO users (id, username, password, email, active, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         let user_email_by_email_task =
             session.prepare("SELECT email FROM users where email = ? ALLOW FILTERING");
@@ -70,6 +70,9 @@ impl Database {
             .prepare(
                 "INSERT INTO championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             );
+
+        let championships_by_user_id_task =
+            session.prepare("SELECT * FROM championships where user_id = ? ALLOW FILTERING");
 
         let championship_by_id_task = session.prepare("SELECT * FROM championships where id = ?");
 
@@ -121,6 +124,7 @@ impl Database {
             insert_participant_data,
             insert_final_classification_data,
             events_data,
+            championships_by_user_id,
         ) = try_join!(
             insert_user_task,
             user_email_by_email_task,
@@ -138,7 +142,8 @@ impl Database {
             update_event_data_task,
             insert_participant_data_task,
             insert_final_classification_data_task,
-            events_data_task
+            events_data_task,
+            championships_by_user_id_task
         )
         .unwrap();
 
@@ -169,6 +174,11 @@ impl Database {
         );
 
         statements.insert("events_data".to_string(), events_data);
+
+        statements.insert(
+            "championships_by_user_id".to_string(),
+            championships_by_user_id,
+        );
 
         statements
     }

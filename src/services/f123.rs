@@ -100,8 +100,6 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
-                // buf.clear();
-
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
@@ -325,10 +323,14 @@ impl F123Service {
         })
     }
 
-    pub async fn active_sockets(&self) -> AppResult<Vec<i32>> {
+    pub async fn active_sockets(&self) -> Vec<i32> {
         let sockets = self.sockets.read().await;
+        sockets.keys().cloned().collect()
+    }
 
-        Ok(sockets.keys().cloned().collect())
+    pub async fn championship_socket(&self, id: &i32) -> bool {
+        let sockets = self.sockets.read().await;
+        sockets.contains_key(id)
     }
 
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {

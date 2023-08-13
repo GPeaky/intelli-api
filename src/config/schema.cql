@@ -34,20 +34,18 @@ CREATE TABLE IF NOT EXISTS users (
     username text,
     password text,
     active boolean,
-    otp_enabled boolean,
-    otp_verified boolean,
-    otp_base32 text,
-    otp_auth_url text,
+    role smallint,
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, email)
 );
 
 CREATE TABLE IF NOT EXISTS championships (
-    id int PRIMARY KEY,
+    id int,
     port smallint,
     name text,
     user_id int,
     updated_at timestamp,
     created_at timestamp,
+    PRIMARY KEY (id, user_id)
 );

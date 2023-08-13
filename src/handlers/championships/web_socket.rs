@@ -1,7 +1,7 @@
 use crate::{
     dtos::F123Data,
     entity::Championship,
-    error::{AppResult, ChampionshipError},
+    error::{AppResult, SocketError},
     states::UserState,
 };
 use axum::{
@@ -17,29 +17,25 @@ use tokio::time::sleep;
 #[inline(always)]
 pub async fn session_socket(
     State(state): State<UserState>,
-    Path((championship_id, session_id)): Path<(i32, i64)>,
+    Path(championship_id): Path<i32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&championship_id).await?;
-    let session_exists = state
-        .championship_repository
-        .session_exists(&championship_id, session_id)
-        .await?;
 
-    if !session_exists {
-        return Err(ChampionshipError::SessionNotFound)?;
+    let socket_active = state
+        .f123_service
+        .championship_socket(&championship.id)
+        .await;
+
+    if !socket_active {
+        Err(SocketError::NotActive)?
     }
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship, session_id)))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship)))
 }
 
 #[inline(always)]
-async fn handle_socket(
-    mut socket: WebSocket,
-    state: UserState,
-    championship: Championship,
-    _session_id: i64,
-) {
+async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
     // TODO: Implement all the socket logic (Only Send data)
     loop {
         let Some((packet_id, data)) = state.f123_service.get_receiver(&championship.id).await

@@ -5,7 +5,7 @@ use crate::{
     repositories::ChampionshipRepository,
 };
 use chrono::Utc;
-use frand::Rand;
+use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -35,7 +35,7 @@ impl ChampionshipService {
         payload: CreateChampionshipDto,
         user_id: &i32,
     ) -> AppResult<()> {
-        let mut rng = Rand::new();
+        let mut rng = Rand::from_entropy();
         let championship_exist = self
             .championship_repository
             .championships_exists(&payload.name)

@@ -11,6 +11,8 @@ pub enum SocketError {
     NotFound,
     #[error("Socket already exists")]
     AlreadyExists,
+    #[error("Socket is not active")]
+    NotActive,
 }
 
 impl IntoResponse for SocketError {
@@ -18,6 +20,7 @@ impl IntoResponse for SocketError {
         let status_code = match self {
             SocketError::NotFound => StatusCode::BAD_REQUEST,
             SocketError::AlreadyExists => StatusCode::CONFLICT,
+            SocketError::NotActive => StatusCode::NOT_FOUND,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 use crate::{
     config::Database,
@@ -6,7 +6,6 @@ use crate::{
     error::{AppResult, TokenError},
 };
 use axum::async_trait;
-use dotenvy::var;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use redis::AsyncCommands;
 
@@ -37,14 +36,18 @@ pub trait TokenServiceTrait {
 #[async_trait]
 impl TokenServiceTrait for TokenService {
     fn new(db_conn: &Arc<Database>) -> Self {
-        let secret = var("JWT_SECRET").unwrap();
-
         Self {
-            header: Header::default(),
-            validation: Validation::default(),
+            header: Header::new(jsonwebtoken::Algorithm::RS256),
+            validation: Validation::new(jsonwebtoken::Algorithm::RS256),
             db_conn: Arc::clone(db_conn),
-            encoding_key: EncodingKey::from_secret(secret.as_bytes()),
-            decoding_key: DecodingKey::from_secret(secret.as_bytes()),
+            encoding_key: EncodingKey::from_rsa_pem(
+                &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),
+            )
+            .unwrap(),
+            decoding_key: DecodingKey::from_rsa_pem(
+                &fs::read("certs/jsonwebtoken.crt").expect("Unable to read key"),
+            )
+            .unwrap(),
         }
     }
 
