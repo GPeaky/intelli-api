@@ -12,9 +12,12 @@ use axum::{
 use garde::Validate;
 use hyper::StatusCode;
 use scylla::cql_to_rust::FromRowError;
+
+pub(crate) use admin::*;
 pub(crate) use sockets::*;
 pub(crate) use web_socket::*;
 
+mod admin;
 mod sockets;
 mod web_socket;
 

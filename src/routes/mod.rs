@@ -3,14 +3,14 @@ use crate::{
     handlers::{
         auth::{forgot_password, login, logout, refresh_token, register, reset_password},
         championships::{
-            active_sockets, all_championships, create_championship, get_championship,
-            session_socket, start_socket, stop_socket,
+            all_championships, create_championship, get_championship, session_socket, start_socket,
+            stop_socket,
         },
         init,
         user::user_data,
         verify::verify_email,
     },
-    middlewares::{admin_handler, auth_handler},
+    middlewares::auth_handler,
     states::{AuthState, UserState},
 };
 use axum::{
@@ -23,6 +23,10 @@ use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::cors::{AllowMethods, AllowOrigin, Any, CorsLayer};
+
+use self::admin::admin_router;
+
+mod admin;
 
 // Handles Service Errors
 async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCode, String) {
@@ -95,15 +99,6 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         ))
         .with_state(user_state.clone());
 
-    let admin_router = Router::new()
-        .route("/sockets", get(active_sockets))
-        .route_layer(middleware::from_fn(admin_handler))
-        .route_layer(middleware::from_fn_with_state(
-            user_state.clone(),
-            auth_handler,
-        ))
-        .with_state(user_state.clone());
-
     Router::new()
         .route("/", get(init))
         // .route("/web_socket", get(session_socket).with_state(user_state))
@@ -111,7 +106,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .nest("/user", user_router)
         .nest("/verify", verify_router)
         .nest("/championships", championships_router)
-        .nest("/admin", admin_router)
+        .nest("/admin", admin_router(user_state.clone()))
         .route(
             "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
             get(session_socket).with_state(user_state),
