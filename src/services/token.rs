@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 use crate::{
     config::Database,
@@ -40,10 +40,14 @@ impl TokenServiceTrait for TokenService {
             header: Header::new(jsonwebtoken::Algorithm::RS256),
             validation: Validation::new(jsonwebtoken::Algorithm::RS256),
             db_conn: Arc::clone(db_conn),
-            encoding_key: EncodingKey::from_rsa_pem(include_bytes!("../../certs/jsonwebtoken.key"))
-                .unwrap(),
-            decoding_key: DecodingKey::from_rsa_pem(include_bytes!("../../certs/jsonwebtoken.crt"))
-                .unwrap(),
+            encoding_key: EncodingKey::from_rsa_pem(
+                &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),
+            )
+            .unwrap(),
+            decoding_key: DecodingKey::from_rsa_pem(
+                &fs::read("certs/jsonwebtoken.crt").expect("Unable to read key"),
+            )
+            .unwrap(),
         }
     }
 
