@@ -28,7 +28,7 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
-    pub async fn find(&self, id: &i64) -> AppResult<Championship> {
+    pub async fn find(&self, id: &i32) -> AppResult<Championship> {
         let championship = self
             .database
             .get_scylla()
@@ -42,7 +42,7 @@ impl ChampionshipRepository {
         Ok(championship)
     }
 
-    pub async fn find_all(&self, user_id: &i64) -> AppResult<TypedRowIter<Championship>> {
+    pub async fn find_all(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
         let championships = self
             .database
             .get_scylla()

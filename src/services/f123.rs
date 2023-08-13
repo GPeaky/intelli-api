@@ -22,8 +22,8 @@ type F123Receiver = Receiver<(u8, Vec<u8>)>;
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    channels: Arc<RwLock<AHashMap<i64, Arc<Mutex<F123Receiver>>>>>,
-    sockets: Arc<RwLock<AHashMap<i64, JoinHandle<()>>>>,
+    channels: Arc<RwLock<AHashMap<i32, Arc<Mutex<F123Receiver>>>>>,
+    sockets: Arc<RwLock<AHashMap<i32, JoinHandle<()>>>>,
 }
 
 impl F123Service {
@@ -35,7 +35,7 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: i16, championship_id: Arc<i64>) -> AppResult<()> {
+    pub async fn new_socket(&self, port: i16, championship_id: Arc<i32>) -> AppResult<()> {
         //  Check if socket already exists
         {
             let sockets = self.sockets.read().await;
@@ -65,7 +65,7 @@ impl F123Service {
         Ok(())
     }
 
-    async fn socket_task(&self, championship_id: Arc<i64>, port: i16) -> JoinHandle<()> {
+    async fn socket_task(&self, championship_id: Arc<i32>, port: i16) -> JoinHandle<()> {
         let db = self.db_conn.clone();
         let channels = self.channels.clone();
 
@@ -323,17 +323,17 @@ impl F123Service {
         })
     }
 
-    pub async fn active_sockets(&self) -> Vec<i64> {
+    pub async fn active_sockets(&self) -> Vec<i32> {
         let sockets = self.sockets.read().await;
         sockets.keys().cloned().collect()
     }
 
-    pub async fn championship_socket(&self, id: &i64) -> bool {
+    pub async fn championship_socket(&self, id: &i32) -> bool {
         let sockets = self.sockets.read().await;
         sockets.contains_key(id)
     }
 
-    pub async fn stop_socket(&self, championship_id: i64) -> AppResult<()> {
+    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         {
             let mut sockets = self.sockets.write().await;
             let Some(socket) = sockets.remove(&championship_id) else {
@@ -346,7 +346,7 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &i64) -> Option<(u8, Vec<u8>)> {
+    pub async fn get_receiver(&self, championship_id: &i32) -> Option<(u8, Vec<u8>)> {
         let channels = self.channels.read().await;
 
         if let Some(channel_mutex) = channels.get(championship_id) {

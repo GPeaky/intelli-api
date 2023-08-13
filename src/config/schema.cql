@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS final_classification_data (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id bigint,
+    id int,
     email text,
     username text,
     password text,
@@ -41,10 +41,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS championships (
-    id bigint,
+    id int,
     port smallint,
     name text,
-    user_id bigint,
+    user_id int,
     updated_at timestamp,
     created_at timestamp,
     PRIMARY KEY (id, user_id)

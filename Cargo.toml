@@ -19,14 +19,14 @@ dotenvy = "0.15.7"
 tracing = "0.1.37"
 thiserror = "1.0.44"
 serde_trim = "1.0.0"
-rust-argon2 = "2.0.0"
+rust-argon2 = "1.0.1"
 jsonwebtoken = "8.3.0"
 serde-big-array = "0.5.1"
 tracing-subscriber = "0.3.17"
-tokio = { version = "1.31.0", features = ["full"] }
+tokio = { version = "1.30.0", features = ["full"] }
 chrono = { version = "0.4.26", features = ["serde"] }
 serde = { version = "1.0.183", features = ["derive"] }
-redis = { version = "0.23.2", features = ["tokio-comp"] }
+redis = { version = "0.23.1", features = ["tokio-comp"] }
 hyper = { version = "0.14.27", features = ["http2", "full"] }
 axum-server = { version = "0.5.1", features = ["tls-rustls"] }
 lettre = { version = "0.10.4", default-features = false, features = [
@@ -51,7 +51,7 @@ tower = { version = "0.4.13", features = [
 tower-http = { version = "0.4.3", features = ["cors"] }
 serde_json = "1.0.104"
 rmp-serde = "1.1.2"
-frand = "0.8.0"
+frand = "0.7.3"
 
 [profile.release]
 debug = 0

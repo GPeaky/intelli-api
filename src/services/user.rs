@@ -24,7 +24,7 @@ pub struct UserService {
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()>;
-    async fn verify_email(&self, id: &i64, email: &str) -> AppResult<()>;
+    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -52,7 +52,7 @@ impl UserServiceTrait for UserService {
             .execute(
                 self.db_conn.statements.get("insert_user").unwrap(),
                 (
-                    rng.gen::<i64>(),
+                    rng.gen::<i32>(),
                     register.username.clone(),
                     argon2::hash_encoded(
                         register.password.as_bytes(),
@@ -73,7 +73,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn verify_email(&self, id: &i64, email: &str) -> AppResult<()> {
+    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()> {
         self.db_conn
             .get_scylla()
             .execute(
