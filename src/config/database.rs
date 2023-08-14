@@ -63,8 +63,11 @@ impl Database {
         let user_by_email_task =
             session.prepare("SELECT * FROM users where email = ? ALLOW FILTERING");
 
-        let activate_user_task =
-            session.prepare("UPDATE users SET active = true WHERE id = ? AND email = ?");
+        let delete_user_task = session.prepare("DELETE FROM users WHERE id = ?");
+
+        let activate_user_task = session.prepare("UPDATE users SET active = true WHERE id = ?");
+
+        let deactivate_user_task = session.prepare("UPDATE users SET active = false WHERE id = ?");
 
         let insert_championships_task = session
             .prepare(
@@ -111,7 +114,9 @@ impl Database {
             user_email_by_email,
             user_by_id,
             user_by_email,
+            delete_user,
             activate_user,
+            deactivate_user,
             insert_championships,
             championship_by_name,
             championships_ports,
@@ -130,7 +135,9 @@ impl Database {
             user_email_by_email_task,
             user_by_id_task,
             user_by_email_task,
+            delete_user_task,
             activate_user_task,
+            deactivate_user_task,
             insert_championships_task,
             championship_by_name_task,
             championships_ports_task,
@@ -151,7 +158,9 @@ impl Database {
         statements.insert("user_email_by_email".to_string(), user_email_by_email);
         statements.insert("user_by_id".to_string(), user_by_id);
         statements.insert("user_by_email".to_string(), user_by_email);
+        statements.insert("delete_user".to_string(), delete_user);
         statements.insert("activate_user".to_string(), activate_user);
+        statements.insert("deactivate_user".to_string(), deactivate_user);
         statements.insert("insert_championship".to_owned(), insert_championships);
         statements.insert(
             "championship_name_by_name".to_string(),

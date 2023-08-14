@@ -23,8 +23,10 @@ pub struct UserService {
 #[async_trait]
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()>;
-    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()>;
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32>;
+    async fn delete_user(&self, id: &i32) -> AppResult<()>;
+    async fn activate_user(&self, id: &i32) -> AppResult<()>;
+    async fn deactivate_user(&self, id: &i32) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -38,21 +40,23 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<()> {
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
         let time = Utc::now();
         let mut rng = Rand::from_entropy();
         let user_exists = self.user_repo.user_exists(&register.email).await?;
+        let id = rng.gen::<i32>();
 
         if user_exists {
             return Err(UserError::AlreadyExists)?;
         }
 
+        // TODO: Check what is the result and if we can return the new user id
         self.db_conn
             .get_scylla()
             .execute(
                 self.db_conn.statements.get("insert_user").unwrap(),
                 (
-                    rng.gen::<i32>(),
+                    id,
                     register.username.clone(),
                     argon2::hash_encoded(
                         register.password.as_bytes(),
@@ -70,15 +74,34 @@ impl UserServiceTrait for UserService {
             .await
             .unwrap();
 
+        Ok(id)
+    }
+
+    async fn delete_user(&self, id: &i32) -> AppResult<()> {
+        // TODO: Delete all the data from this user
+        self.db_conn
+            .get_scylla()
+            .execute(self.db_conn.statements.get("delete_user").unwrap(), (id,))
+            .await?;
+
         Ok(())
     }
 
-    async fn verify_email(&self, id: &i32, email: &str) -> AppResult<()> {
+    async fn activate_user(&self, id: &i32) -> AppResult<()> {
+        self.db_conn
+            .get_scylla()
+            .execute(self.db_conn.statements.get("activate_user").unwrap(), (id,))
+            .await?;
+
+        Ok(())
+    }
+
+    async fn deactivate_user(&self, id: &i32) -> AppResult<()> {
         self.db_conn
             .get_scylla()
             .execute(
-                self.db_conn.statements.get("activate_user").unwrap(),
-                (id, email),
+                self.db_conn.statements.get("deactivate_user").unwrap(),
+                (id,),
             )
             .await?;
 
