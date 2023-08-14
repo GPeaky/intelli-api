@@ -1,11 +1,13 @@
 use crate::{
     config::Database,
     dtos::CreateChampionshipDto,
+    entity::Championship,
     error::{AppResult, ChampionshipError},
     repositories::ChampionshipRepository,
 };
 use chrono::Utc;
 use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
+use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -60,6 +62,32 @@ impl ChampionshipService {
         self.remove_port(port).await?;
 
         Ok(())
+    }
+
+    pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
+        self.db
+            .get_scylla()
+            .execute(
+                self.db.statements.get("delete_championship").unwrap(),
+                (id,),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn user_championships(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
+        let championships = self
+            .db
+            .get_scylla()
+            .execute(
+                self.db.statements.get("championships.by_id").unwrap(),
+                (user_id,),
+            )
+            .await?
+            .rows_typed::<Championship>()?;
+
+        Ok(championships)
     }
 
     async fn available_ports(

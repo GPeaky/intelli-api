@@ -1,6 +1,8 @@
 use crate::{
     handlers::{
-        championships::active_sockets,
+        championships::{
+            active_sockets, delete_championship, update_championship, user_championships,
+        },
         user::{delete_user, disable_user, enable_user},
     },
     middlewares::{admin_handler, auth_handler},
@@ -20,8 +22,14 @@ pub fn admin_router(state: UserState) -> Router {
         .route("/:id/enable", post(enable_user))
         .route("/:id/disable", post(disable_user));
 
+    let championships_router = Router::new()
+        .route("/:user_id", get(user_championships))
+        .route("/:id", delete(delete_championship))
+        .route("/:id", post(update_championship));
+
     Router::new()
         .nest("/users", user_router)
+        .nest("/championships", championships_router)
         .nest("/sockets", socket_router)
         .route_layer(middleware::from_fn(admin_handler))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_handler))
