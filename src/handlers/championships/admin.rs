@@ -32,7 +32,12 @@ pub async fn delete_championship(
     State(state): State<UserState>,
     Path(id): Path<i32>,
 ) -> AppResult<Response> {
-    state.championship_service.delete_championship(&id).await?;
+    let championship = state.championship_repository.find(&id).await?;
+
+    state
+        .championship_service
+        .delete_championship(&championship.id)
+        .await?;
 
     Ok(StatusCode::OK.into_response())
 }

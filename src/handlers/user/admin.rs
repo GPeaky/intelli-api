@@ -1,6 +1,7 @@
 use crate::{
     entity::User,
     error::{AppResult, UserError},
+    repositories::UserRepositoryTrait,
     services::UserServiceTrait,
     states::UserState,
 };
@@ -18,7 +19,9 @@ pub async fn delete_user(
     Path(id): Path<i32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    if id.eq(&user.id) {
+    let path_user = state.user_repository.find(&id).await?;
+
+    if path_user.id.eq(&user.id) {
         Err(UserError::AutoDelete)?
     }
 
@@ -34,7 +37,13 @@ pub async fn disable_user(
     Path(id): Path<i32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    if id.eq(&user.id) {
+    let path_user = state.user_repository.find(&id).await?;
+
+    if path_user.active.eq(&false) {
+        Err(UserError::AlreadyInactive)?
+    }
+
+    if path_user.id.eq(&user.id) {
         Err(UserError::AutoDelete)?
     }
 
@@ -48,7 +57,18 @@ pub async fn disable_user(
 pub async fn enable_user(
     State(state): State<UserState>,
     Path(id): Path<i32>,
+    Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    state.user_service.activate_user(&id).await?;
+    let path_user = state.user_repository.find(&id).await?;
+
+    if path_user.active.eq(&true) {
+        Err(UserError::AlreadyActive)?
+    }
+
+    if path_user.id.eq(&user.id) {
+        Err(UserError::AutoDelete)?
+    }
+
+    state.user_service.activate_user(&path_user.id).await?;
     Ok(StatusCode::OK.into_response())
 }

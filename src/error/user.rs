@@ -22,6 +22,10 @@ pub enum UserError {
     Unauthorized,
     #[error("Cannot Delete Yourself")]
     AutoDelete,
+    #[error("User Already Active")]
+    AlreadyActive,
+    #[error("User is not active")]
+    AlreadyInactive,
 }
 
 impl IntoResponse for UserError {
@@ -36,6 +40,8 @@ impl IntoResponse for UserError {
             UserError::InvalidRefreshToken => StatusCode::BAD_REQUEST,
             UserError::Unauthorized => StatusCode::UNAUTHORIZED,
             UserError::AutoDelete => StatusCode::BAD_REQUEST,
+            UserError::AlreadyActive => StatusCode::BAD_REQUEST,
+            UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

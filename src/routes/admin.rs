@@ -23,7 +23,7 @@ pub fn admin_router(state: UserState) -> Router {
         .route("/:id/disable", post(disable_user));
 
     let championships_router = Router::new()
-        .route("/:user_id", get(user_championships))
+        .route("/:id", get(user_championships)) // id = user_id
         .route("/:id", delete(delete_championship))
         .route("/:id", post(update_championship));
 
