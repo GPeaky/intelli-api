@@ -193,7 +193,7 @@ pub async fn reset_password(
 
     let token_data = state.token_service.validate(&token)?;
 
-    if token_data.claims.token_type != TokenType::ResetPassword {
+    if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
         Err(TokenError::InvalidTokenType)?
     }
 

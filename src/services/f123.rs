@@ -109,7 +109,8 @@ impl F123Service {
                         };
 
                         let session_id = header.m_sessionUID as i64;
-                        if session_id == 0 {
+
+                        if session_id.eq(&0) {
                             continue;
                         }
 
