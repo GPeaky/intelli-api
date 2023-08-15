@@ -3,7 +3,7 @@ use crate::{
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
-    states::UserState,
+    states::SafeUserState,
 };
 use axum::{
     extract::{Path, State},
@@ -15,7 +15,7 @@ use hyper::StatusCode;
 // TODO: Add admin user handlers
 #[inline(always)]
 pub async fn delete_user(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(id): Path<i32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
@@ -33,7 +33,7 @@ pub async fn delete_user(
 // TODO: Disable a user by id
 #[inline(always)]
 pub async fn disable_user(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(id): Path<i32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
@@ -55,7 +55,7 @@ pub async fn disable_user(
 // TODO: Enable a user by id
 #[inline(always)]
 pub async fn enable_user(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(id): Path<i32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {

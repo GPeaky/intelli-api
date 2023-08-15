@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     handlers::{
         championships::{
@@ -14,7 +16,7 @@ use axum::{
     Router,
 };
 
-pub fn admin_router(state: UserState) -> Router {
+pub fn admin_router(state: Arc<UserState>) -> Router {
     let socket_router = Router::new().route("/sockets", get(active_sockets));
 
     let user_router = Router::new()

@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
+// TODO: Fix this service to change things without begin mutable
 pub struct ChampionshipService {
     db: Arc<Database>,
     ports: Arc<RwLock<Vec<i16>>>,

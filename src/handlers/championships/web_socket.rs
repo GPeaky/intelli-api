@@ -2,7 +2,7 @@ use crate::{
     dtos::F123Data,
     entity::Championship,
     error::{AppResult, SocketError},
-    states::UserState,
+    states::SafeUserState,
 };
 use axum::{
     extract::{
@@ -11,12 +11,12 @@ use axum::{
     },
     response::Response, // IntoResponse
 };
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tokio::time::sleep;
 
 #[inline(always)]
 pub async fn session_socket(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(championship_id): Path<i32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
@@ -35,7 +35,7 @@ pub async fn session_socket(
 }
 
 #[inline(always)]
-async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
+async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship: Championship) {
     // TODO: Implement all the socket logic (Only Send data)
     loop {
         let Some((packet_id, data)) = state.f123_service.get_receiver(&championship.id).await

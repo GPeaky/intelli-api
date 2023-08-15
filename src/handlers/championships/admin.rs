@@ -1,4 +1,4 @@
-use crate::{entity::Championship, error::AppResult, states::UserState};
+use crate::{entity::Championship, error::AppResult, states::SafeUserState};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
@@ -10,7 +10,7 @@ use scylla::cql_to_rust::FromRowError;
 // TODO: Return a list of all championships for the user
 #[inline(always)]
 pub async fn user_championships(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(user_id): Path<i32>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state
@@ -29,7 +29,7 @@ pub async fn user_championships(
 // TODO: Delete a championship by id
 #[inline(always)]
 pub async fn delete_championship(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(id): Path<i32>,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&id).await?;
