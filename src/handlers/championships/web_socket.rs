@@ -11,7 +11,7 @@ use axum::{
     },
     response::Response, // IntoResponse
 };
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 use tokio::time::sleep;
 
 #[inline(always)]

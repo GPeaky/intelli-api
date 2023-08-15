@@ -31,10 +31,10 @@ pub async fn create_championship(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    // state
-    //     .championship_service
-    //     .create_championship(form, &user.id)
-    //     .await?;
+    state
+        .championship_service
+        .create_championship(form, &user.id)
+        .await?;
 
     Ok(StatusCode::OK.into_response())
 }

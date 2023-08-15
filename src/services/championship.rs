@@ -34,7 +34,7 @@ impl ChampionshipService {
     }
 
     pub async fn create_championship(
-        &mut self,
+        &self,
         payload: CreateChampionshipDto,
         user_id: &i32,
     ) -> AppResult<()> {
