@@ -49,8 +49,8 @@ impl ChampionshipService {
         }
 
         // todo: restrict port to receive only one connection, and release it when the connection is closed
+        let time = Utc::now();
         let port = self.get_port().await?;
-        let time = Utc::now().timestamp();
 
         self.db
             .get_scylla()
