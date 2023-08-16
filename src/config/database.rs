@@ -8,7 +8,7 @@ use tracing::info;
 
 pub struct Database {
     redis: Client,
-    scylla: Session,
+    pub scylla: Arc<Session>,
     pub statements: Arc<AHashMap<String, PreparedStatement>>,
 }
 
@@ -32,7 +32,7 @@ impl Database {
         info!("Prepared Statements Saved!, Returning Database Instance");
         Self {
             redis,
-            scylla,
+            scylla: Arc::new(scylla),
             statements: Arc::new(statements),
         }
     }
@@ -52,6 +52,7 @@ impl Database {
     async fn prepared_statements(session: &Session) -> AHashMap<String, PreparedStatement> {
         let mut statements: AHashMap<String, PreparedStatement> = AHashMap::new();
 
+        //* User Tasks
         let insert_user_task = session
             .prepare("INSERT INTO users (id, username, password, email, active, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
@@ -69,6 +70,7 @@ impl Database {
 
         let deactivate_user_task = session.prepare("UPDATE users SET active = false WHERE id = ?");
 
+        //* Championships Tasks
         let insert_championships_task = session
             .prepare(
                 "INSERT INTO championships (id, name, port, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -84,12 +86,9 @@ impl Database {
 
         let championships_ports_task = session.prepare("SELECT port FROM championships");
 
-        let insert_game_session_task =
-            session.prepare("INSERT INTO game_sessions (id, data) VALUES (?,?);");
+        let delete_championship_task = session.prepare("DELETE FROM championships WHERE id = ?");
 
-        let insert_lap_data_task =
-            session.prepare("INSERT INTO lap_data (session_id, lap) VALUES (?,?);");
-
+        //* Event Data Tasks
         let select_event_data_task =
             session.prepare("SELECT * FROM event_data WHERE session_id = ? AND string_code = ?;");
 
@@ -100,14 +99,21 @@ impl Database {
             "UPDATE event_data SET events = events + ? WHERE session_id = ? AND string_code = ?;",
         );
 
+        let events_data_task = session.prepare("SELECT * FROM event_data WHERE session_id = ?;");
+
+        //* Other Tasks
+        let insert_lap_data_task =
+            session.prepare("INSERT INTO lap_data (session_id, lap) VALUES (?,?);");
+
+        let insert_game_session_task =
+            session.prepare("INSERT INTO game_sessions (id, data) VALUES (?,?);");
+
         let insert_participant_data_task = session
             .prepare("INSERT INTO participants_data (session_id, participants) VALUES (?,?);");
 
         let insert_final_classification_data_task = session.prepare(
             "INSERT INTO final_classification_data (session_id, classification) VALUES (?,?);",
         );
-
-        let events_data_task = session.prepare("SELECT * FROM event_data WHERE session_id = ?;");
 
         let (
             insert_user,
@@ -130,6 +136,7 @@ impl Database {
             insert_final_classification_data,
             events_data,
             championships_by_user_id,
+            delete_championship,
         ) = try_join!(
             insert_user_task,
             user_email_by_email_task,
@@ -150,29 +157,40 @@ impl Database {
             insert_participant_data_task,
             insert_final_classification_data_task,
             events_data_task,
-            championships_by_user_id_task
+            championships_by_user_id_task,
+            delete_championship_task
         )
         .unwrap();
 
-        statements.insert("insert_user".to_string(), insert_user);
-        statements.insert("user_email_by_email".to_string(), user_email_by_email);
-        statements.insert("user_by_id".to_string(), user_by_id);
-        statements.insert("user_by_email".to_string(), user_by_email);
-        statements.insert("delete_user".to_string(), delete_user);
-        statements.insert("activate_user".to_string(), activate_user);
-        statements.insert("deactivate_user".to_string(), deactivate_user);
-        statements.insert("insert_championship".to_owned(), insert_championships);
+        //* User Statements
+        statements.insert("user.insert".to_string(), insert_user);
+        statements.insert("user.email_by_email".to_string(), user_email_by_email);
+        statements.insert("user.by_id".to_string(), user_by_id);
+        statements.insert("user.by_email".to_string(), user_by_email);
+        statements.insert("user.delete".to_string(), delete_user);
+        statements.insert("user.activate".to_string(), activate_user);
+        statements.insert("user.deactivate".to_string(), deactivate_user);
+
+        //* Championship Statements
+        statements.insert("championship.insert".to_owned(), insert_championships);
+        statements.insert("championship.ports".to_string(), championships_ports);
+        statements.insert("championship.by_id".to_string(), championship_by_id);
+        statements.insert("championship.by_user".to_string(), championships_by_user_id);
+        statements.insert("championship.delete".to_string(), delete_championship);
         statements.insert(
-            "championship_name_by_name".to_string(),
+            "championship.name_by_name".to_string(),
             championship_by_name,
         );
-        statements.insert("championships_ports".to_string(), championships_ports);
-        statements.insert("championship_by_id".to_string(), championship_by_id);
+
+        //* Event Data Statements
+        statements.insert("event_data.get".to_string(), select_event_data);
+        statements.insert("event_data.insert".to_string(), insert_event_data);
+        statements.insert("event_data.update".to_string(), update_event_data);
+        statements.insert("event_data.events_by_id".to_string(), events_data);
+
+        // TODO: Update this to use the new statements
         statements.insert("insert_game_session".to_string(), insert_game_session);
         statements.insert("insert_lap_data".to_string(), insert_lap_data);
-        statements.insert("select_event_data".to_string(), select_event_data);
-        statements.insert("insert_event_data".to_string(), insert_event_data);
-        statements.insert("update_event_data".to_string(), update_event_data);
         statements.insert(
             "insert_participant_data".to_string(),
             insert_participant_data,
@@ -182,18 +200,7 @@ impl Database {
             insert_final_classification_data,
         );
 
-        statements.insert("events_data".to_string(), events_data);
-
-        statements.insert(
-            "championships_by_user_id".to_string(),
-            championships_by_user_id,
-        );
-
         statements
-    }
-
-    pub fn get_scylla(&self) -> &Session {
-        &self.scylla
     }
 
     pub fn get_redis(&self) -> redis::Connection {

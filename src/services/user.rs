@@ -52,9 +52,9 @@ impl UserServiceTrait for UserService {
 
         // TODO: Check what is the result and if we can return the new user id
         self.db_conn
-            .get_scylla()
+            .scylla
             .execute(
-                self.db_conn.statements.get("insert_user").unwrap(),
+                self.db_conn.statements.get("user.insert").unwrap(),
                 (
                     id,
                     register.username.clone(),
@@ -80,8 +80,8 @@ impl UserServiceTrait for UserService {
     async fn delete_user(&self, id: &i32) -> AppResult<()> {
         // TODO: Delete all the data from this user
         self.db_conn
-            .get_scylla()
-            .execute(self.db_conn.statements.get("delete_user").unwrap(), (id,))
+            .scylla
+            .execute(self.db_conn.statements.get("user.delete").unwrap(), (id,))
             .await?;
 
         Ok(())
@@ -89,8 +89,8 @@ impl UserServiceTrait for UserService {
 
     async fn activate_user(&self, id: &i32) -> AppResult<()> {
         self.db_conn
-            .get_scylla()
-            .execute(self.db_conn.statements.get("activate_user").unwrap(), (id,))
+            .scylla
+            .execute(self.db_conn.statements.get("user.activate").unwrap(), (id,))
             .await?;
 
         Ok(())
@@ -98,9 +98,9 @@ impl UserServiceTrait for UserService {
 
     async fn deactivate_user(&self, id: &i32) -> AppResult<()> {
         self.db_conn
-            .get_scylla()
+            .scylla
             .execute(
-                self.db_conn.statements.get("deactivate_user").unwrap(),
+                self.db_conn.statements.get("user.deactivate").unwrap(),
                 (id,),
             )
             .await?;

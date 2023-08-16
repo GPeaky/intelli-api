@@ -74,7 +74,7 @@ impl F123Service {
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let championship_id = championship_id.clone();
-            let (session, mut redis) = (db.get_scylla(), db.get_redis());
+            let (session, mut redis) = (db.scylla.clone(), db.get_redis());
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
@@ -224,9 +224,9 @@ impl F123Service {
 
                             // We don't save events in redis because redis doesn't support lists of lists
                             F123Data::Event(event_data) => {
-                                let select_stmt = db.statements.get("select_event_data").unwrap();
-                                let insert_stmt = db.statements.get("insert_event_data").unwrap();
-                                let update_stmt = db.statements.get("update_event_data").unwrap();
+                                let select_stmt = db.statements.get("event_data.get").unwrap();
+                                let insert_stmt = db.statements.get("event_data.insert").unwrap();
+                                let update_stmt = db.statements.get("event_data.update").unwrap();
 
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");

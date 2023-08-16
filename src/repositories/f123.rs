@@ -18,8 +18,14 @@ impl F123Repository {
     pub async fn events_data(&self, id: i64) -> AppResult<TypedRowIter<EventData>> {
         let events_dat = self
             .database
-            .get_scylla()
-            .execute(self.database.statements.get("events_data").unwrap(), (id,))
+            .scylla
+            .execute(
+                self.database
+                    .statements
+                    .get("event_data.events_by_id")
+                    .unwrap(),
+                (id,),
+            )
             .await?
             .rows_typed::<EventData>()?;
 

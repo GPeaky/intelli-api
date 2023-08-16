@@ -53,9 +53,9 @@ impl ChampionshipService {
         let port = self.get_port().await?;
 
         self.db
-            .get_scylla()
+            .scylla
             .execute(
-                self.db.statements.get("insert_championship").unwrap(),
+                self.db.statements.get("championship.insert").unwrap(),
                 (rng.gen::<i32>(), payload.name, port, user_id, time, time),
             )
             .await?;
@@ -67,9 +67,9 @@ impl ChampionshipService {
 
     pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
         self.db
-            .get_scylla()
+            .scylla
             .execute(
-                self.db.statements.get("delete_championship").unwrap(),
+                self.db.statements.get("championship.delete").unwrap(),
                 (id,),
             )
             .await?;
@@ -80,9 +80,9 @@ impl ChampionshipService {
     pub async fn user_championships(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
         let championships = self
             .db
-            .get_scylla()
+            .scylla
             .execute(
-                self.db.statements.get("championships.by_id").unwrap(),
+                self.db.statements.get("championship.by_user").unwrap(),
                 (user_id,),
             )
             .await?

@@ -17,9 +17,9 @@ impl ChampionshipRepository {
     pub async fn ports_in_use(&self) -> AppResult<TypedRowIter<(i16,)>> {
         let ports_in_use = self
             .database
-            .get_scylla()
+            .scylla
             .execute(
-                self.database.statements.get("championships_ports").unwrap(),
+                self.database.statements.get("championship.ports").unwrap(),
                 &[],
             )
             .await?
@@ -31,9 +31,9 @@ impl ChampionshipRepository {
     pub async fn find(&self, id: &i32) -> AppResult<Championship> {
         let championship = self
             .database
-            .get_scylla()
+            .scylla
             .execute(
-                self.database.statements.get("championship_by_id").unwrap(),
+                self.database.statements.get("championship.by_id").unwrap(),
                 (id,),
             )
             .await?
@@ -45,7 +45,7 @@ impl ChampionshipRepository {
     pub async fn find_all(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
         let championships = self
             .database
-            .get_scylla()
+            .scylla
             .execute(
                 self.database
                     .statements
@@ -62,11 +62,11 @@ impl ChampionshipRepository {
     pub async fn championships_exists(&self, name: &str) -> AppResult<bool> {
         let rows = self
             .database
-            .get_scylla()
+            .scylla
             .execute(
                 self.database
                     .statements
-                    .get("championship_name_by_name")
+                    .get("championship.name_by_name")
                     .unwrap(),
                 (name,),
             )
