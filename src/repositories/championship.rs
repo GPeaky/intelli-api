@@ -49,7 +49,7 @@ impl ChampionshipRepository {
             .execute(
                 self.database
                     .statements
-                    .get("championships_by_user_id")
+                    .get("championship.by_user")
                     .unwrap(),
                 (user_id,),
             )

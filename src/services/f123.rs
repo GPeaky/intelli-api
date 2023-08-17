@@ -305,9 +305,7 @@ impl F123Service {
                                 // TODO Save all laps for each driver in the final classification
                                 session
                                     .execute(
-                                        db.statements
-                                            .get("insert_final_classification_data")
-                                            .unwrap(),
+                                        db.statements.get("final_classification.insert").unwrap(),
                                         (session_id, classifications),
                                     )
                                     .await

@@ -189,14 +189,14 @@ impl Database {
         statements.insert("event_data.events_by_id".to_string(), event_data_info);
 
         // TODO: Update this to use the new statements
-        statements.insert("insert_game_session".to_string(), game_session_insert);
-        statements.insert("insert_lap_data".to_string(), lap_data_insert);
+        statements.insert("game_session.insert".to_string(), game_session_insert);
+        statements.insert("lap_data.insert".to_string(), lap_data_insert);
         statements.insert(
-            "insert_participant_data".to_string(),
+            "participant_data.insert".to_string(),
             participant_data_insert,
         );
         statements.insert(
-            "insert_final_classification_data".to_string(),
+            "final_classification.insert".to_string(),
             final_classification_insert,
         );
 
