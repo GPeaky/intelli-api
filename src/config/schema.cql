@@ -1,16 +1,5 @@
 CREATE KEYSPACE IF NOT EXISTS intelli_api WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'replication_factor' : 1};
 
-CREATE TABLE IF NOT EXISTS game_sessions (
-    id bigint PRIMARY KEY,
-    championship_id text,
-    data BLOB
-);
-
-CREATE TABLE IF NOT EXISTS lap_data (
-    session_id bigint PRIMARY KEY,
-    lap BLOB,
-);
-
 CREATE TABLE IF NOT EXISTS event_data (
     session_id bigint,
     string_code text,
@@ -18,18 +7,8 @@ CREATE TABLE IF NOT EXISTS event_data (
     PRIMARY KEY (session_id, string_code)
 );
 
-CREATE TABLE IF NOT EXISTS participants_data (
-    session_id bigint PRIMARY KEY,
-    participants BLOB,
-);
-
-CREATE TABLE IF NOT EXISTS final_classification_data (
-    session_id bigint PRIMARY KEY,
-    classification BLOB,
-);
-
 CREATE TABLE IF NOT EXISTS users (
-    id int,
+    id int PRIMARY KEY,
     email text,
     username text,
     password text,
@@ -37,8 +16,12 @@ CREATE TABLE IF NOT EXISTS users (
     role smallint,
     updated_at timestamp,
     created_at timestamp,
-    PRIMARY KEY (id, email)
 );
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS users_by_email AS
+SELECT * FROM users
+WHERE email IS NOT NULL
+PRIMARY KEY (email,id);
 
 CREATE TABLE IF NOT EXISTS championships (
     id int,
@@ -49,3 +32,9 @@ CREATE TABLE IF NOT EXISTS championships (
     created_at timestamp,
     PRIMARY KEY (id, user_id)
 );
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS championships_by_name AS
+SELECT name, id, user_id
+FROM championships
+WHERE name IS NOT NULL AND user_id IS NOT NULL
+PRIMARY KEY (name, id, user_id);

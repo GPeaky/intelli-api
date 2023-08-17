@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::F123Data,
+    dtos::{EventDataStatements, F123Data, PreparedStatementsKey},
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
@@ -74,7 +74,7 @@ impl F123Service {
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let championship_id = championship_id.clone();
-            let (session, mut redis) = (db.get_scylla(), db.get_redis());
+            let (session, mut redis) = (db.scylla.clone(), db.get_redis());
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
@@ -109,7 +109,8 @@ impl F123Service {
                         };
 
                         let session_id = header.m_sessionUID as i64;
-                        if session_id == 0 {
+
+                        if session_id.eq(&0) {
                             continue;
                         }
 
@@ -223,9 +224,24 @@ impl F123Service {
 
                             // We don't save events in redis because redis doesn't support lists of lists
                             F123Data::Event(event_data) => {
-                                let select_stmt = db.statements.get("select_event_data").unwrap();
-                                let insert_stmt = db.statements.get("insert_event_data").unwrap();
-                                let update_stmt = db.statements.get("update_event_data").unwrap();
+                                let select_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Select,
+                                    ))
+                                    .unwrap();
+                                let insert_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Insert,
+                                    ))
+                                    .unwrap();
+                                let update_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Update,
+                                    ))
+                                    .unwrap();
 
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");
@@ -302,15 +318,14 @@ impl F123Service {
                                     .unwrap();
 
                                 // TODO Save all laps for each driver in the final classification
-                                session
-                                    .execute(
-                                        db.statements
-                                            .get("insert_final_classification_data")
-                                            .unwrap(),
-                                        (session_id, classifications),
-                                    )
-                                    .await
-                                    .unwrap();
+                                // TODO: Save the final classification to the database
+                                // session
+                                //     .execute(
+                                //         db.statements.get("final_classification.insert").unwrap(),
+                                //         (session_id, classifications),
+                                //     )
+                                //     .await
+                                //     .unwrap();
                             }
                         }
                     }

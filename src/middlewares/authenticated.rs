@@ -2,7 +2,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::TokenServiceTrait,
-    states::UserState,
+    states::SafeUserState,
 };
 use axum::{
     extract::State,
@@ -13,7 +13,7 @@ use axum::{
 };
 
 pub async fn auth_handler<T>(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     mut req: Request<T>,
     next: Next<T>,
 ) -> AppResult<Response> {

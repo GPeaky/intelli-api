@@ -1,15 +1,18 @@
 use crate::{
     config::Database,
-    dtos::CreateChampionshipDto,
+    dtos::{ChampionshipStatements, CreateChampionshipDto, PreparedStatementsKey},
+    entity::Championship,
     error::{AppResult, ChampionshipError},
     repositories::ChampionshipRepository,
 };
 use chrono::Utc;
 use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
+use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
+// TODO: Fix this service to change things without begin mutable
 pub struct ChampionshipService {
     db: Arc<Database>,
     ports: Arc<RwLock<Vec<i16>>>,
@@ -31,7 +34,7 @@ impl ChampionshipService {
     }
 
     pub async fn create_championship(
-        &mut self,
+        &self,
         payload: CreateChampionshipDto,
         user_id: &i32,
     ) -> AppResult<()> {
@@ -46,13 +49,18 @@ impl ChampionshipService {
         }
 
         // todo: restrict port to receive only one connection, and release it when the connection is closed
+        let time = Utc::now();
         let port = self.get_port().await?;
-        let time = Utc::now().timestamp();
 
         self.db
-            .get_scylla()
+            .scylla
             .execute(
-                self.db.statements.get("insert_championship").unwrap(),
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::Insert,
+                    ))
+                    .unwrap(),
                 (rng.gen::<i32>(), payload.name, port, user_id, time, time),
             )
             .await?;
@@ -60,6 +68,42 @@ impl ChampionshipService {
         self.remove_port(port).await?;
 
         Ok(())
+    }
+
+    pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
+        self.db
+            .scylla
+            .execute(
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::Delete,
+                    ))
+                    .unwrap(),
+                (id,),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn user_championships(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
+        let championships = self
+            .db
+            .scylla
+            .execute(
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::ByUser,
+                    ))
+                    .unwrap(),
+                (user_id,),
+            )
+            .await?
+            .rows_typed::<Championship>()?;
+
+        Ok(championships)
     }
 
     async fn available_ports(

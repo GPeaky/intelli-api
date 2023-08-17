@@ -28,11 +28,11 @@ pub(crate) async fn register(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    state.user_service.new_user(&form).await?;
+    let user_id = state.user_service.new_user(&form).await?;
 
     let token = state
         .token_service
-        .generate_token(&form.email, TokenType::Email)?;
+        .generate_token(&user_id.to_string(), TokenType::Email)?;
 
     state
         .email_service
@@ -193,7 +193,7 @@ pub async fn reset_password(
 
     let token_data = state.token_service.validate(&token)?;
 
-    if token_data.claims.token_type != TokenType::ResetPassword {
+    if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
         Err(TokenError::InvalidTokenType)?
     }
 

@@ -1,16 +1,18 @@
+use self::admin::admin_router;
 use crate::{
     config::Database,
     handlers::{
-        auth::{forgot_password, login, logout, refresh_token, register, reset_password},
+        auth::{
+            forgot_password, login, logout, refresh_token, register, reset_password, verify_email,
+        },
         championships::{
-            active_sockets, all_championships, create_championship, get_championship,
-            session_socket, start_socket, stop_socket,
+            all_championships, create_championship, get_championship, session_socket, start_socket,
+            stop_socket,
         },
         init,
         user::user_data,
-        verify::verify_email,
     },
-    middlewares::{admin_handler, auth_handler},
+    middlewares::auth_handler,
     states::{AuthState, UserState},
 };
 use axum::{
@@ -24,6 +26,8 @@ use std::{sync::Arc, time::Duration};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::cors::{AllowMethods, AllowOrigin, Any, CorsLayer};
 
+mod admin;
+
 // Handles Service Errors
 async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCode, String) {
     (
@@ -35,7 +39,7 @@ async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (StatusCod
 #[inline(always)]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AuthState::new(&database);
-    let user_state = UserState::new(&database).await;
+    let user_state = Arc::new(UserState::new(&database).await);
 
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::any())
@@ -46,6 +50,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/refresh", get(refresh_token))
+        .route("/verify/email", get(verify_email))
         .route("/forgot-password", post(forgot_password))
         .route("/reset-password", post(reset_password))
         .route(
@@ -55,13 +60,13 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
                 auth_handler,
             )),
         )
-        .with_state(auth_state.clone())
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
                 .layer(BufferLayer::new(1024))
                 .layer(RateLimitLayer::new(8, Duration::from_secs(120))),
-        );
+        )
+        .with_state(auth_state);
 
     let user_router = Router::new()
         .route("/data", get(user_data))
@@ -70,16 +75,6 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
             user_state.clone(),
             auth_handler,
         ));
-
-    let verify_router = Router::new()
-        .route("/email", get(verify_email))
-        .with_state(auth_state)
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(handle_error))
-                .layer(BufferLayer::new(1024))
-                .layer(RateLimitLayer::new(3, Duration::from_secs(30))),
-        );
 
     // todo: Delete Championship, Get Championship
     // todo: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
@@ -95,23 +90,12 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         ))
         .with_state(user_state.clone());
 
-    let admin_router = Router::new()
-        .route("/sockets", get(active_sockets))
-        .route_layer(middleware::from_fn(admin_handler))
-        .route_layer(middleware::from_fn_with_state(
-            user_state.clone(),
-            auth_handler,
-        ))
-        .with_state(user_state.clone());
-
     Router::new()
         .route("/", get(init))
-        // .route("/web_socket", get(session_socket).with_state(user_state))
         .nest("/auth", auth_router)
         .nest("/user", user_router)
-        .nest("/verify", verify_router)
         .nest("/championships", championships_router)
-        .nest("/admin", admin_router)
+        .nest("/admin", admin_router(user_state.clone()))
         .route(
             "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
             get(session_socket).with_state(user_state),

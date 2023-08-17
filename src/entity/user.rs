@@ -30,9 +30,9 @@ impl FromCqlVal<CqlValue> for Role {
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 pub struct User {
     pub id: i32,
-    pub email: String,
     pub active: bool,
     pub created_at: DateTime<Utc>,
+    pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
     pub role: Role,

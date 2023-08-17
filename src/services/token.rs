@@ -74,7 +74,8 @@ impl TokenServiceTrait for TokenService {
     ) -> AppResult<String> {
         let token = self.validate(refresh_token)?;
 
-        if token.claims.token_type != TokenType::RefreshBearer {
+        // TODO: Check if this is working properly
+        if token.claims.token_type.ne(&TokenType::RefreshBearer) {
             Err(TokenError::InvalidTokenType)?
         }
 
@@ -86,7 +87,10 @@ impl TokenServiceTrait for TokenService {
             .await
             .map_err(|_| TokenError::TokenExpired)?;
 
-        if db_token != refresh_token {
+        // TODO: This is working properly
+        assert_eq!(db_token, refresh_token);
+
+        if db_token.ne(refresh_token) {
             Err(TokenError::InvalidToken)?
         }
 

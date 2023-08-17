@@ -10,8 +10,8 @@ pub async fn admin_handler<T>(req: Request<T>, next: Next<T>) -> AppResult<Respo
         .get::<User>()
         .ok_or(UserError::Unauthorized)?;
 
-    if user.role != Role::Admin {
-        return Err(UserError::Unauthorized)?;
+    if user.role.ne(&Role::Admin) {
+        Err(UserError::Unauthorized)?
     }
 
     Ok(next.run(req).await)

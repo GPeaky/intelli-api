@@ -1,7 +1,6 @@
 use crate::{
     dtos::TokenType,
     error::{AppResult, TokenError},
-    repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
 };
@@ -24,19 +23,13 @@ pub async fn verify_email(
 ) -> AppResult<Response> {
     let token_data = state.token_service.validate(&query.token)?;
 
-    if token_data.claims.token_type != TokenType::Email {
-        return Err(TokenError::InvalidToken)?;
+    if token_data.claims.token_type.ne(&TokenType::Email) {
+        Err(TokenError::InvalidToken)?
     }
-
-    // FIX: Check if we could skip this part
-    let user = state
-        .user_repository
-        .find_by_email(&token_data.claims.sub)
-        .await?;
 
     state
         .user_service
-        .verify_email(&user.id, &token_data.claims.sub)
+        .activate_user(&token_data.claims.sub.parse::<i32>().unwrap())
         .await
         .unwrap();
 

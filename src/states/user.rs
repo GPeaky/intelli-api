@@ -8,6 +8,8 @@ use crate::{
 };
 use std::sync::Arc;
 
+pub type SafeUserState = Arc<UserState>;
+
 #[derive(Clone)]
 pub struct UserState {
     pub user_service: UserService,

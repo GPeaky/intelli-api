@@ -2,7 +2,7 @@ use crate::{
     dtos::CreateChampionshipDto,
     entity::{Championship, User},
     error::{AppResult, CommonError},
-    states::UserState,
+    states::SafeUserState,
 };
 use axum::{
     extract::{Path, State},
@@ -12,16 +12,19 @@ use axum::{
 use garde::Validate;
 use hyper::StatusCode;
 use scylla::cql_to_rust::FromRowError;
+
+pub(crate) use admin::*;
 pub(crate) use sockets::*;
 pub(crate) use web_socket::*;
 
+mod admin;
 mod sockets;
 mod web_socket;
 
 #[inline(always)]
 pub async fn create_championship(
     Extension(user): Extension<User>,
-    State(mut state): State<UserState>,
+    State(state): State<SafeUserState>,
     Form(form): Form<CreateChampionshipDto>,
 ) -> AppResult<Response> {
     if form.validate(&()).is_err() {
@@ -38,7 +41,7 @@ pub async fn create_championship(
 
 #[inline(always)]
 pub async fn get_championship(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Path(championship_id): Path<i32>,
 ) -> AppResult<Json<Championship>> {
     let championship = state.championship_repository.find(&championship_id).await?;
@@ -48,7 +51,7 @@ pub async fn get_championship(
 
 #[inline(always)]
 pub async fn all_championships(
-    State(state): State<UserState>,
+    State(state): State<SafeUserState>,
     Extension(user): Extension<User>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state
