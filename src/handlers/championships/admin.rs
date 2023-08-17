@@ -1,4 +1,8 @@
-use crate::{entity::Championship, error::AppResult, states::SafeUserState};
+use crate::{
+    entity::Championship,
+    error::{AppResult, ChampionshipError},
+    states::SafeUserState,
+};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
@@ -21,7 +25,7 @@ pub async fn user_championships(
     let championships = championships
         .into_iter()
         .collect::<Result<Vec<Championship>, FromRowError>>()
-        .unwrap();
+        .map_err(|_| ChampionshipError::NotChampionships)?;
 
     Ok(Json(championships))
 }
