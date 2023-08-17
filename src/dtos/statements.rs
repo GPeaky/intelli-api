@@ -23,7 +23,7 @@ pub enum ChampionshipStatements {
     ById,
     ByUser,
     Delete,
-    NameByName
+    NameByName,
 }
 
 #[derive(Hash, PartialEq, Eq)]
@@ -31,5 +31,5 @@ pub enum EventDataStatements {
     Select,
     Insert,
     Update,
-    Info
+    Info,
 }
