@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::RegisterUserDto,
+    dtos::{PreparedStatementsKey, RegisterUserDto, UserStatements},
     entity::Role,
     error::{AppResult, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
@@ -54,7 +54,10 @@ impl UserServiceTrait for UserService {
         self.db_conn
             .scylla
             .execute(
-                self.db_conn.statements.get("user.insert").unwrap(),
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::Insert))
+                    .unwrap(),
                 (
                     id,
                     register.username.clone(),
@@ -81,7 +84,13 @@ impl UserServiceTrait for UserService {
         // TODO: Delete all the data from this user
         self.db_conn
             .scylla
-            .execute(self.db_conn.statements.get("user.delete").unwrap(), (id,))
+            .execute(
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::Delete))
+                    .unwrap(),
+                (id,),
+            )
             .await?;
 
         Ok(())
@@ -90,7 +99,13 @@ impl UserServiceTrait for UserService {
     async fn activate_user(&self, id: &i32) -> AppResult<()> {
         self.db_conn
             .scylla
-            .execute(self.db_conn.statements.get("user.activate").unwrap(), (id,))
+            .execute(
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::Activate))
+                    .unwrap(),
+                (id,),
+            )
             .await?;
 
         Ok(())
@@ -100,7 +115,10 @@ impl UserServiceTrait for UserService {
         self.db_conn
             .scylla
             .execute(
-                self.db_conn.statements.get("user.deactivate").unwrap(),
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::Deactivate))
+                    .unwrap(),
                 (id,),
             )
             .await?;

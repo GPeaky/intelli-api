@@ -1,4 +1,9 @@
-use crate::{config::Database, entity::EventData, error::AppResult};
+use crate::{
+    config::Database,
+    dtos::{EventDataStatements, PreparedStatementsKey},
+    entity::EventData,
+    error::AppResult,
+};
 use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 
@@ -22,7 +27,7 @@ impl F123Repository {
             .execute(
                 self.database
                     .statements
-                    .get("event_data.events_by_id")
+                    .get(&PreparedStatementsKey::EventData(EventDataStatements::Info))
                     .unwrap(),
                 (id,),
             )

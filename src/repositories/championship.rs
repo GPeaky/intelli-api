@@ -1,4 +1,9 @@
-use crate::{config::Database, entity::Championship, error::AppResult};
+use crate::{
+    config::Database,
+    dtos::{ChampionshipStatements, PreparedStatementsKey},
+    entity::Championship,
+    error::AppResult,
+};
 use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 
@@ -19,7 +24,12 @@ impl ChampionshipRepository {
             .database
             .scylla
             .execute(
-                self.database.statements.get("championship.ports").unwrap(),
+                self.database
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::Ports,
+                    ))
+                    .unwrap(),
                 &[],
             )
             .await?
@@ -33,7 +43,12 @@ impl ChampionshipRepository {
             .database
             .scylla
             .execute(
-                self.database.statements.get("championship.by_id").unwrap(),
+                self.database
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::ById,
+                    ))
+                    .unwrap(),
                 (id,),
             )
             .await?
@@ -49,7 +64,9 @@ impl ChampionshipRepository {
             .execute(
                 self.database
                     .statements
-                    .get("championship.by_user")
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::ByUser,
+                    ))
                     .unwrap(),
                 (user_id,),
             )
@@ -66,7 +83,9 @@ impl ChampionshipRepository {
             .execute(
                 self.database
                     .statements
-                    .get("championship.name_by_name")
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::NameByName,
+                    ))
                     .unwrap(),
                 (name,),
             )

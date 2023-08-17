@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::F123Data,
+    dtos::{EventDataStatements, F123Data, PreparedStatementsKey},
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
@@ -224,9 +224,24 @@ impl F123Service {
 
                             // We don't save events in redis because redis doesn't support lists of lists
                             F123Data::Event(event_data) => {
-                                let select_stmt = db.statements.get("event_data.get").unwrap();
-                                let insert_stmt = db.statements.get("event_data.insert").unwrap();
-                                let update_stmt = db.statements.get("event_data.update").unwrap();
+                                let select_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Select,
+                                    ))
+                                    .unwrap();
+                                let insert_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Insert,
+                                    ))
+                                    .unwrap();
+                                let update_stmt = db
+                                    .statements
+                                    .get(&PreparedStatementsKey::EventData(
+                                        EventDataStatements::Update,
+                                    ))
+                                    .unwrap();
 
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
                                     error!("There was an error serializing the event data");
@@ -303,13 +318,14 @@ impl F123Service {
                                     .unwrap();
 
                                 // TODO Save all laps for each driver in the final classification
-                                session
-                                    .execute(
-                                        db.statements.get("final_classification.insert").unwrap(),
-                                        (session_id, classifications),
-                                    )
-                                    .await
-                                    .unwrap();
+                                // TODO: Save the final classification to the database
+                                // session
+                                //     .execute(
+                                //         db.statements.get("final_classification.insert").unwrap(),
+                                //         (session_id, classifications),
+                                //     )
+                                //     .await
+                                //     .unwrap();
                             }
                         }
                     }

@@ -1,4 +1,9 @@
-use crate::{config::Database, entity::User, error::AppResult};
+use crate::{
+    config::Database,
+    dtos::{PreparedStatementsKey, UserStatements},
+    entity::User,
+    error::AppResult,
+};
 use axum::async_trait;
 use std::sync::Arc;
 
@@ -24,12 +29,16 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
+    // TODO: Check why not finding any user
     async fn find_by_email(&self, email: &str) -> AppResult<User> {
         let user = self
             .db_conn
             .scylla
             .execute(
-                self.db_conn.statements.get("user.by_email").unwrap(),
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::ByEmail))
+                    .unwrap(),
                 (email,),
             )
             .await?
@@ -42,7 +51,13 @@ impl UserRepositoryTrait for UserRepository {
         let user = self
             .db_conn
             .scylla
-            .execute(self.db_conn.statements.get("user.by_id").unwrap(), (id,))
+            .execute(
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::ById))
+                    .unwrap(),
+                (id,),
+            )
             .await?
             .single_row_typed::<User>()?;
 
@@ -54,7 +69,10 @@ impl UserRepositoryTrait for UserRepository {
             .db_conn
             .scylla
             .execute(
-                self.db_conn.statements.get("user.email_by_email").unwrap(),
+                self.db_conn
+                    .statements
+                    .get(&PreparedStatementsKey::User(UserStatements::EmailByEmail))
+                    .unwrap(),
                 (email,),
             )
             .await?

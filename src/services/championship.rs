@@ -1,6 +1,6 @@
 use crate::{
     config::Database,
-    dtos::CreateChampionshipDto,
+    dtos::{ChampionshipStatements, CreateChampionshipDto, PreparedStatementsKey},
     entity::Championship,
     error::{AppResult, ChampionshipError},
     repositories::ChampionshipRepository,
@@ -55,7 +55,12 @@ impl ChampionshipService {
         self.db
             .scylla
             .execute(
-                self.db.statements.get("championship.insert").unwrap(),
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::Insert,
+                    ))
+                    .unwrap(),
                 (rng.gen::<i32>(), payload.name, port, user_id, time, time),
             )
             .await?;
@@ -69,7 +74,12 @@ impl ChampionshipService {
         self.db
             .scylla
             .execute(
-                self.db.statements.get("championship.delete").unwrap(),
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::Delete,
+                    ))
+                    .unwrap(),
                 (id,),
             )
             .await?;
@@ -82,7 +92,12 @@ impl ChampionshipService {
             .db
             .scylla
             .execute(
-                self.db.statements.get("championship.by_user").unwrap(),
+                self.db
+                    .statements
+                    .get(&PreparedStatementsKey::Championship(
+                        ChampionshipStatements::ByUser,
+                    ))
+                    .unwrap(),
                 (user_id,),
             )
             .await?
