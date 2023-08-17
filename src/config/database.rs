@@ -46,7 +46,7 @@ impl Database {
         info!("Connecting Databases...");
         let scylla = SessionBuilder::new()
             .known_node(var("SCYLLA_URI").unwrap())
-            // .user(var("SCYLLA_USER").unwrap(), var("SCYLLA_PASS").unwrap())
+            .user(var("SCYLLA_USER").unwrap(), var("SCYLLA_PASS").unwrap())
             .use_keyspace(var("SCYLLA_KEYSPACE").unwrap(), true)
             .build()
             .await
