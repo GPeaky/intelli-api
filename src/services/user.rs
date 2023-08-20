@@ -11,6 +11,7 @@ use chrono::Utc;
 use dotenvy::var;
 use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
+use tracing::trace;
 
 #[derive(Clone)]
 pub struct UserService {
@@ -74,8 +75,9 @@ impl UserServiceTrait for UserService {
                     time,
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        trace!("User created: {}", register.username);
 
         Ok(id)
     }
@@ -93,6 +95,8 @@ impl UserServiceTrait for UserService {
             )
             .await?;
 
+        trace!("User deleted with success: {}", id);
+
         Ok(())
     }
 
@@ -108,6 +112,8 @@ impl UserServiceTrait for UserService {
             )
             .await?;
 
+        trace!("User activated with success: {}", id);
+
         Ok(())
     }
 
@@ -122,6 +128,8 @@ impl UserServiceTrait for UserService {
                 (id,),
             )
             .await?;
+
+        trace!("User deactivated with success: {}", id);
 
         Ok(())
     }
