@@ -9,6 +9,8 @@ use axum::async_trait;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use redis::AsyncCommands;
 
+const REFRESH_TOKEN_EXPIRATION: usize = 7 * 24 * 60 * 60;
+
 #[derive(Clone)]
 pub struct TokenService {
     header: Header,
@@ -74,7 +76,6 @@ impl TokenServiceTrait for TokenService {
     ) -> AppResult<String> {
         let token = self.validate(refresh_token)?;
 
-        // TODO: Check if this is working properly
         if token.claims.token_type.ne(&TokenType::RefreshBearer) {
             Err(TokenError::InvalidTokenType)?
         }
@@ -86,9 +87,6 @@ impl TokenServiceTrait for TokenService {
             .get(format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
             .map_err(|_| TokenError::TokenExpired)?;
-
-        // TODO: This is working properly
-        assert_eq!(db_token, refresh_token);
 
         if db_token.ne(refresh_token) {
             Err(TokenError::InvalidToken)?
@@ -110,7 +108,7 @@ impl TokenServiceTrait for TokenService {
             .set_ex(
                 format!("rf_tokens:{}:{}", user_id, fingerprint),
                 &token,
-                7 * 24 * 60 * 60,
+                REFRESH_TOKEN_EXPIRATION,
             )
             .await
             .map_err(|e| TokenError::TokenCreationError(e.to_string()))?;

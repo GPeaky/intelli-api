@@ -10,6 +10,7 @@ use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use scylla::transport::session::TypedRowIter;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::info;
 
 #[derive(Clone)]
 // TODO: Fix this service to change things without begin mutable
@@ -84,6 +85,8 @@ impl ChampionshipService {
             )
             .await?;
 
+        info!("Championship deleted with success: {id}");
+
         Ok(())
     }
 
@@ -121,6 +124,7 @@ impl ChampionshipService {
             ports.remove(port_index);
         }
 
+        info!("Available ports: {:?}", ports);
         Ok(Arc::new(RwLock::new(ports)))
     }
 

@@ -19,11 +19,18 @@ use tracing::{error, info};
 
 type F123Receiver = Receiver<(u8, Vec<u8>)>;
 
+const F123_HOST: &str = "0.0.0.0";
+const DATA_PERSISTANCE: usize = 15 * 60;
+const F123_MAX_PACKET_SIZE: usize = 1460;
+const SESSION_INTERVAL: Duration = Duration::from_secs(30);
+const MOTION_INTERVAL: Duration = Duration::from_millis(700);
+const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
+
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    channels: Arc<RwLock<AHashMap<i32, Arc<Mutex<F123Receiver>>>>>,
     sockets: Arc<RwLock<AHashMap<i32, JoinHandle<()>>>>,
+    channels: Arc<RwLock<AHashMap<i32, Arc<Mutex<F123Receiver>>>>>,
 }
 
 impl F123Service {
@@ -41,6 +48,7 @@ impl F123Service {
             let sockets = self.sockets.read().await;
 
             if sockets.contains_key(&championship_id) {
+                error!("Trying to create a new socket for an existing championship: {championship_id:?}");
                 return Err(SocketError::AlreadyExists.into());
             }
         }
@@ -50,6 +58,7 @@ impl F123Service {
             let channels = self.channels.read().await;
 
             if channels.contains_key(&championship_id) {
+                error!("Trying to create a new channel for an existing championship: {championship_id:?}");
                 return Err(SocketError::AlreadyExists.into());
             }
         }
@@ -70,59 +79,58 @@ impl F123Service {
         let channels = self.channels.clone();
 
         tokio::task::spawn(async move {
-            let mut buf = [0u8; 1460];
+            let mut buf = [0u8; F123_MAX_PACKET_SIZE];
+            let mut redis = db.get_redis();
+            let session = db.scylla.clone();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
-            let championship_id = championship_id.clone();
-            let (session, mut redis) = (db.scylla.clone(), db.get_redis());
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
             let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
-            let (ms_interval, secs_interval, sec_interval) = (
-                Duration::from_millis(700),
-                Duration::from_secs(2),
-                Duration::from_secs(30),
-            );
 
             // Define channel
-            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Vec<u8>)>(1460);
+            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Vec<u8>)>(F123_MAX_PACKET_SIZE);
 
             {
                 let mut channels = channels.write().await;
                 channels.insert(*championship_id, Arc::new(Mutex::new(rx)));
             }
 
-            let Ok(socket) = UdpSocket::bind(format!("0.0.0.0:{}", port)).await else {
-                error!("There was an error binding to the socket");
+            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
+                error!("There was an error binding to the socket for championship: {championship_id:?}");
                 return;
             };
+
+            info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
+                        let now = Instant::now();
 
                         let Ok(header) = F123Data::deserialize_header(buf) else {
+                            error!("Error deserializing F123 header, for championship: {championship_id:?}");
                             continue;
                         };
 
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id.eq(&0) {
+                            tokio::time::sleep(Duration::from_secs(5)).await;
                             continue;
                         }
 
                         let Ok(Some(packet)) = F123Data::deserialize(header.m_packetId.into(), buf)
                         else {
+                            error!("Error deserializing F123 packet, for championship: {championship_id:?}");
                             continue;
                         };
 
                         match packet {
                             F123Data::SessionHistory(session_history) => {
-                                let now = Instant::now();
-
                                 let Some(last_update) =
                                     last_car_lap_update.get(&session_history.m_carIdx)
                                 else {
@@ -130,7 +138,7 @@ impl F123Service {
                                     continue;
                                 };
 
-                                if now.duration_since(*last_update) >= secs_interval {
+                                if now.duration_since(*last_update) >= SESSION_HISTORY_INTERVAL {
                                     let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
 
                                     let sectors = (
@@ -147,9 +155,9 @@ impl F123Service {
                                         continue;
                                     };
 
-                                    if sectors != *last_sectors {
+                                    if sectors.ne(last_sectors) {
                                         let Ok(data) = serialize(&session_history) else {
-                                            error!("There was an error serializing the session history data");
+                                            error!("There was an error serializing the session history data for car: {}", session_history.m_carIdx);
                                             continue;
                                         };
 
@@ -159,7 +167,7 @@ impl F123Service {
                                             .set_ex::<String, Vec<u8>, String>(
                                                 format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
                                                 data,
-                                                60 * 60,
+                                                DATA_PERSISTANCE,
                                             )
                                             .unwrap();
 
@@ -171,11 +179,9 @@ impl F123Service {
                             }
 
                             F123Data::Motion(motion_data) => {
-                                let now = Instant::now();
-
-                                if now.duration_since(last_car_motion_update) >= ms_interval {
+                                if now.duration_since(last_car_motion_update) >= MOTION_INTERVAL {
                                     let Ok(data) = serialize(&motion_data) else {
-                                        error!("There was an error serializing the motion data");
+                                        error!("There was an error serializing the motion data for championship: {championship_id:?}");
                                         continue;
                                     };
 
@@ -197,11 +203,9 @@ impl F123Service {
                             }
 
                             F123Data::Session(session_data) => {
-                                let now = Instant::now();
-
-                                if now.duration_since(last_session_update) >= sec_interval {
+                                if now.duration_since(last_session_update) >= SESSION_INTERVAL {
                                     let Ok(data) = serialize(&session_data) else {
-                                        error!("There was an error serializing the session data");
+                                        error!("There was an error serializing the session data for championship: {championship_id:?}");
                                         continue;
                                     };
 
@@ -214,7 +218,7 @@ impl F123Service {
                                                 championship_id
                                             ),
                                             data,
-                                            60 * 60,
+                                            DATA_PERSISTANCE,
                                         )
                                         .unwrap();
 
@@ -244,7 +248,7 @@ impl F123Service {
                                     .unwrap();
 
                                 let Ok(event) = serialize(&event_data.m_eventDetails) else {
-                                    error!("There was an error serializing the event data");
+                                    error!("There was an error serializing the event data for championship: {championship_id:?}");
                                     continue;
                                 };
 
@@ -280,11 +284,11 @@ impl F123Service {
 
                             // TODO: Check why this is never saving to redis
                             F123Data::Participants(participants_data) => {
-                                tracing::info!("Saving participants data");
+                                tracing::info!("Saving participants data"); // Test
 
                                 let Ok(participants) = serialize(&participants_data.m_participants)
                                 else {
-                                    error!("There was an error serializing the participants data");
+                                    error!("There was an error serializing the participants data for championship: {championship_id:?}");
                                     continue;
                                 };
 
@@ -299,7 +303,7 @@ impl F123Service {
                                         championship_id
                                     ),
                                         participants.clone(),
-                                        60 * 60,
+                                        DATA_PERSISTANCE,
                                     )
                                     .unwrap();
                             }
@@ -309,7 +313,7 @@ impl F123Service {
                                 let Ok(classifications) =
                                     serialize(&classification_data.m_classificationData)
                                 else {
-                                    error!("There was an error serializing the final classification data");
+                                    error!("There was an error serializing the final classification data for championship: {championship_id:?}");
                                     continue;
                                 };
 
@@ -358,6 +362,8 @@ impl F123Service {
             socket.abort();
         }
 
+        info!("Socket stopped for championship: {}", championship_id);
+
         Ok(())
     }
 
@@ -368,7 +374,6 @@ impl F123Service {
             let mut channel = channel_mutex.lock().await;
             channel.recv().await
         } else {
-            info!("No channel found for championship {}", championship_id);
             None
         }
     }
