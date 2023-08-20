@@ -362,6 +362,8 @@ impl F123Service {
             socket.abort();
         }
 
+        info!("Socket stopped for championship: {}", championship_id);
+
         Ok(())
     }
 
