@@ -17,7 +17,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-type F123Receiver = Receiver<(u8, Vec<u8>)>;
+type F123Receiver = Receiver<(u8, Arc<Vec<u8>>)>;
 
 const F123_HOST: &str = "0.0.0.0";
 const DATA_PERSISTANCE: usize = 15 * 60;
@@ -90,7 +90,7 @@ impl F123Service {
             let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
 
             // Define channel
-            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Vec<u8>)>(F123_MAX_PACKET_SIZE);
+            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Arc<Vec<u8>>)>(F123_MAX_PACKET_SIZE);
 
             {
                 let mut channels = channels.write().await;
@@ -159,17 +159,14 @@ impl F123Service {
                                     };
 
                                     if sectors.ne(last_sectors) {
-                                        let Ok(data) = serialize(&session_history) else {
-                                            error!("There was an error serializing the session history data for car: {}", session_history.m_carIdx);
-                                            continue;
-                                        };
+                                        let data = Arc::new(serialize(&session_history).unwrap());
 
                                         tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                         redis
-                                            .set_ex::<String, Vec<u8>, String>(
+                                            .set_ex::<String, &Vec<u8>, String>(
                                                 format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
-                                                data,
+                                                &*data,
                                                 DATA_PERSISTANCE,
                                             )
                                             .unwrap();
@@ -186,12 +183,9 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let Ok(data) = serialize(&motion_data) else {
-                                        error!("There was an error serializing the motion data for championship: {championship_id:?}");
-                                        continue;
-                                    };
+                                    let data = Arc::new(serialize(&motion_data).unwrap());
 
-                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
+                                    tx.send((header.m_packetId, data)).await.unwrap();
 
                                     // redis
                                     //     .set_ex::<String, Vec<u8>, String>(
@@ -213,20 +207,17 @@ impl F123Service {
                                     .duration_since(last_session_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    let Ok(data) = serialize(&session_data) else {
-                                        error!("There was an error serializing the session data for championship: {championship_id:?}");
-                                        continue;
-                                    };
+                                    let data = Arc::new(serialize(&session_data).unwrap());
 
                                     tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                     redis
-                                        .set_ex::<String, Vec<u8>, String>(
+                                        .set_ex::<String, &Vec<u8>, String>(
                                             format!(
                                                 "f123:championship:{}:session:{session_id}:session",
                                                 championship_id
                                             ),
-                                            data,
+                                            &*data,
                                             DATA_PERSISTANCE,
                                         )
                                         .unwrap();
@@ -256,10 +247,8 @@ impl F123Service {
                                     ))
                                     .unwrap();
 
-                                let Ok(event) = serialize(&event_data.m_eventDetails) else {
-                                    error!("There was an error serializing the event data for championship: {championship_id:?}");
-                                    continue;
-                                };
+                                let event =
+                                    Arc::new(serialize(&event_data.m_eventDetails).unwrap());
 
                                 tx.send((header.m_packetId, event.clone())).await.unwrap();
 
@@ -276,7 +265,7 @@ impl F123Service {
                                     session
                                         .execute(
                                             insert_stmt,
-                                            (session_id, event_data.m_eventStringCode, vec![event]),
+                                            (session_id, event_data.m_eventStringCode, &*event),
                                         )
                                         .await
                                         .unwrap();
@@ -284,7 +273,7 @@ impl F123Service {
                                     session
                                         .execute(
                                             update_stmt,
-                                            (vec![event], session_id, event_data.m_eventStringCode),
+                                            (&*event, session_id, event_data.m_eventStringCode),
                                         )
                                         .await
                                         .unwrap();
@@ -295,23 +284,20 @@ impl F123Service {
                             F123Data::Participants(participants_data) => {
                                 tracing::info!("Saving participants data"); // Test
 
-                                let Ok(participants) = serialize(&participants_data.m_participants)
-                                else {
-                                    error!("There was an error serializing the participants data for championship: {championship_id:?}");
-                                    continue;
-                                };
+                                let participants =
+                                    Arc::new(serialize(&participants_data.m_participants).unwrap());
 
                                 tx.send((header.m_packetId, participants.clone()))
                                     .await
                                     .unwrap();
 
                                 redis
-                                    .set_ex::<String, Vec<u8>, String>(
+                                    .set_ex::<String, &Vec<u8>, String>(
                                         format!(
                                         "f123:championship:{}:session:{session_id}:participants",
                                         championship_id
                                     ),
-                                        participants.clone(),
+                                        &*participants,
                                         DATA_PERSISTANCE,
                                     )
                                     .unwrap();
@@ -319,16 +305,11 @@ impl F123Service {
 
                             //TODO Collect All data from redis and save it to the scylla database
                             F123Data::FinalClassification(classification_data) => {
-                                let Ok(classifications) =
-                                    serialize(&classification_data.m_classificationData)
-                                else {
-                                    error!("There was an error serializing the final classification data for championship: {championship_id:?}");
-                                    continue;
-                                };
+                                let classifications = Arc::new(
+                                    serialize(&classification_data.m_classificationData).unwrap(),
+                                );
 
-                                tx.send((header.m_packetId, classifications.clone()))
-                                    .await
-                                    .unwrap();
+                                tx.send((header.m_packetId, classifications)).await.unwrap();
 
                                 // TODO Save all laps for each driver in the final classification
                                 // TODO: Save the final classification to the database
@@ -376,7 +357,7 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &i32) -> Option<(u8, Vec<u8>)> {
+    pub async fn get_receiver(&self, championship_id: &i32) -> Option<(u8, Arc<Vec<u8>>)> {
         let channels = self.channels.read().await;
 
         if let Some(channel_mutex) = channels.get(championship_id) {
