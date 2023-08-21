@@ -138,7 +138,10 @@ impl F123Service {
                                     continue;
                                 };
 
-                                if now.duration_since(*last_update) >= SESSION_HISTORY_INTERVAL {
+                                if now
+                                    .duration_since(*last_update)
+                                    .ge(&SESSION_HISTORY_INTERVAL)
+                                {
                                     let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
 
                                     let sectors = (
@@ -179,7 +182,10 @@ impl F123Service {
                             }
 
                             F123Data::Motion(motion_data) => {
-                                if now.duration_since(last_car_motion_update) >= MOTION_INTERVAL {
+                                if now
+                                    .duration_since(last_car_motion_update)
+                                    .ge(&MOTION_INTERVAL)
+                                {
                                     let Ok(data) = serialize(&motion_data) else {
                                         error!("There was an error serializing the motion data for championship: {championship_id:?}");
                                         continue;
@@ -203,7 +209,10 @@ impl F123Service {
                             }
 
                             F123Data::Session(session_data) => {
-                                if now.duration_since(last_session_update) >= SESSION_INTERVAL {
+                                if now
+                                    .duration_since(last_session_update)
+                                    .ge(&SESSION_INTERVAL)
+                                {
                                     let Ok(data) = serialize(&session_data) else {
                                         error!("There was an error serializing the session data for championship: {championship_id:?}");
                                         continue;

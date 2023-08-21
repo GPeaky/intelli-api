@@ -21,7 +21,7 @@ pub async fn auth_handler<T>(
         .headers_mut()
         .iter()
         .filter_map(|(header_name, header_value)| {
-            if header_name == AUTHORIZATION {
+            if header_name.eq(&AUTHORIZATION) {
                 return Some(header_value);
             }
 
