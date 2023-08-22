@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://cdn.discordapp.com/attachments/1086116819644985345/1127742819591794729/31_sin_titulo_20230710012713.png" style="width:20vh;" >
 </p>
-<h1 align="center">Intelli Api</h1>
+<h1 align="center">Intelli</h1>
 
 ## Table of Contents
 
@@ -100,4 +100,4 @@ Distributed under the MIT License. See [LICENSE](https://github.com/GPeaky/intel
 
 ## Authors
 
-* **Gerard Zinn** - **[Gerard Zinn](https://github.com/GPeaky)**
+- **Gerard Zinn** - **[Gerard Zinn](https://github.com/GPeaky)**

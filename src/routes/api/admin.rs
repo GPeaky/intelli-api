@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    handlers::{
+    handlers::api::{
         championships::{
             active_sockets, delete_championship, update_championship, user_championships,
         },
