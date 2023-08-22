@@ -22,14 +22,14 @@ pub enum Templates<'a> {
 }
 
 #[derive(Template)]
-#[template(path = "verify.html")]
+#[template(path = "mail/verify.html")]
 pub struct VerifyEmailTemplate<'a> {
     pub username: &'a str,
     pub token: &'a str,
 }
 
 #[derive(Template)]
-#[template(path = "forgot.html")]
+#[template(path = "mail/forgot.html")]
 pub struct ResetPasswordTemplate<'a> {
     pub name: &'a str,
     pub token: &'a str,

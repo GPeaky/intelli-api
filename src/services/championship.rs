@@ -118,7 +118,7 @@ impl ChampionshipService {
         for port in ports_in_use {
             let port_index = ports
                 .iter()
-                .position(|&p| p == port.clone().unwrap().0)
+                .position(|&p| p.eq(&port.clone().unwrap().0))
                 .unwrap();
 
             ports.remove(port_index);
@@ -135,7 +135,7 @@ impl ChampionshipService {
 
     async fn remove_port(&self, port: i16) -> AppResult<()> {
         let mut ports = self.ports.write().await;
-        let port_index = ports.iter().position(|&p| p == port).unwrap();
+        let port_index = ports.iter().position(|&p| p.eq(&port)).unwrap();
 
         ports.remove(port_index);
         Ok(())
