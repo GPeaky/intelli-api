@@ -48,7 +48,7 @@ impl EmailService {
             .from(self.from_mailbox.to_owned())
             .to(Mailbox::new(
                 Some(user.username.to_string()),
-                Address::from_str(&user.email).unwrap(),
+                Address::from_str(user.email).unwrap(),
             ))
             .header(ContentType::TEXT_HTML)
             .subject(subject)
