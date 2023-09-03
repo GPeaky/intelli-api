@@ -37,8 +37,7 @@ pub(crate) async fn register(
     state
         .email_service
         .send_mail(
-            // TODO: Remove this unnecessary clone
-            &form.clone().into(),
+            &(&form).into(),
             Templates::VerifyEmail(VerifyEmailTemplate {
                 username: &form.username,
                 token: &token,
@@ -166,9 +165,8 @@ pub(crate) async fn forgot_password(
         .email_service
         .send_mail(
             &EmailUser {
-                // TODO: Check this unnecessary clone
-                username: user.username.clone(),
-                email: user.email.clone(),
+                username: &user.username,
+                email: &user.email,
             },
             Templates::ResetPassword(ResetPasswordTemplate {
                 name: &user.username,

@@ -43,22 +43,12 @@ impl F123Service {
     }
 
     pub async fn new_socket(&self, port: i16, championship_id: Arc<i32>) -> AppResult<()> {
-        //  Check if socket already exists
         {
             let sockets = self.sockets.read().await;
-
-            if sockets.contains_key(&championship_id) {
-                error!("Trying to create a new socket for an existing championship: {championship_id:?}");
-                return Err(SocketError::AlreadyExists.into());
-            }
-        }
-
-        // Check if channel already exists
-        {
             let channels = self.channels.read().await;
 
-            if channels.contains_key(&championship_id) {
-                error!("Trying to create a new channel for an existing championship: {championship_id:?}");
+            if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
+                error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
                 return Err(SocketError::AlreadyExists.into());
             }
         }
@@ -310,6 +300,8 @@ impl F123Service {
                                 );
 
                                 tx.send((header.m_packetId, classifications)).await.unwrap();
+
+                                return;
 
                                 // TODO Save all laps for each driver in the final classification
                                 // TODO: Save the final classification to the database
