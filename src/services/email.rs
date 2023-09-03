@@ -36,7 +36,7 @@ impl EmailService {
 
     pub async fn send_mail<'a>(
         &self,
-        user: &EmailUser,
+        user: &EmailUser<'a>,
         template: Templates<'a>,
     ) -> Result<bool, Error> {
         let (body, subject) = match template {
@@ -47,8 +47,8 @@ impl EmailService {
         let message = Message::builder()
             .from(self.from_mailbox.to_owned())
             .to(Mailbox::new(
-                Some(user.username.clone()),
-                Address::from_str(&user.email).unwrap(),
+                Some(user.username.to_string()),
+                Address::from_str(user.email).unwrap(),
             ))
             .header(ContentType::TEXT_HTML)
             .subject(subject)

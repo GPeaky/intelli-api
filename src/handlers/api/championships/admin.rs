@@ -11,7 +11,6 @@ use axum::{
 use hyper::StatusCode;
 use scylla::cql_to_rust::FromRowError;
 
-// TODO: Return a list of all championships for the user
 #[inline(always)]
 pub async fn user_championships(
     State(state): State<SafeUserState>,
@@ -30,7 +29,6 @@ pub async fn user_championships(
     Ok(Json(championships))
 }
 
-// TODO: Delete a championship by id
 #[inline(always)]
 pub async fn delete_championship(
     State(state): State<SafeUserState>,

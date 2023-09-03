@@ -22,7 +22,10 @@ use axum::{
 };
 use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
-use tower::{buffer::BufferLayer, limit::RateLimitLayer, timeout::TimeoutLayer, ServiceBuilder};
+use tower::{
+    buffer::BufferLayer, limit::RateLimitLayer, load_shed::LoadShedLayer, timeout::TimeoutLayer,
+    ServiceBuilder,
+};
 use tower_http::cors::{AllowMethods, AllowOrigin, Any, CorsLayer};
 
 mod admin;
@@ -102,6 +105,7 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
                 .layer(TimeoutLayer::new(Duration::from_secs(5)))
+                .layer(LoadShedLayer::new())
                 .layer(cors_layer),
         )
 }
