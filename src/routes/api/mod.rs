@@ -23,7 +23,6 @@ use axum::{
 };
 use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
-use tower_http::cors::{AllowMethods, AllowOrigin, Any, CorsLayer};
 
 mod admin;
 
