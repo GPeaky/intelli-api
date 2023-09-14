@@ -2,7 +2,7 @@ use crate::{config::Database, handlers::web::fallback};
 use axum::{error_handling::HandleErrorLayer, routing::IntoMakeService, Router};
 use hyper::StatusCode;
 use std::{sync::Arc, time::Duration};
-use tower::{ServiceBuilder, load_shed::LoadShedLayer};
+use tower::{load_shed::LoadShedLayer, ServiceBuilder};
 
 mod api;
 mod web;

@@ -10,7 +10,7 @@ pub struct Database {
 impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
-        let mysql = MySqlPool::connect(&*var("DATABASE_URL").unwrap())
+        let mysql = MySqlPool::connect(&var("DATABASE_URL").unwrap())
             .await
             .unwrap();
 

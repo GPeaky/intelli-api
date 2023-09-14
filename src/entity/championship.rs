@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use sqlx::FromRow;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 pub struct Championship {

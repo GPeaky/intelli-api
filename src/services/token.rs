@@ -1,4 +1,3 @@
-use std::{fs, sync::Arc};
 use crate::{
     config::Database,
     dtos::{TokenClaim, TokenType},
@@ -7,6 +6,7 @@ use crate::{
 use axum::async_trait;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use redis::AsyncCommands;
+use std::{fs, sync::Arc};
 
 const REFRESH_TOKEN_EXPIRATION: usize = 7 * 24 * 60 * 60;
 

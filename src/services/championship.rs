@@ -47,7 +47,7 @@ impl ChampionshipService {
                 VALUES (?,?,?,?)
             "#,
         )
-        .bind(&id)
+        .bind(id)
         .bind(port)
         .bind(payload.name)
         .bind(user_id)
@@ -61,7 +61,7 @@ impl ChampionshipService {
             "#,
         )
         .bind(user_id)
-        .bind(&id)
+        .bind(id)
         .execute(&self.db.mysql)
         .await?;
 
