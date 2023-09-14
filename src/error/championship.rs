@@ -2,6 +2,7 @@ use crate::response::AppErrorResponse;
 use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
 
+#[allow(unused)]
 #[derive(Debug, Error)]
 pub enum ChampionshipError {
     #[error("Championship already exists")]

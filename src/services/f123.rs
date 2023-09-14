@@ -1,16 +1,16 @@
 use crate::{
     config::Database,
-    dtos::{EventDataStatements, F123Data, PreparedStatementsKey},
+    dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
-use bincode::{encode_to_vec};
+use bincode::config::Configuration;
+use bincode::encode_to_vec;
 use redis::Commands;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use bincode::config::Configuration;
 use tokio::{
     net::UdpSocket,
     sync::{mpsc::Receiver, Mutex, RwLock},
@@ -73,7 +73,7 @@ impl F123Service {
         tokio::task::spawn(async move {
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
             let mut redis = db.get_redis();
-            let session = db.scylla.clone();
+            let _session = db.mysql.clone();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
 
@@ -152,7 +152,9 @@ impl F123Service {
 
                                     if sectors.ne(last_sectors) {
                                         // TODO: Check to reuse buf[..size]
-                                        let data = Arc::new(encode_to_vec(&session_history, BIN_CONFIG).unwrap());
+                                        let data = Arc::new(
+                                            encode_to_vec(&session_history, BIN_CONFIG).unwrap(),
+                                        );
 
                                         tx.send((header.m_packetId, data.clone())).await.unwrap();
 
@@ -177,7 +179,8 @@ impl F123Service {
                                     .ge(&MOTION_INTERVAL)
                                 {
                                     // TODO: Check to reuse buf[..size]
-                                    let data = Arc::new(encode_to_vec(&motion_data, BIN_CONFIG).unwrap());
+                                    let data =
+                                        Arc::new(encode_to_vec(&motion_data, BIN_CONFIG).unwrap());
 
                                     tx.send((header.m_packetId, data)).await.unwrap();
 
@@ -202,7 +205,8 @@ impl F123Service {
                                     .ge(&SESSION_INTERVAL)
                                 {
                                     // TODO: Check to reuse buf[..size]
-                                    let data = Arc::new(encode_to_vec(&session_data, BIN_CONFIG).unwrap());
+                                    let data =
+                                        Arc::new(encode_to_vec(&session_data, BIN_CONFIG).unwrap());
 
                                     tx.send((header.m_packetId, data.clone())).await.unwrap();
 
@@ -222,58 +226,58 @@ impl F123Service {
                             }
 
                             // We don't save events in redis because redis doesn't support lists of lists
-                            F123Data::Event(event_data) => {
-                                let select_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Select,
-                                    ))
-                                    .unwrap();
-                                let insert_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Insert,
-                                    ))
-                                    .unwrap();
-                                let update_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Update,
-                                    ))
-                                    .unwrap();
-
-                                // TODO: Check to reuse buf[..size]
-                                let event =
-                                    Arc::new(encode_to_vec(&event_data.m_eventDetails, BIN_CONFIG).unwrap());
-
-                                tx.send((header.m_packetId, event.clone())).await.unwrap();
-
-                                let table_exists = session
-                                    .execute(
-                                        select_stmt,
-                                        (session_id, event_data.m_eventStringCode),
-                                    )
-                                    .await
-                                    .unwrap()
-                                    .rows_or_empty();
-
-                                if table_exists.is_empty() {
-                                    session
-                                        .execute(
-                                            insert_stmt,
-                                            (session_id, event_data.m_eventStringCode, &*event),
-                                        )
-                                        .await
-                                        .unwrap();
-                                } else {
-                                    session
-                                        .execute(
-                                            update_stmt,
-                                            (&*event, session_id, event_data.m_eventStringCode),
-                                        )
-                                        .await
-                                        .unwrap();
-                                }
+                            F123Data::Event(_event_data) => {
+                                // let select_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Select,
+                                //     ))
+                                //     .unwrap();
+                                // let insert_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Insert,
+                                //     ))
+                                //     .unwrap();
+                                // let update_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Update,
+                                //     ))
+                                //     .unwrap();
+                                //
+                                // // TODO: Check to reuse buf[..size]
+                                // let event =
+                                //     Arc::new(encode_to_vec(&event_data.m_eventDetails, BIN_CONFIG).unwrap());
+                                //
+                                // tx.send((header.m_packetId, event.clone())).await.unwrap();
+                                //
+                                // let table_exists = session
+                                //     .execute(
+                                //         select_stmt,
+                                //         (session_id, event_data.m_eventStringCode),
+                                //     )
+                                //     .await
+                                //     .unwrap()
+                                //     .rows_or_empty();
+                                //
+                                // if table_exists.is_empty() {
+                                //     session
+                                //         .execute(
+                                //             insert_stmt,
+                                //             (session_id, event_data.m_eventStringCode, &*event),
+                                //         )
+                                //         .await
+                                //         .unwrap();
+                                // } else {
+                                //     session
+                                //         .execute(
+                                //             update_stmt,
+                                //             (&*event, session_id, event_data.m_eventStringCode),
+                                //         )
+                                //         .await
+                                //         .unwrap();
+                                // }
                             }
 
                             // TODO: Check why this is never saving to redis
@@ -281,8 +285,10 @@ impl F123Service {
                                 tracing::info!("Saving participants data"); // Test
 
                                 // TODO: Check to reuse buf[..size]
-                                let participants =
-                                    Arc::new(encode_to_vec(&participants_data.m_participants, BIN_CONFIG).unwrap());
+                                let participants = Arc::new(
+                                    encode_to_vec(&participants_data.m_participants, BIN_CONFIG)
+                                        .unwrap(),
+                                );
 
                                 tx.send((header.m_packetId, participants.clone()))
                                     .await
@@ -304,7 +310,11 @@ impl F123Service {
                             F123Data::FinalClassification(classification_data) => {
                                 // TODO: Check to reuse buf[..size]
                                 let classifications = Arc::new(
-                                    encode_to_vec(&classification_data.m_classificationData, BIN_CONFIG).unwrap(),
+                                    encode_to_vec(
+                                        &classification_data.m_classificationData,
+                                        BIN_CONFIG,
+                                    )
+                                    .unwrap(),
                                 );
 
                                 tx.send((header.m_packetId, classifications)).await.unwrap();

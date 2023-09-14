@@ -1,10 +1,4 @@
-use crate::{
-    config::Database,
-    dtos::{EventDataStatements, PreparedStatementsKey},
-    entity::EventData,
-    error::AppResult,
-};
-use scylla::transport::session::TypedRowIter;
+use crate::{config::Database, entity::EventData, error::AppResult};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -20,20 +14,18 @@ impl F123Repository {
     }
 
     #[allow(unused)]
-    pub async fn events_data(&self, id: i64) -> AppResult<TypedRowIter<EventData>> {
-        let events_dat = self
-            .database
-            .scylla
-            .execute(
-                self.database
-                    .statements
-                    .get(&PreparedStatementsKey::EventData(EventDataStatements::Info))
-                    .unwrap(),
-                (id,),
-            )
-            .await?
-            .rows_typed::<EventData>()?;
+    pub async fn events_data(&self, id: i64) -> AppResult<Vec<EventData>> {
+        // TODO: Parse all data into their codes
+        let event_data = sqlx::query_as::<_, EventData>(
+            r#"
+                SELECT * FROM event_data
+                WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_all(&self.database.mysql)
+        .await?;
 
-        Ok(events_dat)
+        Ok(event_data)
     }
 }

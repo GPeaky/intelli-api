@@ -1,9 +1,4 @@
-use crate::{
-    config::Database,
-    dtos::{PreparedStatementsKey, UserStatements},
-    entity::User,
-    error::AppResult,
-};
+use crate::{config::Database, entity::User, error::AppResult};
 use axum::async_trait;
 use std::sync::Arc;
 
@@ -17,7 +12,6 @@ pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn find(&self, id: &i32) -> AppResult<User>;
     async fn find_by_email(&self, email: &str) -> AppResult<User>;
-    async fn user_exists(&self, email: &str) -> AppResult<bool>;
     fn validate_password(&self, password: &str, hash: &str) -> bool;
 }
 
@@ -31,54 +25,31 @@ impl UserRepositoryTrait for UserRepository {
 
     // TODO: Check why not finding any user
     async fn find_by_email(&self, email: &str) -> AppResult<User> {
-        let user = self
-            .db_conn
-            .scylla
-            .execute(
-                self.db_conn
-                    .statements
-                    .get(&PreparedStatementsKey::User(UserStatements::ByEmail))
-                    .unwrap(),
-                (email,),
-            )
-            .await?
-            .single_row_typed::<User>()?;
+        let user = sqlx::query_as::<_, User>(
+            r#"
+                SELECT * from user
+                WHERE email = ?
+            "#,
+        )
+        .bind(email)
+        .fetch_one(&self.db_conn.mysql)
+        .await?;
 
         Ok(user)
     }
 
     async fn find(&self, id: &i32) -> AppResult<User> {
-        let user = self
-            .db_conn
-            .scylla
-            .execute(
-                self.db_conn
-                    .statements
-                    .get(&PreparedStatementsKey::User(UserStatements::ById))
-                    .unwrap(),
-                (id,),
-            )
-            .await?
-            .single_row_typed::<User>()?;
+        let user = sqlx::query_as::<_, User>(
+            r#"
+                SELECT * FROM user
+                WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.db_conn.mysql)
+        .await?;
 
         Ok(user)
-    }
-
-    async fn user_exists(&self, email: &str) -> AppResult<bool> {
-        let rows = self
-            .db_conn
-            .scylla
-            .execute(
-                self.db_conn
-                    .statements
-                    .get(&PreparedStatementsKey::User(UserStatements::EmailByEmail))
-                    .unwrap(),
-                (email,),
-            )
-            .await?
-            .rows_num()?;
-
-        Ok(rows > 0)
     }
 
     fn validate_password(&self, pwd: &str, hash: &str) -> bool {

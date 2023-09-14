@@ -1,5 +1,4 @@
 use std::{fs, sync::Arc};
-
 use crate::{
     config::Database,
     dtos::{TokenClaim, TokenType},
