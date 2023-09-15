@@ -10,7 +10,7 @@ pub struct UserRepository {
 #[async_trait]
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn find(&self, id: &i32) -> AppResult<User>;
+    async fn find(&self, id: &u32) -> AppResult<User>;
 
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn find_by_email(&self, email: &str) -> AppResult<User>;
@@ -54,7 +54,7 @@ impl UserRepositoryTrait for UserRepository {
         Ok(user)
     }
 
-    async fn find(&self, id: &i32) -> AppResult<User> {
+    async fn find(&self, id: &u32) -> AppResult<User> {
         let user = sqlx::query_as::<_, User>(
             r#"
                 SELECT * FROM user

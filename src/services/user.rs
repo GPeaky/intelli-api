@@ -21,10 +21,10 @@ pub struct UserService {
 #[async_trait]
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32>;
-    async fn delete_user(&self, id: &i32) -> AppResult<()>;
-    async fn activate_user(&self, id: &i32) -> AppResult<()>;
-    async fn deactivate_user(&self, id: &i32) -> AppResult<()>;
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32>;
+    async fn delete_user(&self, id: &u32) -> AppResult<()>;
+    async fn activate_user(&self, id: &u32) -> AppResult<()>;
+    async fn deactivate_user(&self, id: &u32) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -36,7 +36,7 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32> {
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -44,7 +44,7 @@ impl UserServiceTrait for UserService {
         }
 
         let mut rng = Rand::from_entropy();
-        let id = rng.gen::<i32>();
+        let id = rng.gen::<u32>();
         let hashed_password = hash(&register.password, DEFAULT_COST).unwrap();
 
         // TODO: Check what is the result and if we can return the new user id
@@ -66,7 +66,7 @@ impl UserServiceTrait for UserService {
         Ok(id)
     }
 
-    async fn delete_user(&self, id: &i32) -> AppResult<()> {
+    async fn delete_user(&self, id: &u32) -> AppResult<()> {
         // TODO: Delete all the data from this user
 
         sqlx::query(
@@ -94,7 +94,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn activate_user(&self, id: &i32) -> AppResult<()> {
+    async fn activate_user(&self, id: &u32) -> AppResult<()> {
         sqlx::query(
             r#"
                 UPDATE user
@@ -111,7 +111,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn deactivate_user(&self, id: &i32) -> AppResult<()> {
+    async fn deactivate_user(&self, id: &u32) -> AppResult<()> {
         sqlx::query(
             r#"
                 UPDATE user

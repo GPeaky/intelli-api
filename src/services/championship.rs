@@ -12,7 +12,7 @@ use tracing::info;
 // TODO: Fix this service to change things without begin mutable
 pub struct ChampionshipService {
     db: Arc<Database>,
-    ports: Arc<RwLock<Vec<i16>>>,
+    ports: Arc<RwLock<Vec<u16>>>,
     #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
@@ -34,23 +34,22 @@ impl ChampionshipService {
     pub async fn create_championship(
         &self,
         payload: CreateChampionshipDto,
-        user_id: &i32,
+        user_id: &u32,
     ) -> AppResult<()> {
         // todo: restrict port to receive only one connection, and release it when the connection is closed
         let mut rng = Rand::from_entropy();
         let port = self.get_port().await?;
-        let id = rng.gen::<i32>();
+        let id = rng.gen::<u32>();
 
         sqlx::query(
             r#"
-                INSERT INTO championship (id, port, name, user_id)
-                VALUES (?,?,?,?)
+                INSERT INTO championship (id, port, name)
+                VALUES (?,?,?)
             "#,
         )
         .bind(id)
         .bind(port)
         .bind(payload.name)
-        .bind(user_id)
         .execute(&self.db.mysql)
         .await?;
 
@@ -70,7 +69,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
+    pub async fn delete_championship(&self, id: &u32) -> AppResult<()> {
         sqlx::query(
             r#"
                 DELETE FROM championship WHERE id = ?
@@ -85,7 +84,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn user_championships(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
+    pub async fn user_championships(&self, user_id: &u32) -> AppResult<Vec<Championship>> {
         let championships = sqlx::query_as::<_, Championship>(
             r#"
                 SELECT
@@ -107,8 +106,8 @@ impl ChampionshipService {
 
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
-    ) -> AppResult<Arc<RwLock<Vec<i16>>>> {
-        let mut ports: Vec<i16> = (20777..=20899).collect();
+    ) -> AppResult<Arc<RwLock<Vec<u16>>>> {
+        let mut ports: Vec<u16> = (20777..=20899).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for port in ports_in_use {
@@ -121,12 +120,12 @@ impl ChampionshipService {
         Ok(Arc::new(RwLock::new(ports)))
     }
 
-    async fn get_port(&self) -> AppResult<i16> {
+    async fn get_port(&self) -> AppResult<u16> {
         let ports = self.ports.read().await;
         Ok(*ports.first().unwrap())
     }
 
-    async fn remove_port(&self, port: i16) -> AppResult<()> {
+    async fn remove_port(&self, port: u16) -> AppResult<()> {
         let mut ports = self.ports.write().await;
         let port_index = ports.iter().position(|&p| p.eq(&port)).unwrap();
 

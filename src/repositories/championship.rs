@@ -13,8 +13,8 @@ impl ChampionshipRepository {
         }
     }
 
-    pub async fn ports_in_use(&self) -> AppResult<Vec<(i16,)>> {
-        let ports_in_use = sqlx::query_as::<_, (i16,)>(
+    pub async fn ports_in_use(&self) -> AppResult<Vec<(u16,)>> {
+        let ports_in_use = sqlx::query_as::<_, (u16,)>(
             r#"
                 SELECT port FROM championship
             "#,
@@ -25,7 +25,7 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
-    pub async fn find(&self, id: &i32) -> AppResult<Championship> {
+    pub async fn find(&self, id: &u32) -> AppResult<Championship> {
         let championship = sqlx::query_as::<_, Championship>(
             r#"
                 SELECT * FROM championship
@@ -39,7 +39,7 @@ impl ChampionshipRepository {
         Ok(championship)
     }
 
-    pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
+    pub async fn find_all(&self, user_id: &u32) -> AppResult<Vec<Championship>> {
         let championships = sqlx::query_as::<_, Championship>(
             r#"
                 SELECT
