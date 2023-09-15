@@ -1,15 +1,10 @@
-use crate::{
-    entity::Championship,
-    error::{AppResult, ChampionshipError},
-    states::SafeUserState,
-};
+use crate::{entity::Championship, error::AppResult, states::SafeUserState};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
     Json,
 };
 use hyper::StatusCode;
-use scylla::cql_to_rust::FromRowError;
 
 #[inline(always)]
 pub async fn user_championships(
@@ -20,11 +15,6 @@ pub async fn user_championships(
         .championship_service
         .user_championships(&user_id)
         .await?;
-
-    let championships = championships
-        .into_iter()
-        .collect::<Result<Vec<Championship>, FromRowError>>()
-        .map_err(|_| ChampionshipError::NotChampionships)?;
 
     Ok(Json(championships))
 }

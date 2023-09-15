@@ -4,6 +4,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum UserError {
+    #[allow(unused)]
     #[error("User already exists")]
     AlreadyExists,
     #[error("User not found")]

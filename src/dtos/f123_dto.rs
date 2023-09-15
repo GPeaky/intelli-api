@@ -1,11 +1,13 @@
-use bincode::{deserialize, Error};
+use bincode::{config::Configuration, decode_from_slice, error::DecodeError, Decode, Encode};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
+
+const BINCODE_CONFIG: Configuration = bincode::config::standard();
 
 //*  --- F1 2023 Packet Data Enums ---
 
 #[repr(C)]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Encode, Decode)]
 pub enum TeamIds {
     Mercedes,
     Ferrari,
@@ -21,7 +23,7 @@ pub enum TeamIds {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum RuleSetIds {
     PracticeAndQualifying,
     Race,
@@ -35,7 +37,7 @@ pub enum RuleSetIds {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum GameModeIds {
     EventMode,
     GrandPrix,
@@ -57,7 +59,7 @@ pub enum GameModeIds {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum TrackIds {
     Melbourne,
     PaulRicard,
@@ -95,7 +97,7 @@ pub enum TrackIds {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum PenaltyTypes {
     DriveThrough,
     StopGo,
@@ -117,7 +119,7 @@ pub enum PenaltyTypes {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum InfringementTypes {
     BlockingBySlowDriving,
     BlockingByWrongWayDriving,
@@ -176,7 +178,7 @@ pub enum InfringementTypes {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum ParticipantNationality {
     American,
     Argentinean,
@@ -268,7 +270,7 @@ pub enum ParticipantNationality {
 }
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum PacketIds {
     Motion,
     Session,
@@ -334,7 +336,7 @@ impl<'de> Deserialize<'de> for TeamIds {
 //*  --- F1 2023 Packet Data Structures ---
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketHeader {
     pub m_packetFormat: u16,           // 2023
     pub m_gameYear: u8,                // Game year - last two digits e.g. 23
@@ -358,7 +360,7 @@ pub struct OwnPacketData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketMotionData {
     pub m_header: PacketHeader,               // Header
     pub m_carMotionData: [CarMotionData; 22], // Data for all cars on track
@@ -366,7 +368,7 @@ pub struct PacketMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
@@ -375,7 +377,7 @@ pub struct PacketEventData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketFinalClassificationData {
     pub m_header: PacketHeader, // Header
     pub m_numCars: u8,          // Number of cars in the final classification
@@ -384,7 +386,7 @@ pub struct PacketFinalClassificationData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketParticipantsData {
     pub m_header: PacketHeader, // Header
     pub m_numActiveCars: u8, // Number of active cars in the data – should match number of cars on HUD
@@ -393,7 +395,7 @@ pub struct PacketParticipantsData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketSessionHistoryData {
     pub m_header: PacketHeader,
     pub m_carIdx: u8,
@@ -410,7 +412,7 @@ pub struct PacketSessionHistoryData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketSessionData {
     pub m_header: PacketHeader,            // Header
     pub m_weather: u8, // Weather - 0 = clear, 1 = light cloud, 2 = overcast, 3 = light rain, 4 = heavy rain, 5 = storm
@@ -469,7 +471,7 @@ pub struct PacketSessionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct CarMotionData {
     pub m_worldPositionX: f32,     // World space X position - metres
     pub m_worldPositionY: f32,     // World space Y position
@@ -493,7 +495,7 @@ pub struct CarMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct MarshalZone {
     pub m_zoneStart: f32, // Fraction (0..1) of way through the lap the marshal zone starts
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
@@ -501,7 +503,7 @@ pub struct MarshalZone {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct WeatherForecastSample {
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P, 5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ, 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
     pub m_timeOffset: u8,  //Time in minutes the forecast is for
@@ -515,7 +517,7 @@ pub struct WeatherForecastSample {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum EventDataDetails {
     FastestLap {
         vehicleIdx: u8, // Vehicle index of car achieving fastest lap
@@ -582,7 +584,7 @@ pub enum EventDataDetails {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct ParticipantData {
     pub m_aiControlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub m_driverId: u8,     // Driver id - see appendix, 255 if network human
@@ -600,7 +602,7 @@ pub struct ParticipantData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct FinalClassificationData {
     pub m_position: u8,               // Finishing position
     pub m_numLaps: u8,                // Number of laps completed
@@ -620,7 +622,7 @@ pub struct FinalClassificationData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct LapHistoryData {
     pub m_lapTimeInMS: u32,       // Lap time in milliseconds
     pub m_sector1TimeInMS: u16,   // Sector 1 time in milliseconds
@@ -634,13 +636,14 @@ pub struct LapHistoryData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct TyreStintHistoryData {
     pub m_endLap: u8,             // Lap the tyre usage ends on (255 of current tyre)
     pub m_tyreActualCompound: u8, // Actual tyres used by this driver
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
 }
 
+#[derive(Encode, Decode)]
 pub enum F123Data {
     Motion(PacketMotionData),
     Session(PacketSessionData),
@@ -651,21 +654,31 @@ pub enum F123Data {
 }
 
 impl F123Data {
-    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, Error> {
+    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, DecodeError> {
         match packet_id {
-            PacketIds::Motion => Ok(Some(F123Data::Motion(deserialize(data)?))),
-            PacketIds::Session => Ok(Some(F123Data::Session(deserialize(data)?))),
-            PacketIds::Event => Ok(Some(F123Data::Event(deserialize(data)?))),
-            PacketIds::Participants => Ok(Some(F123Data::Participants(deserialize(data)?))),
-            PacketIds::FinalClassification => {
-                Ok(Some(F123Data::FinalClassification(deserialize(data)?)))
-            }
-            PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(deserialize(data)?))),
+            PacketIds::Motion => Ok(Some(F123Data::Motion(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
+            PacketIds::Session => Ok(Some(F123Data::Session(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
+            PacketIds::Event => Ok(Some(F123Data::Event(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
+            PacketIds::Participants => Ok(Some(F123Data::Participants(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
+            PacketIds::FinalClassification => Ok(Some(F123Data::FinalClassification(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
+            PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(
+                decode_from_slice(data, BINCODE_CONFIG)?.0,
+            ))),
             _ => Ok(None),
         }
     }
 
-    pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, Error> {
-        deserialize::<PacketHeader>(data)
+    pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, DecodeError> {
+        Ok(decode_from_slice(data, BINCODE_CONFIG)?.0)
     }
 }

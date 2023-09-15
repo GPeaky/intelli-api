@@ -1,10 +1,4 @@
-use crate::{
-    config::Database,
-    dtos::{ChampionshipStatements, PreparedStatementsKey},
-    entity::Championship,
-    error::AppResult,
-};
-use scylla::transport::session::TypedRowIter;
+use crate::{config::Database, entity::Championship, error::AppResult};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -19,79 +13,49 @@ impl ChampionshipRepository {
         }
     }
 
-    pub async fn ports_in_use(&self) -> AppResult<TypedRowIter<(i16,)>> {
-        let ports_in_use = self
-            .database
-            .scylla
-            .execute(
-                self.database
-                    .statements
-                    .get(&PreparedStatementsKey::Championship(
-                        ChampionshipStatements::Ports,
-                    ))
-                    .unwrap(),
-                &[],
-            )
-            .await?
-            .rows_typed_or_empty::<(i16,)>();
+    pub async fn ports_in_use(&self) -> AppResult<Vec<(i16,)>> {
+        let ports_in_use = sqlx::query_as::<_, (i16,)>(
+            r#"
+                SELECT port FROM championship
+            "#,
+        )
+        .fetch_all(&self.database.mysql)
+        .await?;
 
         Ok(ports_in_use)
     }
 
     pub async fn find(&self, id: &i32) -> AppResult<Championship> {
-        let championship = self
-            .database
-            .scylla
-            .execute(
-                self.database
-                    .statements
-                    .get(&PreparedStatementsKey::Championship(
-                        ChampionshipStatements::ById,
-                    ))
-                    .unwrap(),
-                (id,),
-            )
-            .await?
-            .single_row_typed::<Championship>()?;
+        let championship = sqlx::query_as::<_, Championship>(
+            r#"
+                SELECT * FROM championship
+                WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.database.mysql)
+        .await?;
 
         Ok(championship)
     }
 
-    pub async fn find_all(&self, user_id: &i32) -> AppResult<TypedRowIter<Championship>> {
-        let championships = self
-            .database
-            .scylla
-            .execute(
-                self.database
-                    .statements
-                    .get(&PreparedStatementsKey::Championship(
-                        ChampionshipStatements::ByUser,
-                    ))
-                    .unwrap(),
-                (user_id,),
-            )
-            .await?
-            .rows_typed::<Championship>()?;
+    pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
+        let championships = sqlx::query_as::<_, Championship>(
+            r#"
+                SELECT
+                    c.*
+                FROM
+                    championship c
+                JOIN
+                    user_championships uc ON c.id = uc.championship_id
+                WHERE
+                    uc.user_id = ?
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(&self.database.mysql)
+        .await?;
 
         Ok(championships)
-    }
-
-    pub async fn championships_exists(&self, name: &str) -> AppResult<bool> {
-        let rows = self
-            .database
-            .scylla
-            .execute(
-                self.database
-                    .statements
-                    .get(&PreparedStatementsKey::Championship(
-                        ChampionshipStatements::NameByName,
-                    ))
-                    .unwrap(),
-                (name,),
-            )
-            .await?
-            .rows_num()?;
-
-        Ok(rows > 0)
     }
 }

@@ -6,7 +6,6 @@ use crate::{
 };
 use axum::{
     extract::State,
-    headers::{authorization::Bearer, Authorization, Header},
     http::{header::AUTHORIZATION, Request},
     middleware::Next,
     response::Response,
@@ -17,23 +16,28 @@ pub async fn auth_handler<T>(
     mut req: Request<T>,
     next: Next<T>,
 ) -> AppResult<Response> {
-    let mut headers = req
-        .headers_mut()
-        .iter()
-        .filter_map(|(header_name, header_value)| {
-            if header_name.eq(&AUTHORIZATION) {
-                return Some(header_value);
-            }
+    let header_value = req
+        .headers()
+        .get(AUTHORIZATION)
+        .ok_or(TokenError::MissingToken)?;
 
-            None
-        });
+    let header_str = header_value
+        .to_str()
+        .map_err(|_| TokenError::InvalidToken)?;
 
-    let header: Authorization<Bearer> =
-        Authorization::decode(&mut headers).map_err(|_| TokenError::InvalidToken)?;
+    // Verificar que el encabezado comienza con "Bearer "
+    if !header_str.starts_with("Bearer ") {
+        return Err(TokenError::InvalidToken)?;
+    }
 
-    let Ok(token) = state.token_service.validate(header.token()) else {
-        Err(TokenError::InvalidToken)?
-    };
+    // Extraer el token real
+    let extracted_token = &header_str[7..];
+
+    // Validar el token
+    let token = state
+        .token_service
+        .validate(extracted_token)
+        .map_err(|_| TokenError::InvalidToken)?;
 
     let user = state
         .user_repository

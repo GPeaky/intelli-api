@@ -1,10 +1,11 @@
 use crate::{
     config::Database,
-    dtos::{EventDataStatements, F123Data, PreparedStatementsKey},
+    dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
-use bincode::serialize;
+use bincode::config::Configuration;
+use bincode::encode_to_vec;
 use redis::Commands;
 use std::{
     sync::Arc,
@@ -20,11 +21,12 @@ use tracing::{error, info};
 type F123Receiver = Receiver<(u8, Arc<Vec<u8>>)>;
 
 const F123_HOST: &str = "0.0.0.0";
-const DATA_PERSISTANCE: usize = 15 * 60;
+const DATA_PERSISTENCE: usize = 15 * 60;
 const F123_MAX_PACKET_SIZE: usize = 1460;
 const SESSION_INTERVAL: Duration = Duration::from_secs(30);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
+const BIN_CONFIG: Configuration = bincode::config::standard();
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -71,7 +73,7 @@ impl F123Service {
         tokio::task::spawn(async move {
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
             let mut redis = db.get_redis();
-            let session = db.scylla.clone();
+            let _session = db.mysql.clone();
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
 
@@ -149,7 +151,10 @@ impl F123Service {
                                     };
 
                                     if sectors.ne(last_sectors) {
-                                        let data = Arc::new(serialize(&session_history).unwrap());
+                                        // TODO: Check to reuse buf[..size]
+                                        let data = Arc::new(
+                                            encode_to_vec(&session_history, BIN_CONFIG).unwrap(),
+                                        );
 
                                         tx.send((header.m_packetId, data.clone())).await.unwrap();
 
@@ -157,7 +162,7 @@ impl F123Service {
                                             .set_ex::<String, &Vec<u8>, String>(
                                                 format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
                                                 &*data,
-                                                DATA_PERSISTANCE,
+                                                DATA_PERSISTENCE,
                                             )
                                             .unwrap();
 
@@ -173,7 +178,9 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let data = Arc::new(serialize(&motion_data).unwrap());
+                                    // TODO: Check to reuse buf[..size]
+                                    let data =
+                                        Arc::new(encode_to_vec(&motion_data, BIN_CONFIG).unwrap());
 
                                     tx.send((header.m_packetId, data)).await.unwrap();
 
@@ -197,7 +204,9 @@ impl F123Service {
                                     .duration_since(last_session_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    let data = Arc::new(serialize(&session_data).unwrap());
+                                    // TODO: Check to reuse buf[..size]
+                                    let data =
+                                        Arc::new(encode_to_vec(&session_data, BIN_CONFIG).unwrap());
 
                                     tx.send((header.m_packetId, data.clone())).await.unwrap();
 
@@ -208,7 +217,7 @@ impl F123Service {
                                                 championship_id
                                             ),
                                             &*data,
-                                            DATA_PERSISTANCE,
+                                            DATA_PERSISTENCE,
                                         )
                                         .unwrap();
 
@@ -217,65 +226,69 @@ impl F123Service {
                             }
 
                             // We don't save events in redis because redis doesn't support lists of lists
-                            F123Data::Event(event_data) => {
-                                let select_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Select,
-                                    ))
-                                    .unwrap();
-                                let insert_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Insert,
-                                    ))
-                                    .unwrap();
-                                let update_stmt = db
-                                    .statements
-                                    .get(&PreparedStatementsKey::EventData(
-                                        EventDataStatements::Update,
-                                    ))
-                                    .unwrap();
-
-                                let event =
-                                    Arc::new(serialize(&event_data.m_eventDetails).unwrap());
-
-                                tx.send((header.m_packetId, event.clone())).await.unwrap();
-
-                                let table_exists = session
-                                    .execute(
-                                        select_stmt,
-                                        (session_id, event_data.m_eventStringCode),
-                                    )
-                                    .await
-                                    .unwrap()
-                                    .rows_or_empty();
-
-                                if table_exists.is_empty() {
-                                    session
-                                        .execute(
-                                            insert_stmt,
-                                            (session_id, event_data.m_eventStringCode, &*event),
-                                        )
-                                        .await
-                                        .unwrap();
-                                } else {
-                                    session
-                                        .execute(
-                                            update_stmt,
-                                            (&*event, session_id, event_data.m_eventStringCode),
-                                        )
-                                        .await
-                                        .unwrap();
-                                }
+                            F123Data::Event(_event_data) => {
+                                // let select_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Select,
+                                //     ))
+                                //     .unwrap();
+                                // let insert_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Insert,
+                                //     ))
+                                //     .unwrap();
+                                // let update_stmt = db
+                                //     .statements
+                                //     .get(&PreparedStatementsKey::EventData(
+                                //         EventDataStatements::Update,
+                                //     ))
+                                //     .unwrap();
+                                //
+                                // // TODO: Check to reuse buf[..size]
+                                // let event =
+                                //     Arc::new(encode_to_vec(&event_data.m_eventDetails, BIN_CONFIG).unwrap());
+                                //
+                                // tx.send((header.m_packetId, event.clone())).await.unwrap();
+                                //
+                                // let table_exists = session
+                                //     .execute(
+                                //         select_stmt,
+                                //         (session_id, event_data.m_eventStringCode),
+                                //     )
+                                //     .await
+                                //     .unwrap()
+                                //     .rows_or_empty();
+                                //
+                                // if table_exists.is_empty() {
+                                //     session
+                                //         .execute(
+                                //             insert_stmt,
+                                //             (session_id, event_data.m_eventStringCode, &*event),
+                                //         )
+                                //         .await
+                                //         .unwrap();
+                                // } else {
+                                //     session
+                                //         .execute(
+                                //             update_stmt,
+                                //             (&*event, session_id, event_data.m_eventStringCode),
+                                //         )
+                                //         .await
+                                //         .unwrap();
+                                // }
                             }
 
                             // TODO: Check why this is never saving to redis
                             F123Data::Participants(participants_data) => {
                                 tracing::info!("Saving participants data"); // Test
 
-                                let participants =
-                                    Arc::new(serialize(&participants_data.m_participants).unwrap());
+                                // TODO: Check to reuse buf[..size]
+                                let participants = Arc::new(
+                                    encode_to_vec(&participants_data.m_participants, BIN_CONFIG)
+                                        .unwrap(),
+                                );
 
                                 tx.send((header.m_packetId, participants.clone()))
                                     .await
@@ -288,15 +301,20 @@ impl F123Service {
                                         championship_id
                                     ),
                                         &*participants,
-                                        DATA_PERSISTANCE,
+                                        DATA_PERSISTENCE,
                                     )
                                     .unwrap();
                             }
 
                             //TODO Collect All data from redis and save it to the scylla database
                             F123Data::FinalClassification(classification_data) => {
+                                // TODO: Check to reuse buf[..size]
                                 let classifications = Arc::new(
-                                    serialize(&classification_data.m_classificationData).unwrap(),
+                                    encode_to_vec(
+                                        &classification_data.m_classificationData,
+                                        BIN_CONFIG,
+                                    )
+                                    .unwrap(),
                                 );
 
                                 tx.send((header.m_packetId, classifications)).await.unwrap();

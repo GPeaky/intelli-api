@@ -1,8 +1,7 @@
 use crate::{
     dtos::{
         AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
-        ResetPasswordDto, ResetPasswordQuery, ResetPasswordTemplate, Templates, TokenType,
-        VerifyEmailTemplate,
+        ResetPasswordDto, ResetPasswordQuery, TokenType,
     },
     entity::User,
     error::{AppResult, CommonError, TokenError, UserError},
@@ -38,10 +37,11 @@ pub(crate) async fn register(
         .email_service
         .send_mail(
             &(&form).into(),
-            Templates::VerifyEmail(VerifyEmailTemplate {
-                username: &form.username,
-                token: &token,
-            }),
+            "Verify Email",
+            format!(
+                "Click on the link to verify your email: http://localhost:3000/verify-email/{}",
+                token
+            ),
         )
         .await
         .map_err(|_| UserError::MailError)?;
@@ -168,10 +168,11 @@ pub(crate) async fn forgot_password(
                 username: &user.username,
                 email: &user.email,
             },
-            Templates::ResetPassword(ResetPasswordTemplate {
-                name: &user.username,
-                token: &token,
-            }),
+            "Reset Password",
+            format!(
+                "Click on the link to reset your password: http://localhost:3000/reset-password{}",
+                token
+            ),
         )
         .await
         .map_err(|_| UserError::MailError)?;
