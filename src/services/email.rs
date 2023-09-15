@@ -1,5 +1,4 @@
-use crate::dtos::{EmailUser, Templates};
-use askama::Template;
+use crate::dtos::EmailUser;
 use lettre::{
     error::Error,
     message::{header::ContentType, Mailbox},
@@ -37,13 +36,9 @@ impl EmailService {
     pub async fn send_mail<'a>(
         &self,
         user: &EmailUser<'a>,
-        template: Templates<'a>,
+        subject: &'a str,
+        body: String,
     ) -> Result<bool, Error> {
-        let (body, subject) = match template {
-            Templates::VerifyEmail(template) => (template.render().unwrap(), "Verify Email"),
-            Templates::ResetPassword(template) => (template.render().unwrap(), "Reset Password"),
-        };
-
         let message = Message::builder()
             .from(self.from_mailbox.to_owned())
             .to(Mailbox::new(
