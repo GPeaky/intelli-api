@@ -1,23 +1,21 @@
+use crate::error::UserError;
 use crate::{
     config::Database,
     dtos::RegisterUserDto,
     error::AppResult,
     repositories::{UserRepository, UserRepositoryTrait},
 };
-use argon2::{self, Config};
 use axum::async_trait;
-use dotenvy::var;
+use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
 use tracing::info;
 
 #[derive(Clone)]
 pub struct UserService {
-    pass_salt: Vec<u8>,
     db_conn: Arc<Database>,
     #[allow(unused)]
     user_repo: UserRepository,
-    argon2_config: Config<'static>,
 }
 
 #[async_trait]
@@ -35,21 +33,19 @@ impl UserServiceTrait for UserService {
         Self {
             db_conn: db_conn.clone(),
             user_repo: UserRepository::new(db_conn),
-            argon2_config: Config::default(),
-            pass_salt: var("PASS_SALT").unwrap().as_bytes().to_owned(),
         }
     }
 
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
+        let user_exists = self.user_repo.user_exists(&register.email).await?;
+
+        if user_exists {
+            Err(UserError::AlreadyExists)?
+        }
+
         let mut rng = Rand::from_entropy();
         let id = rng.gen::<i32>();
-
-        let hashed_password = argon2::hash_encoded(
-            register.password.as_bytes(),
-            &self.pass_salt,
-            &self.argon2_config,
-        )
-        .unwrap();
+        let hashed_password = hash(&register.password, DEFAULT_COST).unwrap();
 
         // TODO: Check what is the result and if we can return the new user id
         sqlx::query(

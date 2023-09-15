@@ -18,6 +18,7 @@ use axum::{
 };
 use garde::Validate;
 use hyper::HeaderMap;
+use tracing::info;
 
 #[inline(always)]
 pub(crate) async fn register(
@@ -30,10 +31,13 @@ pub(crate) async fn register(
 
     let user_id = state.user_service.new_user(&form).await?;
 
+    // TODO: Check if the jwt crate is the fastest
     let token = state
         .token_service
         .generate_token(&user_id.to_string(), TokenType::Email)?;
 
+    // TODO: See if we cant reduce this time
+    let time = std::time::Instant::now();
     state
         .email_service
         .send_mail(
@@ -45,6 +49,7 @@ pub(crate) async fn register(
         )
         .await
         .map_err(|_| UserError::MailError)?;
+    info!("Time send mail {:#?}", time.elapsed());
 
     Ok(StatusCode::CREATED.into_response())
 }
