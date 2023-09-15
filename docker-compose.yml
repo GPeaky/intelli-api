@@ -6,6 +6,7 @@ services:
     build: .
     ports:
       - "443:443"
+      - "20777-20899:20777-20899/udp"
 
     env_file:
       - .env
