@@ -14,6 +14,7 @@ pub async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (Statu
     )
 }
 
+#[inline(always)]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     Router::new()
         .nest("/", api::api_router(database).await)
