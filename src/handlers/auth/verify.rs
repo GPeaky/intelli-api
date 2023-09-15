@@ -29,7 +29,7 @@ pub async fn verify_email(
 
     state
         .user_service
-        .activate_user(&token_data.claims.sub.parse::<i32>().unwrap())
+        .activate_user(&token_data.claims.sub.parse::<u32>().unwrap())
         .await
         .unwrap();
 

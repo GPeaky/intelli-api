@@ -11,7 +11,7 @@ pub enum Role {
 
 #[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub id: i32,
+    pub id: u32,
     pub email: String,
     pub username: String,
     #[serde(skip_serializing)]

@@ -9,7 +9,7 @@ use hyper::StatusCode;
 #[inline(always)]
 pub async fn user_championships(
     State(state): State<SafeUserState>,
-    Path(user_id): Path<i32>,
+    Path(user_id): Path<u32>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state
         .championship_service
@@ -22,7 +22,7 @@ pub async fn user_championships(
 #[inline(always)]
 pub async fn delete_championship(
     State(state): State<SafeUserState>,
-    Path(id): Path<i32>,
+    Path(id): Path<u32>,
 ) -> AppResult<Response> {
     let championship = state.championship_repository.find(&id).await?;
 

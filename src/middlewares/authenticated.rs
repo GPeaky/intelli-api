@@ -41,7 +41,7 @@ pub async fn auth_handler<T>(
 
     let user = state
         .user_repository
-        .find(&token.claims.sub.parse::<i32>().unwrap())
+        .find(&token.claims.sub.parse::<u32>().unwrap())
         .await
         .map_err(|_| UserError::NotFound)?;
 
