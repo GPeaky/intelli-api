@@ -2,7 +2,7 @@ use self::admin::admin_router;
 use super::handle_error;
 use crate::{
     config::Database,
-    handlers::api::{
+    handlers::{
         auth::{
             forgot_password, login, logout, refresh_token, register, reset_password, verify_email,
         },

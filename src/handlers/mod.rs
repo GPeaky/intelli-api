@@ -1,2 +1,3 @@
-pub(crate) mod api;
-pub(crate) mod web;
+pub(crate) mod auth;
+pub(crate) mod championships;
+pub(crate) mod user;
