@@ -53,10 +53,7 @@ pub async fn all_championships(
     State(state): State<SafeUserState>,
     Extension(user): Extension<User>,
 ) -> AppResult<Json<Vec<Championship>>> {
-    let championships = state
-        .championship_repository
-        .find_all(&user.id)
-        .await?;
+    let championships = state.championship_repository.find_all(&user.id).await?;
 
     Ok(Json(championships))
 }

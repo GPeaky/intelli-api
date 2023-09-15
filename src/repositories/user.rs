@@ -11,7 +11,7 @@ pub struct UserRepository {
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn find(&self, id: &i32) -> AppResult<User>;
-    
+
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn find_by_email(&self, email: &str) -> AppResult<User>;
     fn validate_password(&self, password: &str, hash: &str) -> bool;
@@ -30,12 +30,12 @@ impl UserRepositoryTrait for UserRepository {
             r#"
                 SELECT email FROM user
                 WHERE email = ?
-            "#
+            "#,
         )
-            .bind(email)
-            .fetch_optional(&self.db_conn.mysql)
-            .await?;
-        
+        .bind(email)
+        .fetch_optional(&self.db_conn.mysql)
+        .await?;
+
         Ok(user.is_some())
     }
 

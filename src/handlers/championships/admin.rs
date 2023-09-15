@@ -1,8 +1,4 @@
-use crate::{
-    entity::Championship,
-    error::AppResult,
-    states::SafeUserState,
-};
+use crate::{entity::Championship, error::AppResult, states::SafeUserState};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
