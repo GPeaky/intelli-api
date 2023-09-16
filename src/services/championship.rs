@@ -36,7 +36,7 @@ impl ChampionshipService {
         payload: CreateChampionshipDto,
         user_id: &u32,
     ) -> AppResult<()> {
-        // todo: restrict port to receive only one connection, and release it when the connection is closed
+        // Todo: restrict port to receive only one connection, and release it when the connection is closed
         let mut rng = Rand::from_entropy();
         let port = self.get_port().await?;
         let id = rng.gen::<u32>();
