@@ -1,11 +1,9 @@
-use crate::dtos::F123Data;
 use axum::Server;
-use axum_server::{tls_rustls::RustlsConfig, HttpConfig};
+use axum_server::tls_rustls::RustlsConfig;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use hyper::Error;
 use routes::service_routes;
-use std::mem::size_of;
 use std::{net::TcpListener, path::PathBuf, sync::Arc};
 use tracing::info;
 
@@ -49,7 +47,6 @@ async fn main() -> Result<(), Error> {
 
         // TODO: Check how to implement graceful shutdown
         axum_server::from_tcp_rustls(listener, config)
-            .http_config(HttpConfig::new().http2_only(true).build())
             .serve(service_routes(Arc::new(db)).await)
             .await
             .unwrap();
