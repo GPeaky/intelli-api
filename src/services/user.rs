@@ -50,14 +50,18 @@ impl UserServiceTrait for UserService {
         // TODO: Check what is the result and if we can return the new user id
         sqlx::query(
             r#"
-                INSERT INTO user (id, email, username, password)
-                VALUES (?,?,?,?)
+                INSERT INTO user (id, email, username, password, avatar)
+                VALUES (?,?,?,?,?)
             "#,
         )
         .bind(id)
         .bind(&register.email)
         .bind(&register.username)
         .bind(hashed_password)
+        .bind(format!(
+            "https://ui-avatars.com/api/?name={}",
+            &register.username
+        ))
         .execute(&self.db_conn.mysql)
         .await?;
 

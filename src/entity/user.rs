@@ -16,6 +16,7 @@ pub struct User {
     pub username: String,
     #[serde(skip_serializing)]
     pub password: String,
+    pub avatar: String,
     pub role: Role,
     pub active: bool,
     pub created_at: DateTime<Utc>,
