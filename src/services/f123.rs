@@ -175,6 +175,8 @@ impl F123Service {
                                             DATA_PERSISTENCE,
                                         )
                                         .unwrap();
+
+                                    last_participants_update = now;
                                 }
                             }
 
