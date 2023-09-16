@@ -25,6 +25,20 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
+    async fn find(&self, id: &u32) -> AppResult<User> {
+        let user = sqlx::query_as::<_, User>(
+            r#"
+                SELECT * FROM user
+                WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.db_conn.mysql)
+        .await?;
+
+        Ok(user)
+    }
+
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
         let user = sqlx::query_as::<_, (String,)>(
             r#"
@@ -48,20 +62,6 @@ impl UserRepositoryTrait for UserRepository {
             "#,
         )
         .bind(email)
-        .fetch_one(&self.db_conn.mysql)
-        .await?;
-
-        Ok(user)
-    }
-
-    async fn find(&self, id: &u32) -> AppResult<User> {
-        let user = sqlx::query_as::<_, User>(
-            r#"
-                SELECT * FROM user
-                WHERE id = ?
-            "#,
-        )
-        .bind(id)
         .fetch_one(&self.db_conn.mysql)
         .await?;
 
