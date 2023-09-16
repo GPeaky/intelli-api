@@ -1,273 +1,15 @@
-use bincode::{config::Configuration, decode_from_slice, error::DecodeError, Decode, Encode};
+use bincode::{
+    config::{Configuration, Fixint, LittleEndian},
+    error::DecodeError,
+    serde::decode_borrowed_from_slice,
+    Decode, Encode,
+};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-const BINCODE_CONFIG: Configuration = bincode::config::standard();
+const BINCODE_CONFIG: Configuration<LittleEndian, Fixint> = bincode::config::legacy();
 
 //*  --- F1 2023 Packet Data Enums ---
-
-#[repr(C)]
-#[derive(Debug, Serialize, Encode, Decode)]
-pub enum TeamIds {
-    Mercedes,
-    Ferrari,
-    RedBullRacing,
-    Williams,
-    AstonMartin,
-    Alpine,
-    AlphaTauri,
-    Haas,
-    McLaren,
-    AlfaRomeo,
-    CustomTeam,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum RuleSetIds {
-    PracticeAndQualifying,
-    Race,
-    TimeTrial,
-    TimeAttack,
-    CheckPointChallenge,
-    AutoCross,
-    Drift,
-    AverageSpeedZone,
-    RivalDuel,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum GameModeIds {
-    EventMode,
-    GrandPrix,
-    GrandPrix23,
-    TimeTrial,
-    SliptScreen,
-    OnlineCustom,
-    OnlineLeague,
-    CareerInvitational,
-    ChampionshipInvitational,
-    Championship,
-    OnlineChampionship,
-    OnlineWeeklyEvent,
-    StoryMode,
-    Career22,
-    Career22Online,
-    Career23,
-    Career23Online,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum TrackIds {
-    Melbourne,
-    PaulRicard,
-    Shanghai,
-    Sakhir,
-    Catalunya,
-    Monaco,
-    Montreal,
-    Silverstone,
-    HockenHeim,
-    Hungaroring,
-    Spa,
-    Monza,
-    Singapore,
-    Suzuka,
-    AbuDhabi,
-    Texas,
-    Brazil,
-    Austria,
-    Sochi,
-    Mexico,
-    Baku,
-    SakhirShort,
-    SilverstoneShort,
-    TexasShort,
-    SuzukaShort,
-    Hanoi,
-    Zandvoort,
-    Imola,
-    Portimao,
-    Jeddah,
-    Miami,
-    LasVegas,
-    Losail,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum PenaltyTypes {
-    DriveThrough,
-    StopGo,
-    GridPenalty,
-    PenaltyReminder,
-    TimePenalty,
-    Warning,
-    Disqualified,
-    RemovedFromFormationLap,
-    ParkedTooLongTimer,
-    TyreRegulations,
-    ThisLapInvalidated,
-    ThisAndNextLapInvalidated,
-    ThisLapInvalidatedWithoutReason,
-    ThisAndPreviousLapInvalidated,
-    ThisAndPreviousLapInvalidatedWithoutReason,
-    Retired,
-    BlackFlagTimer,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum InfringementTypes {
-    BlockingBySlowDriving,
-    BlockingByWrongWayDriving,
-    ReversingOffTheStartLine,
-    BigCollision,
-    SmallCollision,
-    CollisionFailedToHandBackPositionSingle,
-    CollisionFailedToHandBackPositionMultiple,
-    CornerCuttingGainedTime,
-    CornerCuttingOvertakeSingle,
-    CornerCuttingOvertakeMultiple,
-    CrossedPitExitLane,
-    IgnoringBlueFlags,
-    IgnoringYellowFlags,
-    IgnoringDriveThrough,
-    TooManyDriveThroughs,
-    DriveThroughReminderServeWithinNLaps,
-    DriveThroughReminderServeThisLap,
-    PitLaneSpeeding,
-    ParkedForTooLong,
-    IgnoringTyreRegulations,
-    TooManyPenalties,
-    MultipleWarnings,
-    ApproachingDisqualification,
-    TyreRegulationsSelectSingle,
-    TyreRegulationsSelectMultiple,
-    LapInvalidatedCornerCutting,
-    LapInvalidatedRunningWide,
-    CornerCuttingRanWideGainedTimeMinor,
-    CornerCuttingRanWideGainedTimeSignificant,
-    CornerCuttingRanWideGainedTimeExtreme,
-    LapInvalidatedWallRiding,
-    LapInvalidatedFlashbackUsed,
-    LapInvalidatedResetToTrack,
-    BlockingThePitLane,
-    JumpStart,
-    SafetyCarToCarCollision,
-    SafetyCarIllegalOvertake,
-    SafetyCarExceedingAllowedPace,
-    VirtualSafetyCarExceedingAllowedPace,
-    FormationLapBelowAllowedSpeed,
-    FormationLapParking,
-    RetiredMechanicalFailure,
-    RetiredTerminallyDamaged,
-    SafetyCarFallingTooFarBack,
-    BlackFlagTimer,
-    UnservedStopGoPenalty,
-    UnservedDriveThroughPenalty,
-    EngineComponentChange,
-    GearboxChange,
-    LeagueGridPenalty,
-    RetryPenalty,
-    IllegalTimeGain,
-    MandatoryPitStop,
-    AttributeAssigned,
-}
-
-#[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
-pub enum ParticipantNationality {
-    American,
-    Argentinean,
-    Australian,
-    Austrian,
-    Azerbaijani,
-    Bahraini,
-    Belgian,
-    Bolivian,
-    Brazilian,
-    British,
-    Bulgarian,
-    Cameroonian,
-    Canadian,
-    Chilean,
-    Chinese,
-    Colombian,
-    CostaRican,
-    Croatian,
-    Cypriot,
-    Czech,
-    Danish,
-    Dutch,
-    Ecuadorian,
-    English,
-    Emirian,
-    Estonian,
-    Finnish,
-    French,
-    German,
-    Ghanaian,
-    Greek,
-    Guatemalan,
-    Honduran,
-    HongKonger,
-    Hungarian,
-    Icelander,
-    Indian,
-    Indonesian,
-    Irish,
-    Israeli,
-    Italian,
-    Jamaican,
-    Japanese,
-    Jordanian,
-    Kuwaiti,
-    Latvian,
-    Lebanese,
-    Lithuanian,
-    Luxembourger,
-    Malaysian,
-    Maltese,
-    Mexican,
-    Monegasque,
-    NewZealander,
-    Nicaraguan,
-    NorthernIrish,
-    Norwegian,
-    Omani,
-    Pakistani,
-    Panamanian,
-    Paraguayan,
-    Peruvian,
-    Polish,
-    Portuguese,
-    Qatari,
-    Romanian,
-    Russian,
-    Salvadoran,
-    Saudi,
-    Scottish,
-    Serbian,
-    Singaporean,
-    Slovakian,
-    Slovenian,
-    SouthKorean,
-    SouthAfrican,
-    Spanish,
-    Swedish,
-    Swiss,
-    Thai,
-    Turkish,
-    Uruguayan,
-    Ukrainian,
-    Venezuelan,
-    Barbadian,
-    Welsh,
-    Vietnamese,
-}
 
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize, Encode, Decode)]
@@ -310,33 +52,10 @@ impl From<u8> for PacketIds {
     }
 }
 
-impl<'de> Deserialize<'de> for TeamIds {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let i = i8::deserialize(deserializer)?;
-
-        match i {
-            0 => Ok(TeamIds::Mercedes),
-            1 => Ok(TeamIds::Ferrari),
-            2 => Ok(TeamIds::RedBullRacing),
-            3 => Ok(TeamIds::Williams),
-            4 => Ok(TeamIds::AstonMartin),
-            5 => Ok(TeamIds::Alpine),
-            6 => Ok(TeamIds::AlphaTauri),
-            7 => Ok(TeamIds::Haas),
-            8 => Ok(TeamIds::McLaren),
-            9 => Ok(TeamIds::AlfaRomeo),
-            _ => Ok(TeamIds::CustomTeam),
-        }
-    }
-}
-
 //*  --- F1 2023 Packet Data Structures ---
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketHeader {
     pub m_packetFormat: u16,           // 2023
     pub m_gameYear: u8,                // Game year - last two digits e.g. 23
@@ -352,15 +71,9 @@ pub struct PacketHeader {
     pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct OwnPacketData {
-    pub packet_id: PacketIds,
-    pub data: Vec<u8>,
-}
-
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketMotionData {
     pub m_header: PacketHeader,               // Header
     pub m_carMotionData: [CarMotionData; 22], // Data for all cars on track
@@ -368,7 +81,7 @@ pub struct PacketMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
@@ -377,7 +90,7 @@ pub struct PacketEventData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketFinalClassificationData {
     pub m_header: PacketHeader, // Header
     pub m_numCars: u8,          // Number of cars in the final classification
@@ -386,7 +99,7 @@ pub struct PacketFinalClassificationData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketParticipantsData {
     pub m_header: PacketHeader, // Header
     pub m_numActiveCars: u8, // Number of active cars in the data – should match number of cars on HUD
@@ -395,7 +108,7 @@ pub struct PacketParticipantsData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketSessionHistoryData {
     pub m_header: PacketHeader,
     pub m_carIdx: u8,
@@ -412,7 +125,7 @@ pub struct PacketSessionHistoryData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct PacketSessionData {
     pub m_header: PacketHeader,            // Header
     pub m_weather: u8, // Weather - 0 = clear, 1 = light cloud, 2 = overcast, 3 = light rain, 4 = heavy rain, 5 = storm
@@ -421,7 +134,7 @@ pub struct PacketSessionData {
     pub m_totalLaps: u8, // Total number of laps in this race
     pub m_trackLength: u16, // Track length in metres
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
-    pub m_trackId: TrackIds, // -1 for unknown, see appendix
+    pub m_trackId: i8,     // TrackIds//  -1 for unknown, see appendix
     pub m_formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 5 = Supercars, 6 = Esports, 7 = F2 2021
     pub m_sessionTimeLeft: u16, // Time left in session in seconds
     pub m_sessionDuration: u16, // Session duration in seconds
@@ -454,8 +167,8 @@ pub struct PacketSessionData {
     pub m_DRSAssist: u8, // 0 = off, 1 = on
     pub m_dynamicRacingLine: u8, // 0 = off, 1 = corners only, 2 = full
     pub m_dynamicRacingLineType: u8, // 0 = 2D, 1 = 3D
-    pub m_gameMode: GameModeIds, //u8 // Game mode id - see appendix
-    pub m_ruleSet: RuleSetIds, // Ruleset - see appendix
+    pub m_gameMode: u8, //GameModeIds // Game mode id - see appendix
+    pub m_ruleSet: u8, // RuleSetIds // Ruleset - see appendix
     pub m_timeOfDay: u32, // Local time of day - minutes since midnight
     pub m_sessionLength: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium 5 = Medium Long, 6 = Long, 7 = Full
     pub m_speedUnitsLeadPlayer: u8, // 0 = MPH, 1 = KPH
@@ -471,7 +184,7 @@ pub struct PacketSessionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct CarMotionData {
     pub m_worldPositionX: f32,     // World space X position - metres
     pub m_worldPositionY: f32,     // World space Y position
@@ -495,7 +208,7 @@ pub struct CarMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct MarshalZone {
     pub m_zoneStart: f32, // Fraction (0..1) of way through the lap the marshal zone starts
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
@@ -503,7 +216,7 @@ pub struct MarshalZone {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct WeatherForecastSample {
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P, 5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ, 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
     pub m_timeOffset: u8,  //Time in minutes the forecast is for
@@ -517,7 +230,7 @@ pub struct WeatherForecastSample {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub enum EventDataDetails {
     FastestLap {
         vehicleIdx: u8, // Vehicle index of car achieving fastest lap
@@ -537,13 +250,13 @@ pub enum EventDataDetails {
     },
 
     Penalty {
-        penaltyType: PenaltyTypes,           // Penalty type – see Appendices
-        infringementType: InfringementTypes, // Infringement type – see Appendices
-        vehicleIdx: u8,                      // Vehicle index of the car the penalty is applied to
-        otherVehicleIdx: u8,                 // Vehicle index of the other car involved
-        time: u8,                            // Time gained, or time spent doing action in seconds
-        lapNum: u8,                          // Lap the penalty occurred on
-        placesGained: u8,                    // Number of places gained by this
+        penaltyType: u8,      // PenaltyTypes // Penalty type – see Appendices
+        infringementType: u8, // InfringementTypes // Infringement type – see Appendices
+        vehicleIdx: u8,       // Vehicle index of the car the penalty is applied to
+        otherVehicleIdx: u8,  // Vehicle index of the other car involved
+        time: u8,             // Time gained, or time spent doing action in seconds
+        lapNum: u8,           // Lap the penalty occurred on
+        placesGained: u8,     // Number of places gained by this
     },
 
     SpeedTrap {
@@ -584,7 +297,7 @@ pub enum EventDataDetails {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct ParticipantData {
     pub m_aiControlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub m_driverId: u8,     // Driver id - see appendix, 255 if network human
@@ -592,7 +305,7 @@ pub struct ParticipantData {
     pub m_teamId: u8,       // Team id - see appendix
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
-    pub m_nationality: ParticipantNationality, // Nationality of the driver
+    pub m_nationality: u8,  // ParticipantNationality // Nationality of the driver
     #[serde(with = "BigArray")]
     pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
@@ -602,7 +315,7 @@ pub struct ParticipantData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct FinalClassificationData {
     pub m_position: u8,               // Finishing position
     pub m_numLaps: u8,                // Number of laps completed
@@ -622,7 +335,7 @@ pub struct FinalClassificationData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct LapHistoryData {
     pub m_lapTimeInMS: u32,       // Lap time in milliseconds
     pub m_sector1TimeInMS: u16,   // Sector 1 time in milliseconds
@@ -636,49 +349,53 @@ pub struct LapHistoryData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Deserialize, Encode, Decode)]
 pub struct TyreStintHistoryData {
     pub m_endLap: u8,             // Lap the tyre usage ends on (255 of current tyre)
     pub m_tyreActualCompound: u8, // Actual tyres used by this driver
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
 }
 
-#[derive(Encode, Decode)]
+#[derive(Clone, Debug, Serialize, Encode, Decode)]
 pub enum F123Data {
-    Motion(PacketMotionData),
-    Session(PacketSessionData),
+    Motion(Box<PacketMotionData>),
+    Session(Box<PacketSessionData>),
     Event(PacketEventData),
-    Participants(PacketParticipantsData),
-    FinalClassification(PacketFinalClassificationData),
+    Participants(Box<PacketParticipantsData>),
+    FinalClassification(Box<PacketFinalClassificationData>),
     SessionHistory(Box<PacketSessionHistoryData>),
 }
 
 impl F123Data {
     pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, DecodeError> {
         match packet_id {
-            PacketIds::Motion => Ok(Some(F123Data::Motion(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
-            ))),
-            PacketIds::Session => Ok(Some(F123Data::Session(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
-            ))),
-            PacketIds::Event => Ok(Some(F123Data::Event(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
-            ))),
+            PacketIds::Motion => Ok(Some(F123Data::Motion(decode_borrowed_from_slice(
+                data,
+                BINCODE_CONFIG,
+            )?))),
+            PacketIds::Session => Ok(Some(F123Data::Session(decode_borrowed_from_slice(
+                data,
+                BINCODE_CONFIG,
+            )?))),
+            PacketIds::Event => Ok(Some(F123Data::Event(decode_borrowed_from_slice(
+                data,
+                BINCODE_CONFIG,
+            )?))),
             PacketIds::Participants => Ok(Some(F123Data::Participants(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
+                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
             ))),
             PacketIds::FinalClassification => Ok(Some(F123Data::FinalClassification(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
+                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
             ))),
             PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(
-                decode_from_slice(data, BINCODE_CONFIG)?.0,
+                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
             ))),
+
             _ => Ok(None),
         }
     }
 
     pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, DecodeError> {
-        Ok(decode_from_slice(data, BINCODE_CONFIG)?.0)
+        decode_borrowed_from_slice(data, BINCODE_CONFIG)
     }
 }

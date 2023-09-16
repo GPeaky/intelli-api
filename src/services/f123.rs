@@ -7,18 +7,18 @@ use ahash::AHashMap;
 use bincode::config::Configuration;
 use bincode::encode_to_vec;
 use redis::Commands;
+use std::mem::size_of;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::sync::broadcast::Sender;
 use tokio::{
     net::UdpSocket,
-    sync::{mpsc::Receiver, Mutex, RwLock},
+    sync::{broadcast::Receiver, RwLock},
     task::JoinHandle,
 };
 use tracing::{error, info};
-
-type F123Receiver = Receiver<(u8, Arc<Vec<u8>>)>;
 
 const F123_HOST: &str = "0.0.0.0";
 const DATA_PERSISTENCE: usize = 15 * 60;
@@ -32,7 +32,7 @@ const BIN_CONFIG: Configuration = bincode::config::standard();
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<AHashMap<u32, Arc<Mutex<F123Receiver>>>>>,
+    channels: Arc<RwLock<AHashMap<u32, Arc<Sender<F123Data>>>>>,
 }
 
 impl F123Service {
@@ -82,11 +82,11 @@ impl F123Service {
             let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
 
             // Define channel
-            let (tx, rx) = tokio::sync::mpsc::channel::<(u8, Arc<Vec<u8>>)>(F123_MAX_PACKET_SIZE);
+            let (tx, _rx) = tokio::sync::broadcast::channel::<F123Data>(size_of::<F123Data>());
 
             {
                 let mut channels = channels.write().await;
-                channels.insert(*championship_id, Arc::new(Mutex::new(rx)));
+                channels.insert(*championship_id, Arc::new(tx.clone()));
             }
 
             let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
@@ -101,7 +101,6 @@ impl F123Service {
                 match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
-                        let now = Instant::now();
 
                         let Ok(header) = F123Data::deserialize_header(buf) else {
                             error!("Error deserializing F123 header, for championship: {championship_id:?}");
@@ -115,11 +114,17 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(Some(packet)) = F123Data::deserialize(header.m_packetId.into(), buf)
+                        let Ok(packet) = F123Data::deserialize(header.m_packetId.into(), buf)
                         else {
-                            error!("Error deserializing F123 packet, for championship: {championship_id:?}");
+                            error!("Error deserializing F123 packet: {}", header.m_packetId);
                             continue;
                         };
+
+                        let Some(packet) = packet else {
+                            continue;
+                        };
+
+                        let now = Instant::now();
 
                         match packet {
                             F123Data::SessionHistory(session_history) => {
@@ -151,12 +156,9 @@ impl F123Service {
                                     };
 
                                     if sectors.ne(last_sectors) {
-                                        // TODO: Check to reuse buf[..size]
                                         let data = Arc::new(
                                             encode_to_vec(&session_history, BIN_CONFIG).unwrap(),
                                         );
-
-                                        tx.send((header.m_packetId, data.clone())).await.unwrap();
 
                                         redis
                                             .set_ex::<String, &Vec<u8>, String>(
@@ -169,6 +171,9 @@ impl F123Service {
                                         last_car_lap_update.insert(session_history.m_carIdx, now);
                                         car_lap_sector_data
                                             .insert(session_history.m_carIdx, sectors);
+
+                                        // TODO: Check where is this data coming from
+                                        tx.send(F123Data::SessionHistory(session_history)).unwrap();
                                     }
                                 }
                             }
@@ -178,23 +183,7 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    // TODO: Check to reuse buf[..size]
-                                    let data =
-                                        Arc::new(encode_to_vec(&motion_data, BIN_CONFIG).unwrap());
-
-                                    tx.send((header.m_packetId, data)).await.unwrap();
-
-                                    // redis
-                                    //     .set_ex::<String, Vec<u8>, String>(
-                                    //         format!(
-                                    //             "f123:championship:{}:session:{session_id}:motion",
-                                    //             championship_id
-                                    //         ),
-                                    //         data,
-                                    //         60 * 60,
-                                    //     )
-                                    //     .unwrap();
-
+                                    tx.send(F123Data::Motion(motion_data)).unwrap();
                                     last_car_motion_update = now;
                                 }
                             }
@@ -208,8 +197,6 @@ impl F123Service {
                                     let data =
                                         Arc::new(encode_to_vec(&session_data, BIN_CONFIG).unwrap());
 
-                                    tx.send((header.m_packetId, data.clone())).await.unwrap();
-
                                     redis
                                         .set_ex::<String, &Vec<u8>, String>(
                                             format!(
@@ -221,6 +208,7 @@ impl F123Service {
                                         )
                                         .unwrap();
 
+                                    tx.send(F123Data::Session(session_data)).unwrap();
                                     last_session_update = now;
                                 }
                             }
@@ -282,17 +270,13 @@ impl F123Service {
 
                             // TODO: Check why this is never saving to redis
                             F123Data::Participants(participants_data) => {
-                                tracing::info!("Saving participants data"); // Test
-
                                 // TODO: Check to reuse buf[..size]
                                 let participants = Arc::new(
                                     encode_to_vec(&participants_data.m_participants, BIN_CONFIG)
                                         .unwrap(),
                                 );
 
-                                tx.send((header.m_packetId, participants.clone()))
-                                    .await
-                                    .unwrap();
+                                tx.send(F123Data::Participants(participants_data)).unwrap();
 
                                 redis
                                     .set_ex::<String, &Vec<u8>, String>(
@@ -309,15 +293,16 @@ impl F123Service {
                             //TODO Collect All data from redis and save it to the scylla database
                             F123Data::FinalClassification(classification_data) => {
                                 // TODO: Check to reuse buf[..size]
-                                let classifications = Arc::new(
-                                    encode_to_vec(
-                                        &classification_data.m_classificationData,
-                                        BIN_CONFIG,
-                                    )
-                                    .unwrap(),
-                                );
+                                // let classifications = Arc::new(
+                                //     encode_to_vec(
+                                //         &classification_data.m_classificationData,
+                                //         BIN_CONFIG,
+                                //     )
+                                //     .unwrap(),
+                                // );
 
-                                tx.send((header.m_packetId, classifications)).await.unwrap();
+                                tx.send(F123Data::FinalClassification(classification_data))
+                                    .unwrap();
 
                                 return;
 
@@ -367,14 +352,13 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &u32) -> Option<(u8, Arc<Vec<u8>>)> {
+    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<F123Data>> {
         let channels = self.channels.read().await;
 
-        if let Some(channel_mutex) = channels.get(championship_id) {
-            let mut channel = channel_mutex.lock().await;
-            channel.recv().await
-        } else {
-            None
+        if let Some(channel) = channels.get(championship_id) {
+            return Some(channel.subscribe());
         }
+
+        None
     }
 }
