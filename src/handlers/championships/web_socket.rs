@@ -1,5 +1,4 @@
 use crate::{
-    dtos::F123Data,
     entity::Championship,
     error::{AppResult, SocketError},
     states::SafeUserState,
@@ -11,8 +10,7 @@ use axum::{
     },
     response::Response, // IntoResponse
 };
-use std::time::Duration;
-use tokio::time::sleep;
+use tracing::{error, info};
 
 #[inline(always)]
 pub async fn session_socket(
@@ -36,51 +34,38 @@ pub async fn session_socket(
 
 #[inline(always)]
 async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship: Championship) {
-    // TODO: Implement all the socket logic (Only Send data)
+    let Some(mut rx) = state.f123_service.get_receiver(&championship.id).await else {
+        error!("Receiver not Found");
+        return;
+    };
+
     loop {
-        let Some((packet_id, data)) = state.f123_service.get_receiver(&championship.id).await
-        else {
-            sleep(Duration::from_millis(700)).await;
-            continue;
-        };
+        tokio::select! {
+            result = rx.recv() => {
+                match result {
+                    Ok(data) => {
+                        if let Err(e) = socket.send(Message::Binary(rmp_serde::to_vec(&data).unwrap())).await {
+                            error!("Failed sending message:{}", e);
+                            break;
+                        };
+                    }
 
-        let Ok(Some(packet)) = F123Data::deserialize(packet_id.into(), data.as_slice()) else {
-            sleep(Duration::from_millis(700)).await;
-            continue;
-        };
-
-        match packet {
-            F123Data::Motion(motion_data) => {
-                let data = rmp_serde::to_vec(&motion_data.m_carMotionData).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
+                    Err(err) => {
+                        error!("Error receiving from broadcast channel: {}", err);
+                        break;
+                    }
+                }
             }
 
-            F123Data::SessionHistory(history_data) => {
-                let data = rmp_serde::to_vec(&history_data).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
-            }
-
-            F123Data::Session(session_data) => {
-                let data = rmp_serde::to_vec(&session_data).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
-            }
-
-            F123Data::Event(event) => {
-                let data = rmp_serde::to_vec(&event).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
-            }
-
-            F123Data::Participants(participants) => {
-                let data = rmp_serde::to_vec(&participants).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
-            }
-
-            F123Data::FinalClassification(classification) => {
-                let data = rmp_serde::to_vec(&classification).unwrap();
-                let _ = socket.send(Message::Binary(data)).await;
+            result = socket.recv() => {
+                match result {
+                    Some(_) => {}
+                    None => {
+                        info!("Connection Closed");
+                        break;
+                    }
+                }
             }
         }
-
-        sleep(Duration::from_millis(700)).await
     }
 }
