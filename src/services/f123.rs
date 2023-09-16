@@ -275,7 +275,13 @@ impl F123Service {
 
     pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
         {
+            let mut channels = self.channels.write().await;
             let mut sockets = self.sockets.write().await;
+
+            let Some(_) = channels.remove(&championship_id) else {
+                Err(SocketError::NotFound)?
+            };
+
             let Some(socket) = sockets.remove(&championship_id) else {
                 Err(SocketError::NotFound)?
             };

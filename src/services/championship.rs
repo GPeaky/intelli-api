@@ -4,12 +4,10 @@ use crate::{
 };
 use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
-// use redis::Commands;
 use tokio::sync::RwLock;
 use tracing::info;
 
 #[derive(Clone)]
-// TODO: Fix this service to change things without begin mutable
 pub struct ChampionshipService {
     db: Arc<Database>,
     ports: Arc<RwLock<Vec<u16>>>,
