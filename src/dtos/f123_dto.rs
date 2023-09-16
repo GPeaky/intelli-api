@@ -7,7 +7,7 @@ use bincode::{
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-const BINCODE_CONFIG: Configuration<LittleEndian, Fixint> = bincode::config::legacy();
+const BIN_CONFIG: Configuration<LittleEndian, Fixint> = bincode::config::legacy();
 
 //*  --- F1 2023 Packet Data Enums ---
 
@@ -370,25 +370,22 @@ impl F123Data {
     pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, DecodeError> {
         match packet_id {
             PacketIds::Motion => Ok(Some(F123Data::Motion(decode_borrowed_from_slice(
-                data,
-                BINCODE_CONFIG,
+                data, BIN_CONFIG,
             )?))),
             PacketIds::Session => Ok(Some(F123Data::Session(decode_borrowed_from_slice(
-                data,
-                BINCODE_CONFIG,
+                data, BIN_CONFIG,
             )?))),
             PacketIds::Event => Ok(Some(F123Data::Event(decode_borrowed_from_slice(
-                data,
-                BINCODE_CONFIG,
+                data, BIN_CONFIG,
             )?))),
             PacketIds::Participants => Ok(Some(F123Data::Participants(
-                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
+                decode_borrowed_from_slice(data, BIN_CONFIG)?,
             ))),
             PacketIds::FinalClassification => Ok(Some(F123Data::FinalClassification(
-                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
+                decode_borrowed_from_slice(data, BIN_CONFIG)?,
             ))),
             PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(
-                decode_borrowed_from_slice(data, BINCODE_CONFIG)?,
+                decode_borrowed_from_slice(data, BIN_CONFIG)?,
             ))),
 
             _ => Ok(None),
@@ -396,6 +393,6 @@ impl F123Data {
     }
 
     pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, DecodeError> {
-        decode_borrowed_from_slice(data, BINCODE_CONFIG)
+        decode_borrowed_from_slice(data, BIN_CONFIG)
     }
 }
