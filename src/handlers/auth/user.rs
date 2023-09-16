@@ -27,11 +27,12 @@ pub(crate) async fn register(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let user_id = state.user_service.new_user(&form).await?;
+    let user_id = state.user_service.new_user(&form).await?.to_string();
 
     let token = state
         .token_service
-        .generate_token(&user_id.to_string(), TokenType::Email)?;
+        .generate_token(&user_id, TokenType::Email)
+        .await?;
 
     state
         .email_service
@@ -82,14 +83,18 @@ pub(crate) async fn login(
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token = state
-        .token_service
-        .generate_token(&user.id.to_string(), TokenType::Bearer)?;
+    let user_id = user.id.to_string();
 
-    let refresh_token = state
+    let access_token_future = state
         .token_service
-        .generate_refresh_token(user.id.to_string(), fingerprint)
-        .await?;
+        .generate_token(&user_id, TokenType::Bearer);
+
+    let refresh_token_future = state
+        .token_service
+        .generate_refresh_token(&user_id, fingerprint);
+
+    let (access_token, refresh_token) =
+        tokio::try_join!(access_token_future, refresh_token_future)?;
 
     Ok(Json(AuthResponse {
         access_token,
@@ -159,7 +164,8 @@ pub(crate) async fn forgot_password(
 
     let token = state
         .token_service
-        .generate_token(&user.id.to_string(), TokenType::ResetPassword)?;
+        .generate_token(&user.id.to_string(), TokenType::ResetPassword)
+        .await?;
 
     state
         .email_service
