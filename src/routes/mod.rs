@@ -3,7 +3,7 @@ use axum::{error_handling::HandleErrorLayer, routing::IntoMakeService, Router};
 use hyper::StatusCode;
 use std::{sync::Arc, time::Duration};
 use tower::{load_shed::LoadShedLayer, ServiceBuilder};
-use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer};
 
 mod api;
 
@@ -17,7 +17,9 @@ pub async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (Statu
 
 #[inline(always)]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
-    let cors_layer = CorsLayer::new().allow_origin(AllowOrigin::any());
+    let cors_layer = CorsLayer::new()
+        .allow_origin(AllowOrigin::any())
+        .allow_headers(AllowHeaders::any());
 
     Router::new()
         .nest("/", api::api_router(database).await)
