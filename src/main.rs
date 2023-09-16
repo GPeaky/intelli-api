@@ -1,11 +1,9 @@
-use crate::dtos::F123Data;
 use axum::Server;
 use axum_server::{tls_rustls::RustlsConfig, HttpConfig};
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use hyper::Error;
 use routes::service_routes;
-use std::mem::size_of;
 use std::{net::TcpListener, path::PathBuf, sync::Arc};
 use tracing::info;
 
