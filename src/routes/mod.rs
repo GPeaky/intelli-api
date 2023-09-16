@@ -1,5 +1,4 @@
 use crate::config::Database;
-use axum::routing::any;
 use axum::{error_handling::HandleErrorLayer, routing::IntoMakeService, Router};
 use hyper::StatusCode;
 use std::{sync::Arc, time::Duration};
