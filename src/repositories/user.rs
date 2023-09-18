@@ -10,10 +10,9 @@ pub struct UserRepository {
 #[async_trait]
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn find(&self, id: &u32) -> AppResult<User>;
-
+    async fn find(&self, id: &u32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
-    async fn find_by_email(&self, email: &str) -> AppResult<User>;
+    async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     fn validate_password(&self, password: &str, hash: &str) -> bool;
 }
 
@@ -25,7 +24,7 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn find(&self, id: &u32) -> AppResult<User> {
+    async fn find(&self, id: &u32) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>(
             r#"
                 SELECT * FROM user
@@ -33,7 +32,7 @@ impl UserRepositoryTrait for UserRepository {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.db_conn.mysql)
+        .fetch_optional(&self.db_conn.mysql)
         .await?;
 
         Ok(user)
@@ -54,7 +53,7 @@ impl UserRepositoryTrait for UserRepository {
     }
 
     // TODO: Check why not finding any user
-    async fn find_by_email(&self, email: &str) -> AppResult<User> {
+    async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>(
             r#"
                 SELECT * from user
@@ -62,7 +61,7 @@ impl UserRepositoryTrait for UserRepository {
             "#,
         )
         .bind(email)
-        .fetch_one(&self.db_conn.mysql)
+        .fetch_optional(&self.db_conn.mysql)
         .await?;
 
         Ok(user)

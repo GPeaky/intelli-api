@@ -1,6 +1,42 @@
+use crate::entity::Provider;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::string_trim;
+
+#[derive(Deserialize)]
+pub struct GoogleCallbackQuery {
+    pub code: String,
+}
+
+#[derive(Serialize)]
+pub struct GoogleTokenRequest<'a> {
+    pub client_id: &'a str,
+    pub client_secret: &'a str,
+    pub code: &'a str,
+    pub grant_type: &'a str,
+    pub redirect_uri: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GoogleAuthResponse {
+    pub access_token: String,
+    pub expires_in: i64,
+    pub scope: String,
+    pub token_type: String,
+    pub id_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GoogleUserInfo {
+    pub id: String,
+    pub email: String,
+    pub verified_email: bool,
+    pub name: String,
+    pub given_name: String,
+    pub family_name: String,
+    pub picture: String,
+    pub locale: String,
+}
 
 #[derive(Serialize)]
 pub struct AuthResponse {
@@ -22,8 +58,23 @@ pub struct RegisterUserDto {
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
     #[garde(length(min = 8, max = 20))]
-    #[serde(deserialize_with = "string_trim")]
-    pub password: String,
+    pub password: Option<String>,
+    #[garde(skip)]
+    pub avatar: Option<String>,
+    #[garde(skip)]
+    pub provider: Option<Provider>,
+}
+
+impl From<GoogleUserInfo> for RegisterUserDto {
+    fn from(value: GoogleUserInfo) -> Self {
+        Self {
+            username: value.name,
+            email: value.email,
+            password: None,
+            avatar: Some(value.picture),
+            provider: Some(Provider::Google),
+        }
+    }
 }
 
 #[derive(Deserialize, Validate)]

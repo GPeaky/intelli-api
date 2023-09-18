@@ -19,7 +19,9 @@ pub async fn delete_user(
     Path(id): Path<u32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    let path_user = state.user_repository.find(&id).await?;
+    let Some(path_user) = state.user_repository.find(&id).await? else {
+        Err(UserError::NotFound)?
+    };
 
     if path_user.id.eq(&user.id) {
         Err(UserError::AutoDelete)?
@@ -37,7 +39,9 @@ pub async fn disable_user(
     Path(id): Path<u32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    let path_user = state.user_repository.find(&id).await?;
+    let Some(path_user) = state.user_repository.find(&id).await? else {
+        Err(UserError::NotFound)?
+    };
 
     if path_user.active.eq(&false) {
         Err(UserError::AlreadyInactive)?
@@ -59,7 +63,9 @@ pub async fn enable_user(
     Path(id): Path<u32>,
     Extension(user): Extension<User>,
 ) -> AppResult<Response> {
-    let path_user = state.user_repository.find(&id).await?;
+    let Some(path_user) = state.user_repository.find(&id).await? else {
+        Err(UserError::NotFound)?
+    };
 
     if path_user.active.eq(&true) {
         Err(UserError::AlreadyActive)?

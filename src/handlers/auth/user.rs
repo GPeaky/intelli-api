@@ -66,11 +66,9 @@ pub(crate) async fn login(
         .to_str()
         .map_err(|_| UserError::InvalidFingerprint)?;
 
-    let user = state
-        .user_repository
-        .find_by_email(&form.email)
-        .await
-        .map_err(|_| UserError::NotFound)?;
+    let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
+        return Err(UserError::NotFound)?;
+    };
 
     if !user.active {
         return Err(UserError::NotVerified)?;
@@ -78,7 +76,7 @@ pub(crate) async fn login(
 
     if !state
         .user_repository
-        .validate_password(&form.password, &user.password)
+        .validate_password(&form.password, &user.password.unwrap())
     {
         return Err(UserError::InvalidCredentials)?;
     }
@@ -160,7 +158,9 @@ pub(crate) async fn forgot_password(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let user = state.user_repository.find_by_email(&form.email).await?;
+    let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
+        return Err(UserError::NotFound)?;
+    };
 
     let token = state
         .token_service

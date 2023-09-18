@@ -39,11 +39,13 @@ pub async fn auth_handler<T>(
         .validate(extracted_token)
         .map_err(|_| TokenError::InvalidToken)?;
 
-    let user = state
+    let Some(user) = state
         .user_repository
         .find(&token.claims.sub.parse::<u32>().unwrap())
-        .await
-        .map_err(|_| UserError::NotFound)?;
+        .await?
+    else {
+        return Err(UserError::NotFound)?;
+    };
 
     if !user.active {
         return Err(UserError::NotVerified)?;
