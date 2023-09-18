@@ -32,8 +32,8 @@ pub struct GoogleUserInfo {
     pub email: String,
     pub verified_email: bool,
     pub name: String,
-    pub given_name: String,
-    pub family_name: String,
+    pub given_name: Option<String>,
+    pub family_name: Option<String>,
     pub picture: String,
     pub locale: String,
 }
