@@ -1,5 +1,6 @@
 use self::admin::admin_router;
 use super::handle_error;
+use crate::handlers::auth::callback;
 use crate::{
     config::Database,
     handlers::{
@@ -34,6 +35,7 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
     let auth_middleware = middleware::from_fn_with_state(user_state.clone(), auth_handler);
 
     let auth_router = Router::new()
+        .route("/google/callback", get(callback))
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/refresh", get(refresh_token))

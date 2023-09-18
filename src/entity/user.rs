@@ -4,6 +4,13 @@ use sqlx::{FromRow, Type};
 
 #[repr(u8)]
 #[derive(Type, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Provider {
+    Local,
+    Google,
+}
+
+#[repr(u8)]
+#[derive(Type, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Role {
     User,
     Admin,
@@ -15,7 +22,8 @@ pub struct User {
     pub email: String,
     pub username: String,
     #[serde(skip_serializing)]
-    pub password: String,
+    pub password: Option<String>,
+    pub provider: Provider,
     pub avatar: String,
     pub role: Role,
     pub active: bool,

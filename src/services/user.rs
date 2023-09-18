@@ -1,3 +1,4 @@
+use crate::entity::Provider;
 use crate::error::UserError;
 use crate::{
     config::Database,
@@ -45,25 +46,49 @@ impl UserServiceTrait for UserService {
 
         let mut rng = Rand::from_entropy();
         let id = rng.gen::<u32>();
-        let hashed_password = hash(&register.password, DEFAULT_COST).unwrap();
+        let hashed_password = match &register.password {
+            Some(password) => Some(hash(password, DEFAULT_COST).unwrap()),
+            None => None,
+        };
 
-        // TODO: Check what is the result and if we can return the new user id
-        sqlx::query(
-            r#"
-                INSERT INTO user (id, email, username, password, avatar)
-                VALUES (?,?,?,?,?)
-            "#,
-        )
-        .bind(id)
-        .bind(&register.email)
-        .bind(&register.username)
-        .bind(hashed_password)
-        .bind(format!(
-            "https://ui-avatars.com/api/?name={}",
-            &register.username
-        ))
-        .execute(&self.db_conn.mysql)
-        .await?;
+        match &register.provider {
+            Some(provider) if provider.eq(&Provider::Google) => {
+                sqlx::query(
+                    r#"
+                        INSERT INTO user (id, email, username, avatar, provider, active)
+                        VALUES (?,?,?,?,?,1)
+                    "#,
+                )
+                .bind(id)
+                .bind(&register.email)
+                .bind(&register.username)
+                .bind(&register.avatar)
+                .bind(&register.provider)
+                .execute(&self.db_conn.mysql)
+                .await?;
+            }
+
+            None => {
+                sqlx::query(
+                    r#"
+                    INSERT INTO user (id, email, username, password, avatar)
+                    VALUES (?,?,?,?,?)
+                "#,
+                )
+                .bind(id)
+                .bind(&register.email)
+                .bind(&register.username)
+                .bind(hashed_password)
+                .bind(format!(
+                    "https://ui-avatars.com/api/?name={}",
+                    &register.username
+                ))
+                .execute(&self.db_conn.mysql)
+                .await?;
+            }
+
+            _ => Err(UserError::InvalidProvider)?,
+        }
 
         info!("User created: {}", register.username);
 

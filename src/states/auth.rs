@@ -4,6 +4,7 @@ use crate::{
     services::{EmailService, TokenService, TokenServiceTrait, UserService, UserServiceTrait},
 };
 use std::sync::Arc;
+use crate::repositories::GoogleRepository;
 
 #[derive(Clone)]
 pub struct AuthState {
@@ -11,6 +12,7 @@ pub struct AuthState {
     pub user_repository: UserRepository,
     pub token_service: TokenService,
     pub email_service: EmailService,
+    pub google_repository: GoogleRepository,
 }
 
 impl AuthState {
@@ -20,6 +22,7 @@ impl AuthState {
             user_repository: UserRepository::new(db_conn),
             token_service: TokenService::new(db_conn),
             email_service: EmailService::new(),
+            google_repository: GoogleRepository::new(),
         }
     }
 }

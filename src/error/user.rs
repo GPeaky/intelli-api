@@ -27,6 +27,8 @@ pub enum UserError {
     AlreadyActive,
     #[error("User is not active")]
     AlreadyInactive,
+    #[error("Invalid Provider")]
+    InvalidProvider,
 }
 
 impl IntoResponse for UserError {
@@ -43,6 +45,7 @@ impl IntoResponse for UserError {
             UserError::AutoDelete => StatusCode::BAD_REQUEST,
             UserError::AlreadyActive => StatusCode::BAD_REQUEST,
             UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
+            UserError::InvalidProvider => StatusCode::BAD_REQUEST,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))
