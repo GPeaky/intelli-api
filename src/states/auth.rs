@@ -1,10 +1,9 @@
 use crate::{
     config::Database,
-    repositories::{UserRepository, UserRepositoryTrait},
+    repositories::{GoogleRepository, UserRepository, UserRepositoryTrait},
     services::{EmailService, TokenService, TokenServiceTrait, UserService, UserServiceTrait},
 };
 use std::sync::Arc;
-use crate::repositories::GoogleRepository;
 
 #[derive(Clone)]
 pub struct AuthState {

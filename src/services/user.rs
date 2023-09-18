@@ -46,10 +46,10 @@ impl UserServiceTrait for UserService {
 
         let mut rng = Rand::from_entropy();
         let id = rng.gen::<u32>();
-        let hashed_password = match &register.password {
-            Some(password) => Some(hash(password, DEFAULT_COST).unwrap()),
-            None => None,
-        };
+        let hashed_password = register
+            .password
+            .as_ref()
+            .map(|password| hash(password, DEFAULT_COST).unwrap());
 
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
