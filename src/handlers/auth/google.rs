@@ -6,7 +6,7 @@ use crate::{dtos::GoogleCallbackQuery, error::AppResult};
 use axum::extract::{Query, State};
 use axum::response::Response;
 
-const WEB_REDIRECT_URL: &str = "http://localhost:5173/auth/google/callback";
+const WEB_REDIRECT_URL: &str = "https://intelli.gerardz.de/auth/google/callback";
 
 pub async fn callback(
     State(state): State<AuthState>,
