@@ -44,7 +44,9 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
             result = rx.recv() => {
                 match result {
                     Ok(data) => {
-                        if let Err(e) = socket.send(Message::Binary(rmp_serde::to_vec(&data).unwrap())).await {
+                        info!("Sending message to client");
+
+                        if let Err(e) = socket.send(Message::Binary(data)).await {
                             error!("Failed sending message:{}", e);
                             break;
                         };

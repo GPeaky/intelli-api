@@ -1,18 +1,20 @@
+use crate::protos::{car_motion_data::PacketMotionData, session_data::PacketSessionData};
 use crate::{
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use ahash::AHashMap;
+use prost::Message;
 use redis::Commands;
-use std::mem::size_of;
 use std::{
-    net::UdpSocket,
+    // net::UdpSocket,
     sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::sync::broadcast::Sender;
 use tokio::{
+    net::UdpSocket,
     sync::{broadcast::Receiver, RwLock},
     task::JoinHandle,
 };
@@ -24,13 +26,12 @@ const F123_MAX_PACKET_SIZE: usize = 1460;
 const SESSION_INTERVAL: Duration = Duration::from_secs(15);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
-const SOCKET_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10 * 60));
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<AHashMap<u32, Arc<Sender<F123Data>>>>>,
+    channels: Arc<RwLock<AHashMap<u32, Arc<Sender<Vec<u8>>>>>>,
 }
 
 impl F123Service {
@@ -83,14 +84,15 @@ impl F123Service {
             let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
 
             // Define channel
-            let (tx, _rx) = tokio::sync::broadcast::channel::<F123Data>(size_of::<F123Data>());
+            let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
 
-            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")) else {
+            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
                 return;
             };
 
-            socket.set_read_timeout(SOCKET_TIMEOUT).unwrap();
+            // TODO: Implemente timeout for socket with tokio::time::timeout
+            // socket.set_read_timeout(SOCKET_TIMEOUT).unwrap();
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
@@ -101,7 +103,7 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
-                match socket.recv_from(&mut buf) {
+                match socket.recv_from(&mut buf).await {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
 
@@ -135,7 +137,10 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    tx.send(F123Data::Motion(motion_data)).unwrap();
+                                    let data: PacketMotionData = motion_data.into();
+                                    let data = data.encode_to_vec();
+
+                                    tx.send(data).unwrap();
                                     last_car_motion_update = now;
                                 }
                             }
@@ -156,7 +161,10 @@ impl F123Service {
                                         )
                                         .unwrap();
 
-                                    tx.send(F123Data::Session(session_data)).unwrap();
+                                    let data: PacketSessionData = session_data.into();
+                                    let data = data.encode_to_vec();
+
+                                    tx.send(data).unwrap();
                                     last_session_update = now;
                                 }
                             }
@@ -167,7 +175,7 @@ impl F123Service {
                                     .duration_since(last_participants_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    tx.send(F123Data::Participants(participants_data)).unwrap();
+                                    // tx.send(F123Data::Participants(participants_data)).unwrap();
 
                                     redis
                                         .set_ex::<String, &[u8], String>(
@@ -199,7 +207,7 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                tx.send(F123Data::Event(event_data)).unwrap();
+                                // tx.send(F123Data::Event(event_data)).unwrap();
                             }
 
                             // TODO: Check if this is overbooking the server
@@ -244,15 +252,15 @@ impl F123Service {
                                         car_lap_sector_data
                                             .insert(session_history.m_carIdx, sectors);
 
-                                        tx.send(F123Data::SessionHistory(session_history)).unwrap();
+                                        // tx.send(F123Data::SessionHistory(session_history)).unwrap();
                                     }
                                 }
                             }
 
                             //TODO Collect All data from redis and save it to the maridb database
                             F123Data::FinalClassification(classification_data) => {
-                                tx.send(F123Data::FinalClassification(classification_data))
-                                    .unwrap();
+                                // tx.send(F123Data::FinalClassification(classification_data))
+                                //     .unwrap();
 
                                 return;
                             }
@@ -312,7 +320,7 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<F123Data>> {
+    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
         let channels = self.channels.read().await;
 
         if let Some(channel) = channels.get(championship_id) {
