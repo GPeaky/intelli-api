@@ -7,12 +7,12 @@ use ahash::AHashMap;
 use redis::Commands;
 use std::mem::size_of;
 use std::{
+    net::UdpSocket,
     sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::sync::broadcast::Sender;
 use tokio::{
-    net::UdpSocket,
     sync::{broadcast::Receiver, RwLock},
     task::JoinHandle,
 };
@@ -24,6 +24,7 @@ const F123_MAX_PACKET_SIZE: usize = 1460;
 const SESSION_INTERVAL: Duration = Duration::from_secs(15);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
+const SOCKET_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10 * 60));
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -66,8 +67,9 @@ impl F123Service {
     async fn spawn_socket(&self, championship_id: Arc<u32>, port: u16) -> JoinHandle<()> {
         let db = self.db_conn.clone();
         let channels = self.channels.clone();
+        let sockets = self.sockets.clone();
 
-        tokio::task::spawn(async move {
+        tokio::spawn(async move {
             let mut redis = db.get_redis();
             let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
@@ -83,10 +85,12 @@ impl F123Service {
             // Define channel
             let (tx, _rx) = tokio::sync::broadcast::channel::<F123Data>(size_of::<F123Data>());
 
-            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
+            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")) else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
                 return;
             };
+
+            socket.set_read_timeout(SOCKET_TIMEOUT).unwrap();
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
@@ -97,7 +101,7 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
-                match socket.recv_from(&mut buf).await {
+                match socket.recv_from(&mut buf) {
                     Ok((size, _address)) => {
                         let buf = &buf[..size];
 
@@ -256,7 +260,21 @@ impl F123Service {
                     }
 
                     Err(e) => {
-                        error!("Error receiving packet: {}", e);
+                        error!("Error receiving data from F123 socket: {}", e);
+                        info!("Stopping socket for championship: {}", championship_id);
+
+                        {
+                            let mut sockets = sockets.write().await;
+                            let mut channels = channels.write().await;
+
+                            if let Some(socket) = sockets.remove(&championship_id) {
+                                socket.abort();
+                            }
+
+                            channels.remove(&championship_id);
+                        }
+
+                        break;
                     }
                 }
             }
