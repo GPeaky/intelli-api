@@ -9,6 +9,9 @@ authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
 license = "MIT"
 repository = "https://github.com/GPeaky/intelli-api"
 
+[build-dependencies]
+prost-build = "0.12.1"
+
 [dependencies]
 rand = "0.8.5"
 ahash = "0.8.3"
@@ -16,7 +19,6 @@ garde = "0.15.0"
 bcrypt = "0.15.0"
 dotenvy = "0.15.7"
 tracing = "0.1.37"
-rmp-serde = "1.1.2"
 thiserror = "1.0.48"
 serde_trim = "1.0.0"
 jsonwebtoken = "8.3.0"
@@ -56,6 +58,7 @@ tower-http = { version = "0.4.4", features = [
     "tokio",
 ] }
 reqwest = { version = "0.11.20", features = ["json"] }
+prost = "0.12.1"
 
 [profile.release]
 debug = 0
