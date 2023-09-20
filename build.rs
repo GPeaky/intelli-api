@@ -8,6 +8,7 @@ fn main() {
             "protos/participants.proto",
             "protos/session_data.proto",
             "protos/session_history.proto",
+            "protos/packet_header.proto",
         ],
         &["protos/"],
     )

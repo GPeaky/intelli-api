@@ -1,7 +1,9 @@
-use crate::protos::event_data::PacketEventData;
-use crate::protos::participants::PacketParticipantsData;
-use crate::protos::session_history::PacketSessionHistoryData;
-use crate::protos::{car_motion_data::PacketMotionData, session_data::PacketSessionData};
+use crate::protos::{
+    car_motion_data::PacketMotionData, event_data::PacketEventData,
+    packet_header::packet_header::PacketType, packet_header::PacketHeader,
+    participants::PacketParticipantsData, session_data::PacketSessionData,
+    session_history::PacketSessionHistoryData,
+};
 use crate::{
     config::Database,
     dtos::F123Data,
@@ -144,7 +146,13 @@ impl F123Service {
                                     let data: PacketMotionData = motion_data.into();
                                     let data = data.encode_to_vec();
 
-                                    tx.send(data).unwrap();
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::CarMotion.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
+
+                                    tx.send(packet).unwrap();
                                     last_car_motion_update = now;
                                 }
                             }
@@ -168,7 +176,13 @@ impl F123Service {
                                     let data: PacketSessionData = session_data.into();
                                     let data = data.encode_to_vec();
 
-                                    tx.send(data).unwrap();
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::SessionData.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
+
+                                    tx.send(packet).unwrap();
                                     last_session_update = now;
                                 }
                             }
@@ -193,7 +207,13 @@ impl F123Service {
                                     let data: PacketParticipantsData = participants_data.into();
                                     let data = data.encode_to_vec();
 
-                                    tx.send(data).unwrap();
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::Participants.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
+
+                                    tx.send(packet).unwrap();
                                     last_participants_update = now;
                                 }
                             }
@@ -216,7 +236,13 @@ impl F123Service {
                                 let data: PacketEventData = event_data.into();
                                 let data = data.encode_to_vec();
 
-                                tx.send(data).unwrap();
+                                let packet = PacketHeader {
+                                    r#type: PacketType::EventData.into(),
+                                    payload: data,
+                                }
+                                .encode_to_vec();
+
+                                tx.send(packet).unwrap();
                             }
 
                             // TODO: Check if this is overbooking the server
@@ -264,7 +290,13 @@ impl F123Service {
                                         let data: PacketSessionHistoryData = session_history.into();
                                         let data = data.encode_to_vec();
 
-                                        tx.send(data).unwrap();
+                                        let packet = PacketHeader {
+                                            r#type: PacketType::SessionHistoryData.into(),
+                                            payload: data,
+                                        }
+                                        .encode_to_vec();
+
+                                        tx.send(packet).unwrap();
                                     }
                                 }
                             }
