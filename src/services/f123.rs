@@ -1,3 +1,6 @@
+use crate::protos::event_data::PacketEventData;
+use crate::protos::participants::PacketParticipantsData;
+use crate::protos::session_history::PacketSessionHistoryData;
 use crate::protos::{car_motion_data::PacketMotionData, session_data::PacketSessionData};
 use crate::{
     config::Database,
@@ -8,7 +11,6 @@ use ahash::AHashMap;
 use prost::Message;
 use redis::Commands;
 use std::{
-    // net::UdpSocket,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -27,11 +29,13 @@ const SESSION_INTERVAL: Duration = Duration::from_secs(15);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 
+type F123Channel = Arc<Sender<Vec<u8>>>;
+
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<AHashMap<u32, Arc<Sender<Vec<u8>>>>>>,
+    channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
 }
 
 impl F123Service {
@@ -175,8 +179,6 @@ impl F123Service {
                                     .duration_since(last_participants_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    // tx.send(F123Data::Participants(participants_data)).unwrap();
-
                                     redis
                                         .set_ex::<String, &[u8], String>(
                                             format!(
@@ -188,6 +190,10 @@ impl F123Service {
                                         )
                                         .unwrap();
 
+                                    let data: PacketParticipantsData = participants_data.into();
+                                    let data = data.encode_to_vec();
+
+                                    tx.send(data).unwrap();
                                     last_participants_update = now;
                                 }
                             }
@@ -207,7 +213,10 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                // tx.send(F123Data::Event(event_data)).unwrap();
+                                let data: PacketEventData = event_data.into();
+                                let data = data.encode_to_vec();
+
+                                tx.send(data).unwrap();
                             }
 
                             // TODO: Check if this is overbooking the server
@@ -252,13 +261,16 @@ impl F123Service {
                                         car_lap_sector_data
                                             .insert(session_history.m_carIdx, sectors);
 
-                                        // tx.send(F123Data::SessionHistory(session_history)).unwrap();
+                                        let data: PacketSessionHistoryData = session_history.into();
+                                        let data = data.encode_to_vec();
+
+                                        tx.send(data).unwrap();
                                     }
                                 }
                             }
 
                             //TODO Collect All data from redis and save it to the maridb database
-                            F123Data::FinalClassification(classification_data) => {
+                            F123Data::FinalClassification(_classification_data) => {
                                 // tx.send(F123Data::FinalClassification(classification_data))
                                 //     .unwrap();
 

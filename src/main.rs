@@ -13,6 +13,7 @@ mod entity;
 mod error;
 mod handlers;
 mod middlewares;
+mod protos;
 mod repositories;
 mod response;
 mod routes;
