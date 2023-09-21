@@ -1,3 +1,4 @@
+use crate::protos::session_history::PacketSessionHistoryData;
 use axum::Server;
 use axum_server::tls_rustls::RustlsConfig;
 use config::{initialize_tracing_subscriber, Database};
