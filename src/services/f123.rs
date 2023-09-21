@@ -11,7 +11,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use prost::Message;
-use redis::Commands;
+use redis::AsyncCommands;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -21,6 +21,7 @@ use tokio::{
     net::UdpSocket,
     sync::{broadcast::Receiver, RwLock},
     task::JoinHandle,
+    time::timeout,
 };
 use tracing::{error, info};
 
@@ -30,6 +31,7 @@ const F123_MAX_PACKET_SIZE: usize = 1460;
 const SESSION_INTERVAL: Duration = Duration::from_secs(15);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
+const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
 type F123Channel = Arc<Sender<Vec<u8>>>;
 
@@ -77,9 +79,9 @@ impl F123Service {
         let sockets = self.sockets.clone();
 
         tokio::spawn(async move {
-            let mut redis = db.get_redis();
             let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
+            let mut redis = db.get_redis_async().await;
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -109,8 +111,8 @@ impl F123Service {
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
-                match socket.recv_from(&mut buf).await {
-                    Ok((size, _address)) => {
+                match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
+                    Ok(Ok((size, _address))) => {
                         let buf = &buf[..size];
 
                         let Ok(header) = F123Data::deserialize_header(buf) else {
@@ -171,6 +173,7 @@ impl F123Service {
                                             &buf[..size],
                                             DATA_PERSISTENCE,
                                         )
+                                        .await
                                         .unwrap();
 
                                     let data: PacketSessionData = session_data.into();
@@ -202,6 +205,7 @@ impl F123Service {
                                             &buf[..size],
                                             DATA_PERSISTENCE,
                                         )
+                                        .await
                                         .unwrap();
 
                                     let data: PacketParticipantsData = participants_data.into();
@@ -281,6 +285,7 @@ impl F123Service {
                                                 &buf[..size],
                                                 DATA_PERSISTENCE,
                                             )
+                                            .await
                                             .unwrap();
 
                                         last_car_lap_update.insert(session_history.m_carIdx, now);
@@ -311,7 +316,7 @@ impl F123Service {
                         }
                     }
 
-                    Err(e) => {
+                    Ok(Err(e)) => {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
 
@@ -327,6 +332,21 @@ impl F123Service {
                         }
 
                         break;
+                    }
+
+                    Err(_e) => {
+                        info!("Socket  timeout for championship: {}", championship_id);
+
+                        {
+                            let mut sockets = sockets.write().await;
+                            let mut channels = channels.write().await;
+
+                            if let Some(socket) = sockets.remove(&championship_id) {
+                                socket.abort();
+                            }
+
+                            channels.remove(&championship_id);
+                        }
                     }
                 }
             }
