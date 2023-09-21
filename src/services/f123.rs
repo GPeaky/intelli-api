@@ -115,6 +115,8 @@ impl F123Service {
                     Ok(Ok((size, _address))) => {
                         let buf = &buf[..size];
 
+                        info!("Buffer size {}", buf.len());
+
                         let Ok(header) = F123Data::deserialize_header(buf) else {
                             error!("Error deserializing F123 header, for championship: {championship_id:?}");
                             continue;
