@@ -99,9 +99,6 @@ impl F123Service {
                 return;
             };
 
-            // TODO: Implemente timeout for socket with tokio::time::timeout
-            // socket.set_read_timeout(SOCKET_TIMEOUT).unwrap();
-
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
             {
@@ -311,7 +308,13 @@ impl F123Service {
                                 // tx.send(F123Data::FinalClassification(classification_data))
                                 //     .unwrap();
 
-                                return;
+                                // Self::external_close_socket(
+                                //     channels.clone(),
+                                //     sockets.clone(),
+                                //     championship_id.clone(),
+                                // )
+                                // .await;
+                                // return;
                             }
                         }
                     }
@@ -320,33 +323,24 @@ impl F123Service {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
 
-                        {
-                            let mut sockets = sockets.write().await;
-                            let mut channels = channels.write().await;
-
-                            if let Some(socket) = sockets.remove(&championship_id) {
-                                socket.abort();
-                            }
-
-                            channels.remove(&championship_id);
-                        }
+                        Self::external_close_socket(
+                            channels.clone(),
+                            sockets.clone(),
+                            championship_id.clone(),
+                        )
+                        .await;
 
                         break;
                     }
 
                     Err(_e) => {
                         info!("Socket  timeout for championship: {}", championship_id);
-
-                        {
-                            let mut sockets = sockets.write().await;
-                            let mut channels = channels.write().await;
-
-                            if let Some(socket) = sockets.remove(&championship_id) {
-                                socket.abort();
-                            }
-
-                            channels.remove(&championship_id);
-                        }
+                        Self::external_close_socket(
+                            channels.clone(),
+                            sockets.clone(),
+                            championship_id.clone(),
+                        )
+                        .await;
                     }
                 }
             }
@@ -382,6 +376,21 @@ impl F123Service {
         info!("Socket stopped for championship: {}", championship_id);
 
         Ok(())
+    }
+
+    async fn external_close_socket(
+        channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
+        sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
+        championship_id: Arc<u32>,
+    ) {
+        let mut sockets = sockets.write().await;
+        let mut channels = channels.write().await;
+
+        if let Some(socket) = sockets.remove(&championship_id) {
+            socket.abort();
+        }
+
+        channels.remove(&championship_id);
     }
 
     pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
