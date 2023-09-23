@@ -59,6 +59,7 @@ tower-http = { version = "0.4.4", features = [
 ] }
 rustc-hash = "1.1.0"
 tinyrand = "0.5.0"
+mimalloc = "0.1.39"
 
 [profile.release]
 debug = 0
