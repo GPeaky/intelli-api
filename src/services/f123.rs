@@ -9,9 +9,9 @@ use crate::{
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
-use ahash::AHashMap;
 use prost::Message;
 use redis::AsyncCommands;
+use rustc_hash::FxHashMap;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -38,16 +38,16 @@ type F123Channel = Arc<Sender<Vec<u8>>>;
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
+    sockets: Arc<RwLock<FxHashMap<u32, JoinHandle<()>>>>,
+    channels: Arc<RwLock<FxHashMap<u32, F123Channel>>>,
 }
 
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
-            channels: Arc::new(RwLock::new(AHashMap::new())),
-            sockets: Arc::new(RwLock::new(AHashMap::new())),
+            channels: Arc::new(RwLock::new(FxHashMap::default())),
+            sockets: Arc::new(RwLock::new(FxHashMap::default())),
         }
     }
 
@@ -88,8 +88,8 @@ impl F123Service {
             let mut last_participants_update = Instant::now();
 
             // Session History Data
-            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
-            let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
+            let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
+            let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
             let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
@@ -379,8 +379,8 @@ impl F123Service {
     }
 
     async fn external_close_socket(
-        channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
-        sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
+        channels: Arc<RwLock<FxHashMap<u32, F123Channel>>>,
+        sockets: Arc<RwLock<FxHashMap<u32, JoinHandle<()>>>>,
         championship_id: Arc<u32>,
     ) {
         let mut sockets = sockets.write().await;
