@@ -2,8 +2,8 @@ use crate::{
     config::Database, dtos::CreateChampionshipDto, entity::Championship, error::AppResult,
     repositories::ChampionshipRepository,
 };
-use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
+use tinyrand::{Rand, StdRand};
 use tokio::sync::RwLock;
 use tracing::info;
 
@@ -35,9 +35,9 @@ impl ChampionshipService {
         user_id: &u32,
     ) -> AppResult<()> {
         // Todo: restrict port to receive only one connection, and release it when the connection is closed
-        let mut rng = Rand::from_entropy();
+        let mut rng = StdRand::default();
         let port = self.get_port().await?;
-        let id = rng.gen::<u32>();
+        let id = rng.next_u32();
 
         sqlx::query(
             r#"
