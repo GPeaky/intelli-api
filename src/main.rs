@@ -7,6 +7,11 @@ use routes::service_routes;
 use std::{net::TcpListener, path::PathBuf, sync::Arc};
 use tracing::info;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 mod config;
 mod dtos;
 mod entity;
