@@ -64,7 +64,7 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
         .route("/all", get(all_championships))
         .route("/:id/start_socket", get(start_socket))
         .route("/:id/stop_socket", get(stop_socket))
-        .route_layer(auth_middleware.clone())
+        .route_layer(auth_middleware)
         .with_state(user_state.clone());
 
     Router::new()
@@ -74,8 +74,6 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
         .nest("/admin", admin_router(user_state.clone()))
         .route(
             "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
-            get(session_socket)
-                .with_state(user_state)
-                .route_layer(auth_middleware),
+            get(session_socket).with_state(user_state),
         )
 }
