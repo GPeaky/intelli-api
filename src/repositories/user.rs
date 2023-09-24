@@ -2,7 +2,7 @@ use crate::{config::Database, entity::User, error::AppResult};
 use axum::async_trait;
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserRepository {
     db_conn: Arc<Database>,
 }

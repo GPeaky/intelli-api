@@ -13,23 +13,25 @@ repository = "https://github.com/GPeaky/intelli-api"
 prost-build = "0.12.1"
 
 [dependencies]
-garde = "0.15.0"
 prost = "0.12.1"
+garde = "0.15.0"
 bcrypt = "0.15.0"
 dotenvy = "0.15.7"
+tinyrand = "0.5.0"
+mimalloc = "0.1.39"
+rustc-hash = "1.1.0"
 tracing = "0.1.37"
 thiserror = "1.0.48"
 serde_trim = "1.0.0"
 jsonwebtoken = "8.3.0"
 serde-big-array = "0.5.1"
-tracing-subscriber = "0.3.17"
 tokio = { version = "1.32.0", features = ["full"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 reqwest = { version = "0.11.20", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
-axum-server = { version = "0.5.1", features = ["tls-rustls"] }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 sqlx = { version = "0.7.1", features = ["runtime-tokio", "mysql", "chrono"] }
 hyper = { version = "0.14.27", features = ["http2", "full"] }
 lettre = { version = "0.10.4", default-features = false, features = [
@@ -57,9 +59,6 @@ tower-http = { version = "0.4.4", features = [
     "fs",
     "tokio",
 ] }
-rustc-hash = "1.1.0"
-tinyrand = "0.5.0"
-mimalloc = "0.1.39"
 
 [profile.release]
 debug = 0

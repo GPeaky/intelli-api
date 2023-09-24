@@ -105,7 +105,7 @@ impl ChampionshipService {
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
     ) -> AppResult<Arc<RwLock<Vec<u16>>>> {
-        let mut ports: Vec<u16> = (20777..=20899).collect();
+        let mut ports: Vec<u16> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for port in ports_in_use {
