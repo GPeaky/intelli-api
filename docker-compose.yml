@@ -5,8 +5,8 @@ services:
     container_name: intelli-api
     build: .
     ports:
-      - "443:443"
-      - "20777-20899:20777-20899/udp"
+      - "7777:7777"
+      - "20777-20850:20777-20850/udp"
 
     env_file:
       - .env

@@ -2,6 +2,8 @@ use dotenvy::var;
 use redis::{aio::Connection, Client};
 use sqlx::MySqlPool;
 use tracing::info;
+
+#[derive(Debug)]
 pub struct Database {
     redis: Client,
     pub mysql: MySqlPool,

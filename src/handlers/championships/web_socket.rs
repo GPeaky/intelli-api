@@ -1,6 +1,6 @@
 use crate::{
     entity::Championship,
-    error::{AppResult, SocketError},
+    error::{AppResult, SocketError, UserError},
     states::SafeUserState,
 };
 use axum::{
@@ -18,7 +18,9 @@ pub async fn session_socket(
     Path(championship_id): Path<u32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
     let socket_active = state
         .f123_service
@@ -44,8 +46,6 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
             result = rx.recv() => {
                 match result {
                     Ok(data) => {
-                        info!("Sending message to client");
-
                         if let Err(e) = socket.send(Message::Binary(data)).await {
                             error!("Failed sending message:{}", e);
                             break;
