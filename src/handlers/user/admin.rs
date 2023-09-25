@@ -56,7 +56,6 @@ pub async fn disable_user(
     Ok(StatusCode::OK.into_response())
 }
 
-// TODO: Enable a user by id
 #[inline(always)]
 pub async fn enable_user(
     State(state): State<SafeUserState>,

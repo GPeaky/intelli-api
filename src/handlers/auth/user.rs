@@ -202,6 +202,6 @@ pub async fn reset_password(
         Err(TokenError::InvalidTokenType)?
     }
 
-    // TODO: Check if toke is on the db and search user by id and change password
+    // TODO: Check if token is on the db and search user by id and change password
     Ok(StatusCode::OK.into_response())
 }

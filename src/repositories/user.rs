@@ -52,7 +52,6 @@ impl UserRepositoryTrait for UserRepository {
         Ok(user.is_some())
     }
 
-    // TODO: Check why not finding any user
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>(
             r#"
