@@ -34,11 +34,12 @@ chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 reqwest = { version = "0.11.20", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
-hyper-rustls = { version = "0.24.1", features = ["http2"] }
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
+hyper-rustls = { version = "0.24.1", features = ["http2"] }
+hyper = { version = "0.14.27", features = ["http2", "full"] }
+tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 sqlx = { version = "0.7.1", features = ["runtime-tokio", "mysql", "chrono"] }
-hyper = { version = "0.14.27", features = ["http2", "full"] }
 lettre = { version = "0.10.4", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
@@ -59,7 +60,6 @@ tower = { version = "0.4.13", features = [
     "timeout",
     "load-shed",
 ] }
-tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 
 [profile.release]
 debug = 0

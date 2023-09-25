@@ -94,7 +94,6 @@ fn decrement_counter(championship_id: u32) {
     counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
 }
 
-#[inline(always)]
 pub fn websocket_active_connections(championship_id: u32) -> usize {
     let counter = ACTIVE_CONNECTIONS
         .entry(championship_id)

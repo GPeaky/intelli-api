@@ -96,8 +96,6 @@ impl UserServiceTrait for UserService {
     }
 
     async fn delete_user(&self, id: &u32) -> AppResult<()> {
-        // TODO: Delete all the data from this user
-
         sqlx::query(
             r#"
                 DELETE FROM user_championships

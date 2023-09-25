@@ -1,8 +1,7 @@
 use crate::protos::{
-    car_motion_data::PacketMotionData, event_data::PacketEventData,
-    packet_header::packet_header::PacketType, packet_header::PacketHeader,
+    car_motion_data::PacketMotionData, event_data::PacketEventData, packet_header::PacketType,
     participants::PacketParticipantsData, session_data::PacketSessionData,
-    session_history::PacketSessionHistoryData,
+    session_history::PacketSessionHistoryData, PacketHeader,
 };
 use crate::{
     config::Database,
@@ -55,7 +54,6 @@ impl F123Service {
             return Err(SocketError::AlreadyExists.into());
         }
 
-        // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = self.spawn_socket(championship_id.clone(), port).await;
 
         self.sockets.insert(*championship_id, Arc::new(socket));
@@ -79,7 +77,7 @@ impl F123Service {
 
             // Session History Data
             let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
-            let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
+            // let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
             let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
@@ -93,7 +91,6 @@ impl F123Service {
 
             channels.insert(*championship_id, Arc::new(tx.clone()));
 
-            // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
                     Ok(Ok((size, _address))) => {
@@ -174,7 +171,6 @@ impl F123Service {
                                 }
                             }
 
-                            // TODO: Implement to save this in a interval
                             F123Data::Participants(participants_data) => {
                                 if now
                                     .duration_since(last_participants_update)
@@ -206,7 +202,6 @@ impl F123Service {
                                 }
                             }
 
-                            // TODO: Save to heidi or redis?
                             F123Data::Event(event_data) => {
                                 sqlx::query(
                                     r#"
@@ -246,23 +241,23 @@ impl F123Service {
                                     .duration_since(*last_update)
                                     .ge(&SESSION_HISTORY_INTERVAL)
                                 {
-                                    let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
+                                    // let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
 
-                                    let sectors = (
-                                        session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
-                                        session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
-                                        session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
-                                    );
+                                    // let sectors = (
+                                    //     session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
+                                    //     session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
+                                    //     session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
+                                    // );
 
-                                    let Some(last_sectors) =
-                                        car_lap_sector_data.get(&session_history.m_carIdx)
-                                    else {
-                                        car_lap_sector_data
-                                            .insert(session_history.m_carIdx, sectors);
-                                        continue;
-                                    };
+                                    // let Some(last_sectors) =
+                                    //     car_lap_sector_data.get(&session_history.m_carIdx)
+                                    // else {
+                                    //     car_lap_sector_data
+                                    //         .insert(session_history.m_carIdx, sectors);
+                                    //     continue;
+                                    // };
 
-                                    if sectors.ne(last_sectors) {
+                                    // if sectors.ne(last_sectors) {
                                         redis
                                             .set_ex::<String, &[u8], String>(
                                                 format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
@@ -273,8 +268,8 @@ impl F123Service {
                                             .unwrap();
 
                                         last_car_lap_update.insert(session_history.m_carIdx, now);
-                                        car_lap_sector_data
-                                            .insert(session_history.m_carIdx, sectors);
+                                        // car_lap_sector_data
+                                        //     .insert(session_history.m_carIdx, sectors);
 
                                         let data: PacketSessionHistoryData = session_history.into();
                                         let data = data.encode_to_vec();
@@ -286,11 +281,11 @@ impl F123Service {
                                         .encode_to_vec();
 
                                         tx.send(packet).unwrap();
-                                    }
+                                    // }
                                 }
                             }
 
-                            //TODO Collect All data from redis and save it to the maridb database
+                            //TODO Collect All data from redis and save it to the mariadb database
                             F123Data::FinalClassification(_classification_data) => {
                                 // tx.send(F123Data::FinalClassification(classification_data))
                                 //     .unwrap();
