@@ -9,6 +9,7 @@ use crate::{
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
+use dashmap::DashMap;
 use prost::Message;
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;
@@ -17,12 +18,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::broadcast::Sender;
-use tokio::{
-    net::UdpSocket,
-    sync::{broadcast::Receiver, RwLock},
-    task::JoinHandle,
-    time::timeout,
-};
+use tokio::{net::UdpSocket, sync::broadcast::Receiver, task::JoinHandle, time::timeout};
 use tracing::{error, info};
 
 const F123_HOST: &str = "0.0.0.0";
@@ -38,37 +34,31 @@ type F123Channel = Arc<Sender<Vec<u8>>>;
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<FxHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<FxHashMap<u32, F123Channel>>>,
+    sockets: Arc<DashMap<u32, Arc<JoinHandle<()>>>>,
+    channels: Arc<DashMap<u32, F123Channel>>,
 }
 
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
-            channels: Arc::new(RwLock::new(FxHashMap::default())),
-            sockets: Arc::new(RwLock::new(FxHashMap::default())),
+            channels: Arc::new(DashMap::new()),
+            sockets: Arc::new(DashMap::new()),
         }
     }
 
     pub async fn new_socket(&self, port: u16, championship_id: Arc<u32>) -> AppResult<()> {
+        if self.sockets.contains_key(&championship_id)
+            || self.channels.contains_key(&championship_id)
         {
-            let sockets = self.sockets.read().await;
-            let channels = self.channels.read().await;
-
-            if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
-                error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
-                return Err(SocketError::AlreadyExists.into());
-            }
+            error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
+            return Err(SocketError::AlreadyExists.into());
         }
 
         // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = self.spawn_socket(championship_id.clone(), port).await;
 
-        {
-            let mut sockets = self.sockets.write().await;
-            sockets.insert(*championship_id, socket);
-        }
+        self.sockets.insert(*championship_id, Arc::new(socket));
 
         Ok(())
     }
@@ -101,10 +91,7 @@ impl F123Service {
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
-            {
-                let mut channels = channels.write().await;
-                channels.insert(*championship_id, Arc::new(tx.clone()));
-            }
+            channels.insert(*championship_id, Arc::new(tx.clone()));
 
             // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
@@ -323,83 +310,60 @@ impl F123Service {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
 
-                        Self::external_close_socket(
-                            channels.clone(),
-                            sockets.clone(),
-                            championship_id.clone(),
-                        )
-                        .await;
+                        Self::external_close_socket(&channels, &sockets, &championship_id);
 
                         break;
                     }
 
                     Err(_e) => {
                         info!("Socket  timeout for championship: {}", championship_id);
-                        Self::external_close_socket(
-                            channels.clone(),
-                            sockets.clone(),
-                            championship_id.clone(),
-                        )
-                        .await;
+                        Self::external_close_socket(&channels, &sockets, &championship_id);
                     }
                 }
             }
         })
     }
 
-    pub async fn active_sockets(&self) -> Vec<u32> {
-        let sockets = self.sockets.read().await;
-        sockets.keys().cloned().collect()
+    pub fn active_sockets(&self) -> Vec<u32> {
+        self.sockets.iter().map(|entry| *entry.key()).collect()
     }
 
-    pub async fn championship_socket(&self, id: &u32) -> bool {
-        let sockets = self.sockets.read().await;
-        sockets.contains_key(id)
+    pub fn championship_socket(&self, id: &u32) -> bool {
+        self.sockets.contains_key(id)
     }
 
     pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
-        {
-            let mut channels = self.channels.write().await;
-            let mut sockets = self.sockets.write().await;
-
-            let Some(_) = channels.remove(&championship_id) else {
-                Err(SocketError::NotFound)?
+        let channel_removed = self.channels.remove(&championship_id).is_some();
+        let socket_removed_and_aborted =
+            if let Some((_, socket)) = self.sockets.remove(&championship_id) {
+                socket.abort();
+                true
+            } else {
+                false
             };
 
-            let Some(socket) = sockets.remove(&championship_id) else {
-                Err(SocketError::NotFound)?
-            };
-
-            socket.abort();
+        if !channel_removed && !socket_removed_and_aborted {
+            Err(SocketError::NotFound)?
         }
 
         info!("Socket stopped for championship: {}", championship_id);
-
         Ok(())
     }
 
-    async fn external_close_socket(
-        channels: Arc<RwLock<FxHashMap<u32, F123Channel>>>,
-        sockets: Arc<RwLock<FxHashMap<u32, JoinHandle<()>>>>,
-        championship_id: Arc<u32>,
+    fn external_close_socket(
+        channels: &DashMap<u32, F123Channel>,
+        sockets: &DashMap<u32, Arc<JoinHandle<()>>>,
+        championship_id: &u32,
     ) {
-        let mut sockets = sockets.write().await;
-        let mut channels = channels.write().await;
-
-        if let Some(socket) = sockets.remove(&championship_id) {
+        if let Some((_, socket)) = sockets.remove(championship_id) {
             socket.abort();
         }
 
-        channels.remove(&championship_id);
+        channels.remove(championship_id);
     }
 
     pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
-        let channels = self.channels.read().await;
-
-        if let Some(channel) = channels.get(championship_id) {
-            return Some(channel.subscribe());
-        }
-
-        None
+        let channel = self.channels.get(championship_id)?;
+        Some(channel.value().subscribe())
     }
 }
