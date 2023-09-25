@@ -17,9 +17,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install prost tools
-        run: cargo install prost-build
-
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
 
