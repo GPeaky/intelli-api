@@ -39,7 +39,7 @@ async fn main() {
     let acceptor = TlsAcceptor::builder()
         .with_single_cert(cert_file, key_file)
         .unwrap()
-        .with_http2_alpn()
+        .with_alpn_protocols([b"h2".to_vec(), b"http/1.1".to_vec()].to_vec())
         .with_incoming(incoming);
 
     Server::builder(acceptor)
