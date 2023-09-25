@@ -1,4 +1,7 @@
-use crate::{error::AppResult, states::SafeUserState};
+use crate::{
+    error::{AppResult, UserError},
+    states::SafeUserState,
+};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
@@ -18,7 +21,9 @@ pub async fn start_socket(
     State(state): State<SafeUserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
     state
         .f123_service

@@ -25,7 +25,7 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
-    pub async fn find(&self, id: &u32) -> AppResult<Championship> {
+    pub async fn find(&self, id: &u32) -> AppResult<Option<Championship>> {
         let championship = sqlx::query_as::<_, Championship>(
             r#"
                 SELECT * FROM championship
@@ -33,7 +33,7 @@ impl ChampionshipRepository {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.database.mysql)
+        .fetch_optional(&self.database.mysql)
         .await?;
 
         Ok(championship)

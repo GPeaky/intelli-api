@@ -13,6 +13,7 @@ repository = "https://github.com/GPeaky/intelli-api"
 prost-build = "0.12.1"
 
 [dependencies]
+rustls = "0.21.7"
 prost = "0.12.1"
 garde = "0.15.0"
 bcrypt = "0.15.0"
@@ -22,6 +23,7 @@ mimalloc = "0.1.39"
 rustc-hash = "1.1.0"
 tracing = "0.1.37"
 thiserror = "1.0.48"
+rustls-pemfile = "1.0.3"
 serde_trim = "1.0.0"
 jsonwebtoken = "8.3.0"
 serde-big-array = "0.5.1"
@@ -30,6 +32,7 @@ chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 reqwest = { version = "0.11.20", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
+hyper-rustls = { version = "0.24.1", features = ["http2"] }
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 sqlx = { version = "0.7.1", features = ["runtime-tokio", "mysql", "chrono"] }

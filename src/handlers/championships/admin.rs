@@ -1,4 +1,8 @@
-use crate::{entity::Championship, error::AppResult, states::SafeUserState};
+use crate::{
+    entity::Championship,
+    error::{AppResult, UserError},
+    states::SafeUserState,
+};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
@@ -24,7 +28,9 @@ pub async fn delete_championship(
     State(state): State<SafeUserState>,
     Path(id): Path<u32>,
 ) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&id).await?;
+    let Some(championship) = state.championship_repository.find(&id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
     state
         .championship_service
