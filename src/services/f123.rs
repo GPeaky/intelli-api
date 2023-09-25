@@ -77,7 +77,7 @@ impl F123Service {
 
             // Session History Data
             let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
-            // let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
+            let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
             let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
@@ -104,7 +104,6 @@ impl F123Service {
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id.eq(&0) {
-                            tokio::time::sleep(Duration::from_secs(5)).await;
                             continue;
                         }
 
@@ -230,59 +229,54 @@ impl F123Service {
 
                             // TODO: Check if this is overbooking the server
                             F123Data::SessionHistory(session_history) => {
-                                let Some(last_update) =
-                                    last_car_lap_update.get(&session_history.m_carIdx)
-                                else {
-                                    last_car_lap_update.insert(session_history.m_carIdx, now);
-                                    continue;
-                                };
+                                let last_update = last_car_lap_update
+                                    .entry(session_history.m_carIdx)
+                                    .or_insert(now);
 
                                 if now
                                     .duration_since(*last_update)
-                                    .ge(&SESSION_HISTORY_INTERVAL)
+                                    .lt(&SESSION_HISTORY_INTERVAL)
                                 {
-                                    // let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
-
-                                    // let sectors = (
-                                    //     session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
-                                    //     session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
-                                    //     session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
-                                    // );
-
-                                    // let Some(last_sectors) =
-                                    //     car_lap_sector_data.get(&session_history.m_carIdx)
-                                    // else {
-                                    //     car_lap_sector_data
-                                    //         .insert(session_history.m_carIdx, sectors);
-                                    //     continue;
-                                    // };
-
-                                    // if sectors.ne(last_sectors) {
-                                        redis
-                                            .set_ex::<String, &[u8], String>(
-                                                format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
-                                                &buf[..size],
-                                                DATA_PERSISTENCE,
-                                            )
-                                            .await
-                                            .unwrap();
-
-                                        last_car_lap_update.insert(session_history.m_carIdx, now);
-                                        // car_lap_sector_data
-                                        //     .insert(session_history.m_carIdx, sectors);
-
-                                        let data: PacketSessionHistoryData = session_history.into();
-                                        let data = data.encode_to_vec();
-
-                                        let packet = PacketHeader {
-                                            r#type: PacketType::SessionHistoryData.into(),
-                                            payload: data,
-                                        }
-                                        .encode_to_vec();
-
-                                        tx.send(packet).unwrap();
-                                    // }
+                                    continue;
                                 }
+
+                                let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
+
+                                let sectors = (
+                                    session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
+                                    session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
+                                    session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
+                                );
+
+                                let last_sectors = car_lap_sector_data
+                                    .entry(session_history.m_carIdx)
+                                    .or_insert(sectors);
+
+                                if sectors == *last_sectors {
+                                    continue;
+                                }
+
+                                redis.set_ex::<String, &[u8], String>(
+                                    format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
+                                    &buf[..size],
+                                    DATA_PERSISTENCE,
+                                )
+                                    .await
+                                    .unwrap();
+
+                                let data: PacketSessionHistoryData = session_history.into();
+                                let data = data.encode_to_vec();
+
+                                let packet = PacketHeader {
+                                    r#type: PacketType::SessionHistoryData.into(),
+                                    payload: data,
+                                }
+                                .encode_to_vec();
+
+                                tx.send(packet).unwrap();
+
+                                *last_update = now;
+                                *last_sectors = sectors;
                             }
 
                             //TODO Collect All data from redis and save it to the mariadb database
