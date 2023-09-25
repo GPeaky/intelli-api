@@ -37,6 +37,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
