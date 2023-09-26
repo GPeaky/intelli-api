@@ -1,0 +1,1 @@
+include!(concat!(env!("OUT_DIR"), "/event_data_capnp.rs"));

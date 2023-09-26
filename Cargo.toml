@@ -10,10 +10,9 @@ repository = "https://github.com/GPeaky/intelli-api"
 license = "MIT"
 
 [build-dependencies]
-prost-build = "0.12.1"
+capnpc = "0.18.0"
 
 [dependencies]
-prost = "0.12.1"
 garde = "0.15.0"
 dashmap = "5.5.3"
 bcrypt = "0.15.0"
@@ -60,6 +59,7 @@ tower = { version = "0.4.13", features = [
     "timeout",
     "load-shed",
 ] }
+capnp = "0.18.1"
 
 [profile.release]
 debug = 0
