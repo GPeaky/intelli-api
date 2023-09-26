@@ -9,6 +9,10 @@ pipeline {
             }
         }
 
+        stage('Setup Environment') {
+            sh 'cp /var/jenkins_home/secrets/intelli.env .'
+        }
+
         stage('Build with Docker Compose') {
             steps {
                 // Construye usando docker-compose
