@@ -31,8 +31,8 @@ async fn main() {
     initialize_tracing_subscriber();
     let db = Database::default().await;
 
-    let cert_file = load_certs("./certs/intelli.gerardz.de.crt");
-    let key_file = load_private_key("./certs/intelli.gerardz.de.key").unwrap();
+    let cert_file = load_certs("./certs/intellitelemetry.live.crt");
+    let key_file = load_private_key("./certs/intellitelemetry.live.key").unwrap();
 
     let incoming = AddrIncoming::bind(&var("HOST").unwrap().parse().unwrap()).unwrap();
 
