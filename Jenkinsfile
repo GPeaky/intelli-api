@@ -11,7 +11,7 @@ pipeline {
 
         stage('Setup Environment') {
             steps {
-                sh 'cp /var/jenkins_home/secrets/intelli.env .'
+                sh 'cp /var/lib/jenkins/secrets/intelli.env .'
             }
         }
 
