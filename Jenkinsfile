@@ -2,19 +2,24 @@ pipeline {
     agent any
 
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                echo 'Building..'
+                // Asegura que tienes el código más reciente del repositorio
+                checkout scm
             }
         }
-        stage('Test') {
+
+        stage('Build with Docker Compose') {
             steps {
-                echo 'Testing..'
+                // Construye usando docker-compose
+                sh 'docker-compose build'
             }
         }
-        stage('Deploy') {
+
+        stage('Run with Docker Compose') {
             steps {
-                echo 'Deploying....'
+                // Arranca tu aplicación con docker-compose en background
+                sh 'docker-compose up -d'
             }
         }
     }
