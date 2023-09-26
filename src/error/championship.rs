@@ -9,6 +9,10 @@ pub enum ChampionshipError {
     AlreadyExists,
     #[error("Not Championships")]
     NotChampionships,
+    #[error("Championship not found")]
+    NotFound,
+    #[error("Championship limit reached")]
+    LimitReached,
 }
 
 impl IntoResponse for ChampionshipError {
@@ -16,6 +20,8 @@ impl IntoResponse for ChampionshipError {
         let status_code = match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
             ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,
+            ChampionshipError::NotFound => StatusCode::NOT_FOUND,
+            ChampionshipError::LimitReached => StatusCode::BAD_REQUEST,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

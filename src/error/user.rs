@@ -29,8 +29,6 @@ pub enum UserError {
     AlreadyInactive,
     #[error("Invalid Provider")]
     InvalidProvider,
-    #[error("Championship not found")]
-    ChampionshipNotFound,
 }
 
 impl IntoResponse for UserError {
@@ -48,7 +46,6 @@ impl IntoResponse for UserError {
             UserError::AlreadyActive => StatusCode::BAD_REQUEST,
             UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
             UserError::InvalidProvider => StatusCode::BAD_REQUEST,
-            UserError::ChampionshipNotFound => StatusCode::NOT_FOUND,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

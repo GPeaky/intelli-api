@@ -1,7 +1,7 @@
 use crate::{
     dtos::CreateChampionshipDto,
     entity::{Championship, User},
-    error::{AppResult, CommonError, UserError},
+    error::{AppResult, ChampionshipError, CommonError},
     states::SafeUserState,
 };
 use axum::{
@@ -20,6 +20,8 @@ mod admin;
 mod sockets;
 mod web_socket;
 
+const MAXIMUM_CHAMPIONSHIPS: usize = 3;
+
 #[inline(always)]
 pub async fn create_championship(
     Extension(user): Extension<User>,
@@ -28,6 +30,12 @@ pub async fn create_championship(
 ) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::FormValidationFailed)?;
+    }
+
+    let championships = state.championship_repository.find_all(&user.id).await?;
+
+    if championships.len().gt(&MAXIMUM_CHAMPIONSHIPS) {
+        Err(ChampionshipError::LimitReached)?;
     }
 
     state
@@ -44,7 +52,7 @@ pub async fn get_championship(
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<Championship>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     Ok(Json(championship))
