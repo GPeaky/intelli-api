@@ -1,6 +1,6 @@
 use crate::{
     dtos::SocketStatus,
-    error::{AppResult, UserError, ChampionshipError},
+    error::{AppResult, ChampionshipError},
     handlers::championships::websocket_active_connections,
     states::SafeUserState,
 };
