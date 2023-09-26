@@ -1,10 +1,5 @@
 use crate::config::Database;
-use axum::{
-    error_handling::HandleErrorLayer,
-    http::{HeaderName, HeaderValue},
-    routing::IntoMakeService,
-    Router,
-};
+use axum::{error_handling::HandleErrorLayer, http::HeaderValue, routing::IntoMakeService, Router};
 use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
 use tower::{load_shed::LoadShedLayer, ServiceBuilder};
@@ -27,9 +22,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
             HeaderValue::from_static("https://intellitelemetry.live"),
             HeaderValue::from_static("http://localhost:3000"),
         ]))
-        .allow_headers(AllowHeaders::list(vec![HeaderName::from_static(
-            "Fingerprint",
-        )]))
+        .allow_headers(AllowHeaders::any())
         .allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT]);
 
     Router::new()
