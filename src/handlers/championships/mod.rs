@@ -20,6 +20,8 @@ mod admin;
 mod sockets;
 mod web_socket;
 
+const MAXIMUM_CHAMPIONSHIPS: usize = 3;
+
 #[inline(always)]
 pub async fn create_championship(
     Extension(user): Extension<User>,
@@ -28,6 +30,12 @@ pub async fn create_championship(
 ) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::FormValidationFailed)?;
+    }
+
+    let championships = state.championship_repository.find_all(&user.id).await?;
+
+    if championships.len().gt(&MAXIMUM_CHAMPIONSHIPS) {
+        Err(UserError::ChampionshipLimitReached)?;
     }
 
     state
