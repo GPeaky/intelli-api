@@ -1,6 +1,11 @@
 use crate::config::Database;
-use axum::{error_handling::HandleErrorLayer, routing::IntoMakeService, Router};
-use hyper::StatusCode;
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::{HeaderName, HeaderValue},
+    routing::IntoMakeService,
+    Router,
+};
+use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
 use tower::{load_shed::LoadShedLayer, ServiceBuilder};
 use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer};
@@ -18,8 +23,14 @@ pub async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (Statu
 #[inline(always)]
 pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
     let cors_layer = CorsLayer::new()
-        .allow_origin(AllowOrigin::any())
-        .allow_headers(AllowHeaders::any());
+        .allow_origin(AllowOrigin::list(vec![
+            HeaderValue::from_static("https://intellitelemetry.live"),
+            HeaderValue::from_static("http://localhost:3000"),
+        ]))
+        .allow_headers(AllowHeaders::list(vec![HeaderName::from_static(
+            "Fingerprint",
+        )]))
+        .allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT]);
 
     Router::new()
         .nest("/", api::api_router(database).await)
