@@ -10,7 +10,7 @@ pipeline {
 
         stage('Setup Environment') {
             steps {
-                sh 'cp /var/lib/jenkins/secrets/intelli-certs /var/lib/jenkins/workspace/intelli/certs'
+                sh 'cp -r /var/lib/jenkins/secrets/intelli-certs /var/lib/jenkins/workspace/intelli/certs'
                 sh 'cp /var/lib/jenkins/secrets/intelli.gerardz.de.key /var/lib/jenkins/workspace/intelli/certs/intelli.gerardz.de.key'
             }
         }
