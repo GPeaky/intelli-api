@@ -1,6 +1,6 @@
 use crate::{
     entity::Championship,
-    error::{AppResult, SocketError, UserError},
+    error::{AppResult, ChampionshipError, SocketError},
     states::SafeUserState,
 };
 use axum::{
@@ -24,7 +24,7 @@ pub async fn session_socket(
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     let socket_active = state.f123_service.championship_socket(&championship.id);

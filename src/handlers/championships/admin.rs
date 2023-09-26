@@ -1,6 +1,6 @@
 use crate::{
     entity::Championship,
-    error::{AppResult, UserError},
+    error::{AppResult, ChampionshipError},
     states::SafeUserState,
 };
 use axum::{
@@ -29,7 +29,7 @@ pub async fn delete_championship(
     Path(id): Path<u32>,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     state

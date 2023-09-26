@@ -1,6 +1,6 @@
 use crate::{
     dtos::SocketStatus,
-    error::{AppResult, UserError},
+    error::{AppResult, UserError, ChampionshipError},
     handlers::championships::websocket_active_connections,
     states::SafeUserState,
 };
@@ -24,7 +24,7 @@ pub async fn start_socket(
     Path(championship_id): Path<u32>,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     state
@@ -41,7 +41,7 @@ pub async fn socket_status(
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<SocketStatus>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     let mut num_connections = 0;

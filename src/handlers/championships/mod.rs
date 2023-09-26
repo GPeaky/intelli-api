@@ -1,7 +1,7 @@
 use crate::{
     dtos::CreateChampionshipDto,
     entity::{Championship, User},
-    error::{AppResult, CommonError, UserError},
+    error::{AppResult, ChampionshipError, CommonError},
     states::SafeUserState,
 };
 use axum::{
@@ -35,7 +35,7 @@ pub async fn create_championship(
     let championships = state.championship_repository.find_all(&user.id).await?;
 
     if championships.len().gt(&MAXIMUM_CHAMPIONSHIPS) {
-        Err(UserError::ChampionshipLimitReached)?;
+        Err(ChampionshipError::LimitReached)?;
     }
 
     state
@@ -52,7 +52,7 @@ pub async fn get_championship(
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<Championship>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-        Err(UserError::ChampionshipNotFound)?
+        Err(ChampionshipError::NotFound)?
     };
 
     Ok(Json(championship))
