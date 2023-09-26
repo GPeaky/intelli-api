@@ -1,13 +1,13 @@
 [package]
-version = "0.1.3"
+version = "0.1.5"
 name = "intelli"
 edition = "2021"
 readme = "README.md"
 rust-version = "1.72.0"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
-license = "MIT"
 repository = "https://github.com/GPeaky/intelli-api"
+license = "MIT"
 
 [build-dependencies]
 prost-build = "0.12.1"
