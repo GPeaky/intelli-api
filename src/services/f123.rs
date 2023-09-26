@@ -1,28 +1,23 @@
 use crate::protos::{
-    car_motion_data::PacketMotionData, event_data::PacketEventData,
-    packet_header::packet_header::PacketType, packet_header::PacketHeader,
+    car_motion_data::PacketMotionData, event_data::PacketEventData, packet_header::PacketType,
     participants::PacketParticipantsData, session_data::PacketSessionData,
-    session_history::PacketSessionHistoryData,
+    session_history::PacketSessionHistoryData, PacketHeader,
 };
 use crate::{
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
-use ahash::AHashMap;
+use dashmap::DashMap;
 use prost::Message;
 use redis::AsyncCommands;
+use rustc_hash::FxHashMap;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::sync::broadcast::Sender;
-use tokio::{
-    net::UdpSocket,
-    sync::{broadcast::Receiver, RwLock},
-    task::JoinHandle,
-    time::timeout,
-};
+use tokio::{net::UdpSocket, sync::broadcast::Receiver, task::JoinHandle, time::timeout};
 use tracing::{error, info};
 
 const F123_HOST: &str = "0.0.0.0";
@@ -38,37 +33,30 @@ type F123Channel = Arc<Sender<Vec<u8>>>;
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-    channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
+    sockets: Arc<DashMap<u32, Arc<JoinHandle<()>>>>,
+    channels: Arc<DashMap<u32, F123Channel>>,
 }
 
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             db_conn: db_conn.clone(),
-            channels: Arc::new(RwLock::new(AHashMap::new())),
-            sockets: Arc::new(RwLock::new(AHashMap::new())),
+            channels: Arc::new(DashMap::new()),
+            sockets: Arc::new(DashMap::new()),
         }
     }
 
     pub async fn new_socket(&self, port: u16, championship_id: Arc<u32>) -> AppResult<()> {
+        if self.sockets.contains_key(&championship_id)
+            || self.channels.contains_key(&championship_id)
         {
-            let sockets = self.sockets.read().await;
-            let channels = self.channels.read().await;
-
-            if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
-                error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
-                return Err(SocketError::AlreadyExists.into());
-            }
+            error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
+            return Err(SocketError::AlreadyExists.into());
         }
 
-        // TODO: Close socket when championship is finished or when the server is idle for a long time
         let socket = self.spawn_socket(championship_id.clone(), port).await;
 
-        {
-            let mut sockets = self.sockets.write().await;
-            sockets.insert(*championship_id, socket);
-        }
+        self.sockets.insert(*championship_id, Arc::new(socket));
 
         Ok(())
     }
@@ -88,8 +76,8 @@ impl F123Service {
             let mut last_participants_update = Instant::now();
 
             // Session History Data
-            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::new();
-            let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::new();
+            let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
+            let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
             let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
@@ -101,12 +89,8 @@ impl F123Service {
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
-            {
-                let mut channels = channels.write().await;
-                channels.insert(*championship_id, Arc::new(tx.clone()));
-            }
+            channels.insert(*championship_id, Arc::new(tx.clone()));
 
-            // TODO: Save all this data in redis and only save it in the database when the session is finished
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
                     Ok(Ok((size, _address))) => {
@@ -120,7 +104,6 @@ impl F123Service {
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id.eq(&0) {
-                            tokio::time::sleep(Duration::from_secs(5)).await;
                             continue;
                         }
 
@@ -187,7 +170,6 @@ impl F123Service {
                                 }
                             }
 
-                            // TODO: Implement to save this in a interval
                             F123Data::Participants(participants_data) => {
                                 if now
                                     .duration_since(last_participants_update)
@@ -219,7 +201,6 @@ impl F123Service {
                                 }
                             }
 
-                            // TODO: Save to heidi or redis?
                             F123Data::Event(event_data) => {
                                 sqlx::query(
                                     r#"
@@ -248,62 +229,57 @@ impl F123Service {
 
                             // TODO: Check if this is overbooking the server
                             F123Data::SessionHistory(session_history) => {
-                                let Some(last_update) =
-                                    last_car_lap_update.get(&session_history.m_carIdx)
-                                else {
-                                    last_car_lap_update.insert(session_history.m_carIdx, now);
-                                    continue;
-                                };
+                                let last_update = last_car_lap_update
+                                    .entry(session_history.m_carIdx)
+                                    .or_insert(now);
 
                                 if now
                                     .duration_since(*last_update)
-                                    .ge(&SESSION_HISTORY_INTERVAL)
+                                    .lt(&SESSION_HISTORY_INTERVAL)
                                 {
-                                    let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
-
-                                    let sectors = (
-                                        session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
-                                        session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
-                                        session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
-                                    );
-
-                                    let Some(last_sectors) =
-                                        car_lap_sector_data.get(&session_history.m_carIdx)
-                                    else {
-                                        car_lap_sector_data
-                                            .insert(session_history.m_carIdx, sectors);
-                                        continue;
-                                    };
-
-                                    if sectors.ne(last_sectors) {
-                                        redis
-                                            .set_ex::<String, &[u8], String>(
-                                                format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
-                                                &buf[..size],
-                                                DATA_PERSISTENCE,
-                                            )
-                                            .await
-                                            .unwrap();
-
-                                        last_car_lap_update.insert(session_history.m_carIdx, now);
-                                        car_lap_sector_data
-                                            .insert(session_history.m_carIdx, sectors);
-
-                                        let data: PacketSessionHistoryData = session_history.into();
-                                        let data = data.encode_to_vec();
-
-                                        let packet = PacketHeader {
-                                            r#type: PacketType::SessionHistoryData.into(),
-                                            payload: data,
-                                        }
-                                        .encode_to_vec();
-
-                                        tx.send(packet).unwrap();
-                                    }
+                                    continue;
                                 }
+
+                                let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
+
+                                let sectors = (
+                                    session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
+                                    session_history.m_lapHistoryData[lap].m_sector2TimeInMS,
+                                    session_history.m_lapHistoryData[lap].m_sector3TimeInMS,
+                                );
+
+                                let last_sectors = car_lap_sector_data
+                                    .entry(session_history.m_carIdx)
+                                    .or_insert(sectors);
+
+                                if sectors == *last_sectors {
+                                    continue;
+                                }
+
+                                redis.set_ex::<String, &[u8], String>(
+                                    format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
+                                    &buf[..size],
+                                    DATA_PERSISTENCE,
+                                )
+                                    .await
+                                    .unwrap();
+
+                                let data: PacketSessionHistoryData = session_history.into();
+                                let data = data.encode_to_vec();
+
+                                let packet = PacketHeader {
+                                    r#type: PacketType::SessionHistoryData.into(),
+                                    payload: data,
+                                }
+                                .encode_to_vec();
+
+                                tx.send(packet).unwrap();
+
+                                *last_update = now;
+                                *last_sectors = sectors;
                             }
 
-                            //TODO Collect All data from redis and save it to the maridb database
+                            //TODO Collect All data from redis and save it to the mariadb database
                             F123Data::FinalClassification(_classification_data) => {
                                 // tx.send(F123Data::FinalClassification(classification_data))
                                 //     .unwrap();
@@ -323,83 +299,60 @@ impl F123Service {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
 
-                        Self::external_close_socket(
-                            channels.clone(),
-                            sockets.clone(),
-                            championship_id.clone(),
-                        )
-                        .await;
+                        Self::external_close_socket(&channels, &sockets, &championship_id);
 
                         break;
                     }
 
                     Err(_e) => {
                         info!("Socket  timeout for championship: {}", championship_id);
-                        Self::external_close_socket(
-                            channels.clone(),
-                            sockets.clone(),
-                            championship_id.clone(),
-                        )
-                        .await;
+                        Self::external_close_socket(&channels, &sockets, &championship_id);
                     }
                 }
             }
         })
     }
 
-    pub async fn active_sockets(&self) -> Vec<u32> {
-        let sockets = self.sockets.read().await;
-        sockets.keys().cloned().collect()
+    pub fn active_sockets(&self) -> Vec<u32> {
+        self.sockets.iter().map(|entry| *entry.key()).collect()
     }
 
-    pub async fn championship_socket(&self, id: &u32) -> bool {
-        let sockets = self.sockets.read().await;
-        sockets.contains_key(id)
+    pub fn championship_socket(&self, id: &u32) -> bool {
+        self.sockets.contains_key(id)
     }
 
     pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
-        {
-            let mut channels = self.channels.write().await;
-            let mut sockets = self.sockets.write().await;
-
-            let Some(_) = channels.remove(&championship_id) else {
-                Err(SocketError::NotFound)?
+        let channel_removed = self.channels.remove(&championship_id).is_some();
+        let socket_removed_and_aborted =
+            if let Some((_, socket)) = self.sockets.remove(&championship_id) {
+                socket.abort();
+                true
+            } else {
+                false
             };
 
-            let Some(socket) = sockets.remove(&championship_id) else {
-                Err(SocketError::NotFound)?
-            };
-
-            socket.abort();
+        if !channel_removed && !socket_removed_and_aborted {
+            Err(SocketError::NotFound)?
         }
 
         info!("Socket stopped for championship: {}", championship_id);
-
         Ok(())
     }
 
-    async fn external_close_socket(
-        channels: Arc<RwLock<AHashMap<u32, F123Channel>>>,
-        sockets: Arc<RwLock<AHashMap<u32, JoinHandle<()>>>>,
-        championship_id: Arc<u32>,
+    fn external_close_socket(
+        channels: &DashMap<u32, F123Channel>,
+        sockets: &DashMap<u32, Arc<JoinHandle<()>>>,
+        championship_id: &u32,
     ) {
-        let mut sockets = sockets.write().await;
-        let mut channels = channels.write().await;
-
-        if let Some(socket) = sockets.remove(&championship_id) {
+        if let Some((_, socket)) = sockets.remove(championship_id) {
             socket.abort();
         }
 
-        channels.remove(&championship_id);
+        channels.remove(championship_id);
     }
 
     pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
-        let channels = self.channels.read().await;
-
-        if let Some(channel) = channels.get(championship_id) {
-            return Some(channel.subscribe());
-        }
-
-        None
+        let channel = self.channels.get(championship_id)?;
+        Some(channel.value().subscribe())
     }
 }

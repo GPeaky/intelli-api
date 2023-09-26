@@ -1,7 +1,7 @@
 use crate::{
     dtos::CreateChampionshipDto,
     entity::{Championship, User},
-    error::{AppResult, CommonError},
+    error::{AppResult, CommonError, UserError},
     states::SafeUserState,
 };
 use axum::{
@@ -43,7 +43,9 @@ pub async fn get_championship(
     State(state): State<SafeUserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<Championship>> {
-    let championship = state.championship_repository.find(&championship_id).await?;
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
     Ok(Json(championship))
 }

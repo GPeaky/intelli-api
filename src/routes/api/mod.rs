@@ -1,6 +1,7 @@
 use self::admin::admin_router;
 use super::handle_error;
 use crate::handlers::auth::callback;
+use crate::handlers::championships::socket_status;
 use crate::{
     config::Database,
     handlers::{
@@ -62,8 +63,9 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
         .route("/", post(create_championship))
         .route("/:id", get(get_championship))
         .route("/all", get(all_championships))
-        .route("/:id/start_socket", get(start_socket))
-        .route("/:id/stop_socket", get(stop_socket))
+        .route("/:id/socket/start", get(start_socket))
+        .route("/:id/socket/status", get(socket_status))
+        .route("/:id/socket/stop", get(stop_socket))
         .route_layer(auth_middleware)
         .with_state(user_state.clone());
 

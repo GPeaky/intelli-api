@@ -8,8 +8,8 @@ use crate::{
 };
 use axum::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
-use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
 use std::sync::Arc;
+use tinyrand::{Rand, StdRand};
 use tracing::info;
 
 #[derive(Clone)]
@@ -44,8 +44,8 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let mut rng = Rand::from_entropy();
-        let id = rng.gen::<u32>();
+        let mut rng = StdRand::default();
+        let id = rng.next_u32();
         let hashed_password = register
             .password
             .as_ref()
@@ -96,8 +96,6 @@ impl UserServiceTrait for UserService {
     }
 
     async fn delete_user(&self, id: &u32) -> AppResult<()> {
-        // TODO: Delete all the data from this user
-
         sqlx::query(
             r#"
                 DELETE FROM user_championships

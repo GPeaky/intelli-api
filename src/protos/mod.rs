@@ -5,4 +5,4 @@ pub(crate) mod participants;
 pub(crate) mod session_data;
 pub(crate) mod session_history;
 
-pub(crate) mod packet_header;
+include!(concat!(env!("OUT_DIR"), "/protos.packet_header.rs"));

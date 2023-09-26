@@ -1,16 +1,19 @@
 use crate::{
-    config::Database, dtos::CreateChampionshipDto, entity::Championship, error::AppResult,
+    config::Database,
+    dtos::CreateChampionshipDto,
+    entity::Championship,
+    error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
-use rand::{rngs::StdRng as Rand, Rng, SeedableRng};
+use dashmap::DashSet;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tinyrand::{Rand, StdRand};
 use tracing::info;
 
 #[derive(Clone)]
 pub struct ChampionshipService {
     db: Arc<Database>,
-    ports: Arc<RwLock<Vec<u16>>>,
+    ports: DashSet<u16>,
     #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
@@ -35,9 +38,9 @@ impl ChampionshipService {
         user_id: &u32,
     ) -> AppResult<()> {
         // Todo: restrict port to receive only one connection, and release it when the connection is closed
-        let mut rng = Rand::from_entropy();
+        let mut rng = StdRand::default();
         let port = self.get_port().await?;
-        let id = rng.gen::<u32>();
+        let id = rng.next_u32();
 
         sqlx::query(
             r#"
@@ -104,30 +107,28 @@ impl ChampionshipService {
 
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
-    ) -> AppResult<Arc<RwLock<Vec<u16>>>> {
-        let mut ports: Vec<u16> = (20777..=20899).collect();
+    ) -> AppResult<DashSet<u16>> {
+        let all_ports: DashSet<u16> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for port in ports_in_use {
-            let port_index = ports.iter().position(|&p| p.eq(&port.0)).unwrap();
-
-            ports.remove(port_index);
+            all_ports.remove(&port.0);
         }
 
-        info!("Available ports: {:?}", ports);
-        Ok(Arc::new(RwLock::new(ports)))
+        info!("Available ports: {:?}", all_ports);
+        Ok(all_ports)
     }
 
     async fn get_port(&self) -> AppResult<u16> {
-        let ports = self.ports.read().await;
-        Ok(*ports.first().unwrap())
+        if let Some(port) = self.ports.iter().next() {
+            Ok(*port)
+        } else {
+            Err(CommonError::NotPortsAvailable)?
+        }
     }
 
     async fn remove_port(&self, port: u16) -> AppResult<()> {
-        let mut ports = self.ports.write().await;
-        let port_index = ports.iter().position(|&p| p.eq(&port)).unwrap();
-
-        ports.remove(port_index);
+        self.ports.remove(&port);
         Ok(())
     }
 }

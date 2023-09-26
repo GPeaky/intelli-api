@@ -1,6 +1,6 @@
 use crate::{
     entity::Championship,
-    error::{AppResult, SocketError},
+    error::{AppResult, SocketError, UserError},
     states::SafeUserState,
 };
 use axum::{
@@ -8,9 +8,14 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Path, State,
     },
-    response::Response, // IntoResponse
+    response::Response,
 };
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+use std::sync::atomic::AtomicUsize;
 use tracing::{error, info};
+
+static ACTIVE_CONNECTIONS: Lazy<DashMap<u32, AtomicUsize>> = Lazy::new(DashMap::new);
 
 #[inline(always)]
 pub async fn session_socket(
@@ -18,12 +23,11 @@ pub async fn session_socket(
     Path(championship_id): Path<u32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
-    let socket_active = state
-        .f123_service
-        .championship_socket(&championship.id)
-        .await;
+    let socket_active = state.f123_service.championship_socket(&championship.id);
 
     if !socket_active {
         Err(SocketError::NotActive)?
@@ -39,13 +43,13 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
         return;
     };
 
+    increment_counter(championship.id);
+
     loop {
         tokio::select! {
             result = rx.recv() => {
                 match result {
                     Ok(data) => {
-                        info!("Sending message to client");
-
                         if let Err(e) = socket.send(Message::Binary(data)).await {
                             error!("Failed sending message:{}", e);
                             break;
@@ -70,4 +74,29 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
             }
         }
     }
+
+    decrement_counter(championship.id);
+}
+
+#[inline(always)]
+fn increment_counter(championship_id: u32) {
+    let counter = ACTIVE_CONNECTIONS
+        .entry(championship_id)
+        .or_insert(AtomicUsize::new(0));
+    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[inline(always)]
+fn decrement_counter(championship_id: u32) {
+    let counter = ACTIVE_CONNECTIONS
+        .entry(championship_id)
+        .or_insert(AtomicUsize::new(0));
+    counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn websocket_active_connections(championship_id: u32) -> usize {
+    let counter = ACTIVE_CONNECTIONS
+        .entry(championship_id)
+        .or_insert(AtomicUsize::new(0));
+    counter.load(std::sync::atomic::Ordering::Relaxed)
 }

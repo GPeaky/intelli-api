@@ -1,4 +1,9 @@
-use crate::{error::AppResult, states::SafeUserState};
+use crate::{
+    dtos::SocketStatus,
+    error::{AppResult, UserError},
+    handlers::championships::websocket_active_connections,
+    states::SafeUserState,
+};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
@@ -9,7 +14,7 @@ use std::sync::Arc;
 
 #[inline(always)]
 pub async fn active_sockets(State(state): State<SafeUserState>) -> AppResult<Json<Vec<u32>>> {
-    let sockets = state.f123_service.active_sockets().await;
+    let sockets = state.f123_service.active_sockets();
     Ok(Json(sockets))
 }
 
@@ -18,7 +23,9 @@ pub async fn start_socket(
     State(state): State<SafeUserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Response> {
-    let championship = state.championship_repository.find(&championship_id).await?;
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
 
     state
         .f123_service
@@ -26,6 +33,28 @@ pub async fn start_socket(
         .await?;
 
     Ok(StatusCode::CREATED.into_response())
+}
+
+#[inline(always)]
+pub async fn socket_status(
+    State(state): State<SafeUserState>,
+    Path(championship_id): Path<u32>,
+) -> AppResult<Json<SocketStatus>> {
+    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+        Err(UserError::ChampionshipNotFound)?
+    };
+
+    let mut num_connections = 0;
+    let socket_active = state.f123_service.championship_socket(&championship.id);
+
+    if socket_active {
+        num_connections = websocket_active_connections(championship_id);
+    }
+
+    Ok(Json(SocketStatus {
+        active: socket_active,
+        connections: num_connections,
+    }))
 }
 
 #[inline(always)]
