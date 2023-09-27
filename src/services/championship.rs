@@ -6,8 +6,8 @@ use crate::{
     repositories::ChampionshipRepository,
 };
 use dashmap::DashSet;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
-use tinyrand::{Rand, StdRand};
 use tracing::info;
 
 #[derive(Clone)]
@@ -38,9 +38,9 @@ impl ChampionshipService {
         user_id: &u32,
     ) -> AppResult<()> {
         // Todo: restrict port to receive only one connection, and release it when the connection is closed
-        let mut rng = StdRand::default();
         let port = self.get_port().await?;
-        let id = rng.next_u32();
+        let mut rand = StdRng::from_entropy();
+        let id: u32 = rand.gen_range(600000000..700000000);
 
         sqlx::query(
             r#"

@@ -8,8 +8,8 @@ use crate::{
 };
 use axum::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
-use tinyrand::{Rand, StdRand};
 use tracing::info;
 
 #[derive(Clone)]
@@ -44,8 +44,9 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let mut rng = StdRand::default();
-        let id = rng.next_u32();
+        let mut rand = StdRng::from_entropy();
+        let id: u32 = rand.gen_range(600000000..700000000);
+
         let hashed_password = register
             .password
             .as_ref()
