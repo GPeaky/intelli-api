@@ -5,7 +5,6 @@ use crate::{
     error::{AppResult, SocketError},
 };
 use dashmap::DashMap;
-// use prost::Message;
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;
 use std::{
