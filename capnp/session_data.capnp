@@ -43,9 +43,9 @@ struct PacketSessionData {
     seasonLinkIdentifier @23 :UInt32;
     weekendLinkIdentifier @24 :UInt32;
     sessionLinkIdentifier @25 :UInt32;
-    pitStopWindowIdealLap @26 :UInt8;
-    pitStopWindowLatestLap @27 :UInt8;
-    pitStopRejoinPosition @28 :UInt8;
+    pitStopWindowIdealLap @26 :UInt32;
+    pitStopWindowLatestLap @27 :UInt32;
+    pitStopRejoinPosition @28 :UInt32;
     steeringAssist @29 :UInt8;
     brakingAssist @30 :UInt8;
     gearboxAssist @31 :UInt8;
@@ -57,7 +57,7 @@ struct PacketSessionData {
     dynamicRacingLineType @37 :UInt8;
     gameMode @38 :UInt8;
     ruleSet @39 :UInt8;
-    timeOfDay @40 :UInt32;
+    timeOfDay @40 :UInt8;
     sessionLength @41 :UInt8;
     speedUnitsLeadPlayer @42 :UInt8;
     temperatureUnitsLeadPlayer @43 :UInt8;
