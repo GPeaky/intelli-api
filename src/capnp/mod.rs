@@ -10,7 +10,7 @@ pub mod session_data_capnp;
 pub mod session_history_capnp;
 
 #[repr(u8)]
-pub(super) enum PacketId {
+pub enum PacketId {
     Motion,
     EventData,
     FinalClassification,
