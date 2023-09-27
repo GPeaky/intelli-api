@@ -1,5 +1,6 @@
 use crate::dtos::{EventDataDetails, PacketEventData};
 use capnp::message::{Builder, HeapAllocator};
+use tracing::info;
 
 include!(concat!(env!("OUT_DIR"), "/event_data_capnp.rs"));
 
