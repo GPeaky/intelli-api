@@ -20,7 +20,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(vec![
             HeaderValue::from_static("https://intellitelemetry.live"),
-            HeaderValue::from_static("http://localhost:3000"),
+            HeaderValue::from_static("http://localhost:5173"),
         ]))
         .allow_headers(AllowHeaders::any())
         .allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT]);
