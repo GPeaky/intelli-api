@@ -11,19 +11,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        rust:
-          - nightly
-          - beta
-          - stable
+        rust: [stable]
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install Cap'n Proto
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -42,10 +37,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install Cap'n Proto
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
