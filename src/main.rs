@@ -12,13 +12,13 @@ use std::{fs, io};
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+mod capnp;
 mod config;
 mod dtos;
 mod entity;
 mod error;
 mod handlers;
 mod middlewares;
-mod protos;
 mod repositories;
 mod response;
 mod routes;
