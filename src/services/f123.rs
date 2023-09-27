@@ -1,11 +1,15 @@
+use crate::protos::{
+    car_motion_data::PacketMotionData, event_data::PacketEventData, packet_header::PacketType,
+    participants::PacketParticipantsData, session_data::PacketSessionData,
+    session_history::PacketSessionHistoryData, PacketHeader,
+};
 use crate::{
-    capnp::{car_motion_capnp::build_car_motion, serialize_to_packet},
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
 use dashmap::DashMap;
-// use prost::Message;
+use prost::Message;
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;
 use std::{
@@ -121,14 +125,16 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let x = std::time::Instant::now();
+                                    let data: PacketMotionData = motion_data.into();
+                                    let data = data.encode_to_vec();
 
-                                    let message = serialize_to_packet(motion_data);
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::CarMotion.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
 
-                                    info!("Time to serialize: {:?}", x.elapsed());
-
-                                    tx.send(message).unwrap();
-
+                                    tx.send(packet).unwrap();
                                     last_car_motion_update = now;
                                 }
                             }
@@ -150,16 +156,16 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    // let data: PacketSessionData = session_data.into();
-                                    // let data = data.encode_to_vec();
+                                    let data: PacketSessionData = session_data.into();
+                                    let data = data.encode_to_vec();
 
-                                    // let packet = PacketHeader {
-                                    //     r#type: PacketType::SessionData.into(),
-                                    //     payload: data,
-                                    // }
-                                    // .encode_to_vec();
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::SessionData.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
 
-                                    // tx.send(packet).unwrap();
+                                    tx.send(packet).unwrap();
                                     last_session_update = now;
                                 }
                             }
@@ -181,16 +187,16 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    // let data: PacketParticipantsData = participants_data.into();
-                                    // let data = data.encode_to_vec();
+                                    let data: PacketParticipantsData = participants_data.into();
+                                    let data = data.encode_to_vec();
 
-                                    // let packet = PacketHeader {
-                                    //     r#type: PacketType::Participants.into(),
-                                    //     payload: data,
-                                    // }
-                                    // .encode_to_vec();
+                                    let packet = PacketHeader {
+                                        r#type: PacketType::Participants.into(),
+                                        payload: data,
+                                    }
+                                    .encode_to_vec();
 
-                                    // tx.send(packet).unwrap();
+                                    tx.send(packet).unwrap();
                                     last_participants_update = now;
                                 }
                             }
@@ -209,16 +215,16 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                // let data: PacketEventData = event_data.into();
-                                // let data = data.encode_to_vec();
+                                let data: PacketEventData = event_data.into();
+                                let data = data.encode_to_vec();
 
-                                // let packet = PacketHeader {
-                                //     r#type: PacketType::EventData.into(),
-                                //     payload: data,
-                                // }
-                                // .encode_to_vec();
+                                let packet = PacketHeader {
+                                    r#type: PacketType::EventData.into(),
+                                    payload: data,
+                                }
+                                .encode_to_vec();
 
-                                // tx.send(packet).unwrap();
+                                tx.send(packet).unwrap();
                             }
 
                             // TODO: Check if this is overbooking the server
@@ -258,16 +264,16 @@ impl F123Service {
                                     .await
                                     .unwrap();
 
-                                // let data: PacketSessionHistoryData = session_history.into();
-                                // let data = data.encode_to_vec();
+                                let data: PacketSessionHistoryData = session_history.into();
+                                let data = data.encode_to_vec();
 
-                                // let packet = PacketHeader {
-                                //     r#type: PacketType::SessionHistoryData.into(),
-                                //     payload: data,
-                                // }
-                                // .encode_to_vec();
+                                let packet = PacketHeader {
+                                    r#type: PacketType::SessionHistoryData.into(),
+                                    payload: data,
+                                }
+                                .encode_to_vec();
 
-                                // tx.send(packet).unwrap();
+                                tx.send(packet).unwrap();
 
                                 *last_update = now;
                                 *last_sectors = sectors;
