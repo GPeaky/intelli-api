@@ -1,11 +1,10 @@
 use crate::dtos::PacketMotionData;
-use capnp::message::{Builder, HeapAllocator};
+use capnp::message::{Builder, HeapAllocator, TypedBuilder, TypedReader};
 
 include!(concat!(env!("OUT_DIR"), "/car_motion_capnp.rs"));
 
-#[inline(always)]
-pub fn convert(value: Box<PacketMotionData>) -> Builder<HeapAllocator> {
-    let mut message = Builder::new_default();
+pub fn build_car_motion(value: Box<PacketMotionData>) -> capnp::message::Builder<HeapAllocator> {
+    let mut message = capnp::message::Builder::new_default();
     let packet_motion_data = message.init_root::<packet_motion_data::Builder>();
 
     let mut car_motion_data_list =

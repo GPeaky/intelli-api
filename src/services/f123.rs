@@ -1,5 +1,5 @@
-use crate::capnp::serialize_to_packet;
 use crate::{
+    capnp::{car_motion_capnp::build_car_motion, serialize_to_packet},
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
@@ -121,8 +121,11 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let message =
-                                        serialize_to_packet(F123Data::Motion(motion_data));
+                                    let x = std::time::Instant::now();
+
+                                    let message = serialize_to_packet(motion_data);
+
+                                    info!("Time to serialize: {:?}", x.elapsed());
 
                                     tx.send(message).unwrap();
 
@@ -147,10 +150,16 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    let message =
-                                        serialize_to_packet(F123Data::Session(session_data));
+                                    // let data: PacketSessionData = session_data.into();
+                                    // let data = data.encode_to_vec();
 
-                                    tx.send(message).unwrap();
+                                    // let packet = PacketHeader {
+                                    //     r#type: PacketType::SessionData.into(),
+                                    //     payload: data,
+                                    // }
+                                    // .encode_to_vec();
+
+                                    // tx.send(packet).unwrap();
                                     last_session_update = now;
                                 }
                             }
@@ -172,11 +181,16 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    let message = serialize_to_packet(F123Data::Participants(
-                                        participants_data,
-                                    ));
+                                    // let data: PacketParticipantsData = participants_data.into();
+                                    // let data = data.encode_to_vec();
 
-                                    tx.send(message).unwrap();
+                                    // let packet = PacketHeader {
+                                    //     r#type: PacketType::Participants.into(),
+                                    //     payload: data,
+                                    // }
+                                    // .encode_to_vec();
+
+                                    // tx.send(packet).unwrap();
                                     last_participants_update = now;
                                 }
                             }
@@ -195,8 +209,16 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let message = serialize_to_packet(F123Data::Event(event_data));
-                                tx.send(message).unwrap();
+                                // let data: PacketEventData = event_data.into();
+                                // let data = data.encode_to_vec();
+
+                                // let packet = PacketHeader {
+                                //     r#type: PacketType::EventData.into(),
+                                //     payload: data,
+                                // }
+                                // .encode_to_vec();
+
+                                // tx.send(packet).unwrap();
                             }
 
                             // TODO: Check if this is overbooking the server
@@ -236,10 +258,16 @@ impl F123Service {
                                     .await
                                     .unwrap();
 
-                                let message =
-                                    serialize_to_packet(F123Data::SessionHistory(session_history));
+                                // let data: PacketSessionHistoryData = session_history.into();
+                                // let data = data.encode_to_vec();
 
-                                tx.send(message).unwrap();
+                                // let packet = PacketHeader {
+                                //     r#type: PacketType::SessionHistoryData.into(),
+                                //     payload: data,
+                                // }
+                                // .encode_to_vec();
+
+                                // tx.send(packet).unwrap();
 
                                 *last_update = now;
                                 *last_sectors = sectors;
