@@ -2,6 +2,7 @@ use self::admin::admin_router;
 use super::handle_error;
 use crate::handlers::auth::callback;
 use crate::handlers::championships::socket_status;
+use crate::handlers::heartbeat;
 use crate::{
     config::Database,
     handlers::{
@@ -25,7 +26,6 @@ use axum::{
 };
 use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
-use crate::handlers::heartbeat;
 
 mod admin;
 
