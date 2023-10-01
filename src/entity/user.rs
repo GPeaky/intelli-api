@@ -23,6 +23,7 @@ pub struct User {
     pub username: String,
     #[serde(skip_serializing)]
     pub password: Option<String>,
+    #[serde(skip_serializing)]
     pub provider: Provider,
     pub avatar: String,
     pub role: Role,
