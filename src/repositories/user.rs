@@ -67,6 +67,6 @@ impl UserRepositoryTrait for UserRepository {
     }
 
     fn validate_password(&self, pwd: &str, hash: &str) -> bool {
-        bcrypt::verify(pwd, hash).is_ok()
+        bcrypt::verify(pwd, hash).unwrap()
     }
 }

@@ -17,6 +17,7 @@ use axum::{
 };
 use garde::Validate;
 use hyper::HeaderMap;
+use tracing::error;
 
 #[inline(always)]
 pub(crate) async fn register(
@@ -116,7 +117,10 @@ pub(crate) async fn refresh_token(
         .get("RefreshToken")
         .ok_or(UserError::InvalidRefreshToken)?
         .to_str()
-        .map_err(|_| UserError::InvalidRefreshToken)?;
+        .map_err(|e| {
+            error!("{:?}", e);
+            UserError::InvalidRefreshToken
+        })?;
 
     let new_token = state
         .token_service
