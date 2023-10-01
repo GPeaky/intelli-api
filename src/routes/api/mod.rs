@@ -25,6 +25,7 @@ use axum::{
 };
 use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
+use crate::handlers::heartbeat;
 
 mod admin;
 
@@ -74,6 +75,7 @@ pub(crate) async fn api_router(database: Arc<Database>) -> Router {
         .nest("/user", user_router)
         .nest("/championships", championships_router)
         .nest("/admin", admin_router(user_state.clone()))
+        .route("/heartbeat", get(heartbeat))
         .route(
             "/championships/:id/web_socket", // Removed /session/session:id to make it easier to use
             get(session_socket).with_state(user_state),
