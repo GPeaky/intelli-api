@@ -84,7 +84,7 @@ impl TokenServiceTrait for TokenService {
             .await
             .get(format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
-            .map_err(|_| TokenError::TokenExpired)?;
+            .map_err(|_| TokenError::TokenNotFound)?;
 
         if db_token.ne(refresh_token) {
             Err(TokenError::InvalidToken)?

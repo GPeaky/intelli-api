@@ -34,10 +34,7 @@ pub async fn auth_handler<T>(
     let extracted_token = &header_str[7..];
 
     // Validar el token
-    let token = state
-        .token_service
-        .validate(extracted_token)
-        .map_err(|_| TokenError::InvalidToken)?;
+    let token = state.token_service.validate(extracted_token)?;
 
     let Some(user) = state
         .user_repository

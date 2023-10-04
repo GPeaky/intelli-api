@@ -16,6 +16,8 @@ pub enum TokenError {
     MissingToken,
     #[error("Token error: {0}")]
     TokenCreationError(String),
+    #[error("Token not found")]
+    TokenNotFound,
     #[error("Invalid token type")]
     InvalidTokenType,
 }
@@ -27,6 +29,7 @@ impl IntoResponse for TokenError {
             TokenError::TokenExpired => StatusCode::BAD_REQUEST,
             TokenError::MissingToken => StatusCode::BAD_REQUEST,
             TokenError::TokenCreationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            TokenError::TokenNotFound => StatusCode::NOT_FOUND,
             TokenError::InvalidTokenType => StatusCode::BAD_REQUEST,
         };
 
