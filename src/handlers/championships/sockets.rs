@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 #[inline(always)]
 pub async fn active_sockets(State(state): State<SafeUserState>) -> AppResult<Json<Vec<u32>>> {
-    let sockets = state.f123_service.active_sockets();
+    let sockets = state.f123_service.active_sockets().await;
     Ok(Json(sockets))
 }
 
@@ -45,10 +45,10 @@ pub async fn socket_status(
     };
 
     let mut num_connections = 0;
-    let socket_active = state.f123_service.championship_socket(&championship.id);
+    let socket_active = state.f123_service.championship_socket(&championship.id).await;
 
     if socket_active {
-        num_connections = websocket_active_connections(championship_id);
+        num_connections = websocket_active_connections(championship_id).await;
     }
 
     Ok(Json(SocketStatus {
