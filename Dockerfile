@@ -1,4 +1,4 @@
-FROM rust:1.72.1-slim-bookworm
+FROM rust:1.73-slim-bookworm
 WORKDIR /usr/src/telemety-api
 
 COPY . .
