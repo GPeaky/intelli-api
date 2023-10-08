@@ -5,15 +5,16 @@ use crate::{
     error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
-use dashmap::DashSet;
+use rustc_hash::FxHashSet;
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use tokio::sync::RwLock;
 use std::sync::Arc;
 use tracing::info;
 
 #[derive(Clone)]
 pub struct ChampionshipService {
     db: Arc<Database>,
-    ports: DashSet<u16>,
+    ports: Arc<RwLock<FxHashSet<u16>>>,
     #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
@@ -26,7 +27,7 @@ impl ChampionshipService {
             .unwrap();
 
         Self {
-            ports,
+            ports: Arc::new(RwLock::new(ports)),
             db: db_conn.clone(),
             championship_repository,
         }
@@ -107,8 +108,8 @@ impl ChampionshipService {
 
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
-    ) -> AppResult<DashSet<u16>> {
-        let all_ports: DashSet<u16> = (20777..=20850).collect();
+    ) -> AppResult<FxHashSet<u16>> {
+        let mut all_ports: FxHashSet<u16> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for port in ports_in_use {
@@ -120,7 +121,9 @@ impl ChampionshipService {
     }
 
     async fn get_port(&self) -> AppResult<u16> {
-        if let Some(port) = self.ports.iter().next() {
+        let ports = self.ports.read().await;
+
+        if let Some(port) = ports.iter().next() {
             Ok(*port)
         } else {
             Err(CommonError::NotPortsAvailable)?
@@ -128,7 +131,9 @@ impl ChampionshipService {
     }
 
     async fn remove_port(&self, port: u16) -> AppResult<()> {
-        self.ports.remove(&port);
+        let mut ports = self.ports.write().await;
+        ports.remove(&port);
+
         Ok(())
     }
 }

@@ -10,12 +10,14 @@ use axum::{
     },
     response::Response,
 };
-use dashmap::DashMap;
+use rustc_hash::FxHashMap;
 use once_cell::sync::Lazy;
-use std::sync::atomic::AtomicUsize;
+use tokio::sync::RwLock;
+use std::sync::{atomic::AtomicUsize, Arc};
 use tracing::{error, info};
 
-static ACTIVE_CONNECTIONS: Lazy<DashMap<u32, AtomicUsize>> = Lazy::new(DashMap::new);
+static DEFAULT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+static ACTIVE_CONNECTIONS: Lazy<Arc<RwLock<FxHashMap<u32, AtomicUsize>>>> = Lazy::new(|| Arc::new(RwLock::new(FxHashMap::default())));
 
 #[inline(always)]
 pub async fn session_socket(
@@ -27,7 +29,7 @@ pub async fn session_socket(
         Err(ChampionshipError::NotFound)?
     };
 
-    let socket_active = state.f123_service.championship_socket(&championship.id);
+    let socket_active = state.f123_service.championship_socket(&championship.id).await;
 
     if !socket_active {
         Err(SocketError::NotActive)?
@@ -43,7 +45,7 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
         return;
     };
 
-    increment_counter(championship.id);
+    increment_counter(championship.id).await;
 
     loop {
         tokio::select! {
@@ -75,28 +77,28 @@ async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship
         }
     }
 
-    decrement_counter(championship.id);
+    decrement_counter(championship.id).await;
 }
 
 #[inline(always)]
-fn increment_counter(championship_id: u32) {
-    let counter = ACTIVE_CONNECTIONS
-        .entry(championship_id)
-        .or_insert(AtomicUsize::new(0));
+async fn increment_counter(championship_id: u32) {
+    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
+    let counter = active_connections.entry(championship_id).or_insert(AtomicUsize::new(0));
+
     counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[inline(always)]
-fn decrement_counter(championship_id: u32) {
-    let counter = ACTIVE_CONNECTIONS
-        .entry(championship_id)
-        .or_insert(AtomicUsize::new(0));
+async fn decrement_counter(championship_id: u32) {
+    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
+    let counter = active_connections.entry(championship_id).or_insert(AtomicUsize::new(1));
+
     counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
 }
 
-pub fn websocket_active_connections(championship_id: u32) -> usize {
-    let counter = ACTIVE_CONNECTIONS
-        .entry(championship_id)
-        .or_insert(AtomicUsize::new(0));
+pub async fn websocket_active_connections(championship_id: u32) -> usize {
+    let active_connection = ACTIVE_CONNECTIONS.read().await;
+    let counter = active_connection.get(&championship_id).unwrap_or(&DEFAULT_COUNTER);
+
     counter.load(std::sync::atomic::Ordering::Relaxed)
 }
