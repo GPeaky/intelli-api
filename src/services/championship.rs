@@ -5,10 +5,10 @@ use crate::{
     error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
-use rustc_hash::FxHashSet;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use tokio::sync::RwLock;
+use rustc_hash::FxHashSet;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing::info;
 
 #[derive(Clone)]

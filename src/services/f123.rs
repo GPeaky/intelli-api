@@ -358,11 +358,7 @@ impl F123Service {
         Ok(())
     }
 
-    async fn external_close_socket(
-        channels: &Channels,
-        sockets: &Sockets,
-        championship_id: &u32,
-    ) {
+    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &u32) {
         let mut sockets = sockets.write().await;
         let mut channels = channels.write().await;
 

@@ -45,7 +45,10 @@ pub async fn socket_status(
     };
 
     let mut num_connections = 0;
-    let socket_active = state.f123_service.championship_socket(&championship.id).await;
+    let socket_active = state
+        .f123_service
+        .championship_socket(&championship.id)
+        .await;
 
     if socket_active {
         num_connections = websocket_active_connections(championship_id).await;
