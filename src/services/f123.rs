@@ -29,12 +29,14 @@ const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
 type F123Channel = Arc<Sender<Vec<u8>>>;
+type Sockets = Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>;
+type Channels = Arc<RwLock<FxHashMap<u32, F123Channel>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
-    sockets: Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>,
-    channels: Arc<RwLock<FxHashMap<u32, F123Channel>>>,
+    sockets: Sockets,
+    channels: Channels,
 }
 
 impl F123Service {
@@ -357,8 +359,8 @@ impl F123Service {
     }
 
     async fn external_close_socket(
-        channels: &Arc<RwLock<FxHashMap<u32, F123Channel>>>,
-        sockets: &Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>,
+        channels: &Channels,
+        sockets: &Sockets,
         championship_id: &u32,
     ) {
         let mut sockets = sockets.write().await;
@@ -373,7 +375,7 @@ impl F123Service {
 
     pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
         let channels = self.channels.read().await;
-        let channel = channels.get(&championship_id);
+        let channel = channels.get(championship_id);
 
         Some(channel.unwrap().subscribe())
     }
