@@ -3,7 +3,6 @@ version = "0.1.5"
 name = "intelli"
 edition = "2021"
 readme = "README.md"
-rust-version = "1.72.0"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
 repository = "https://github.com/GPeaky/intelli-api"
@@ -27,17 +26,17 @@ serde_trim = "1.0.0"
 jsonwebtoken = "8.3.0"
 rustls-pemfile = "1.0.3"
 serde-big-array = "0.5.1"
-tokio = { version = "1.32.0", features = ["full"] }
+tokio = { version = "1.33.0", features = ["full"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
-reqwest = { version = "0.11.20", features = ["json"] }
+reqwest = { version = "0.11.22", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 hyper-rustls = { version = "0.24.1", features = ["http2"] }
 hyper = { version = "0.14.27", features = ["http2", "full"] }
 tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-sqlx = { version = "0.7.1", features = ["runtime-tokio", "mysql", "chrono"] }
+sqlx = { version = "0.7.2", features = ["runtime-tokio", "mysql", "chrono"] }
 lettre = { version = "0.10.4", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
@@ -63,7 +62,7 @@ rand = "0.8.5"
 [profile.release]
 debug = 0
 lto = "fat"
-opt-level = 3 
+opt-level = 3
 codegen-units = 1
 split-debuginfo = "off"
 #panic = "abort"
