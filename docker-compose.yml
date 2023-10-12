@@ -2,13 +2,10 @@ version: "3.8"
 
 services:
   api:
-    container_name: intelli-api
     build: .
-    ports:
-      - "443:443"
-      - "20777-20850:20777-20850/udp"
-
-    restart: always
+    network_mode: host
+    restart: unless-stopped
+    container_name: intelli-api
 
     env_file:
       - .env
