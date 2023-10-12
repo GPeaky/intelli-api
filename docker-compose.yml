@@ -1,11 +1,26 @@
 version: "3.8"
 
+volumes:
+  keydb-data: {}
+
 services:
   api:
     build: .
     network_mode: host
     restart: unless-stopped
     container_name: intelli-api
+    depends_on:
+      - keydb
 
     env_file:
       - .env
+
+  keydb:
+    container_name: keydb
+    image: eqalpha/keydb
+
+    ports:
+      - 127.0.0.1:6379:6379
+
+    volumes:
+      - keydb-data:/data
