@@ -18,6 +18,7 @@ services:
   keydb:
     container_name: keydb
     image: eqalpha/keydb
+    restart: unless-stopped
 
     ports:
       - 127.0.0.1:6379:6379
