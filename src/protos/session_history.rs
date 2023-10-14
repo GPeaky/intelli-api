@@ -29,6 +29,7 @@ impl From<BTyreStintHistoryData> for TyreStintHistoryData {
         }
     }
 }
+
 impl From<Box<BPacketSessionHistoryData>> for PacketSessionHistoryData {
     fn from(value: Box<BPacketSessionHistoryData>) -> Self {
         Self {
@@ -42,11 +43,13 @@ impl From<Box<BPacketSessionHistoryData>> for PacketSessionHistoryData {
             m_lap_history_data: value
                 .m_lapHistoryData
                 .into_iter()
+                .take_while(|lap| lap.m_sector1TimeInMS > 0)
                 .map(|lap_history_data| lap_history_data.into())
                 .collect(),
             m_tyre_stints_history_data: value
                 .m_tyreStintsHistoryData
                 .into_iter()
+                .take_while(|stint| stint.m_tyreActualCompound > 0)
                 .map(|tyre_stint_history_data| tyre_stint_history_data.into())
                 .collect(),
         }
