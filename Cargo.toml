@@ -58,7 +58,6 @@ tower = { version = "0.4.13", features = [
     "load-shed",
 ] }
 rand = "0.8.5"
-axum-otel-metrics = "0.6.0"
 
 [profile.release]
 debug = 0
