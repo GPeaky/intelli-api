@@ -49,7 +49,7 @@ pub struct RefreshResponse {
     pub access_token: String,
 }
 
-#[derive(Clone, Deserialize, Debug, Validate)]
+#[derive(Deserialize, Debug, Validate)]
 pub struct RegisterUserDto {
     #[garde(length(min = 3, max = 20))]
     #[serde(deserialize_with = "string_trim")]

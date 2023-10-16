@@ -18,7 +18,7 @@ impl Database {
 
         let redis = Client::open(var("REDIS_URL").unwrap()).unwrap();
 
-        info!("Prepared Statements Saved!, Returning Database Instance");
+        info!("Databases connected!");
         Self { redis, mysql }
     }
 

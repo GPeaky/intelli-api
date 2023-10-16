@@ -10,7 +10,6 @@ use std::{fs, sync::Arc};
 
 const REFRESH_TOKEN_EXPIRATION: usize = 7 * 24 * 60 * 60;
 
-#[derive(Clone)]
 pub struct TokenService {
     header: Header,
     validation: Validation,

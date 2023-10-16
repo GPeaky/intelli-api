@@ -32,7 +32,6 @@ type F123Channel = Arc<Sender<Vec<u8>>>;
 type Sockets = Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>;
 type Channels = Arc<RwLock<FxHashMap<u32, F123Channel>>>;
 
-#[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Sockets,

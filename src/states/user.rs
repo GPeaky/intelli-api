@@ -8,10 +8,9 @@ use crate::{
 };
 use std::sync::Arc;
 
-pub type SafeUserState = Arc<UserState>;
+pub type UserState = Arc<UserStateInner>;
 
-#[derive(Clone)]
-pub struct UserState {
+pub struct UserStateInner {
     pub user_service: UserService,
     pub user_repository: UserRepository,
     pub token_service: TokenService,
@@ -21,7 +20,7 @@ pub struct UserState {
     pub f123_repository: F123Repository,
 }
 
-impl UserState {
+impl UserStateInner {
     pub async fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             user_service: UserService::new(db_conn),

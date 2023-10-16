@@ -2,7 +2,6 @@ use crate::dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo};
 use crate::error::AppResult;
 use dotenvy::var;
 
-#[derive(Clone)]
 pub struct GoogleRepository {
     client_id: String,
     client_secret: String,

@@ -1,7 +1,7 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError},
-    states::SafeUserState,
+    states::UserState,
 };
 use axum::{
     extract::{Path, State},
@@ -12,7 +12,7 @@ use hyper::StatusCode;
 
 #[inline(always)]
 pub async fn user_championships(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(user_id): Path<u32>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state
@@ -25,7 +25,7 @@ pub async fn user_championships(
 
 #[inline(always)]
 pub async fn delete_championship(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(id): Path<u32>,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&id).await? else {
