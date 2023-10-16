@@ -1,6 +1,6 @@
 use crate::{
     dtos::CreateChampionshipDto,
-    entity::{Championship, User},
+    entity::{Championship, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
     states::UserState,
 };
@@ -24,7 +24,7 @@ const MAXIMUM_CHAMPIONSHIPS: usize = 3;
 
 #[inline(always)]
 pub async fn create_championship(
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
     State(state): State<UserState>,
     Form(form): Form<CreateChampionshipDto>,
 ) -> AppResult<Response> {
@@ -61,7 +61,7 @@ pub async fn get_championship(
 #[inline(always)]
 pub async fn all_championships(
     State(state): State<UserState>,
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state.championship_repository.find_all(&user.id).await?;
 

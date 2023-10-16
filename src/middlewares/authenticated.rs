@@ -10,6 +10,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use std::sync::Arc;
 
 pub async fn auth_handler<T>(
     State(state): State<UserState>,
@@ -48,6 +49,6 @@ pub async fn auth_handler<T>(
         return Err(UserError::NotVerified)?;
     }
 
-    req.extensions_mut().insert(user);
+    req.extensions_mut().insert(Arc::new(user));
     Ok(next.run(req).await)
 }

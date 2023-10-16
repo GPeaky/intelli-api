@@ -1,5 +1,5 @@
 use crate::{
-    entity::User,
+    entity::UserExtension,
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
@@ -17,7 +17,7 @@ use hyper::StatusCode;
 pub async fn delete_user(
     State(state): State<UserState>,
     Path(id): Path<u32>,
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
@@ -37,7 +37,7 @@ pub async fn delete_user(
 pub async fn disable_user(
     State(state): State<UserState>,
     Path(id): Path<u32>,
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
@@ -60,7 +60,7 @@ pub async fn disable_user(
 pub async fn enable_user(
     State(state): State<UserState>,
     Path(id): Path<u32>,
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
