@@ -3,7 +3,7 @@ use crate::{
         AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
         ResetPasswordDto, ResetPasswordQuery, TokenType,
     },
-    entity::{User, UserExtension},
+    entity::UserExtension,
     error::{AppResult, CommonError, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
