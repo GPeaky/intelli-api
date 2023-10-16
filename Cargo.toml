@@ -23,7 +23,7 @@ rustc-hash = "1.1.0"
 once_cell = "1.18.0"
 thiserror = "1.0.49"
 serde_trim = "1.0.0"
-jsonwebtoken = "8.3.0"
+jsonwebtoken = "9.0.0"
 rustls-pemfile = "1.0.3"
 serde-big-array = "0.5.1"
 tokio = { version = "1.33.0", features = ["full"] }
