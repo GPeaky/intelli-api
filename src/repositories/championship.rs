@@ -1,7 +1,6 @@
 use crate::{config::Database, entity::Championship, error::AppResult};
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct ChampionshipRepository {
     database: Arc<Database>,
 }

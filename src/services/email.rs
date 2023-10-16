@@ -7,7 +7,6 @@ use lettre::{
 };
 use std::str::FromStr;
 
-#[derive(Clone)]
 pub struct EmailService {
     from_mailbox: Mailbox,
     mailer: AsyncSmtpTransport<Tokio1Executor>,

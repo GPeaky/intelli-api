@@ -1,7 +1,7 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
-    states::SafeUserState,
+    states::UserState,
 };
 use axum::{
     extract::{
@@ -22,7 +22,7 @@ static ACTIVE_CONNECTIONS: Lazy<Arc<RwLock<FxHashMap<u32, AtomicUsize>>>> =
 
 #[inline(always)]
 pub async fn session_socket(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(championship_id): Path<u32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
@@ -43,7 +43,7 @@ pub async fn session_socket(
 }
 
 #[inline(always)]
-async fn handle_socket(mut socket: WebSocket, state: SafeUserState, championship: Championship) {
+async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
     let Some(mut rx) = state.f123_service.get_receiver(&championship.id).await else {
         error!("Receiver not Found");
         return;

@@ -1,7 +1,6 @@
 use crate::{config::Database, entity::EventData, error::AppResult};
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct F123Repository {
     database: Arc<Database>,
 }

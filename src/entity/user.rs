@@ -1,22 +1,25 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Type};
+use std::sync::Arc;
+
+pub type UserExtension = Arc<User>;
 
 #[repr(u8)]
-#[derive(Type, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Type, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Provider {
     Local,
     Google,
 }
 
 #[repr(u8)]
-#[derive(Type, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Type, Debug, Serialize, PartialEq, Eq)]
 pub enum Role {
     User,
     Admin,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, FromRow)]
 pub struct User {
     pub id: u32,
     pub email: String,

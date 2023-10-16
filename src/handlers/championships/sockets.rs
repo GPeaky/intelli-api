@@ -2,7 +2,7 @@ use crate::{
     dtos::SocketStatus,
     error::{AppResult, ChampionshipError},
     handlers::championships::websocket_active_connections,
-    states::SafeUserState,
+    states::UserState,
 };
 use axum::{
     extract::{Path, State},
@@ -13,14 +13,14 @@ use hyper::StatusCode;
 use std::sync::Arc;
 
 #[inline(always)]
-pub async fn active_sockets(State(state): State<SafeUserState>) -> AppResult<Json<Vec<u32>>> {
+pub async fn active_sockets(State(state): State<UserState>) -> AppResult<Json<Vec<u32>>> {
     let sockets = state.f123_service.active_sockets().await;
     Ok(Json(sockets))
 }
 
 #[inline(always)]
 pub async fn start_socket(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
@@ -37,7 +37,7 @@ pub async fn start_socket(
 
 #[inline(always)]
 pub async fn socket_status(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<SocketStatus>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
@@ -62,7 +62,7 @@ pub async fn socket_status(
 
 #[inline(always)]
 pub async fn stop_socket(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Response> {
     state.f123_service.stop_socket(championship_id).await?;

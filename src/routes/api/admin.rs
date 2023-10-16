@@ -13,10 +13,9 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
-use std::sync::Arc;
 
 #[inline(always)]
-pub fn admin_router(state: Arc<UserState>) -> Router {
+pub fn admin_router(state: UserState) -> Router {
     let socket_router = Router::new().route("/sockets", get(active_sockets));
 
     let user_router = Router::new()

@@ -2,7 +2,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::TokenServiceTrait,
-    states::SafeUserState,
+    states::UserState,
 };
 use axum::{
     extract::State,
@@ -10,9 +10,10 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use std::sync::Arc;
 
 pub async fn auth_handler<T>(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     mut req: Request<T>,
     next: Next<T>,
 ) -> AppResult<Response> {
@@ -48,6 +49,6 @@ pub async fn auth_handler<T>(
         return Err(UserError::NotVerified)?;
     }
 
-    req.extensions_mut().insert(user);
+    req.extensions_mut().insert(Arc::new(user));
     Ok(next.run(req).await)
 }

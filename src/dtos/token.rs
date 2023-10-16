@@ -2,7 +2,7 @@ use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 
 //* Token Type Enum
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum TokenType {
     Bearer,
     Email,
@@ -10,7 +10,7 @@ pub enum TokenType {
     RefreshBearer,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TokenClaim {
     pub exp: usize,
     pub sub: String,

@@ -1,8 +1,8 @@
 use crate::{
     dtos::CreateChampionshipDto,
-    entity::{Championship, User},
+    entity::{Championship, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
-    states::SafeUserState,
+    states::UserState,
 };
 use axum::{
     extract::{Path, State},
@@ -24,8 +24,8 @@ const MAXIMUM_CHAMPIONSHIPS: usize = 3;
 
 #[inline(always)]
 pub async fn create_championship(
-    Extension(user): Extension<User>,
-    State(state): State<SafeUserState>,
+    Extension(user): Extension<UserExtension>,
+    State(state): State<UserState>,
     Form(form): Form<CreateChampionshipDto>,
 ) -> AppResult<Response> {
     if form.validate(&()).is_err() {
@@ -48,7 +48,7 @@ pub async fn create_championship(
 
 #[inline(always)]
 pub async fn get_championship(
-    State(state): State<SafeUserState>,
+    State(state): State<UserState>,
     Path(championship_id): Path<u32>,
 ) -> AppResult<Json<Championship>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
@@ -60,8 +60,8 @@ pub async fn get_championship(
 
 #[inline(always)]
 pub async fn all_championships(
-    State(state): State<SafeUserState>,
-    Extension(user): Extension<User>,
+    State(state): State<UserState>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state.championship_repository.find_all(&user.id).await?;
 

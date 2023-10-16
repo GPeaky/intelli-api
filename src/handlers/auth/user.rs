@@ -3,7 +3,7 @@ use crate::{
         AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
         ResetPasswordDto, ResetPasswordQuery, TokenType,
     },
-    entity::User,
+    entity::UserExtension,
     error::{AppResult, CommonError, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
@@ -136,7 +136,7 @@ pub(crate) async fn refresh_token(
 pub(crate) async fn logout(
     headers: HeaderMap,
     State(state): State<AuthState>,
-    Extension(user): Extension<User>,
+    Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let fingerprint = headers
         .get("Fingerprint")

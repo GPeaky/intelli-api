@@ -12,7 +12,6 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tracing::info;
 
-#[derive(Clone)]
 pub struct UserService {
     db_conn: Arc<Database>,
     #[allow(unused)]

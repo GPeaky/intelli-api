@@ -11,7 +11,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
 
-#[derive(Clone)]
 pub struct ChampionshipService {
     db: Arc<Database>,
     ports: Arc<RwLock<FxHashSet<u16>>>,

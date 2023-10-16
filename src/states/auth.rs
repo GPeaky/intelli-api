@@ -5,8 +5,9 @@ use crate::{
 };
 use std::sync::Arc;
 
-#[derive(Clone)]
-pub struct AuthState {
+pub type AuthState = Arc<AuthStateInner>;
+
+pub struct AuthStateInner {
     pub user_service: UserService,
     pub user_repository: UserRepository,
     pub token_service: TokenService,
@@ -14,7 +15,7 @@ pub struct AuthState {
     pub google_repository: GoogleRepository,
 }
 
-impl AuthState {
+impl AuthStateInner {
     pub fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             user_service: UserService::new(db_conn),
