@@ -13,7 +13,7 @@ prost-build = "0.12.1"
 
 [dependencies]
 prost = "0.12.1"
-garde = "0.15.0"
+garde = "0.16.0"
 bcrypt = "0.15.0"
 rustls = "0.21.7"
 tracing = "0.1.39"
