@@ -26,6 +26,7 @@ impl From<BCarMotionData> for CarMotionData {
         }
     }
 }
+
 impl From<Box<BPacketMotionData>> for PacketMotionData {
     fn from(packet: Box<BPacketMotionData>) -> Self {
         Self {
