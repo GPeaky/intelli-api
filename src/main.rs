@@ -27,7 +27,7 @@ async fn main() {
     initialize_tracing_subscriber();
     let db = Database::default().await;
 
-    let incoming = TcpListener::bind(&var("HOST").unwrap()).unwrap();
+    let incoming = TcpListener::bind(var("HOST").unwrap()).unwrap();
 
     Server::from_tcp(incoming)
         .unwrap()

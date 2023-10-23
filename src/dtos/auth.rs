@@ -8,7 +8,7 @@ pub struct GoogleCallbackQuery {
     pub code: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct GoogleTokenRequest<'a> {
     pub client_id: &'a str,
     pub client_secret: &'a str,
