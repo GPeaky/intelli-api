@@ -111,6 +111,14 @@ impl F123Service {
                             continue;
                         };
 
+                        if header.m_gameYear.ne(&23) || header.m_packetFormat.ne(&2023) {
+                            error!(
+                                "Not supported client, Game Year : {}, Packet Format: {}",
+                                header.m_gameYear, header.m_packetFormat
+                            );
+                            break;
+                        }
+
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id.eq(&0) {
