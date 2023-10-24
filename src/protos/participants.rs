@@ -1,16 +1,13 @@
 include!(concat!(env!("OUT_DIR"), "/participants_generated.rs"));
 
-use super::ToProtoMessage;
+use super::ToFlatBufferMessage;
 use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
 use std::ffi::CString;
 
-impl ToProtoMessage for BPacketParticipantsData {
-    type ProtoType = Vec<u8>;
-
-    fn to_proto(self) -> Self::ProtoType {
+impl ToFlatBufferMessage for BPacketParticipantsData {
+    fn to_flatbuffer(self) -> Vec<u8> {
         let mut builder = flatbuffers::FlatBufferBuilder::new();
 
-        // Convert m_participants from protobuf to FlatBuffers
         let participants_vec: Vec<_> = self
             .m_participants
             .into_iter()
@@ -40,7 +37,6 @@ impl ToProtoMessage for BPacketParticipantsData {
 
         let participants_offset = Some(builder.create_vector(&participants_vec));
 
-        // Create PacketParticipantsData in FlatBuffers
         let packet_data = protos::participants::PacketParticipantsData::create(
             &mut builder,
             &protos::participants::PacketParticipantsDataArgs {

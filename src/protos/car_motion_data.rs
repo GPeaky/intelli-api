@@ -1,19 +1,16 @@
 include!(concat!(env!("OUT_DIR"), "/car_motion_generated.rs"));
 
-use super::ToProtoMessage;
+use super::ToFlatBufferMessage;
 use crate::dtos::PacketMotionData as BPacketMotionData;
 use flatbuffers::FlatBufferBuilder;
 use protos::car_motion_data::{
     CarMotionData, CarMotionDataArgs, PacketMotionData, PacketMotionDataArgs,
 };
 
-impl ToProtoMessage for BPacketMotionData {
-    type ProtoType = Vec<u8>; // Vamos a retornar el FlatBuffer como un Vec<u8>
-
-    fn to_proto(self) -> Self::ProtoType {
+impl ToFlatBufferMessage for BPacketMotionData {
+    fn to_flatbuffer(self) -> Vec<u8> {
         let mut builder = FlatBufferBuilder::new();
 
-        // Convertir m_carMotionData en un vector de offsets de CarMotionData
         let car_motion_data: Vec<_> = self
             .m_carMotionData
             .into_iter()
@@ -44,10 +41,8 @@ impl ToProtoMessage for BPacketMotionData {
             })
             .collect();
 
-        // Crear un vector en el FlatBuffer para m_car_motion_data
         let car_motion_data_vec = Some(builder.create_vector(&car_motion_data));
 
-        // Construir el PacketMotionData y finalizar el FlatBuffer
         let packet_motion_data = PacketMotionData::create(
             &mut builder,
             &PacketMotionDataArgs {

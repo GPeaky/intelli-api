@@ -1,84 +1,112 @@
 include!(concat!(env!("OUT_DIR"), "/session_data_generated.rs"));
 
-use super::ToProtoMessage;
+use super::ToFlatBufferMessage;
 use crate::dtos::PacketSessionData as BPacketSessionData;
+use flatbuffers::FlatBufferBuilder;
+use protos::session_data::{
+    MarshalZone, MarshalZoneArgs, PacketSessionData, PacketSessionDataArgs, WeatherForecastSample,
+    WeatherForecastSampleArgs,
+};
 
-impl ToProtoMessage for BPacketSessionData {
-    type ProtoType = PacketSessionData;
+impl ToFlatBufferMessage for BPacketSessionData {
+    fn to_flatbuffer(self) -> Vec<u8> {
+        let mut builder = FlatBufferBuilder::new();
 
-    fn to_proto(self) -> Self::ProtoType {
-        PacketSessionData {
-            m_weather: self.m_weather as u32,
-            m_track_temperature: self.m_trackTemperature as i32,
-            m_air_temperature: self.m_airTemperature as i32,
-            m_total_laps: self.m_totalLaps as u32,
-            m_track_length: self.m_trackLength as u32,
-            m_session_type: self.m_sessionType as u32,
-            m_track_id: self.m_trackId as i32,
-            m_formula: self.m_formula as u32,
-            m_session_time_left: self.m_sessionTimeLeft as u32,
-            m_session_duration: self.m_sessionDuration as u32,
-            m_pit_speed_limit: self.m_pitSpeedLimit as u32,
-            m_game_paused: self.m_gamePaused as u32,
-            m_is_spectating: self.m_isSpectating as u32,
-            m_spectator_car_index: self.m_spectatorCarIndex as u32,
-            m_sli_pro_native_support: self.m_sliProNativeSupport as u32,
-            m_num_marshal_zones: self.m_numMarshalZones as u32,
-            m_safety_car_status: self.m_safetyCarStatus as u32,
-            m_network_game: self.m_networkGame as u32,
-            m_num_weather_forecast_samples: self.m_numWeatherForecastSamples as u32,
-            m_forecast_accuracy: self.m_forecastAccuracy as u32,
-            m_ai_difficulty: self.m_aiDifficulty as u32,
-            m_season_link_identifier: self.m_seasonLinkIdentifier,
-            m_weekend_link_identifier: self.m_weekendLinkIdentifier,
-            m_session_link_identifier: self.m_sessionLinkIdentifier,
-            m_pit_stop_window_ideal_lap: self.m_pitStopWindowIdealLap as u32,
-            m_pit_stop_window_latest_lap: self.m_pitStopWindowLatestLap as u32,
-            m_pit_stop_rejoin_position: self.m_pitStopRejoinPosition as u32,
-            m_steering_assist: self.m_steeringAssist as u32,
-            m_braking_assist: self.m_brakingAssist as u32,
-            m_gearbox_assist: self.m_gearboxAssist as u32,
-            m_pit_assist: self.m_pitAssist as u32,
-            m_pit_release_assist: self.m_pitReleaseAssist as u32,
-            m_ers_assist: self.m_ERSAssist as u32,
-            m_drs_assist: self.m_DRSAssist as u32,
-            m_dynamic_racing_line: self.m_dynamicRacingLine as u32,
-            m_dynamic_racing_line_type: self.m_dynamicRacingLineType as u32,
-            m_game_mode: self.m_gameMode as u32,
-            m_rule_set: self.m_ruleSet as u32,
-            m_time_of_day: self.m_timeOfDay,
-            m_session_length: self.m_sessionLength as u32,
-            m_speed_units_lead_player: self.m_speedUnitsLeadPlayer as u32,
-            m_temperature_units_lead_player: self.m_temperatureUnitsLeadPlayer as u32,
-            m_speed_units_secondary_player: self.m_speedUnitsSecondaryPlayer as u32,
-            m_temperature_units_secondary_player: self.m_temperatureUnitsSecondaryPlayer as u32,
-            m_num_safety_car_periods: self.m_numSafetyCarPeriods as u32,
-            m_num_virtual_safety_car_periods: self.m_numVirtualSafetyCarPeriods as u32,
-            m_num_red_flag_periods: self.m_numRedFlagPeriods as u32,
+        let weather_forecast_samples_offsets = self
+            .m_weatherForecastSamples
+            .iter()
+            .map(|sample| {
+                WeatherForecastSample::create(
+                    &mut builder,
+                    &WeatherForecastSampleArgs {
+                        m_session_type: sample.m_sessionType,
+                        m_time_offset: sample.m_timeOffset,
+                        m_weather: sample.m_weather,
+                        m_track_temperature: sample.m_trackTemperature,
+                        m_track_temperature_change: sample.m_trackTemperatureChange,
+                        m_air_temperature: sample.m_airTemperature,
+                        m_air_temperature_change: sample.m_airTemperatureChange,
+                        m_rain_percentage: sample.m_rainPercentage,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
 
-            m_marshal_zones: self
-                .m_marshalZones
-                .into_iter()
-                .map(|marshal_zone| MarshalZone {
-                    m_zone_start: marshal_zone.m_zoneStart,
-                    m_zone_flag: marshal_zone.m_zoneFlag as i32,
-                })
-                .collect(),
+        let weather_forecast_samples_vector =
+            builder.create_vector(&weather_forecast_samples_offsets);
 
-            m_weather_forecast_samples: self
-                .m_weatherForecastSamples
-                .into_iter()
-                .map(|sample| WeatherForecastSample {
-                    m_session_type: sample.m_sessionType as u32,
-                    m_time_offset: sample.m_timeOffset as u32,
-                    m_weather: sample.m_weather as u32,
-                    m_track_temperature: sample.m_trackTemperature as i32,
-                    m_track_temperature_change: sample.m_trackTemperatureChange as i32,
-                    m_air_temperature: sample.m_airTemperature as i32,
-                    m_air_temperature_change: sample.m_airTemperatureChange as i32,
-                    m_rain_percentage: sample.m_rainPercentage as u32,
-                })
-                .collect(),
-        }
+        let marshal_zones_offsets: Vec<_> = self
+            .m_marshalZones
+            .iter()
+            .map(|marshal_zone| {
+                MarshalZone::create(
+                    &mut builder,
+                    &MarshalZoneArgs {
+                        m_zone_start: marshal_zone.m_zoneStart,
+                        m_zone_flag: marshal_zone.m_zoneFlag,
+                    },
+                )
+            })
+            .collect();
+
+        let marshal_zones_vector = builder.create_vector(&marshal_zones_offsets);
+
+        let session_data = PacketSessionData::create(
+            &mut builder,
+            &PacketSessionDataArgs {
+                m_weather: self.m_weather,
+                m_track_temperature: self.m_trackTemperature,
+                m_air_temperature: self.m_airTemperature,
+                m_total_laps: self.m_totalLaps,
+                m_track_length: self.m_trackLength,
+                m_session_type: self.m_sessionType,
+                m_track_id: self.m_trackId,
+                m_formula: self.m_formula,
+                m_session_time_left: self.m_sessionTimeLeft,
+                m_session_duration: self.m_sessionDuration,
+                m_pit_speed_limit: self.m_pitSpeedLimit,
+                m_game_paused: self.m_gamePaused,
+                m_is_spectating: self.m_isSpectating,
+                m_spectator_car_index: self.m_spectatorCarIndex,
+                m_sli_pro_native_support: self.m_sliProNativeSupport,
+                m_num_marshal_zones: self.m_numMarshalZones,
+                m_marshal_zones: Some(marshal_zones_vector),
+                m_safety_car_status: self.m_safetyCarStatus,
+                m_network_game: self.m_networkGame,
+                m_num_weather_forecast_samples: self.m_numWeatherForecastSamples,
+                m_weather_forecast_samples: Some(weather_forecast_samples_vector),
+                m_forecast_accuracy: self.m_forecastAccuracy,
+                m_ai_difficulty: self.m_aiDifficulty,
+                m_season_link_identifier: self.m_seasonLinkIdentifier,
+                m_weekend_link_identifier: self.m_weekendLinkIdentifier,
+                m_session_link_identifier: self.m_sessionLinkIdentifier,
+                m_pit_stop_window_ideal_lap: self.m_pitStopWindowIdealLap,
+                m_pit_stop_window_latest_lap: self.m_pitStopWindowLatestLap,
+                m_pit_stop_rejoin_position: self.m_pitStopRejoinPosition,
+                m_steering_assist: self.m_steeringAssist,
+                m_braking_assist: self.m_brakingAssist,
+                m_gearbox_assist: self.m_gearboxAssist,
+                m_pit_assist: self.m_pitAssist,
+                m_pit_release_assist: self.m_pitReleaseAssist,
+                m_ers_assist: self.m_ERSAssist,
+                m_drs_assist: self.m_DRSAssist,
+                m_dynamic_racing_line: self.m_dynamicRacingLine,
+                m_dynamic_racing_line_type: self.m_dynamicRacingLineType,
+                m_game_mode: self.m_gameMode,
+                m_rule_set: self.m_ruleSet,
+                m_time_of_day: self.m_timeOfDay,
+                m_session_length: self.m_sessionLength,
+                m_speed_units_lead_player: self.m_speedUnitsLeadPlayer,
+                m_temperature_units_lead_player: self.m_temperatureUnitsLeadPlayer,
+                m_speed_units_secondary_player: self.m_speedUnitsSecondaryPlayer,
+                m_temperature_inits_secondary_player: self.m_temperatureUnitsSecondaryPlayer,
+                m_num_safety_car_periods: self.m_numSafetyCarPeriods,
+                m_num_virtual_safety_car_periods: self.m_numVirtualSafetyCarPeriods,
+                m_num_red_flag_periods: self.m_numRedFlagPeriods,
+            },
+        );
+
+        builder.finish(session_data, None);
+        builder.finished_data().to_vec()
     }
 }

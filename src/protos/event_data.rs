@@ -1,19 +1,15 @@
 include!(concat!(env!("OUT_DIR"), "/event_data_generated.rs"));
 
-use super::ToProtoMessage;
+use super::ToFlatBufferMessage;
 use crate::dtos::{EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData};
 use flatbuffers::FlatBufferBuilder;
 
-impl ToProtoMessage for BPacketEventData {
-    type ProtoType = Vec<u8>;
-
-    fn to_proto(self) -> Self::ProtoType {
+impl ToFlatBufferMessage for BPacketEventData {
+    fn to_flatbuffer(self) -> Vec<u8> {
         let mut builder = FlatBufferBuilder::new();
 
-        // Convert m_eventStringCode to a vector in FlatBuffers
         let event_string_code = Some(builder.create_vector(&self.m_eventStringCode));
 
-        // Convert m_eventDetails based on its variant
         let (event_detail_type, event_detail_offset) = match self.m_eventDetails {
             BEventDataDetails::FastestLap {
                 vehicleIdx,
@@ -27,7 +23,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::FastestLap, fastest_lap.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::FastestLap,
+                    fastest_lap.as_union_value(),
+                )
             }
 
             BEventDataDetails::Retirement { vehicleIdx } => {
@@ -39,7 +38,10 @@ impl ToProtoMessage for BPacketEventData {
                     },
                 );
 
-                (protos::event_data::EventDataDetailsUnion::Retirement, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::Retirement,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::TeamMateInPits { vehicleIdx } => {
@@ -50,7 +52,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::TeamMateInPits, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::TeamMateInPits,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::RaceWinner { vehicleIdx } => {
@@ -61,7 +66,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::RaceWinner, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::RaceWinner,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::Penalty {
@@ -87,10 +95,20 @@ impl ToProtoMessage for BPacketEventData {
                     },
                 );
 
-                (protos::event_data::EventDataDetailsUnion::Penalty, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::Penalty,
+                    data.as_union_value(),
+                )
             }
 
-            BEventDataDetails::SpeedTrap { vehicleIdx, speed, isOverallFastestInSession, isDriverFastestInSession, fastestVehicleIdxInSession, fastestSpeedInSession } => {
+            BEventDataDetails::SpeedTrap {
+                vehicleIdx,
+                speed,
+                isOverallFastestInSession,
+                isDriverFastestInSession,
+                fastestVehicleIdxInSession,
+                fastestSpeedInSession,
+            } => {
                 let data = protos::event_data::SpeedTrap::create(
                     &mut builder,
                     &protos::event_data::SpeedTrapArgs {
@@ -103,7 +121,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                 (protos::event_data::EventDataDetailsUnion::SpeedTrap, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::SpeedTrap,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::StartLights { numLights } => {
@@ -114,7 +135,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::StartLights, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::StartLights,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::DriveThroughPenaltyServed { vehicleIdx } => {
@@ -125,7 +149,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-               (protos::event_data::EventDataDetailsUnion::DriveThroughPenaltyServed, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::DriveThroughPenaltyServed,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::StopGoPenaltyServed { vehicleIdx } => {
@@ -136,10 +163,16 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::StopGoPenaltyServed, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::StopGoPenaltyServed,
+                    data.as_union_value(),
+                )
             }
 
-            BEventDataDetails::Flashback { flashbackFrameIdentifier, flashbackSessionTime } => {
+            BEventDataDetails::Flashback {
+                flashbackFrameIdentifier,
+                flashbackSessionTime,
+            } => {
                 let data = protos::event_data::Flashback::create(
                     &mut builder,
                     &protos::event_data::FlashbackArgs {
@@ -148,12 +181,13 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::Flashback, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::Flashback,
+                    data.as_union_value(),
+                )
             }
 
-            BEventDataDetails::Buttons {
-                buttonStatus,
-            } => {
+            BEventDataDetails::Buttons { buttonStatus } => {
                 let data = protos::event_data::Buttons::create(
                     &mut builder,
                     &protos::event_data::ButtonsArgs {
@@ -161,7 +195,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::Buttons, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::Buttons,
+                    data.as_union_value(),
+                )
             }
 
             BEventDataDetails::Overtake {
@@ -176,7 +213,10 @@ impl ToProtoMessage for BPacketEventData {
                         ..Default::default()
                     },
                 );
-                (protos::event_data::EventDataDetailsUnion::Overtake, data.as_union_value())
+                (
+                    protos::event_data::EventDataDetailsUnion::Overtake,
+                    data.as_union_value(),
+                )
             }
         };
 

@@ -1,4 +1,4 @@
-use crate::protos::{packet_header::PacketType, ToProtoMessage};
+use crate::protos::{PacketType, ToFlatBufferMessage};
 use crate::{
     config::Database,
     dtos::F123Data,
@@ -112,7 +112,7 @@ impl F123Service {
                             continue;
                         };
 
-                        if header.m_gameYear.ne(&23) || header.m_packetFormat.ne(&2023) {
+                        if header.m_packetFormat.ne(&2023) {
                             error!(
                                 "Not supported client, Game Year : {}, Packet Format: {}",
                                 header.m_gameYear, header.m_packetFormat
@@ -145,7 +145,7 @@ impl F123Service {
                                     .ge(&MOTION_INTERVAL)
                                 {
                                     let packet =
-                                        motion_data.convert_and_encode(PacketType::CarMotion);
+                                        motion_data.convert_and_encode(PacketType::car_motion);
 
                                     tx.send(packet).unwrap();
                                     last_car_motion_update = now;
@@ -170,7 +170,7 @@ impl F123Service {
                                         .unwrap();
 
                                     let packet =
-                                        session_data.convert_and_encode(PacketType::SessionData);
+                                        session_data.convert_and_encode(PacketType::session_data);
 
                                     tx.send(packet).unwrap();
                                     last_session_update = now;
@@ -195,7 +195,7 @@ impl F123Service {
                                         .unwrap();
 
                                     let packet = participants_data
-                                        .convert_and_encode(PacketType::Participants);
+                                        .convert_and_encode(PacketType::participants);
 
                                     tx.send(packet).unwrap();
                                     last_participants_update = now;
@@ -216,7 +216,7 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let packet = event_data.convert_and_encode(PacketType::EventData);
+                                let packet = event_data.convert_and_encode(PacketType::event_data);
 
                                 tx.send(packet).unwrap();
                             }
@@ -259,7 +259,7 @@ impl F123Service {
                                     .unwrap();
 
                                 let packet = session_history
-                                    .convert_and_encode(PacketType::SessionHistoryData);
+                                    .convert_and_encode(PacketType::session_history_data);
 
                                 tx.send(packet).unwrap();
 
