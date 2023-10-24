@@ -2,7 +2,6 @@ include!(concat!(env!("OUT_DIR"), "/participants_generated.rs"));
 
 use super::ToFlatBufferMessage;
 use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
-use std::ffi::CString;
 
 impl ToFlatBufferMessage for BPacketParticipantsData {
     fn to_flatbuffer(self) -> Vec<u8> {
@@ -12,8 +11,7 @@ impl ToFlatBufferMessage for BPacketParticipantsData {
             .m_participants
             .into_iter()
             .map(|value| {
-                let c_str = CString::new(value.m_name).unwrap();
-                let name_offset = builder.create_vector(c_str.to_bytes_with_nul());
+                let name_offset = builder.create_vector(&value.m_name);
 
                 protos::participants::ParticipantData::create(
                     &mut builder,
@@ -29,7 +27,6 @@ impl ToFlatBufferMessage for BPacketParticipantsData {
                         m_your_telemetry: value.m_yourTelemetry,
                         m_show_online_names: value.m_showOnlineNames,
                         m_platform: value.m_platform,
-                        ..Default::default()
                     },
                 )
             })
