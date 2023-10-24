@@ -1,4 +1,4 @@
-include!(concat!(env!("OUT_DIR"), "/protos.session_history.rs"));
+include!(concat!(env!("OUT_DIR"), "/session_history_generated.rs"));
 
 use super::ToProtoMessage;
 use crate::dtos::PacketSessionHistoryData as BPacketSessionHistoryData;
