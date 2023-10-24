@@ -12,7 +12,10 @@ use axum::{
 };
 use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
@@ -48,6 +51,8 @@ async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Ch
         error!("Receiver not Found");
         return;
     };
+
+    // TODO: handle this new connection (Receiving the cache messages)
 
     increment_counter(championship.id).await;
 
@@ -91,7 +96,7 @@ async fn increment_counter(championship_id: u32) {
         .entry(championship_id)
         .or_insert(AtomicUsize::new(0));
 
-    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    counter.fetch_add(1, Ordering::Relaxed);
 }
 
 #[inline(always)]
@@ -101,7 +106,7 @@ async fn decrement_counter(championship_id: u32) {
         .entry(championship_id)
         .or_insert(AtomicUsize::new(1));
 
-    counter.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+    counter.fetch_sub(1, Ordering::Relaxed);
 }
 
 pub async fn websocket_active_connections(championship_id: u32) -> usize {
@@ -110,5 +115,5 @@ pub async fn websocket_active_connections(championship_id: u32) -> usize {
         .get(&championship_id)
         .unwrap_or(&DEFAULT_COUNTER);
 
-    counter.load(std::sync::atomic::Ordering::Relaxed)
+    counter.load(Ordering::Relaxed)
 }

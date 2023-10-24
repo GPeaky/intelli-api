@@ -31,7 +31,6 @@ async fn main() {
 
     Server::from_tcp(incoming)
         .unwrap()
-        .http1_only(true)
         .serve(routes::service_routes(Arc::new(db)).await)
         .await
         .unwrap();

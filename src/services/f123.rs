@@ -1,29 +1,30 @@
-use crate::protos::{
-    car_motion_data::PacketMotionData, event_data::PacketEventData, packet_header::PacketType,
-    participants::PacketParticipantsData, session_data::PacketSessionData,
-    session_history::PacketSessionHistoryData, PacketHeader,
-};
+use crate::protos::{packet_header::PacketType, ToProtoMessage};
 use crate::{
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
 };
-use prost::Message;
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::broadcast::Sender;
-use tokio::sync::RwLock;
-use tokio::{net::UdpSocket, sync::broadcast::Receiver, task::JoinHandle, time::timeout};
+use tokio::{
+    net::UdpSocket,
+    sync::{
+        broadcast::{Receiver, Sender},
+        RwLock,
+    },
+    task::JoinHandle,
+    time::timeout,
+};
 use tracing::{error, info};
 
 const F123_HOST: &str = "0.0.0.0";
 const DATA_PERSISTENCE: usize = 15 * 60;
 const F123_MAX_PACKET_SIZE: usize = 1460;
-const SESSION_INTERVAL: Duration = Duration::from_secs(15);
+const SESSION_INTERVAL: Duration = Duration::from_secs(10);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
@@ -111,6 +112,14 @@ impl F123Service {
                             continue;
                         };
 
+                        if header.m_gameYear.ne(&23) || header.m_packetFormat.ne(&2023) {
+                            error!(
+                                "Not supported client, Game Year : {}, Packet Format: {}",
+                                header.m_gameYear, header.m_packetFormat
+                            );
+                            break;
+                        }
+
                         let session_id = header.m_sessionUID as i64;
 
                         if session_id.eq(&0) {
@@ -135,14 +144,8 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let data: PacketMotionData = motion_data.into();
-                                    let data = data.encode_to_vec();
-
-                                    let packet = PacketHeader {
-                                        r#type: PacketType::CarMotion.into(),
-                                        payload: data,
-                                    }
-                                    .encode_to_vec();
+                                    let packet =
+                                        motion_data.convert_and_encode(PacketType::CarMotion);
 
                                     tx.send(packet).unwrap();
                                     last_car_motion_update = now;
@@ -166,14 +169,8 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    let data: PacketSessionData = session_data.into();
-                                    let data = data.encode_to_vec();
-
-                                    let packet = PacketHeader {
-                                        r#type: PacketType::SessionData.into(),
-                                        payload: data,
-                                    }
-                                    .encode_to_vec();
+                                    let packet =
+                                        session_data.convert_and_encode(PacketType::SessionData);
 
                                     tx.send(packet).unwrap();
                                     last_session_update = now;
@@ -197,14 +194,8 @@ impl F123Service {
                                         .await
                                         .unwrap();
 
-                                    let data: PacketParticipantsData = participants_data.into();
-                                    let data = data.encode_to_vec();
-
-                                    let packet = PacketHeader {
-                                        r#type: PacketType::Participants.into(),
-                                        payload: data,
-                                    }
-                                    .encode_to_vec();
+                                    let packet = participants_data
+                                        .convert_and_encode(PacketType::Participants);
 
                                     tx.send(packet).unwrap();
                                     last_participants_update = now;
@@ -225,14 +216,7 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let data: PacketEventData = event_data.into();
-                                let data = data.encode_to_vec();
-
-                                let packet = PacketHeader {
-                                    r#type: PacketType::EventData.into(),
-                                    payload: data,
-                                }
-                                .encode_to_vec();
+                                let packet = event_data.convert_and_encode(PacketType::EventData);
 
                                 tx.send(packet).unwrap();
                             }
@@ -274,14 +258,8 @@ impl F123Service {
                                     .await
                                     .unwrap();
 
-                                let data: PacketSessionHistoryData = session_history.into();
-                                let data = data.encode_to_vec();
-
-                                let packet = PacketHeader {
-                                    r#type: PacketType::SessionHistoryData.into(),
-                                    payload: data,
-                                }
-                                .encode_to_vec();
+                                let packet = session_history
+                                    .convert_and_encode(PacketType::SessionHistoryData);
 
                                 tx.send(packet).unwrap();
 
