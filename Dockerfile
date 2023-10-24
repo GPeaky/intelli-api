@@ -3,7 +3,7 @@ WORKDIR /usr/src/telemety-api
 
 COPY . .
 
-RUN apt-get update && apt-get install -y libssl-dev ca-certificates pkg-config protobuf-compiler  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates pkg-config flatbuffers-compiler  && rm -rf /var/lib/apt/lists/*
 RUN cargo update
 RUN cargo build --release
 
