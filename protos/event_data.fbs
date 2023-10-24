@@ -1,0 +1,89 @@
+namespace protos.event_data;
+
+table FastestLap {
+    vehicle_idx: ubyte;       // Vehicle index of car achieving fastest lap
+    lap_time: float;         // Lap time is in seconds
+}
+
+table Retirement {
+    vehicle_idx: ubyte;      // Vehicle index of car retiring
+}
+
+table TeamMateInPits {
+    vehicle_idx: ubyte;      // Vehicle index of team mate
+}
+
+table RaceWinner {
+    vehicle_idx: ubyte;      // Vehicle index of the race winner
+}
+
+table Penalty {
+    penalty_type: ubyte;             // penalty type
+    infringement_type: ubyte;       // Infringement type
+    vehicle_idx: ubyte;             // Vehicle index of the car the penalty is applied to
+    other_vehicle_idx: ubyte;        // Vehicle index of the other car involved
+    time: ubyte;                   // Time gained, or time spent doing action in seconds
+    lap_num: ubyte;                 // Lap the penalty occurred on
+    places_gained: ubyte;           // Number of places gained by this
+}
+
+table SpeedTrap {
+    vehicle_idx: ubyte;                     // Vehicle index of the vehicle triggering speed trap
+    speed: float;                          // Top speed achieved in kilometres per hour
+    is_overall_fastest_in_session: ubyte;      // Overall fastest speed in session
+    is_driver_fastest_in_session: ubyte;       // Fastest speed for driver in session
+    fastest_vehicle_idx_in_session: ubyte;     // Vehicle index of the vehicle that is the fastest in this session
+    fastest_speed_in_session: float;          // Speed of the vehicle that is the fastest in this session
+}
+
+table StartLights {
+    num_lights: ubyte;     // Number of lights showing
+}
+
+table DriveThroughPenaltyServed {
+    vehicle_idx: ubyte;    // Vehicle index of the vehicle serving drive through
+}
+
+table StopGoPenaltyServed {
+    vehicle_idx: ubyte;    // Vehicle index of the vehicle serving stop go
+}
+
+table Flashback {
+    flashback_frame_identifier: uint; // Frame identifier flashed back to
+    flashback_session_time: float;    // Session time flashed back to
+}
+
+table Buttons {
+    button_status: uint;    // Bit flags specifying which Buttons are being pressed currently
+}
+
+table Overtake {
+    overtaking_vehicle_idx: ubyte;       // Vehicle index of the vehicle overtaking
+    being_overtaken_vehicle_idx: ubyte;   // Vehicle index of the vehicle being overtaken
+}
+
+union EventDataDetailsUnion {
+    FastestLap,
+    Retirement,
+    TeamMateInPits,
+    RaceWinner,
+    Penalty,
+    SpeedTrap,
+    StartLights,
+    DriveThroughPenaltyServed,
+    StopGoPenaltyServed,
+    Flashback,
+    Buttons,
+    Overtake
+}
+
+table event_data_details {
+    details: EventDataDetailsUnion;
+}
+
+table PacketEventData {
+    m_event_string_code: [ubyte];       // Event string code
+    m_event_details: event_data_details;   // Event details
+}
+
+root_type PacketEventData;
