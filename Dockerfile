@@ -8,5 +8,4 @@ RUN cargo update \
     && cargo build --release
 
 RUN ["cp", "./target/release/intelli", "/usr/local/bin/intelli"]
-RUN ["rm", "-rf", "/usr/src/intelli"]
 CMD ["intelli"]
