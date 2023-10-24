@@ -1,7 +1,19 @@
 include!(concat!(env!("OUT_DIR"), "/protos.event_data.rs"));
 
+use self::event_data_details::Details;
+use super::ToProtoMessage;
 use crate::dtos::{EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData};
-use event_data_details::Details;
+
+impl ToProtoMessage for BPacketEventData {
+    type ProtoType = PacketEventData;
+
+    fn to_proto(self) -> Self::ProtoType {
+        PacketEventData {
+            m_event_string_code: self.m_eventStringCode.to_vec(),
+            m_event_details: self.m_eventDetails.into(),
+        }
+    }
+}
 
 impl From<BEventDataDetails> for Option<EventDataDetails> {
     fn from(value: BEventDataDetails) -> Self {
@@ -144,14 +156,5 @@ impl From<BEventDataDetails> for Option<EventDataDetails> {
         Some(EventDataDetails {
             details: Some(details),
         })
-    }
-}
-
-impl From<BPacketEventData> for PacketEventData {
-    fn from(value: BPacketEventData) -> Self {
-        Self {
-            m_event_string_code: value.m_eventStringCode.to_vec(),
-            m_event_details: value.m_eventDetails.into(),
-        }
     }
 }
