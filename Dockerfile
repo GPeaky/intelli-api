@@ -7,4 +7,6 @@ RUN dnf -y update && dnf -y install openssl-devel ca-certificates pkgconfig flat
 RUN cargo update \
     && cargo build --release
 
-CMD ["/target/build/intelli"]
+RUN ["cp", "./target/release/intelli", "/usr/local/bin/intelli"]
+RUN ["rm", "-rf", "/usr/src/intelli"]
+CMD ["intelli"]
