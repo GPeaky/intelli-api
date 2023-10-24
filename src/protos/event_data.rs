@@ -20,7 +20,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &protos::event_data::FastestLapArgs {
                         vehicle_idx: vehicleIdx,
                         lap_time: lapTime,
-                        ..Default::default()
                     },
                 );
                 (
