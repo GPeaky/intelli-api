@@ -33,7 +33,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::RetirementArgs {
                         vehicle_idx: vehicleIdx,
-                        ..Default::default()
                     },
                 );
 
@@ -48,7 +47,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::TeamMateInPitsArgs {
                         vehicle_idx: vehicleIdx,
-                        ..Default::default()
                     },
                 );
                 (
@@ -62,7 +60,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::RaceWinnerArgs {
                         vehicle_idx: vehicleIdx,
-                        ..Default::default()
                     },
                 );
                 (
@@ -90,7 +87,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                         other_vehicle_idx: otherVehicleIdx,
                         lap_num: lapNum,
                         places_gained: placesGained,
-                        ..Default::default()
                     },
                 );
 
@@ -117,7 +113,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                         is_driver_fastest_in_session: isDriverFastestInSession,
                         fastest_vehicle_idx_in_session: fastestVehicleIdxInSession,
                         fastest_speed_in_session: fastestSpeedInSession,
-                        ..Default::default()
                     },
                 );
                 (
@@ -131,7 +126,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::StartLightsArgs {
                         num_lights: numLights,
-                        ..Default::default()
                     },
                 );
                 (
@@ -145,7 +139,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::DriveThroughPenaltyServedArgs {
                         vehicle_idx: vehicleIdx,
-                        ..Default::default()
                     },
                 );
                 (
@@ -159,7 +152,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::StopGoPenaltyServedArgs {
                         vehicle_idx: vehicleIdx,
-                        ..Default::default()
                     },
                 );
                 (
@@ -177,7 +169,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &protos::event_data::FlashbackArgs {
                         flashback_frame_identifier: flashbackFrameIdentifier,
                         flashback_session_time: flashbackSessionTime,
-                        ..Default::default()
                     },
                 );
                 (
@@ -191,7 +182,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &mut builder,
                     &protos::event_data::ButtonsArgs {
                         button_status: buttonStatus,
-                        ..Default::default()
                     },
                 );
                 (
@@ -209,7 +199,6 @@ impl ToFlatBufferMessage for BPacketEventData {
                     &protos::event_data::OvertakeArgs {
                         overtaking_vehicle_idx: overtakingVehicleIdx,
                         being_overtaken_vehicle_idx: beingOvertakenVehicleIdx,
-                        ..Default::default()
                     },
                 );
                 (
