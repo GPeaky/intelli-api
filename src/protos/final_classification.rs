@@ -1,1 +1,4 @@
-include!(concat!(env!("OUT_DIR"), "/protos.final_classification.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/final_classification_generated.rs"
+));

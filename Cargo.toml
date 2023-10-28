@@ -1,7 +1,7 @@
 [package]
-version = "0.1.5"
 name = "intelli"
 edition = "2021"
+version = "0.2.0"
 readme = "README.md"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
@@ -9,13 +9,11 @@ repository = "https://github.com/GPeaky/intelli-api"
 license = "MIT"
 
 [build-dependencies]
-prost-build = "0.12.1"
+flatc-rust = "0.2.0"
 
 [dependencies]
-prost = "0.12.1"
 garde = "0.16.0"
 bcrypt = "0.15.0"
-rustls = "0.21.7"
 tracing = "0.1.40"
 dotenvy = "0.15.7"
 mimalloc = "0.1.39"
@@ -35,7 +33,7 @@ hyper = { version = "0.14.27", features = ["full"] }
 tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 sqlx = { version = "0.7.2", features = ["runtime-tokio", "mysql", "chrono"] }
-lettre = { version = "0.11.0", default-features = false, features = [
+lettre = { version = "0.11.1", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
@@ -56,6 +54,7 @@ tower = { version = "0.4.13", features = [
     "load-shed",
 ] }
 rand = "0.8.5"
+flatbuffers = "23.5.26"
 
 [profile.release]
 debug = 0

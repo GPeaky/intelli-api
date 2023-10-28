@@ -1,0 +1,17 @@
+namespace protos.packet_header;
+
+enum PacketType: ubyte {
+    car_motion,
+    event_data,
+    final_classification_data,
+    participants,
+    session_data,
+    session_history_data
+}
+
+table PacketHeader {
+    type: PacketType;
+    payload: [ubyte];  // bytes en protobuf se traducen a un vector de ubyte en flatbuffers
+}
+
+root_type PacketHeader;

@@ -1,0 +1,28 @@
+namespace protos.car_motion_data;
+
+table CarMotionData {
+    m_world_position_x: float;       // World space X position - metres
+    m_world_position_y: float;       // World space Y position
+    m_world_position_z: float;       // World space Z position
+    m_world_velocity_x: float;       // Velocity in world space X – metres/s
+    m_world_velocity_y: float;       // Velocity in world space Y
+    m_world_velocity_z: float;       // Velocity in world space Z
+    m_world_forward_dir_x: short;     // World space forward X direction (normalized)
+    m_world_forward_dir_y: short;     // World space forward Y direction (normalized)
+    m_world_forward_dir_z: short;     // World space forward Z direction (normalized)
+    m_world_right_dir_x: short;       // World space right X direction (normalized)
+    m_world_right_dir_y: short;       // World space right Y direction (normalized)
+    m_world_right_dir_z: short;       // World space right Z direction (normalized)
+    m_g_force_lateral: float;        // Lateral G-Force component
+    m_g_force_longitudinal: float;   // Longitudinal G-Force component
+    m_g_force_vertical: float;       // Vertical G-Force component
+    m_yaw: float;                  // Yaw angle in radians
+    m_pitch: float;                // Pitch angle in radians
+    m_roll: float;                 // Roll angle in radians
+}
+
+table PacketMotionData {
+    m_car_motion_data: [CarMotionData]; // Data for all cars on track
+}
+
+root_type PacketMotionData;
