@@ -7,6 +7,8 @@ pub struct Championship {
     pub id: u32,
     pub port: u16,
     pub name: String,
+    #[serde(skip_serializing)]
     pub created_at: DateTime<Utc>,
+    #[serde(skip_serializing)]
     pub updated_at: DateTime<Utc>,
 }
