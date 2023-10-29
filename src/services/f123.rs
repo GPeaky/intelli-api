@@ -149,7 +149,7 @@ impl F123Service {
                                     redis
                                         .set_ex::<String, &[u8], ()>(
                                             format!(
-                                                "f123_service:championships:{championship_id}:sessions:{session_id}:motion"
+                                                "f123_service:championships:{championship_id}:motion_data"
                                             ),
                                             &packet,
                                             DATA_PERSISTENCE
@@ -172,7 +172,7 @@ impl F123Service {
                                     redis
                                         .set_ex::<String, &[u8], ()>(
                                             format!(
-                                                "f123_service:championships:{championship_id}:sessions:{session_id}:session_data"
+                                                "f123_service:championships:{championship_id}:session_data"
                                             ),
                                             &packet,
                                             DATA_PERSISTENCE
@@ -194,7 +194,7 @@ impl F123Service {
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
-                                            format!("f123_service:championships:{championship_id}:sessions:{session_id}:participants"),
+                                            format!("f123_service:championships:{championship_id}:participants_data"),
                                             &packet,
                                             DATA_PERSISTENCE,
                                         )
@@ -261,7 +261,7 @@ impl F123Service {
 
                                 redis
                                     .set_ex::<String, &[u8], ()>(
-                                        format!("f123_service:championships:{championship_id}:sessions:{session_id}:session_history:car:{car_idx}"),
+                                        format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
                                         &packet,
                                         DATA_PERSISTENCE,
                                     )

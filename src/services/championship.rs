@@ -20,7 +20,8 @@ pub struct ChampionshipService {
 
 impl ChampionshipService {
     pub async fn new(db_conn: &Arc<Database>) -> Self {
-        let championship_repository: ChampionshipRepository = ChampionshipRepository::new(db_conn);
+        let championship_repository: ChampionshipRepository =
+            ChampionshipRepository::new(db_conn).await;
         let ports = Self::available_ports(&championship_repository)
             .await
             .unwrap();
