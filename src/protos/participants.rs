@@ -1,4 +1,7 @@
-include!(concat!(env!("OUT_DIR"), "/participants_generated.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/generated/participants_generated.rs"
+));
 
 use super::ToFlatBufferMessage;
 use crate::dtos::PacketParticipantsData as BPacketParticipantsData;

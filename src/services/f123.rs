@@ -24,10 +24,12 @@ use tracing::{error, info};
 const F123_HOST: &str = "0.0.0.0";
 const DATA_PERSISTENCE: usize = 15 * 60;
 const F123_MAX_PACKET_SIZE: usize = 1460;
+
+// Constants durations & timeouts
 const SESSION_INTERVAL: Duration = Duration::from_secs(10);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
-const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 
 type F123Channel = Arc<Sender<Vec<u8>>>;
 type Sockets = Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>;
@@ -61,11 +63,8 @@ impl F123Service {
 
         let socket = self.spawn_socket(championship_id.clone(), port).await;
 
-        {
-            let mut sockets = self.sockets.write().await;
-            sockets.insert(*championship_id, Arc::new(socket));
-        }
-
+        let mut sockets = self.sockets.write().await;
+        sockets.insert(*championship_id, Arc::new(socket));
         Ok(())
     }
 
@@ -147,6 +146,16 @@ impl F123Service {
                                     let packet =
                                         motion_data.convert_and_encode(PacketType::car_motion);
 
+                                    redis
+                                        .set_ex::<String, &[u8], ()>(
+                                            format!(
+                                                "f123_service:championships:{championship_id}:motion_data"
+                                            ),
+                                            &packet,
+                                            DATA_PERSISTENCE
+                                        ).await
+                                        .unwrap();
+
                                     tx.send(packet).unwrap();
                                     last_car_motion_update = now;
                                 }
@@ -157,20 +166,18 @@ impl F123Service {
                                     .duration_since(last_session_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    redis
-                                        .set_ex::<String, &[u8], String>(
-                                            format!(
-                                                "f123:championship:{}:session:{session_id}:session",
-                                                championship_id
-                                            ),
-                                            &buf[..size],
-                                            DATA_PERSISTENCE,
-                                        )
-                                        .await
-                                        .unwrap();
-
                                     let packet =
                                         session_data.convert_and_encode(PacketType::session_data);
+
+                                    redis
+                                        .set_ex::<String, &[u8], ()>(
+                                            format!(
+                                                "f123_service:championships:{championship_id}:session_data"
+                                            ),
+                                            &packet,
+                                            DATA_PERSISTENCE
+                                        ).await
+                                        .unwrap();
 
                                     tx.send(packet).unwrap();
                                     last_session_update = now;
@@ -182,26 +189,24 @@ impl F123Service {
                                     .duration_since(last_participants_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
+                                    let packet = participants_data
+                                        .convert_and_encode(PacketType::participants);
+
                                     redis
-                                        .set_ex::<String, &[u8], String>(
-                                            format!(
-                                                "f123:championship:{}:session:{session_id}:participants",
-                                                championship_id
-                                            ),
-                                            &buf[..size],
+                                        .set_ex::<String, &[u8], ()>(
+                                            format!("f123_service:championships:{championship_id}:participants_data"),
+                                            &packet,
                                             DATA_PERSISTENCE,
                                         )
                                         .await
                                         .unwrap();
-
-                                    let packet = participants_data
-                                        .convert_and_encode(PacketType::participants);
 
                                     tx.send(packet).unwrap();
                                     last_participants_update = now;
                                 }
                             }
 
+                            // TODO: Export this to a different service
                             F123Data::Event(event_data) => {
                                 sqlx::query(
                                     r#"
@@ -234,7 +239,7 @@ impl F123Service {
                                     continue;
                                 }
 
-                                let lap = session_history.m_numLaps as usize - 1; // Lap is 0 indexed
+                                let lap = (session_history.m_numLaps as usize) - 1; // Lap is 0 indexed
 
                                 let sectors = (
                                     session_history.m_lapHistoryData[lap].m_sector1TimeInMS,
@@ -250,16 +255,18 @@ impl F123Service {
                                     continue;
                                 }
 
-                                redis.set_ex::<String, &[u8], String>(
-                                    format!("f123:championship:{}:session:{session_id}:history:car:{}", championship_id, session_history.m_carIdx),
-                                    &buf[..size],
-                                    DATA_PERSISTENCE,
-                                )
-                                    .await
-                                    .unwrap();
-
+                                let car_idx = session_history.m_carIdx;
                                 let packet = session_history
                                     .convert_and_encode(PacketType::session_history_data);
+
+                                redis
+                                    .set_ex::<String, &[u8], ()>(
+                                        format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
+                                        &packet,
+                                        DATA_PERSISTENCE,
+                                    )
+                                    .await
+                                    .unwrap();
 
                                 tx.send(packet).unwrap();
 
@@ -288,11 +295,10 @@ impl F123Service {
                         info!("Stopping socket for championship: {}", championship_id);
 
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
-
                         break;
                     }
 
-                    Err(_e) => {
+                    Err(_) => {
                         info!("Socket  timeout for championship: {}", championship_id);
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
                     }
@@ -327,7 +333,7 @@ impl F123Service {
             };
 
             if !channel_removed && !socket_removed_and_aborted {
-                Err(SocketError::NotFound)?
+                Err(SocketError::NotFound)?;
             }
         }
 

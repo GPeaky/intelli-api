@@ -2,8 +2,8 @@ use std::env;
 use std::path::Path;
 
 fn main() {
-    // Obtiene el directorio de salida del build de Cargo
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR no está definido");
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let generated_dir = Path::new(&out_dir).join("generated");
 
     flatc_rust::run(flatc_rust::Args {
         inputs: &[
@@ -15,8 +15,8 @@ fn main() {
             Path::new("protos/session_data.fbs"),
             Path::new("protos/session_history.fbs"),
         ],
-        out_dir: Path::new(&out_dir),
+        out_dir: &generated_dir,
         ..Default::default()
     })
-    .expect("La compilación del esquema de FlatBuffers falló");
+    .unwrap();
 }

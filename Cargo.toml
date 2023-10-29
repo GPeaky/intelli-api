@@ -12,7 +12,7 @@ license = "MIT"
 flatc-rust = "0.2.0"
 
 [dependencies]
-garde = "0.16.0"
+garde = "0.16.2"
 bcrypt = "0.15.0"
 tracing = "0.1.40"
 dotenvy = "0.15.7"
@@ -25,7 +25,7 @@ jsonwebtoken = "9.1.0"
 serde-big-array = "0.5.1"
 tokio = { version = "1.33.0", features = ["full"] }
 chrono = { version = "0.4.31", features = ["serde"] }
-serde = { version = "1.0.189", features = ["derive"] }
+serde = { version = "1.0.190", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }

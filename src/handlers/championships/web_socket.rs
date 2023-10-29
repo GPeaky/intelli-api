@@ -46,15 +46,70 @@ pub async fn session_socket(
 }
 
 #[inline(always)]
+async fn increment_counter(championship_id: u32) {
+    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
+    let counter = active_connections
+        .entry(championship_id)
+        .or_insert(AtomicUsize::new(0));
+
+    counter.fetch_add(1, Ordering::Relaxed);
+}
+
+#[inline(always)]
+async fn decrement_counter(championship_id: u32) {
+    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
+    let counter = active_connections
+        .entry(championship_id)
+        .or_insert(AtomicUsize::new(1));
+
+    counter.fetch_sub(1, Ordering::Relaxed);
+}
+
+pub async fn websocket_active_connections(championship_id: u32) -> usize {
+    let active_connection = ACTIVE_CONNECTIONS.read().await;
+    let counter = active_connection
+        .get(&championship_id)
+        .unwrap_or(&DEFAULT_COUNTER);
+
+    counter.load(Ordering::Relaxed)
+}
+
+#[inline(always)]
 async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
     let Some(mut rx) = state.f123_service.get_receiver(&championship.id).await else {
         error!("Receiver not Found");
         return;
     };
 
-    // TODO: handle this new connection (Receiving the cache messages)
-
     increment_counter(championship.id).await;
+
+    //* Loading cache messages and sending to the new connection
+    {
+        let cache = state
+            .championship_repository
+            .session_data(&championship.id)
+            .await
+            .unwrap();
+
+        let data_to_send = vec![
+            cache.session_data,
+            cache.motion_data,
+            cache.participants_data,
+        ];
+        for data in data_to_send {
+            if let Err(e) = socket.send(Message::Binary(data)).await {
+                error!("Failed sending message:{}", e);
+                return;
+            };
+        }
+
+        for data in cache.history_data {
+            if let Err(e) = socket.send(Message::Binary(data)).await {
+                error!("Failed sending message:{}", e);
+                return;
+            };
+        }
+    }
 
     loop {
         tokio::select! {
@@ -87,33 +142,4 @@ async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Ch
     }
 
     decrement_counter(championship.id).await;
-}
-
-#[inline(always)]
-async fn increment_counter(championship_id: u32) {
-    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
-    let counter = active_connections
-        .entry(championship_id)
-        .or_insert(AtomicUsize::new(0));
-
-    counter.fetch_add(1, Ordering::Relaxed);
-}
-
-#[inline(always)]
-async fn decrement_counter(championship_id: u32) {
-    let mut active_connections = ACTIVE_CONNECTIONS.write().await;
-    let counter = active_connections
-        .entry(championship_id)
-        .or_insert(AtomicUsize::new(1));
-
-    counter.fetch_sub(1, Ordering::Relaxed);
-}
-
-pub async fn websocket_active_connections(championship_id: u32) -> usize {
-    let active_connection = ACTIVE_CONNECTIONS.read().await;
-    let counter = active_connection
-        .get(&championship_id)
-        .unwrap_or(&DEFAULT_COUNTER);
-
-    counter.load(Ordering::Relaxed)
 }

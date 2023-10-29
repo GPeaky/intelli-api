@@ -12,3 +12,10 @@ pub struct SocketStatus {
     pub active: bool,
     pub connections: usize,
 }
+
+pub struct ChampionshipCacheData {
+    pub session_data: Vec<u8>,
+    pub motion_data: Vec<u8>,
+    pub participants_data: Vec<u8>,
+    pub history_data: Vec<Vec<u8>>,
+}

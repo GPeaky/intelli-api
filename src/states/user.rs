@@ -29,7 +29,7 @@ impl UserStateInner {
             user_repository: UserRepository::new(db_conn),
             token_service: TokenService::new(db_conn),
             championship_service: ChampionshipService::new(db_conn).await,
-            championship_repository: ChampionshipRepository::new(db_conn),
+            championship_repository: ChampionshipRepository::new(db_conn).await,
         }
     }
 }

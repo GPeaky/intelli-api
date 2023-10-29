@@ -1,4 +1,7 @@
-include!(concat!(env!("OUT_DIR"), "/session_data_generated.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/generated/session_data_generated.rs"
+));
 
 use super::ToFlatBufferMessage;
 use crate::dtos::PacketSessionData as BPacketSessionData;

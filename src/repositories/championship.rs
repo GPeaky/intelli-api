@@ -1,4 +1,10 @@
-use crate::{config::Database, entity::Championship, error::AppResult};
+use crate::{
+    config::Database,
+    dtos::ChampionshipCacheData,
+    entity::Championship,
+    error::{AppResult, ChampionshipError},
+};
+use redis::AsyncCommands;
 use std::sync::Arc;
 
 pub struct ChampionshipRepository {
@@ -6,7 +12,7 @@ pub struct ChampionshipRepository {
 }
 
 impl ChampionshipRepository {
-    pub fn new(db_conn: &Arc<Database>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>) -> Self {
         Self {
             database: db_conn.clone(),
         }
@@ -36,6 +42,50 @@ impl ChampionshipRepository {
         .await?;
 
         Ok(championship)
+    }
+
+    // TODO: Check if this is the best way to do this
+    pub async fn session_data(&self, id: &u32) -> AppResult<ChampionshipCacheData> {
+        let Some(championship) = self.find(id).await? else {
+            Err(ChampionshipError::NotFound)?
+        };
+
+        let mut redis = self.database.get_redis_async().await;
+        let (session_data, motion_data, participants_data, session_history_key): (
+            Vec<u8>,
+            Vec<u8>,
+            Vec<u8>,
+            Vec<String>,
+        ) = redis::pipe()
+            .atomic()
+            .get(format!(
+                "f123_service:championships:{}:session_data",
+                championship.id
+            ))
+            .get(format!(
+                "f123_service:championships:{}:motion_data",
+                championship.id
+            ))
+            .get(format!(
+                "f123_service:championships:{}:participants_data",
+                championship.id
+            ))
+            .keys(format!(
+                "f123_service:championships:{}:session_history:*",
+                championship.id
+            ))
+            .query_async(&mut redis)
+            .await
+            .unwrap();
+
+        let history_data: Vec<Vec<u8>> = redis.mget(&session_history_key).await.unwrap_or_default();
+
+        Ok(ChampionshipCacheData {
+            session_data,
+            motion_data,
+            participants_data,
+            history_data,
+        })
     }
 
     pub async fn find_all(&self, user_id: &u32) -> AppResult<Vec<Championship>> {
