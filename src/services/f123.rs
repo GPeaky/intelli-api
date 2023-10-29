@@ -1,3 +1,4 @@
+use super::FirewallService;
 use crate::protos::{PacketType, ToFlatBufferMessage};
 use crate::{
     config::Database,
@@ -39,6 +40,7 @@ pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Sockets,
     channels: Channels,
+    firewall: Arc<FirewallService>,
 }
 
 impl F123Service {
@@ -47,6 +49,7 @@ impl F123Service {
             db_conn: db_conn.clone(),
             channels: Arc::new(RwLock::new(FxHashMap::default())),
             sockets: Arc::new(RwLock::new(FxHashMap::default())),
+            firewall: Arc::new(FirewallService::new()),
         }
     }
 
@@ -68,12 +71,66 @@ impl F123Service {
         Ok(())
     }
 
+    pub async fn active_sockets(&self) -> Vec<u32> {
+        let sockets = self.sockets.read().await;
+        sockets.iter().map(|entry| *entry.0).collect()
+    }
+
+    pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
+        {
+            let mut channels = self.channels.write().await;
+            let mut sockets = self.sockets.write().await;
+
+            let channel_removed = channels.remove(&championship_id).is_some();
+
+            let socket_removed_and_aborted = if let Some(socket) = sockets.remove(&championship_id)
+            {
+                socket.abort();
+                true
+            } else {
+                false
+            };
+
+            if !channel_removed && !socket_removed_and_aborted {
+                Err(SocketError::NotFound)?;
+            }
+        }
+
+        info!("Socket stopped for championship: {}", championship_id);
+        Ok(())
+    }
+
+    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &u32) {
+        let mut sockets = sockets.write().await;
+        let mut channels = channels.write().await;
+
+        if let Some(socket) = sockets.remove(championship_id) {
+            socket.abort();
+        }
+
+        channels.remove(championship_id);
+    }
+
+    pub async fn championship_socket(&self, id: &u32) -> bool {
+        let sockets = self.sockets.read().await;
+        sockets.contains_key(id)
+    }
+
+    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
+        let channels = self.channels.read().await;
+        let channel = channels.get(championship_id);
+
+        Some(channel.unwrap().subscribe())
+    }
+
     async fn spawn_socket(&self, championship_id: Arc<u32>, port: u16) -> JoinHandle<()> {
         let db = self.db_conn.clone();
-        let channels = self.channels.clone();
+        let firewall = self.firewall.clone();
         let sockets = self.sockets.clone();
+        let channels = self.channels.clone();
 
         tokio::spawn(async move {
+            let mut port_partial_open = false;
             let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
             let mut redis = db.get_redis_async().await;
@@ -101,10 +158,21 @@ impl F123Service {
                 channels.insert(*championship_id, Arc::new(tx.clone()));
             }
 
+            firewall.open(*championship_id, port).await.unwrap();
+
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
-                    Ok(Ok((size, _address))) => {
+                    Ok(Ok((size, address))) => {
                         let buf = &buf[..size];
+
+                        if !port_partial_open {
+                            firewall
+                                .open_partially(*championship_id, address.ip())
+                                .await
+                                .unwrap();
+
+                            port_partial_open = true;
+                        }
 
                         let Ok(header) = F123Data::deserialize_header(buf) else {
                             error!("Error deserializing F123 header, for championship: {championship_id:?}");
@@ -293,69 +361,18 @@ impl F123Service {
                     Ok(Err(e)) => {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-
+                        firewall.close(*championship_id).await.unwrap();
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
                         break;
                     }
 
                     Err(_) => {
                         info!("Socket  timeout for championship: {}", championship_id);
+                        firewall.close(*championship_id).await.unwrap();
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
                     }
                 }
             }
         })
-    }
-
-    pub async fn active_sockets(&self) -> Vec<u32> {
-        let sockets = self.sockets.read().await;
-        sockets.iter().map(|entry| *entry.0).collect()
-    }
-
-    pub async fn championship_socket(&self, id: &u32) -> bool {
-        let sockets = self.sockets.read().await;
-        sockets.contains_key(id)
-    }
-
-    pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
-        {
-            let mut channels = self.channels.write().await;
-            let mut sockets = self.sockets.write().await;
-
-            let channel_removed = channels.remove(&championship_id).is_some();
-
-            let socket_removed_and_aborted = if let Some(socket) = sockets.remove(&championship_id)
-            {
-                socket.abort();
-                true
-            } else {
-                false
-            };
-
-            if !channel_removed && !socket_removed_and_aborted {
-                Err(SocketError::NotFound)?;
-            }
-        }
-
-        info!("Socket stopped for championship: {}", championship_id);
-        Ok(())
-    }
-
-    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &u32) {
-        let mut sockets = sockets.write().await;
-        let mut channels = channels.write().await;
-
-        if let Some(socket) = sockets.remove(championship_id) {
-            socket.abort();
-        }
-
-        channels.remove(championship_id);
-    }
-
-    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
-        let channels = self.channels.read().await;
-        let channel = channels.get(championship_id);
-
-        Some(channel.unwrap().subscribe())
     }
 }
