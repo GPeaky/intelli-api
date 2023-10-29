@@ -1,7 +1,6 @@
 use crate::{
     config::Database,
     dtos::CreateChampionshipDto,
-    entity::Championship,
     error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
@@ -38,7 +37,6 @@ impl ChampionshipService {
         payload: CreateChampionshipDto,
         user_id: &u32,
     ) -> AppResult<()> {
-        // Todo: restrict port to receive only one connection, and release it when the connection is closed
         let port = self.get_port().await?;
         let mut rand = StdRng::from_entropy();
         let id: u32 = rand.gen_range(600000000..700000000);
@@ -84,26 +82,6 @@ impl ChampionshipService {
         info!("Championship deleted with success: {id}");
 
         Ok(())
-    }
-
-    pub async fn user_championships(&self, user_id: &u32) -> AppResult<Vec<Championship>> {
-        let championships = sqlx::query_as::<_, Championship>(
-            r#"
-                SELECT
-                    c.*
-                FROM
-                    championship c
-                JOIN
-                    user_championships uc ON c.id = uc.championship_id
-                WHERE
-                    uc.user_id = ?
-            "#,
-        )
-        .bind(user_id)
-        .fetch_all(&self.db.mysql)
-        .await?;
-
-        Ok(championships)
     }
 
     async fn available_ports(

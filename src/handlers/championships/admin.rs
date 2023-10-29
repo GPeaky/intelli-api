@@ -15,10 +15,7 @@ pub async fn user_championships(
     State(state): State<UserState>,
     Path(user_id): Path<u32>,
 ) -> AppResult<Json<Vec<Championship>>> {
-    let championships = state
-        .championship_service
-        .user_championships(&user_id)
-        .await?;
+    let championships = state.championship_repository.find_all(&user_id).await?;
 
     Ok(Json(championships))
 }

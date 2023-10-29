@@ -17,6 +17,7 @@ pub enum Provider {
 pub enum Role {
     Free,
     Premium,
+    Business,
     Admin,
 }
 
