@@ -107,4 +107,24 @@ impl ChampionshipRepository {
 
         Ok(championships)
     }
+
+    pub async fn user_champions_len(&self, user_id: &u32) -> AppResult<usize> {
+        let championships = sqlx::query_as::<_, (u32,)>(
+            r#"
+                SELECT
+                    c.id
+                FROM
+                    championship c
+                JOIN
+                    user_championships uc ON c.id = uc.championship_id
+                WHERE
+                    uc.user_id = ?
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(&self.database.mysql)
+        .await?;
+
+        Ok(championships.len())
+    }
 }

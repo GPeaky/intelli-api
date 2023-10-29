@@ -13,7 +13,7 @@ pub enum TokenType {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TokenClaim {
     pub exp: usize,
-    pub sub: String,
+    pub sub: u32,
     pub token_type: TokenType,
 }
 
@@ -21,7 +21,8 @@ pub struct TokenClaim {
 impl TokenType {
     pub fn get_expiration(&self) -> usize {
         let minutes = match self {
-            TokenType::RefreshBearer => Duration::days(1),
+            TokenType::RefreshBearer => Duration::days(7),
+            TokenType::Bearer => Duration::days(1),
             _ => Duration::minutes(15),
         };
 

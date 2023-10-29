@@ -15,7 +15,9 @@ pub enum Provider {
 #[repr(u8)]
 #[derive(Type, Debug, Serialize, PartialEq, Eq)]
 pub enum Role {
-    User,
+    Free,
+    Premium,
+    Business,
     Admin,
 }
 

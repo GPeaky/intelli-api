@@ -1,6 +1,6 @@
 use crate::{
     dtos::CreateChampionshipDto,
-    entity::{Championship, UserExtension},
+    entity::{Championship, Role, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
     states::UserState,
 };
@@ -20,8 +20,6 @@ mod admin;
 mod sockets;
 mod web_socket;
 
-const MAXIMUM_CHAMPIONSHIPS: usize = 3;
-
 #[inline(always)]
 pub async fn create_championship(
     Extension(user): Extension<UserExtension>,
@@ -32,10 +30,33 @@ pub async fn create_championship(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let championships = state.championship_repository.find_all(&user.id).await?;
+    {
+        let championships_len = state
+            .championship_repository
+            .user_champions_len(&user.id)
+            .await?;
 
-    if championships.len().gt(&MAXIMUM_CHAMPIONSHIPS) {
-        Err(ChampionshipError::LimitReached)?;
+        match user.role {
+            Role::Free => {
+                if championships_len >= 1 {
+                    Err(ChampionshipError::LimitReached)?
+                }
+            }
+
+            Role::Premium => {
+                if championships_len >= 3 {
+                    Err(ChampionshipError::LimitReached)?
+                }
+            }
+
+            Role::Business => {
+                if championships_len >= 14 {
+                    Err(ChampionshipError::LimitReached)?
+                }
+            }
+
+            Role::Admin => {}
+        }
     }
 
     state

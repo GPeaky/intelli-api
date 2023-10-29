@@ -28,11 +28,11 @@ pub(crate) async fn register(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let user_id = state.user_service.new_user(&form).await?.to_string();
+    let user_id = state.user_service.new_user(&form).await?;
 
     let token = state
         .token_service
-        .generate_token(&user_id, TokenType::Email)
+        .generate_token(user_id, TokenType::Email)
         .await?;
 
     state
@@ -82,15 +82,13 @@ pub(crate) async fn login(
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let user_id = user.id.to_string();
-
     let access_token_future = state
         .token_service
-        .generate_token(&user_id, TokenType::Bearer);
+        .generate_token(user.id, TokenType::Bearer);
 
     let refresh_token_future = state
         .token_service
-        .generate_refresh_token(&user_id, fingerprint);
+        .generate_refresh_token(&user.id, fingerprint);
 
     let (access_token, refresh_token) =
         tokio::try_join!(access_token_future, refresh_token_future)?;
@@ -146,7 +144,7 @@ pub(crate) async fn logout(
 
     state
         .token_service
-        .remove_refresh_token(user.id.to_string(), fingerprint)
+        .remove_refresh_token(&user.id, fingerprint)
         .await?;
 
     Ok(StatusCode::OK.into_response())
@@ -168,7 +166,7 @@ pub(crate) async fn forgot_password(
 
     let token = state
         .token_service
-        .generate_token(&user.id.to_string(), TokenType::ResetPassword)
+        .generate_token(user.id, TokenType::ResetPassword)
         .await?;
 
     state
