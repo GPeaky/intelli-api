@@ -1,5 +1,5 @@
 use crate::{
-    dtos::TokenType,
+    dtos::{TokenType, VerifyEmailParams},
     error::{AppResult, TokenError},
     services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
@@ -9,12 +9,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use hyper::StatusCode;
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub struct VerifyEmailParams {
-    token: String,
-}
 
 #[inline(always)]
 pub async fn verify_email(
@@ -22,7 +16,6 @@ pub async fn verify_email(
     Query(query): Query<VerifyEmailParams>,
 ) -> AppResult<Response> {
     let token_data = state.token_service.validate(&query.token)?;
-
     if token_data.claims.token_type.ne(&TokenType::Email) {
         Err(TokenError::InvalidToken)?
     }

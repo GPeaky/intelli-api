@@ -15,8 +15,12 @@ pub enum UserError {
     MailError,
     #[error("Not verified user")]
     NotVerified,
+    #[error("Not Provided Fingerprint")]
+    NotProvidedFingerprint,
     #[error("Invalid fingerprint")]
     InvalidFingerprint,
+    #[error("Not Provided Refresh Token")]
+    NotProvidedRefreshToken,
     #[error("Invalid Refresh Token")]
     InvalidRefreshToken,
     #[error("Unauthorized user")]
@@ -39,7 +43,9 @@ impl IntoResponse for UserError {
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             UserError::MailError => StatusCode::INTERNAL_SERVER_ERROR,
             UserError::NotVerified => StatusCode::UNAUTHORIZED,
+            UserError::NotProvidedFingerprint => StatusCode::BAD_REQUEST,
             UserError::InvalidFingerprint => StatusCode::BAD_REQUEST,
+            UserError::NotProvidedRefreshToken => StatusCode::BAD_REQUEST,
             UserError::InvalidRefreshToken => StatusCode::BAD_REQUEST,
             UserError::Unauthorized => StatusCode::UNAUTHORIZED,
             UserError::AutoDelete => StatusCode::BAD_REQUEST,
