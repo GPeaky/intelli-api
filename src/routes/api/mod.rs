@@ -3,6 +3,7 @@ use super::handle_error;
 use crate::handlers::auth::callback;
 use crate::handlers::championships::socket_status;
 use crate::handlers::heartbeat;
+use crate::services::FirewallService;
 use crate::states::{AuthStateInner, UserStateInner};
 use crate::{
     config::Database,
@@ -30,9 +31,12 @@ use tower::ServiceBuilder;
 mod admin;
 
 #[inline(always)]
-pub(crate) async fn api_router(database: Arc<Database>) -> Router {
+pub(crate) async fn api_router(
+    database: Arc<Database>,
+    firewall_service: Arc<FirewallService>,
+) -> Router {
     let auth_state = Arc::new(AuthStateInner::new(&database));
-    let user_state = Arc::new(UserStateInner::new(&database).await);
+    let user_state = Arc::new(UserStateInner::new(&database, firewall_service).await);
 
     let auth_middleware = middleware::from_fn_with_state(user_state.clone(), auth_handler);
 

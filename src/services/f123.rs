@@ -44,12 +44,12 @@ pub struct F123Service {
 }
 
 impl F123Service {
-    pub fn new(db_conn: &Arc<Database>) -> Self {
+    pub fn new(db_conn: &Arc<Database>, firewall_service: Arc<FirewallService>) -> Self {
         Self {
             db_conn: db_conn.clone(),
+            firewall: firewall_service,
             channels: Arc::new(RwLock::new(FxHashMap::default())),
             sockets: Arc::new(RwLock::new(FxHashMap::default())),
-            firewall: Arc::new(FirewallService::new()),
         }
     }
 
@@ -361,14 +361,14 @@ impl F123Service {
                     Ok(Err(e)) => {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-                        firewall.close(*championship_id).await.unwrap();
+                        firewall.close(&championship_id).await.unwrap();
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
                         break;
                     }
 
                     Err(_) => {
                         info!("Socket  timeout for championship: {}", championship_id);
-                        firewall.close(*championship_id).await.unwrap();
+                        firewall.close(&championship_id).await.unwrap();
                         Self::external_close_socket(&channels, &sockets, &championship_id).await;
                     }
                 }

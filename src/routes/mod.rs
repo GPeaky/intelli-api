@@ -1,4 +1,4 @@
-use crate::config::Database;
+use crate::{config::Database, services::FirewallService};
 use axum::{error_handling::HandleErrorLayer, http::HeaderValue, routing::IntoMakeService, Router};
 use hyper::{Method, StatusCode};
 use std::{sync::Arc, time::Duration};
@@ -16,7 +16,10 @@ pub async fn handle_error(e: Box<dyn std::error::Error + Send + Sync>) -> (Statu
 }
 
 #[inline(always)]
-pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<Router> {
+pub(crate) async fn service_routes(
+    database: Arc<Database>,
+    firewall_service: Arc<FirewallService>,
+) -> IntoMakeService<Router> {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(vec![
             HeaderValue::from_static("https://intellitelemetry.live"),
@@ -26,7 +29,7 @@ pub(crate) async fn service_routes(database: Arc<Database>) -> IntoMakeService<R
         .allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT]);
 
     Router::new()
-        .nest("/", api::api_router(database).await)
+        .nest("/", api::api_router(database, firewall_service).await)
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
