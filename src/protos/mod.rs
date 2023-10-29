@@ -1,4 +1,7 @@
-include!(concat!(env!("OUT_DIR"), "/packet_header_generated.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/generated/packet_header_generated.rs"
+));
 
 pub(crate) mod car_motion_data;
 pub(crate) mod event_data;

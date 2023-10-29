@@ -1,4 +1,7 @@
-include!(concat!(env!("OUT_DIR"), "/event_data_generated.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/generated/event_data_generated.rs"
+));
 
 use super::ToFlatBufferMessage;
 use crate::dtos::{EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData};

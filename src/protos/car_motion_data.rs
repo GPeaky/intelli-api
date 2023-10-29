@@ -1,4 +1,7 @@
-include!(concat!(env!("OUT_DIR"), "/car_motion_generated.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/generated/car_motion_generated.rs"
+));
 
 use super::ToFlatBufferMessage;
 use crate::dtos::PacketMotionData as BPacketMotionData;
