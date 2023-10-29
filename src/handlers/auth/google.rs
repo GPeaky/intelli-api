@@ -32,15 +32,13 @@ pub async fn callback(
         }
     };
 
-    let user_id = user.id.to_string();
-
     let access_token_task = state
         .token_service
-        .generate_token(&user_id, TokenType::Bearer);
+        .generate_token(user.id, TokenType::Bearer);
 
     let refresh_token_task = state
         .token_service
-        .generate_refresh_token(&user_id, "google");
+        .generate_refresh_token(&user.id, "google");
 
     let (access_token, refresh_token) = tokio::join!(access_token_task, refresh_token_task);
 

@@ -17,31 +17,21 @@ pub async fn auth_handler<T>(
     mut req: Request<T>,
     next: Next<T>,
 ) -> AppResult<Response> {
-    let header_value = req
+    let header = req
         .headers()
         .get(AUTHORIZATION)
         .ok_or(TokenError::MissingToken)?;
 
-    let header_str = header_value
-        .to_str()
-        .map_err(|_| TokenError::InvalidToken)?;
-
-    // Verificar que el encabezado comienza con "Bearer "
-    if !header_str.starts_with("Bearer ") {
+    let mut header = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+    if !header.starts_with("Bearer ") {
         return Err(TokenError::InvalidToken)?;
     }
 
-    // Extraer el token real
-    let extracted_token = &header_str[7..];
+    header = &header[7..];
 
-    // Validar el token
-    let token = state.token_service.validate(extracted_token)?;
+    let token = state.token_service.validate(header)?;
 
-    let Some(user) = state
-        .user_repository
-        .find(&token.claims.sub.parse::<u32>().unwrap())
-        .await?
-    else {
+    let Some(user) = state.user_repository.find(&token.claims.sub).await? else {
         return Err(UserError::NotFound)?;
     };
 

@@ -13,7 +13,7 @@ pub enum TokenType {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TokenClaim {
     pub exp: usize,
-    pub sub: String,
+    pub sub: u32,
     pub token_type: TokenType,
 }
 
