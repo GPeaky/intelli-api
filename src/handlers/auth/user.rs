@@ -63,7 +63,7 @@ pub(crate) async fn login(
 
     let fingerprint = headers
         .get("Fingerprint")
-        .ok_or(UserError::InvalidFingerprint)?
+        .ok_or(UserError::NotProvidedFingerprint)?
         .to_str()
         .map_err(|_| UserError::InvalidFingerprint)?;
 
@@ -106,14 +106,14 @@ pub(crate) async fn refresh_token(
 ) -> AppResult<Json<RefreshResponse>> {
     let fingerprint = headers
         .get("Fingerprint")
-        .ok_or(UserError::InvalidFingerprint)?
+        .ok_or(UserError::NotProvidedFingerprint)?
         .to_str()
         .map_err(|_| UserError::InvalidFingerprint)?;
 
     // TODO: Change this to a more generic way. Like query params
     let refresh_token = headers
         .get("RefreshToken")
-        .ok_or(UserError::InvalidRefreshToken)?
+        .ok_or(UserError::NotProvidedRefreshToken)?
         .to_str()
         .map_err(|e| {
             error!("{:?}", e);
@@ -138,7 +138,7 @@ pub(crate) async fn logout(
 ) -> AppResult<Response> {
     let fingerprint = headers
         .get("Fingerprint")
-        .ok_or(UserError::InvalidFingerprint)?
+        .ok_or(UserError::NotProvidedFingerprint)?
         .to_str()
         .map_err(|_| UserError::InvalidFingerprint)?;
 

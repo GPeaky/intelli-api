@@ -13,6 +13,8 @@ pub enum SocketError {
     AlreadyExists,
     #[error("Socket is not active")]
     NotActive,
+    #[error("Rule Already Exists")]
+    RuleAlreadyExists,
 }
 
 impl IntoResponse for SocketError {
@@ -21,6 +23,7 @@ impl IntoResponse for SocketError {
             SocketError::NotFound => StatusCode::BAD_REQUEST,
             SocketError::AlreadyExists => StatusCode::CONFLICT,
             SocketError::NotActive => StatusCode::NOT_FOUND,
+            SocketError::RuleAlreadyExists => StatusCode::CONFLICT,
         };
 
         AppErrorResponse::send(status_code, Some(self.to_string()))

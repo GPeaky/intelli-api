@@ -105,3 +105,8 @@ pub struct ResetPasswordDto {
 pub struct ResetPasswordQuery {
     pub token: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct VerifyEmailParams {
+    pub token: String,
+}
