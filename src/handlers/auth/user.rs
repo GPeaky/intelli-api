@@ -1,8 +1,8 @@
 use crate::{
     dtos::{
         AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
-        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPasswordDto, ResetPasswordQuery,
-        TokenType,
+        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword, ResetPasswordDto,
+        ResetPasswordQuery, TokenType, VerifyEmail,
     },
     entity::UserExtension,
     error::{AppResult, CommonError, TokenError, UserError},
