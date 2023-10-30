@@ -34,16 +34,16 @@ pub(crate) async fn register(
         .generate_token(user_id, TokenType::Email)
         .await?;
 
+    let template = VerifyEmail {
+        verification_link: &format!(
+            "https://intellitelemetry.live/auth/verify-email?token={}",
+            token
+        ),
+    };
+
     state
         .email_service
-        .send_mail(
-            &(&form).into(),
-            "Verify Email",
-            format!(
-                "Click on the link to verify your email: http://localhost:3000/verify-email/{}",
-                token
-            ),
-        )
+        .send_mail(&(&form).into(), "Verify Email", template)
         .await
         .map_err(|_| UserError::MailError)?;
 
@@ -140,6 +140,13 @@ pub(crate) async fn forgot_password(
         .generate_token(user.id, TokenType::ResetPassword)
         .await?;
 
+    let template = ResetPassword {
+        reset_password_link: &format!(
+            "https://intellitelemetry.live/auth/reset-password?token={}",
+            token
+        ),
+    };
+
     state
         .email_service
         .send_mail(
@@ -148,10 +155,7 @@ pub(crate) async fn forgot_password(
                 email: &user.email,
             },
             "Reset Password",
-            format!(
-                "Click on the link to reset your password: http://localhost:3000/reset-password{}",
-                token
-            ),
+            template,
         )
         .await
         .map_err(|_| UserError::MailError)?;
