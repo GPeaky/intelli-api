@@ -7,7 +7,6 @@ services:
   api:
     build: .
     network_mode: host
-    privileged: true
     restart: unless-stopped
     container_name: intelli-api
     depends_on:
