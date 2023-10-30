@@ -5,7 +5,6 @@ use mimalloc::MiMalloc;
 use services::FirewallService;
 use std::net::TcpListener;
 use std::sync::Arc;
-use tracing::info;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

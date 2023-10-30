@@ -1,4 +1,17 @@
 use super::RegisterUserDto;
+use askama::Template;
+
+#[derive(Template)]
+#[template(path = "verify_email.html")]
+pub struct VerifyEmail<'a> {
+    pub verification_link: &'a str,
+}
+
+#[derive(Template)]
+#[template(path = "reset_password.html")]
+pub struct ResetPassword<'a> {
+    pub reset_password_link: &'a str,
+}
 
 #[derive(Debug)]
 pub struct EmailUser<'a> {

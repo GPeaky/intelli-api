@@ -55,6 +55,7 @@ tower = { version = "0.4.13", features = [
 ] }
 rand = "0.8.5"
 flatbuffers = "23.5.26"
+askama = "0.12.1"
 
 [profile.release]
 debug = 0
