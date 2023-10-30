@@ -35,10 +35,7 @@ pub(crate) async fn register(
         .await?;
 
     let template = VerifyEmail {
-        verification_link: &format!(
-            "https://intellitelemetry.live/auth/verify-email?token={}",
-            token
-        ),
+        verification_link: &format!("https://intellitelemetry.live/auth/verify-email/{}", token),
     };
 
     state
@@ -142,7 +139,7 @@ pub(crate) async fn forgot_password(
 
     let template = ResetPassword {
         reset_password_link: &format!(
-            "https://intellitelemetry.live/auth/reset-password?token={}",
+            "https://intellitelemetry.live/auth/reset-password/{}",
             token
         ),
     };
