@@ -1,7 +1,8 @@
 use crate::{
     dtos::{
-        AuthResponse, EmailUser, ForgotPasswordDto, LoginUserDto, RefreshResponse, RegisterUserDto,
-        ResetPassword, ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
+        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
+        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPasswordDto, ResetPasswordQuery,
+        TokenType,
     },
     entity::UserExtension,
     error::{AppResult, CommonError, TokenError, UserError},
@@ -16,8 +17,6 @@ use axum::{
     Extension, Json,
 };
 use garde::Validate;
-use hyper::HeaderMap;
-use tracing::error;
 
 #[inline(always)]
 pub(crate) async fn register(
@@ -53,19 +52,13 @@ pub(crate) async fn register(
 
 #[inline(always)]
 pub(crate) async fn login(
-    headers: HeaderMap,
     State(state): State<AuthState>,
+    Query(query): Query<FingerprintQuery>,
     Form(form): Form<LoginUserDto>,
 ) -> AppResult<Json<AuthResponse>> {
     if form.validate(&()).is_err() {
         return Err(CommonError::FormValidationFailed)?;
     }
-
-    let fingerprint = headers
-        .get("Fingerprint")
-        .ok_or(UserError::NotProvidedFingerprint)?
-        .to_str()
-        .map_err(|_| UserError::InvalidFingerprint)?;
 
     let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
         return Err(UserError::NotFound)?;
@@ -88,7 +81,7 @@ pub(crate) async fn login(
 
     let refresh_token_future = state
         .token_service
-        .generate_refresh_token(&user.id, fingerprint);
+        .generate_refresh_token(&user.id, &query.fingerprint);
 
     let (access_token, refresh_token) =
         tokio::try_join!(access_token_future, refresh_token_future)?;
@@ -101,28 +94,12 @@ pub(crate) async fn login(
 
 #[inline(always)]
 pub(crate) async fn refresh_token(
-    headers: HeaderMap,
     State(state): State<AuthState>,
+    Query(query): Query<RefreshTokenQuery>,
 ) -> AppResult<Json<RefreshResponse>> {
-    let fingerprint = headers
-        .get("Fingerprint")
-        .ok_or(UserError::NotProvidedFingerprint)?
-        .to_str()
-        .map_err(|_| UserError::InvalidFingerprint)?;
-
-    // TODO: Change this to a more generic way. Like query params
-    let refresh_token = headers
-        .get("RefreshToken")
-        .ok_or(UserError::NotProvidedRefreshToken)?
-        .to_str()
-        .map_err(|e| {
-            error!("{:?}", e);
-            UserError::InvalidRefreshToken
-        })?;
-
     let new_token = state
         .token_service
-        .refresh_access_token(refresh_token, fingerprint)
+        .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
     Ok(Json(RefreshResponse {
@@ -132,19 +109,13 @@ pub(crate) async fn refresh_token(
 
 #[inline(always)]
 pub(crate) async fn logout(
-    headers: HeaderMap,
     State(state): State<AuthState>,
     Extension(user): Extension<UserExtension>,
+    Query(query): Query<FingerprintQuery>,
 ) -> AppResult<Response> {
-    let fingerprint = headers
-        .get("Fingerprint")
-        .ok_or(UserError::NotProvidedFingerprint)?
-        .to_str()
-        .map_err(|_| UserError::InvalidFingerprint)?;
-
     state
         .token_service
-        .remove_refresh_token(&user.id, fingerprint)
+        .remove_refresh_token(&user.id, &query.fingerprint)
         .await?;
 
     Ok(StatusCode::OK.into_response())
@@ -194,7 +165,7 @@ pub(crate) async fn forgot_password(
 
 #[inline(always)]
 pub async fn reset_password(
-    Query(ResetPasswordQuery { token }): Query<ResetPasswordQuery>,
+    Query(query): Query<ResetPasswordQuery>,
     State(state): State<AuthState>,
     Form(form): Form<ResetPasswordDto>,
 ) -> AppResult<Response> {
@@ -202,7 +173,7 @@ pub async fn reset_password(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let token_data = state.token_service.validate(&token)?;
+    let token_data = state.token_service.validate(&query.token)?;
 
     if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
         Err(TokenError::InvalidTokenType)?

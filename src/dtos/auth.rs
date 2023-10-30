@@ -110,3 +110,14 @@ pub struct ResetPasswordQuery {
 pub struct VerifyEmailParams {
     pub token: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshTokenQuery {
+    pub fingerprint: String,
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FingerprintQuery {
+    pub fingerprint: String,
+}

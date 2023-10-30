@@ -62,8 +62,8 @@ pub(crate) async fn api_router(
         .with_state(user_state.clone())
         .route_layer(auth_middleware.clone());
 
-    // todo: Delete Championship, Get Championship
-    // todo: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
+    // TODO: Delete Championship, Get Championship
+    // TODO: Add Round to Championship, Delete Round from Championship, Get Round from Championship and reference it to the corresponding session
     let championships_router = Router::new()
         .route("/", post(create_championship))
         .route("/:id", get(get_championship))
