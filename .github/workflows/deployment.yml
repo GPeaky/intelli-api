@@ -1,0 +1,32 @@
+name: Deployment
+
+on:
+  - push
+
+jobs:
+  build_and_deploy:
+    runs-on: self-hosted
+    environment: intelli
+
+    env:
+      HOST: ${{ env.HOST }}
+      REDIS_URL: ${{ env.REDIS_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL_HOST: ${{ env.EMAIL_HOST }}
+      EMAIL_FROM: ${{ env.EMAIL_FROM }}
+      EMAIL_NAME: ${{ env.EMAIL_NAME }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REDIRECT_URI: ${{ env.GOOGLE_REDIRECT_URI }}
+      GOOGLE_GRANT_TYPE: ${{ env.GOOGLE_GRANT_TYPE }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Build with Docker Compose
+        run: docker-compose build
+
+      - name: Run with Docker Compose
+        run: docker-compose up -d
