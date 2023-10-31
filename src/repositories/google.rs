@@ -3,7 +3,6 @@ use crate::{
     error::AppResult,
 };
 use dotenvy::var;
-use tracing::info;
 
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -51,7 +50,6 @@ impl GoogleRepository {
                 .await
                 .unwrap();
 
-            info!("{:?}", response);
             access_token = response.access_token;
         }
 
@@ -65,8 +63,6 @@ impl GoogleRepository {
             .json()
             .await
             .unwrap();
-
-        info!("{:?}", user_info);
 
         Ok(user_info)
     }
