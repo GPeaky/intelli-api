@@ -15,6 +15,8 @@ pub enum UserError {
     InvalidCredentials,
     #[error("Not verified user")]
     NotVerified,
+    #[error("Use google to login")]
+    GoogleLogin,
     #[error("Unauthorized user")]
     Unauthorized,
     #[error("Cannot Delete Yourself")]
@@ -34,6 +36,7 @@ impl IntoResponse for UserError {
             UserError::NotFound => StatusCode::NOT_FOUND,
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             UserError::NotVerified => StatusCode::UNAUTHORIZED,
+            UserError::GoogleLogin => StatusCode::BAD_REQUEST,
             UserError::Unauthorized => StatusCode::UNAUTHORIZED,
             UserError::AutoDelete => StatusCode::BAD_REQUEST,
             UserError::AlreadyActive => StatusCode::BAD_REQUEST,

@@ -4,7 +4,7 @@ use crate::{
         PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
         ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
     },
-    entity::UserExtension,
+    entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
@@ -68,6 +68,10 @@ pub(crate) async fn login(
 
     if !user.active {
         return Err(UserError::NotVerified)?;
+    }
+
+    if user.provider != Provider::Local {
+        return Err(UserError::GoogleLogin)?;
     }
 
     if !state
