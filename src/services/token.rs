@@ -8,6 +8,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use redis::AsyncCommands;
 use std::{fs, sync::Arc};
 
+const AUTH_TOKEN_EXPIRATION: usize = 15 * 60;
 const REFRESH_TOKEN_EXPIRATION: usize = 7 * 24 * 60 * 60;
 
 pub struct TokenService {
@@ -72,7 +73,7 @@ impl TokenServiceTrait for TokenService {
         let mut redis = self.db_conn.get_redis_async().await;
 
         redis
-            .set_ex::<_, u8, ()>(format!("reset:{}", token), 1, REFRESH_TOKEN_EXPIRATION)
+            .set_ex::<_, u8, ()>(format!("reset:{}", token), 1, AUTH_TOKEN_EXPIRATION)
             .await
             .unwrap();
 
@@ -83,7 +84,7 @@ impl TokenServiceTrait for TokenService {
         let mut redis = self.db_conn.get_redis_async().await;
 
         redis
-            .set_ex::<_, u8, ()>(format!("email:{}", token), 1, REFRESH_TOKEN_EXPIRATION)
+            .set_ex::<_, u8, ()>(format!("email:{}", token), 1, AUTH_TOKEN_EXPIRATION)
             .await
             .unwrap();
 

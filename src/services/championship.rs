@@ -90,8 +90,8 @@ impl ChampionshipService {
         let mut all_ports: FxHashSet<u16> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
-        for port in ports_in_use {
-            all_ports.remove(&port.0);
+        for (port,) in ports_in_use {
+            all_ports.remove(&port);
         }
 
         info!("Available ports: {:?}", all_ports);
