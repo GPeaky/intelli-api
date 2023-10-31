@@ -1,8 +1,8 @@
 use crate::{
     dtos::{
         AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
-        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword, ResetPasswordDto,
-        ResetPasswordQuery, TokenType, VerifyEmail,
+        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
+        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
     },
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
@@ -174,9 +174,27 @@ pub async fn reset_password(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    state
+    let user_id = state
         .user_service
         .reset_password_with_token(&query.token, &form.password)
+        .await?;
+
+    let Some(user) = state.user_repository.find(&user_id).await? else {
+        Err(UserError::NotFound)?
+    };
+
+    let template = PasswordChanged {};
+
+    state
+        .email_service
+        .send_mail(
+            EmailUser {
+                username: &user.username,
+                email: &user.email,
+            },
+            "Password has been reseated",
+            template,
+        )
         .await?;
 
     Ok(StatusCode::OK.into_response())

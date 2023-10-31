@@ -13,6 +13,10 @@ pub struct ResetPassword<'a> {
     pub reset_password_link: &'a str,
 }
 
+#[derive(Template)]
+#[template(path = "password_changed.html")]
+pub struct PasswordChanged {}
+
 #[derive(Debug)]
 pub struct EmailUser<'a> {
     pub username: &'a str,
