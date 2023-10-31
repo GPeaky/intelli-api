@@ -11,7 +11,7 @@ use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use redis::AsyncCommands;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{error, info};
 
 pub struct UserService {
     db_conn: Arc<Database>,
@@ -132,12 +132,14 @@ impl UserServiceTrait for UserService {
         let mut redis = self.db_conn.get_redis_async().await;
 
         let Ok(_) = redis.get::<_, u8>(format!("reset:{}", token)).await else {
+            error!("Token not found in redis");
             Err(TokenError::InvalidToken)?
         };
 
         {
             let token_data = self.token_service.validate(token)?;
-            if token_data.claims.token_type.ne(&TokenType::Email) {
+            if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
+                error!("Token type is not ResetPassword");
                 Err(TokenError::InvalidToken)?
             }
 
