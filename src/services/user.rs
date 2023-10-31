@@ -131,10 +131,7 @@ impl UserServiceTrait for UserService {
         let user_id;
         let mut redis = self.db_conn.get_redis_async().await;
 
-        let Ok(_) = redis
-            .get::<_, u8>(format!("reset_password:{}", token))
-            .await
-        else {
+        let Ok(_) = redis.get::<_, u8>(format!("reset:{}", token)).await else {
             Err(TokenError::InvalidToken)?
         };
 
@@ -150,7 +147,7 @@ impl UserServiceTrait for UserService {
         self.reset_password(&user_id, password).await?;
 
         redis
-            .del::<_, u8>(format!("reset_password:{}", token))
+            .del::<_, u8>(format!("reset:{}", token))
             .await
             .unwrap();
 
