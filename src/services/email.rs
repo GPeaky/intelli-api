@@ -1,12 +1,15 @@
-use crate::dtos::EmailUser;
+use crate::{
+    dtos::EmailUser,
+    error::{AppResult, CommonError},
+};
 use askama::Template;
 use lettre::{
-    error::Error,
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use std::str::FromStr;
+use tracing::error;
 
 pub struct EmailService {
     from_mailbox: Mailbox,
@@ -35,10 +38,10 @@ impl EmailService {
 
     pub async fn send_mail<'a, T: Template>(
         &self,
-        user: &EmailUser<'a>,
+        user: EmailUser<'a>,
         subject: &'a str,
         body: T,
-    ) -> Result<bool, Error> {
+    ) -> AppResult<()> {
         let message = Message::builder()
             .from(self.from_mailbox.to_owned())
             .to(Mailbox::new(
@@ -47,8 +50,14 @@ impl EmailService {
             ))
             .header(ContentType::TEXT_HTML)
             .subject(subject)
-            .body(body.render().unwrap())?;
+            .body(body.render().unwrap())
+            .expect("Message builder error");
 
-        Ok(self.mailer.send(message).await.is_ok())
+        self.mailer.send(message).await.map_err(|e| {
+            error!("{:?}", e);
+            CommonError::MailServerError
+        })?;
+
+        Ok(())
     }
 }

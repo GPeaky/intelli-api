@@ -1,23 +1,22 @@
 use self::admin::admin_router;
 use super::handle_error;
-use crate::handlers::auth::callback;
-use crate::handlers::championships::socket_status;
-use crate::handlers::heartbeat;
-use crate::services::FirewallService;
-use crate::states::{AuthStateInner, UserStateInner};
 use crate::{
     config::Database,
     handlers::{
         auth::{
-            forgot_password, login, logout, refresh_token, register, reset_password, verify_email,
+            callback, forgot_password, login, logout, refresh_token, register, reset_password,
+            verify_email,
         },
         championships::{
-            all_championships, create_championship, get_championship, session_socket, start_socket,
-            stop_socket,
+            all_championships, create_championship, get_championship, session_socket,
+            socket_status, start_socket, stop_socket,
         },
+        heartbeat,
         user::user_data,
     },
     middlewares::auth_handler,
+    services::FirewallService,
+    states::{AuthStateInner, UserStateInner},
 };
 use axum::{
     error_handling::HandleErrorLayer,

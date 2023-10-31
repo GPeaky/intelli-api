@@ -1,5 +1,8 @@
 use crate::response::AppErrorResponse;
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -27,7 +30,7 @@ pub enum UserError {
 }
 
 impl IntoResponse for UserError {
-    fn into_response(self) -> axum::response::Response {
+    fn into_response(self) -> Response {
         let status_code = match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
             UserError::NotFound => StatusCode::NOT_FOUND,

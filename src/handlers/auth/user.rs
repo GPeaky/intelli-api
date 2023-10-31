@@ -41,11 +41,13 @@ pub(crate) async fn register(
         ),
     };
 
-    state
+    let save_email_future = state.token_service.save_email_token(&token);
+
+    let send_email_future = state
         .email_service
-        .send_mail(&(&form).into(), "Verify Email", template)
-        .await
-        .map_err(|_| UserError::MailError)?;
+        .send_mail((&form).into(), "Verify Email", template);
+
+    tokio::try_join!(save_email_future, send_email_future)?;
 
     Ok(StatusCode::CREATED.into_response())
 }
@@ -150,7 +152,7 @@ pub(crate) async fn forgot_password(
     state
         .email_service
         .send_mail(
-            &EmailUser {
+            EmailUser {
                 username: &user.username,
                 email: &user.email,
             },

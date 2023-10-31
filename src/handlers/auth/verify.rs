@@ -1,8 +1,5 @@
 use crate::{
-    dtos::{TokenType, VerifyEmailParams},
-    error::{AppResult, TokenError},
-    services::{TokenServiceTrait, UserServiceTrait},
-    states::AuthState,
+    dtos::VerifyEmailParams, error::AppResult, services::UserServiceTrait, states::AuthState,
 };
 use axum::{
     extract::{Query, State},
@@ -15,14 +12,9 @@ pub async fn verify_email(
     State(state): State<AuthState>,
     Query(query): Query<VerifyEmailParams>,
 ) -> AppResult<Response> {
-    let token_data = state.token_service.validate(&query.token)?;
-    if token_data.claims.token_type.ne(&TokenType::Email) {
-        Err(TokenError::InvalidToken)?
-    }
-
     state
         .user_service
-        .activate_user(&token_data.claims.sub)
+        .activate_user_with_token(&query.token)
         .await
         .unwrap();
 

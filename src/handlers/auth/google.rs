@@ -1,10 +1,15 @@
-use crate::dtos::TokenType;
-use crate::repositories::UserRepositoryTrait;
-use crate::services::{TokenServiceTrait, UserServiceTrait};
-use crate::states::AuthState;
-use crate::{dtos::GoogleCallbackQuery, error::AppResult};
-use axum::extract::{Query, State};
-use axum::response::Response;
+use crate::{
+    dtos::GoogleCallbackQuery,
+    dtos::TokenType,
+    error::AppResult,
+    repositories::UserRepositoryTrait,
+    services::{TokenServiceTrait, UserServiceTrait},
+    states::AuthState,
+};
+use axum::{
+    extract::{Query, State},
+    response::Response,
+};
 
 const WEB_REDIRECT_URL: &str = "https://intellitelemetry.live/auth/google/callback";
 

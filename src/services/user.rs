@@ -1,14 +1,15 @@
-use crate::entity::Provider;
-use crate::error::UserError;
+use super::{TokenService, TokenServiceTrait};
 use crate::{
     config::Database,
-    dtos::RegisterUserDto,
-    error::AppResult,
+    dtos::{RegisterUserDto, TokenType},
+    entity::Provider,
+    error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
 use axum::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use redis::AsyncCommands;
 use std::sync::Arc;
 use tracing::info;
 
@@ -16,6 +17,7 @@ pub struct UserService {
     db_conn: Arc<Database>,
     #[allow(unused)]
     user_repo: UserRepository,
+    token_service: TokenService,
 }
 
 #[async_trait]
@@ -24,6 +26,7 @@ pub trait UserServiceTrait {
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32>;
     async fn delete_user(&self, id: &u32) -> AppResult<()>;
     async fn activate_user(&self, id: &u32) -> AppResult<()>;
+    async fn activate_user_with_token(&self, token: &str) -> AppResult<()>;
     async fn deactivate_user(&self, id: &u32) -> AppResult<()>;
 }
 
@@ -33,6 +36,7 @@ impl UserServiceTrait for UserService {
         Self {
             db_conn: db_conn.clone(),
             user_repo: UserRepository::new(db_conn),
+            token_service: TokenService::new(db_conn),
         }
     }
 
@@ -117,6 +121,44 @@ impl UserServiceTrait for UserService {
         .await?;
 
         info!("User deleted with success: {}", id);
+
+        Ok(())
+    }
+
+    async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
+        let user_id;
+        let mut redis = self.db_conn.get_redis_async().await;
+
+        let Ok(_) = redis.get::<_, String>(format!("email:{}", token)).await else {
+            Err(TokenError::InvalidToken)?
+        };
+
+        {
+            let token_data = self.token_service.validate(token)?;
+            if token_data.claims.token_type.ne(&TokenType::Email) {
+                Err(TokenError::InvalidToken)?
+            }
+
+            user_id = token_data.claims.sub;
+        }
+
+        sqlx::query(
+            r#"
+                UPDATE user
+                SET active = 1
+                WHERE id = ?
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.db_conn.mysql)
+        .await?;
+
+        redis
+            .del::<_, String>(format!("email:{}", token))
+            .await
+            .unwrap();
+
+        info!("User activated with success: {}", user_id);
 
         Ok(())
     }
