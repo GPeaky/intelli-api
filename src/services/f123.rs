@@ -1,9 +1,9 @@
 use super::FirewallService;
-use crate::protos::{PacketType, ToFlatBufferMessage};
 use crate::{
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
+    protos::{PacketType, ToFlatBufferMessage},
 };
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;

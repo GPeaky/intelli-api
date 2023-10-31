@@ -1,5 +1,7 @@
-use crate::dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo};
-use crate::error::AppResult;
+use crate::{
+    dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
+    error::AppResult,
+};
 use dotenvy::var;
 
 pub struct GoogleRepository {

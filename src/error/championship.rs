@@ -1,5 +1,8 @@
 use crate::response::AppErrorResponse;
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use thiserror::Error;
 
 #[allow(unused)]
@@ -16,7 +19,7 @@ pub enum ChampionshipError {
 }
 
 impl IntoResponse for ChampionshipError {
-    fn into_response(self) -> axum::response::Response {
+    fn into_response(self) -> Response {
         let status_code = match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
             ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,

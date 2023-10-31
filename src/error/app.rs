@@ -1,7 +1,9 @@
 use super::{user::UserError, ChampionshipError, CommonError, SocketError, TokenError};
 use crate::response::AppErrorResponse;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use thiserror::Error;
 use tracing::info;
 
