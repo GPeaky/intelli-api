@@ -3,6 +3,10 @@ use crate::{
     error::AppResult,
 };
 use dotenvy::var;
+use tracing::info;
+
+const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 pub struct GoogleRepository {
     client_id: String,
@@ -25,35 +29,44 @@ impl GoogleRepository {
     }
 
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
-        let token_request = GoogleTokenRequest {
-            client_id: &self.client_id,
-            client_secret: &self.client_secret,
-            code: callback_code,
-            grant_type: &self.grant_type,
-            redirect_uri: &self.redirect_uri,
-        };
+        let access_token;
 
-        let response: GoogleAuthResponse = self
-            .reqwest_client
-            .post("https://oauth2.googleapis.com/token")
-            .form(&token_request)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
+        {
+            let token_request = GoogleTokenRequest {
+                client_id: &self.client_id,
+                client_secret: &self.client_secret,
+                code: callback_code,
+                grant_type: &self.grant_type,
+                redirect_uri: &self.redirect_uri,
+            };
+
+            let response: GoogleAuthResponse = self
+                .reqwest_client
+                .post(GOOGLE_TOKEN_URL)
+                .form(&token_request)
+                .send()
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+
+            info!("{:?}", response);
+            access_token = response.access_token;
+        }
 
         let user_info: GoogleUserInfo = self
             .reqwest_client
-            .get("https://www.googleapis.com/oauth2/v2/userinfo")
-            .bearer_auth(response.access_token)
+            .get(GOOGLE_USER_INFO)
+            .bearer_auth(access_token)
             .send()
             .await
             .unwrap()
             .json()
             .await
             .unwrap();
+
+        info!("{:?}", user_info);
 
         Ok(user_info)
     }
