@@ -25,7 +25,7 @@ pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32>;
     async fn delete_user(&self, id: &u32) -> AppResult<()>;
-    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<()>;
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<u32>;
     async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()>;
     async fn activate_user(&self, id: &u32) -> AppResult<()>;
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()>;
@@ -127,7 +127,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<()> {
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<u32> {
         let user_id;
         let mut redis = self.db_conn.get_redis_async().await;
 
@@ -153,7 +153,7 @@ impl UserServiceTrait for UserService {
             .await
             .unwrap();
 
-        Ok(())
+        Ok(user_id)
     }
 
     async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()> {
