@@ -129,7 +129,7 @@ impl UserServiceTrait for UserService {
         let user_id;
         let mut redis = self.db_conn.get_redis_async().await;
 
-        let Ok(_) = redis.get::<_, String>(format!("email:{}", token)).await else {
+        let Ok(_) = redis.get::<_, u8>(format!("email:{}", token)).await else {
             Err(TokenError::InvalidToken)?
         };
 
@@ -154,7 +154,7 @@ impl UserServiceTrait for UserService {
         .await?;
 
         redis
-            .del::<_, String>(format!("email:{}", token))
+            .del::<_, u8>(format!("email:{}", token))
             .await
             .unwrap();
 
