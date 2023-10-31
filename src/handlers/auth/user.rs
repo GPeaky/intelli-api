@@ -192,7 +192,7 @@ pub async fn reset_password(
                 username: &user.username,
                 email: &user.email,
             },
-            "Password has been reseated",
+            "Password Changed",
             template,
         )
         .await?;
