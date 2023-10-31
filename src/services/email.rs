@@ -21,7 +21,7 @@ impl EmailService {
         Self {
             from_mailbox: Mailbox::new(
                 Some("Intelli Telemetry".to_owned()),
-                Address::from_str(dotenvy::var("EMAIL_NAME").as_ref().unwrap()).unwrap(),
+                Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
             ),
             mailer: AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
                 dotenvy::var("EMAIL_HOST").unwrap().as_str(),
