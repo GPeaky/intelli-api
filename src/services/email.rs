@@ -21,13 +21,13 @@ impl EmailService {
         Self {
             from_mailbox: Mailbox::new(
                 Some("Intelli Telemetry".to_owned()),
-                Address::from_str(dotenvy::var("EMAIL_NAME").as_ref().unwrap()).unwrap(),
+                Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
             ),
             mailer: AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
                 dotenvy::var("EMAIL_HOST").unwrap().as_str(),
             )
             .unwrap()
-            .port(587)
+            .port(2525)
             .credentials(Credentials::new(
                 dotenvy::var("EMAIL_NAME").unwrap(),
                 dotenvy::var("EMAIL_PASS").unwrap(),
