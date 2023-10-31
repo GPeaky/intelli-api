@@ -25,6 +25,8 @@ pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32>;
     async fn delete_user(&self, id: &u32) -> AppResult<()>;
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<()>;
+    async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()>;
     async fn activate_user(&self, id: &u32) -> AppResult<()>;
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()>;
     async fn deactivate_user(&self, id: &u32) -> AppResult<()>;
@@ -125,6 +127,55 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<()> {
+        let user_id;
+        let mut redis = self.db_conn.get_redis_async().await;
+
+        let Ok(_) = redis
+            .get::<_, u8>(format!("reset_password:{}", token))
+            .await
+        else {
+            Err(TokenError::InvalidToken)?
+        };
+
+        {
+            let token_data = self.token_service.validate(token)?;
+            if token_data.claims.token_type.ne(&TokenType::Email) {
+                Err(TokenError::InvalidToken)?
+            }
+
+            user_id = token_data.claims.sub;
+        }
+
+        self.reset_password(&user_id, password).await?;
+
+        redis
+            .del::<_, u8>(format!("reset_password:{}", token))
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()> {
+        // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
+        sqlx::query(
+            r#"
+                UPDATE user
+                SET password = ?
+                WHERE id = ?
+            "#,
+        )
+        .bind(hash(password, DEFAULT_COST).unwrap())
+        .bind(id)
+        .execute(&self.db_conn.mysql)
+        .await?;
+
+        info!("User password reseated with success: {}", id);
+
+        Ok(())
+    }
+
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
         let user_id;
         let mut redis = self.db_conn.get_redis_async().await;
@@ -142,23 +193,12 @@ impl UserServiceTrait for UserService {
             user_id = token_data.claims.sub;
         }
 
-        sqlx::query(
-            r#"
-                UPDATE user
-                SET active = 1
-                WHERE id = ?
-            "#,
-        )
-        .bind(user_id)
-        .execute(&self.db_conn.mysql)
-        .await?;
+        self.activate_user(&user_id).await?;
 
         redis
             .del::<_, u8>(format!("email:{}", token))
             .await
             .unwrap();
-
-        info!("User activated with success: {}", user_id);
 
         Ok(())
     }

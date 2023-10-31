@@ -5,7 +5,7 @@ use crate::{
         ResetPasswordQuery, TokenType, VerifyEmail,
     },
     entity::UserExtension,
-    error::{AppResult, CommonError, TokenError, UserError},
+    error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
@@ -41,13 +41,13 @@ pub(crate) async fn register(
         ),
     };
 
-    let save_email_future = state.token_service.save_email_token(&token);
+    let save_email = state.token_service.save_email_token(&token);
 
-    let send_email_future = state
+    let send_email = state
         .email_service
         .send_mail((&form).into(), "Verify Email", template);
 
-    tokio::try_join!(save_email_future, send_email_future)?;
+    tokio::try_join!(save_email, send_email)?;
 
     Ok(StatusCode::CREATED.into_response())
 }
@@ -123,7 +123,6 @@ pub(crate) async fn logout(
     Ok(StatusCode::OK.into_response())
 }
 
-// TODO: Save the token in the database
 #[inline(always)]
 pub(crate) async fn forgot_password(
     State(state): State<AuthState>,
@@ -149,18 +148,18 @@ pub(crate) async fn forgot_password(
         ),
     };
 
-    state
-        .email_service
-        .send_mail(
-            EmailUser {
-                username: &user.username,
-                email: &user.email,
-            },
-            "Reset Password",
-            template,
-        )
-        .await
-        .map_err(|_| UserError::MailError)?;
+    let save_reset_password = state.token_service.save_reset_password_token(&token);
+
+    let send_mail = state.email_service.send_mail(
+        EmailUser {
+            username: &user.username,
+            email: &user.email,
+        },
+        "Reset Password",
+        template,
+    );
+
+    tokio::try_join!(save_reset_password, send_mail)?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -175,12 +174,10 @@ pub async fn reset_password(
         return Err(CommonError::FormValidationFailed)?;
     }
 
-    let token_data = state.token_service.validate(&query.token)?;
+    state
+        .user_service
+        .reset_password_with_token(&query.token, &form.password)
+        .await?;
 
-    if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
-        Err(TokenError::InvalidTokenType)?
-    }
-
-    // TODO: Check if token is on the db and search user by id and change password
     Ok(StatusCode::OK.into_response())
 }

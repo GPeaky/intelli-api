@@ -22,6 +22,7 @@ pub struct TokenService {
 pub trait TokenServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>>;
+    async fn save_reset_password_token(&self, token: &str) -> AppResult<()>;
     async fn save_email_token(&self, token: &str) -> AppResult<()>;
     async fn generate_token(&self, sub: u32, token_type: TokenType) -> AppResult<String>;
     async fn remove_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<()>;
@@ -65,6 +66,17 @@ impl TokenServiceTrait for TokenService {
 
         encode(&self.header, &token_claim, &self.encoding_key)
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
+    }
+
+    async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
+        let mut redis = self.db_conn.get_redis_async().await;
+
+        redis
+            .set_ex::<_, u8, ()>(format!("reset:{}", token), 1, REFRESH_TOKEN_EXPIRATION)
+            .await
+            .unwrap();
+
+        Ok(())
     }
 
     async fn save_email_token(&self, token: &str) -> AppResult<()> {
