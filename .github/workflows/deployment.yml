@@ -2,6 +2,7 @@ name: Deployment
 
 on:
   - push
+  - pull_request
 
 jobs:
   build_and_deploy:
