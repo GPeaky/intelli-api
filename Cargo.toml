@@ -9,7 +9,7 @@ repository = "https://github.com/GPeaky/intelli-api"
 license = "MIT"
 
 [build-dependencies]
-flatc-rust = "0.2.0"
+prost-build = "0.12.1"
 
 [dependencies]
 garde = "0.16.2"
@@ -54,7 +54,7 @@ tower = { version = "0.4.13", features = [
     "load-shed",
 ] }
 rand = "0.8.5"
-flatbuffers = "23.5.26"
+prost = "0.12.1"
 askama = "0.12.1"
 
 [profile.release]

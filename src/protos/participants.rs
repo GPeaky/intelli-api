@@ -1,51 +1,36 @@
-include!(concat!(
-    env!("OUT_DIR"),
-    "/generated/participants_generated.rs"
-));
+include!(concat!(env!("OUT_DIR"), "/protos.participants.rs"));
 
-use super::ToFlatBufferMessage;
+use super::ToProtoMessage;
 use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
+use std::ffi::CStr;
 
-impl ToFlatBufferMessage for BPacketParticipantsData {
-    fn to_flatbuffer(self) -> Vec<u8> {
-        let mut builder = flatbuffers::FlatBufferBuilder::new();
+impl ToProtoMessage for BPacketParticipantsData {
+    type ProtoType = PacketParticipantsData;
 
-        let participants_vec: Vec<_> = self
-            .m_participants
-            .into_iter()
-            .map(|value| {
-                let name_offset = builder.create_vector(&value.m_name);
+    fn to_proto(self) -> Self::ProtoType {
+        PacketParticipantsData {
+            m_num_active_cars: self.m_numActiveCars as u32,
+            m_participants: self
+                .m_participants
+                .into_iter()
+                .map(|value| {
+                    let c_str = CStr::from_bytes_until_nul(&value.m_name).unwrap();
 
-                protos::participants::ParticipantData::create(
-                    &mut builder,
-                    &protos::participants::ParticipantDataArgs {
-                        m_ai_controlled: value.m_aiControlled,
-                        m_driver_id: value.m_driverId,
-                        m_network_id: value.m_networkId,
-                        m_team_id: value.m_teamId,
-                        m_my_team: value.m_myTeam,
-                        m_race_number: value.m_raceNumber,
-                        m_nationality: value.m_nationality,
-                        m_name: Some(name_offset),
-                        m_your_telemetry: value.m_yourTelemetry,
-                        m_show_online_names: value.m_showOnlineNames,
-                        m_platform: value.m_platform,
-                    },
-                )
-            })
-            .collect();
-
-        let participants_offset = Some(builder.create_vector(&participants_vec));
-
-        let packet_data = protos::participants::PacketParticipantsData::create(
-            &mut builder,
-            &protos::participants::PacketParticipantsDataArgs {
-                m_num_active_cars: self.m_numActiveCars,
-                m_participants: participants_offset,
-            },
-        );
-
-        builder.finish(packet_data, None);
-        builder.finished_data().to_vec()
+                    ParticipantData {
+                        m_ai_controlled: value.m_aiControlled as u32,
+                        m_driver_id: value.m_driverId as u32,
+                        m_network_id: value.m_networkId as u32,
+                        m_team_id: value.m_teamId as u32,
+                        m_my_team: value.m_myTeam as u32,
+                        m_race_number: value.m_raceNumber as u32,
+                        m_nationality: value.m_nationality as u32,
+                        m_name: c_str.to_str().unwrap().to_string(),
+                        m_your_telemetry: value.m_yourTelemetry as u32,
+                        m_show_online_names: value.m_showOnlineNames as u32,
+                        m_platform: value.m_platform as u32,
+                    }
+                })
+                .collect(),
+        }
     }
 }

@@ -1,22 +1,15 @@
-use std::env;
-use std::path::Path;
-
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let generated_dir = Path::new(&out_dir).join("generated");
-
-    flatc_rust::run(flatc_rust::Args {
-        inputs: &[
-            Path::new("protos/car_motion.fbs"),
-            Path::new("protos/event_data.fbs"),
-            Path::new("protos/final_classification.fbs"),
-            Path::new("protos/participants.fbs"),
-            Path::new("protos/packet_header.fbs"),
-            Path::new("protos/session_data.fbs"),
-            Path::new("protos/session_history.fbs"),
+    prost_build::compile_protos(
+        &[
+            "protos/car_motion.proto",
+            "protos/event_data.proto",
+            "protos/final_classification.proto",
+            "protos/participants.proto",
+            "protos/session_data.proto",
+            "protos/session_history.proto",
+            "protos/packet_header.proto",
         ],
-        out_dir: &generated_dir,
-        ..Default::default()
-    })
+        &["protos/"],
+    )
     .unwrap();
 }

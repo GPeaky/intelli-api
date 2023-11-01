@@ -3,7 +3,7 @@ use crate::{
     config::Database,
     dtos::F123Data,
     error::{AppResult, SocketError},
-    protos::{PacketType, ToFlatBufferMessage},
+    protos::{packet_header::PacketType, ToProtoMessage},
 };
 use redis::AsyncCommands;
 use rustc_hash::FxHashMap;
@@ -212,7 +212,7 @@ impl F123Service {
                                     .ge(&MOTION_INTERVAL)
                                 {
                                     let packet =
-                                        motion_data.convert_and_encode(PacketType::car_motion);
+                                        motion_data.convert_and_encode(PacketType::CarMotion);
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -235,7 +235,7 @@ impl F123Service {
                                     .ge(&SESSION_INTERVAL)
                                 {
                                     let packet =
-                                        session_data.convert_and_encode(PacketType::session_data);
+                                        session_data.convert_and_encode(PacketType::SessionData);
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -258,7 +258,7 @@ impl F123Service {
                                     .ge(&SESSION_INTERVAL)
                                 {
                                     let packet = participants_data
-                                        .convert_and_encode(PacketType::participants);
+                                        .convert_and_encode(PacketType::Participants);
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -289,7 +289,7 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let packet = event_data.convert_and_encode(PacketType::event_data);
+                                let packet = event_data.convert_and_encode(PacketType::EventData);
 
                                 tx.send(packet).unwrap();
                             }
@@ -325,7 +325,7 @@ impl F123Service {
 
                                 let car_idx = session_history.m_carIdx;
                                 let packet = session_history
-                                    .convert_and_encode(PacketType::session_history_data);
+                                    .convert_and_encode(PacketType::SessionHistoryData);
 
                                 redis
                                     .set_ex::<String, &[u8], ()>(
