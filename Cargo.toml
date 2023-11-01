@@ -56,6 +56,7 @@ tower = { version = "0.4.13", features = [
 rand = "0.8.5"
 prost = "0.12.1"
 askama = "0.12.1"
+zerocopy = { version = "0.7.21", features = ["derive"] }
 
 [profile.release]
 debug = 0

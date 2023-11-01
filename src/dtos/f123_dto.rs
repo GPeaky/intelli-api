@@ -6,6 +6,7 @@ use bincode::{
 };
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
+use zerocopy::{FromBytes, FromZeroes};
 
 const BIN_CONFIG: Configuration<LittleEndian, Fixint> = bincode::config::legacy();
 
@@ -55,7 +56,7 @@ impl From<u8> for PacketIds {
 //*  --- F1 2023 Packet Data Structures ---
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, FromBytes, FromZeroes)]
 pub struct PacketHeader {
     pub m_packetFormat: u16,           // 2023
     pub m_gameYear: u8,                // Game year - last two digits e.g. 23
@@ -367,6 +368,7 @@ pub enum F123Data {
 }
 
 impl F123Data {
+    // TODO: Try to implement zero-copy deserialization
     pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, DecodeError> {
         match packet_id {
             PacketIds::Motion => Ok(Some(F123Data::Motion(decode_borrowed_from_slice(
@@ -392,7 +394,7 @@ impl F123Data {
         }
     }
 
-    pub fn deserialize_header(data: &[u8]) -> Result<PacketHeader, DecodeError> {
-        decode_borrowed_from_slice(data, BIN_CONFIG)
+    pub fn deserialize_header(data: &[u8]) -> Option<PacketHeader> {
+        FromBytes::read_from_prefix(data)
     }
 }

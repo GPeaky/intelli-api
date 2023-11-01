@@ -77,23 +77,20 @@ impl F123Service {
     }
 
     pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
-        {
-            let mut channels = self.channels.write().await;
-            let mut sockets = self.sockets.write().await;
+        let mut channels = self.channels.write().await;
+        let mut sockets = self.sockets.write().await;
 
-            let channel_removed = channels.remove(&championship_id).is_some();
+        let channel_removed = channels.remove(&championship_id).is_some();
 
-            let socket_removed_and_aborted = if let Some(socket) = sockets.remove(&championship_id)
-            {
-                socket.abort();
-                true
-            } else {
-                false
-            };
+        let socket_removed_and_aborted = if let Some(socket) = sockets.remove(&championship_id) {
+            socket.abort();
+            true
+        } else {
+            false
+        };
 
-            if !channel_removed && !socket_removed_and_aborted {
-                Err(SocketError::NotFound)?;
-            }
+        if !channel_removed && !socket_removed_and_aborted {
+            Err(SocketError::NotFound)?;
         }
 
         info!("Socket stopped for championship: {}", championship_id);
@@ -174,7 +171,7 @@ impl F123Service {
                             port_partial_open = true;
                         }
 
-                        let Ok(header) = F123Data::deserialize_header(buf) else {
+                        let Some(header) = F123Data::deserialize_header(buf) else {
                             error!("Error deserializing F123 header, for championship: {championship_id:?}");
                             continue;
                         };
