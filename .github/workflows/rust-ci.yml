@@ -17,12 +17,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install FlatBuffers
-        run: |
-          wget https://github.com/google/flatbuffers/releases/download/v23.5.26/Linux.flatc.binary.clang++-12.zip
-          unzip Linux.flatc.binary.clang++-12.zip
-          chmod +x flatc
-          sudo mv flatc /usr/local/bin/
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -41,12 +37,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install FlatBuffers
-        run: |
-          wget https://github.com/google/flatbuffers/releases/download/v23.5.26/Linux.flatc.binary.clang++-12.zip
-          unzip Linux.flatc.binary.clang++-12.zip
-          chmod +x flatc
-          sudo mv flatc /usr/local/bin/
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
