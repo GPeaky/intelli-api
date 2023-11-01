@@ -24,19 +24,25 @@ jobs:
 
       - name: Set up .env file
         run: |
-          echo "HOST=\"${{ env.HOST }}\"" > .env
-          echo "REDIS_URL=\"${{ env.REDIS_URL }}\"" >> .env
+          echo "HOST=\"${{ vars.HOST }}\"" > .env
+          echo "REDIS_URL=\"${{ vars.REDIS_URL }}\"" >> .env
           echo "DATABASE_URL=\"${{ env.DATABASE_URL }}\"" >> .env
-          echo "EMAIL_HOST=\"${{ env.EMAIL_HOST }}\"" >> .env
-          echo "EMAIL_FROM=\"${{ env.EMAIL_FROM }}\"" >> .env
-          echo "EMAIL_NAME=\"${{ env.EMAIL_NAME }}\"" >> .env
+          echo "EMAIL_HOST=\"${{ vars.EMAIL_HOST }}\"" >> .env
+          echo "EMAIL_FROM=\"${{ vars.EMAIL_FROM }}\"" >> .env
+          echo "EMAIL_NAME=\"${{ vars.EMAIL_NAME }}\"" >> .env
           echo "EMAIL_PASS=\"${{ env.EMAIL_PASS }}\"" >> .env
-          echo "GOOGLE_CLIENT_ID=\"${{ env.GOOGLE_CLIENT_ID }}\"" >> .env
+          echo "GOOGLE_CLIENT_ID=\"${{ vars.GOOGLE_CLIENT_ID }}\"" >> .env
           echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .env
-          echo "GOOGLE_REDIRECT_URI=\"${{ env.GOOGLE_REDIRECT_URI }}\"" >> .env
+          echo "GOOGLE_REDIRECT_URI=\"${{ vars.GOOGLE_REDIRECT_URI }}\"" >> .env
+          echo "GOOGLE_GRANT_TYPE=\"${{ vars.GOOGLE_GRANT_TYPE }}\"" >> .env
 
-      - name: Display .env for debugging
-        run: cat .env
+      - name: Create certs directory
+        run: mkdir -p ./certs
+
+      - name: Decode and save certificates
+        run: |
+          echo "${{ secrets.JSON_WEB_TOKEN_CRT }}" | base64 -d > ./certs/jsonwebtoken.crt
+          echo "${{ secrets.JSON_WEB_TOKEN_KEY }}" | base64 -d > ./certs/jsonwebtoken.key
 
       - name: Build with Docker Compose
         run: docker-compose build
