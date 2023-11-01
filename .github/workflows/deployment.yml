@@ -35,8 +35,10 @@ jobs:
           echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .env
           echo "GOOGLE_REDIRECT_URI=\"${{ vars.GOOGLE_REDIRECT_URI }}\"" >> .env
 
-      - name: Display .env for debugging
-        run: cat .env
+      - name: Decode and save certificates
+        run: |
+          echo "${{ secrets.JSON_WEB_TOKEN_CRT }}" | base64 -d > ./certs/jsonwebtoken.crt
+          echo "${{ secrets.JSON_WEB_TOKEN_KEY }}" | base64 -d > ./certs/jsonwebtoken.key
 
       - name: Build with Docker Compose
         run: docker-compose build
