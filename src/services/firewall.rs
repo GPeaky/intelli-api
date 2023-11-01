@@ -1,14 +1,20 @@
-use crate::error::{AppResult, SocketError};
+use crate::error::AppResult;
+#[cfg(target_os = "linux")]
+use crate::error::SocketError;
+#[cfg(target_os = "linux")]
 use rustc_hash::FxHashMap;
 use std::net::IpAddr;
+#[cfg(target_os = "linux")]
 use tokio::{process::Command, sync::RwLock};
 
 #[derive(Clone, Copy)]
+#[cfg(target_os = "linux")]
 enum FirewallType {
     Open,
     PartiallyOpen,
 }
 
+#[cfg(target_os = "linux")]
 struct FirewallRule {
     port: u16,
     address: Option<IpAddr>,
@@ -16,6 +22,7 @@ struct FirewallRule {
 }
 
 pub struct FirewallService {
+    #[cfg(target_os = "linux")]
     rules: RwLock<FxHashMap<u32, FirewallRule>>,
 }
 
@@ -23,170 +30,184 @@ pub struct FirewallService {
 impl FirewallService {
     pub fn new() -> Self {
         Self {
+            #[cfg(target_os = "linux")]
             rules: RwLock::new(FxHashMap::default()),
         }
     }
 
     async fn rule_exists(&self, id: &u32) -> bool {
-        let rules = self.rules.read().await;
-        rules.contains_key(id)
+        #[cfg(target_os = "linux")]
+        {
+            let rules = self.rules.read().await;
+            rules.contains_key(id)
+        }
+
+        #[cfg(not(target_os = "linux"))]
+        false
     }
 
     pub async fn open(&self, id: u32, port: u16) -> AppResult<()> {
-        let exists = self.rule_exists(&id).await;
-
-        if exists {
-            Err(SocketError::RuleAlreadyExists)?;
-        }
-
-        let status = Command::new("sudo")
-            .arg("ufw")
-            .arg("allow")
-            .arg(format!("{port}/udp"))
-            .status()
-            .await
-            .unwrap();
-
-        if !status.success() {
-            Err(SocketError::CommandFailed)?;
-        }
-
+        #[cfg(target_os = "linux")]
         {
-            let mut rules = self.rules.write().await;
-            rules.insert(
-                id,
-                FirewallRule {
-                    port,
-                    address: None,
-                    firewall_type: FirewallType::Open,
-                },
-            );
+            let exists = self.rule_exists(&id).await;
+
+            if exists {
+                Err(SocketError::RuleAlreadyExists)?;
+            }
+
+            let status = Command::new("sudo")
+                .arg("ufw")
+                .arg("allow")
+                .arg(format!("{port}/udp"))
+                .status()
+                .await
+                .unwrap();
+
+            if !status.success() {
+                Err(SocketError::CommandFailed)?;
+            }
+
+            {
+                let mut rules = self.rules.write().await;
+                rules.insert(
+                    id,
+                    FirewallRule {
+                        port,
+                        address: None,
+                        firewall_type: FirewallType::Open,
+                    },
+                );
+            }
         }
 
         Ok(())
     }
 
     pub async fn open_partially(&self, id: u32, address: IpAddr) -> AppResult<()> {
-        let port;
-        let exists = self.rule_exists(&id).await;
-
-        if !exists {
-            Err(SocketError::NotFound)?;
-        }
-
+        #[cfg(target_os = "linux")]
         {
-            let rules = self.rules.read().await;
-            let rule = rules.get(&id).unwrap();
-            port = rule.port;
-        }
+            let port;
+            let exists = self.rule_exists(&id).await;
 
-        let delete_status = Command::new("sudo")
-            .arg("ufw")
-            .arg("delete")
-            .arg(format!("{}/udp", port))
-            .status()
-            .await
-            .unwrap();
+            if !exists {
+                Err(SocketError::NotFound)?;
+            }
 
-        if !delete_status.success() {
-            Err(SocketError::CommandFailed)?;
-        }
+            {
+                let rules = self.rules.read().await;
+                let rule = rules.get(&id).unwrap();
+                port = rule.port;
+            }
 
-        let status = Command::new("sudo")
-            .arg("ufw")
-            .arg("allow")
-            .arg("from")
-            .arg(address.to_string())
-            .arg("to")
-            .arg("any")
-            .arg("port")
-            .arg(format!("{}/udp", port))
-            .status()
-            .await
-            .unwrap();
+            let delete_status = Command::new("sudo")
+                .arg("ufw")
+                .arg("delete")
+                .arg(format!("{}/udp", port))
+                .status()
+                .await
+                .unwrap();
 
-        if !status.success() {
-            Err(SocketError::CommandFailed)?
-        }
+            if !delete_status.success() {
+                Err(SocketError::CommandFailed)?;
+            }
 
-        {
-            let mut rules = self.rules.write().await;
-            let rule = rules.get_mut(&id).unwrap();
+            let status = Command::new("sudo")
+                .arg("ufw")
+                .arg("allow")
+                .arg("from")
+                .arg(address.to_string())
+                .arg("to")
+                .arg("any")
+                .arg("port")
+                .arg(format!("{}/udp", port))
+                .status()
+                .await
+                .unwrap();
 
-            rule.address = Some(address);
-            rule.firewall_type = FirewallType::PartiallyOpen;
+            if !status.success() {
+                Err(SocketError::CommandFailed)?
+            }
+
+            {
+                let mut rules = self.rules.write().await;
+                let rule = rules.get_mut(&id).unwrap();
+
+                rule.address = Some(address);
+                rule.firewall_type = FirewallType::PartiallyOpen;
+            }
         }
 
         Ok(())
     }
 
     pub async fn close(&self, id: &u32) -> AppResult<()> {
-        let (port, firewall_type, address);
-
+        #[cfg(target_os = "linux")]
         {
-            let rules = self.rules.read().await;
-            let rule = rules.get(id).unwrap();
+            let (port, firewall_type, address);
 
-            port = rule.port;
-            firewall_type = rule.firewall_type;
-            address = rule.address;
-        }
+            {
+                let rules = self.rules.read().await;
+                let rule = rules.get(id).unwrap();
 
-        let delete_status = match firewall_type {
-            FirewallType::Open => {
-                Command::new("sudo")
-                    .arg("ufw")
-                    .arg("delete")
-                    .arg("allow")
-                    .arg(format!("{}/udp", port))
-                    .status()
-                    .await
+                port = rule.port;
+                firewall_type = rule.firewall_type;
+                address = rule.address;
             }
 
-            FirewallType::PartiallyOpen => {
-                let Some(addr) = address else {
-                    Err(SocketError::CommandFailed)?
-                };
+            let delete_status = match firewall_type {
+                FirewallType::Open => {
+                    Command::new("sudo")
+                        .arg("ufw")
+                        .arg("delete")
+                        .arg("allow")
+                        .arg(format!("{}/udp", port))
+                        .status()
+                        .await
+                }
 
-                Command::new("sudo")
-                    .arg("ufw")
-                    .arg("delete")
-                    .arg("allow")
-                    .arg("from")
-                    .arg(addr.to_string())
-                    .arg("to")
-                    .arg("any")
-                    .arg("port")
-                    .arg(format!("{}/udp", port))
-                    .status()
-                    .await
+                FirewallType::PartiallyOpen => {
+                    let Some(addr) = address else {
+                        Err(SocketError::CommandFailed)?
+                    };
+
+                    Command::new("sudo")
+                        .arg("ufw")
+                        .arg("delete")
+                        .arg("allow")
+                        .arg("from")
+                        .arg(addr.to_string())
+                        .arg("to")
+                        .arg("any")
+                        .arg("port")
+                        .arg(format!("{}/udp", port))
+                        .status()
+                        .await
+                }
             }
-        }
-        .unwrap();
+            .unwrap();
 
-        if !delete_status.success() {
-            Err(SocketError::CommandFailed)?;
-        }
+            if !delete_status.success() {
+                Err(SocketError::CommandFailed)?;
+            }
 
-        {
-            let mut rules = self.rules.write().await;
-            rules.remove(id);
+            {
+                let mut rules = self.rules.write().await;
+                rules.remove(id);
+            }
         }
 
         Ok(())
     }
 
     pub async fn close_all(&self) -> AppResult<()> {
+        #[cfg(target_os)]
         {
-            let rules = self.rules.read().await;
+            let mut rules = self.rules.write().await;
 
             for (id, _) in rules.iter() {
                 self.close(id).await.unwrap();
             }
-        }
 
-        {
-            let mut rules = self.rules.write().await;
             rules.clear();
         }
 
