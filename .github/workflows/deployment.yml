@@ -35,6 +35,9 @@ jobs:
           echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .env
           echo "GOOGLE_REDIRECT_URI=\"${{ vars.GOOGLE_REDIRECT_URI }}\"" >> .env
 
+      - name: Create certs directory
+        run: mkdir -p ./certs
+
       - name: Decode and save certificates
         run: |
           echo "${{ secrets.JSON_WEB_TOKEN_CRT }}" | base64 -d > ./certs/jsonwebtoken.crt
