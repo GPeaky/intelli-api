@@ -25,14 +25,14 @@ jobs:
       - name: Set up .env file
         run: |
           echo "HOST=\"${{ vars.HOST }}\"" > .env
-          echo "REDIS_URL=\"${{ vars.REDIS_URL }}\"" >> .vars
-          echo "DATABASE_URL=\"${{ env.DATABASE_URL }}\"" >> .vars
-          echo "EMAIL_HOST=\"${{ vars.EMAIL_HOST }}\"" >> .vars
-          echo "EMAIL_FROM=\"${{ vars.EMAIL_FROM }}\"" >> .vars
-          echo "EMAIL_NAME=\"${{ vars.EMAIL_NAME }}\"" >> .vars
-          echo "EMAIL_PASS=\"${{ env.EMAIL_PASS }}\"" >> .vars
-          echo "GOOGLE_CLIENT_ID=\"${{ vars.GOOGLE_CLIENT_ID }}\"" >> .vars
-          echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .vars
+          echo "REDIS_URL=\"${{ vars.REDIS_URL }}\"" >> .env
+          echo "DATABASE_URL=\"${{ env.DATABASE_URL }}\"" >> .env
+          echo "EMAIL_HOST=\"${{ vars.EMAIL_HOST }}\"" >> .env
+          echo "EMAIL_FROM=\"${{ vars.EMAIL_FROM }}\"" >> .env
+          echo "EMAIL_NAME=\"${{ vars.EMAIL_NAME }}\"" >> .env
+          echo "EMAIL_PASS=\"${{ env.EMAIL_PASS }}\"" >> .env
+          echo "GOOGLE_CLIENT_ID=\"${{ vars.GOOGLE_CLIENT_ID }}\"" >> .env
+          echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .env
           echo "GOOGLE_REDIRECT_URI=\"${{ vars.GOOGLE_REDIRECT_URI }}\"" >> .env
 
       - name: Display .env for debugging
