@@ -45,12 +45,12 @@ pub async fn callback(
         .token_service
         .generate_refresh_token(&user.id, "google");
 
-    let (access_token, refresh_token) = tokio::join!(access_token_task, refresh_token_task);
+    let (access_token, refresh_token) = tokio::try_join!(access_token_task, refresh_token_task)?;
 
     let redirect_url = format!(
         "{WEB_REDIRECT_URL}?access_token={}&refresh_token={}",
-        access_token.unwrap(),
-        refresh_token.unwrap()
+        access_token,
+        refresh_token
     );
 
     let resp = Response::builder()
