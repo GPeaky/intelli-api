@@ -49,8 +49,7 @@ pub async fn callback(
 
     let redirect_url = format!(
         "{WEB_REDIRECT_URL}?access_token={}&refresh_token={}",
-        access_token,
-        refresh_token
+        access_token, refresh_token
     );
 
     let resp = Response::builder()
