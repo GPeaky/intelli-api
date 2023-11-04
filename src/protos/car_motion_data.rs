@@ -6,7 +6,7 @@ use crate::dtos::PacketMotionData as BPacketMotionData;
 impl ToProtoMessage for BPacketMotionData {
     type ProtoType = PacketMotionData;
 
-    fn to_proto(self) -> Self::ProtoType {
+    fn to_proto(&self) -> Self::ProtoType {
         PacketMotionData {
             m_car_motion_data: self
                 .m_carMotionData

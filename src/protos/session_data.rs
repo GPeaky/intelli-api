@@ -6,7 +6,7 @@ use crate::dtos::PacketSessionData as BPacketSessionData;
 impl ToProtoMessage for BPacketSessionData {
     type ProtoType = PacketSessionData;
 
-    fn to_proto(self) -> Self::ProtoType {
+    fn to_proto(&self) -> Self::ProtoType {
         PacketSessionData {
             m_weather: self.m_weather as u32,
             m_track_temperature: self.m_trackTemperature as i32,

@@ -12,10 +12,10 @@ pub(crate) mod session_history;
 
 pub trait ToProtoMessage {
     type ProtoType: Message;
-    fn to_proto(self) -> Self::ProtoType;
+    fn to_proto(&self) -> Self::ProtoType;
 
     // TODO: Try to remove packet_type from here
-    fn convert_and_encode(self, packet_type: PacketType) -> Vec<u8>
+    fn convert_and_encode(&self, packet_type: PacketType) -> Vec<u8>
     where
         Self: Sized,
     {

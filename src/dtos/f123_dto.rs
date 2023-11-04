@@ -1,19 +1,9 @@
-use bincode::{
-    config::{Configuration, Fixint, LittleEndian},
-    error::DecodeError,
-    serde::decode_borrowed_from_slice,
-    Decode, Encode,
-};
-use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
-use zerocopy::{FromBytes, FromZeroes};
-
-const BIN_CONFIG: Configuration<LittleEndian, Fixint> = bincode::config::legacy();
+use zerocopy::{FromBytes, FromZeroes, Unaligned};
 
 //*  --- F1 2023 Packet Data Enums ---
 
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug)]
 pub enum PacketIds {
     Motion,
     Session,
@@ -54,9 +44,9 @@ impl From<u8> for PacketIds {
 }
 
 //*  --- F1 2023 Packet Data Structures ---
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, FromBytes, FromZeroes)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketHeader {
     pub m_packetFormat: u16,           // 2023
     pub m_gameYear: u8,                // Game year - last two digits e.g. 23
@@ -72,9 +62,9 @@ pub struct PacketHeader {
     pub m_secondaryPlayerCarIndex: u8, // Index of secondary player's car in the array (splitscreen) // 255 if no second player
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketMotionData {
     pub m_header: PacketHeader,               // Header
     pub m_carMotionData: [CarMotionData; 22], // Data for all cars on track
@@ -82,34 +72,34 @@ pub struct PacketMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
     pub m_eventDetails: EventDataDetails, // Event details - should be interpreted differently for each type
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketFinalClassificationData {
     pub m_header: PacketHeader, // Header
     pub m_numCars: u8,          // Number of cars in the final classification
     pub m_classificationData: [FinalClassificationData; 22],
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketParticipantsData {
     pub m_header: PacketHeader, // Header
     pub m_numActiveCars: u8, // Number of active cars in the data – should match number of cars on HUD
     pub m_participants: [ParticipantData; 22],
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketSessionHistoryData {
     pub m_header: PacketHeader,
     pub m_carIdx: u8,
@@ -119,14 +109,13 @@ pub struct PacketSessionHistoryData {
     pub m_bestSector1LapNum: u8,
     pub m_bestSector2LapNum: u8,
     pub m_bestSector3LapNum: u8,
-    #[serde(with = "BigArray")]
     pub m_lapHistoryData: [LapHistoryData; 100],
     pub m_tyreStintsHistoryData: [TyreStintHistoryData; 8],
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketSessionData {
     pub m_header: PacketHeader,            // Header
     pub m_weather: u8, // Weather - 0 = clear, 1 = light cloud, 2 = overcast, 3 = light rain, 4 = heavy rain, 5 = storm
@@ -149,28 +138,28 @@ pub struct PacketSessionData {
     pub m_safetyCarStatus: u8, // 0 = no safety car, 1 = full, 2 = virtual, 3 = formation lap
     pub m_networkGame: u8, // 0 = offline, 1 = online
     pub m_numWeatherForecastSamples: u8, // Number of weather samples to follow
-    #[serde(with = "BigArray")]
+    // #[serde(with = "BigArray")]
     pub m_weatherForecastSamples: [WeatherForecastSample; 56], // Array of weather forecast samples
-    pub m_forecastAccuracy: u8, // 0 = Perfect, 1 = Approximate
-    pub m_aiDifficulty: u8, // AI Difficulty rating – 0-110
+    pub m_forecastAccuracy: u8,                                // 0 = Perfect, 1 = Approximate
+    pub m_aiDifficulty: u8,                                    // AI Difficulty rating – 0-110
     pub m_seasonLinkIdentifier: u32, // Identifier for season - persists across saves
     pub m_weekendLinkIdentifier: u32, // Identifier for weekend - persists across saves
     pub m_sessionLinkIdentifier: u32, // Identifier for session - persists across saves
     pub m_pitStopWindowIdealLap: u8, // Ideal lap to pit on for current strategy (player)
     pub m_pitStopWindowLatestLap: u8, // Latest lap to pit on for current strategy (player)
     pub m_pitStopRejoinPosition: u8, // Predicted position to rejoin at (player)
-    pub m_steeringAssist: u8, // 0 = off, 1 = on
-    pub m_brakingAssist: u8, // 0 = off, 1 = low, 2 = medium, 3 = high
-    pub m_gearboxAssist: u8, // 1 = manual, 2 = manual & suggested gear, 3 = auto
-    pub m_pitAssist: u8, // 0 = off, 1 = on
-    pub m_pitReleaseAssist: u8, // 0 = off, 1 = on
-    pub m_ERSAssist: u8, // 0 = off, 1 = on
-    pub m_DRSAssist: u8, // 0 = off, 1 = on
-    pub m_dynamicRacingLine: u8, // 0 = off, 1 = corners only, 2 = full
+    pub m_steeringAssist: u8,        // 0 = off, 1 = on
+    pub m_brakingAssist: u8,         // 0 = off, 1 = low, 2 = medium, 3 = high
+    pub m_gearboxAssist: u8,         // 1 = manual, 2 = manual & suggested gear, 3 = auto
+    pub m_pitAssist: u8,             // 0 = off, 1 = on
+    pub m_pitReleaseAssist: u8,      // 0 = off, 1 = on
+    pub m_ERSAssist: u8,             // 0 = off, 1 = on
+    pub m_DRSAssist: u8,             // 0 = off, 1 = on
+    pub m_dynamicRacingLine: u8,     // 0 = off, 1 = corners only, 2 = full
     pub m_dynamicRacingLineType: u8, // 0 = 2D, 1 = 3D
-    pub m_gameMode: u8, //GameModeIds // Game mode id - see appendix
-    pub m_ruleSet: u8, // RuleSetIds // Ruleset - see appendix
-    pub m_timeOfDay: u32, // Local time of day - minutes since midnight
+    pub m_gameMode: u8,              //GameModeIds // Game mode id - see appendix
+    pub m_ruleSet: u8,               // RuleSetIds // Ruleset - see appendix
+    pub m_timeOfDay: u32,            // Local time of day - minutes since midnight
     pub m_sessionLength: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium 5 = Medium Long, 6 = Long, 7 = Full
     pub m_speedUnitsLeadPlayer: u8, // 0 = MPH, 1 = KPH
     pub m_temperatureUnitsLeadPlayer: u8, // 0 = Celsius, 1 = Fahrenheit
@@ -183,9 +172,9 @@ pub struct PacketSessionData {
 
 //* --- F1 23 Unpacked Data ---
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct CarMotionData {
     pub m_worldPositionX: f32,     // World space X position - metres
     pub m_worldPositionY: f32,     // World space Y position
@@ -207,17 +196,17 @@ pub struct CarMotionData {
     pub m_roll: f32,               // Roll angle in radians
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct MarshalZone {
     pub m_zoneStart: f32, // Fraction (0..1) of way through the lap the marshal zone starts
     pub m_zoneFlag: i8,   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct WeatherForecastSample {
     pub m_sessionType: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P, 5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ, 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
     pub m_timeOffset: u8,  //Time in minutes the forecast is for
@@ -231,7 +220,7 @@ pub struct WeatherForecastSample {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug)]
 pub enum EventDataDetails {
     FastestLap {
         vehicleIdx: u8, // Vehicle index of car achieving fastest lap
@@ -296,9 +285,9 @@ pub enum EventDataDetails {
     },
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct ParticipantData {
     pub m_aiControlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub m_driverId: u8,     // Driver id - see appendix, 255 if network human
@@ -307,16 +296,16 @@ pub struct ParticipantData {
     pub m_myTeam: u8,       // My team flag – 1 = My Team, 0 = otherwise
     pub m_raceNumber: u8,   // Race number of the car
     pub m_nationality: u8,  // ParticipantNationality // Nationality of the driver
-    #[serde(with = "BigArray")]
+    // #[serde(with = "BigArray")]
     pub m_name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub m_yourTelemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub m_showOnlineNames: u8, // The player's show online names setting, 0 = off, 1 = on
-    pub m_platform: u8,      // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
+    pub m_platform: u8,   // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct FinalClassificationData {
     pub m_position: u8,               // Finishing position
     pub m_numLaps: u8,                // Number of laps completed
@@ -334,9 +323,9 @@ pub struct FinalClassificationData {
     pub m_tyreStintsEndLaps: [u8; 8], // The lap number stints end on
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct LapHistoryData {
     pub m_lapTimeInMS: u32,       // Lap time in milliseconds
     pub m_sector1TimeInMS: u16,   // Sector 1 time in milliseconds
@@ -348,49 +337,62 @@ pub struct LapHistoryData {
     pub m_lapValidBitFlags: u8, // 0x01 bit set - lap valid, 0x02 bit set - sector 1 valid, 0x04 bit set - sector 2 valid, 0x08 bit set - sector 3 valid
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct TyreStintHistoryData {
     pub m_endLap: u8,             // Lap the tyre usage ends on (255 of current tyre)
     pub m_tyreActualCompound: u8, // Actual tyres used by this driver
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
 }
 
-#[derive(Debug, Serialize, Encode, Decode)]
-pub enum F123Data {
-    Motion(Box<PacketMotionData>),
-    Session(Box<PacketSessionData>),
-    Event(PacketEventData),
-    Participants(Box<PacketParticipantsData>),
-    FinalClassification(Box<PacketFinalClassificationData>),
-    SessionHistory(Box<PacketSessionHistoryData>),
+#[derive(Debug)]
+pub enum F123Data<'a> {
+    Motion(&'a PacketMotionData),
+    Session(&'a PacketSessionData),
+    #[allow(dead_code)]
+    Event(&'a PacketEventData),
+    Participants(&'a PacketParticipantsData),
+    FinalClassification(&'a PacketFinalClassificationData),
+    SessionHistory(&'a PacketSessionHistoryData),
 }
 
-impl F123Data {
+impl<'a> F123Data<'a> {
     // TODO: Try to implement zero-copy deserialization
-    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Result<Option<F123Data>, DecodeError> {
+    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
         match packet_id {
-            PacketIds::Motion => Ok(Some(F123Data::Motion(decode_borrowed_from_slice(
-                data, BIN_CONFIG,
-            )?))),
-            PacketIds::Session => Ok(Some(F123Data::Session(decode_borrowed_from_slice(
-                data, BIN_CONFIG,
-            )?))),
-            PacketIds::Event => Ok(Some(F123Data::Event(decode_borrowed_from_slice(
-                data, BIN_CONFIG,
-            )?))),
-            PacketIds::Participants => Ok(Some(F123Data::Participants(
-                decode_borrowed_from_slice(data, BIN_CONFIG)?,
-            ))),
-            PacketIds::FinalClassification => Ok(Some(F123Data::FinalClassification(
-                decode_borrowed_from_slice(data, BIN_CONFIG)?,
-            ))),
-            PacketIds::SessionHistory => Ok(Some(F123Data::SessionHistory(
-                decode_borrowed_from_slice(data, BIN_CONFIG)?,
-            ))),
+            PacketIds::Motion => {
+                let packet: Option<&PacketMotionData> = FromBytes::ref_from_prefix(data);
+                Some(F123Data::Motion(packet.unwrap()))
+            }
 
-            _ => Ok(None),
+            PacketIds::Session => {
+                let packet: Option<&PacketSessionData> = FromBytes::ref_from_prefix(data);
+                Some(F123Data::Session(packet.unwrap()))
+            }
+
+            PacketIds::Participants => {
+                let packet: Option<&PacketParticipantsData> = FromBytes::ref_from_prefix(data);
+                Some(F123Data::Participants(packet.unwrap()))
+            }
+
+            PacketIds::FinalClassification => {
+                let packet: Option<&PacketFinalClassificationData> =
+                    FromBytes::ref_from_prefix(data);
+
+                Some(F123Data::FinalClassification(packet.unwrap()))
+            }
+
+            PacketIds::SessionHistory => {
+                let packet: Option<&PacketSessionHistoryData> = FromBytes::ref_from_prefix(data);
+                Some(F123Data::SessionHistory(packet.unwrap()))
+            }
+
+            // TODO: Implement event packet
+            // PacketIds::Event => Ok(Some(F123Data::Event(decode_borrowed_from_slice(
+            //     data, BIN_CONFIG,
+            // )?))),
+            _ => None,
         }
     }
 

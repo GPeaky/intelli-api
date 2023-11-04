@@ -176,13 +176,10 @@ impl F123Service {
                             continue;
                         };
 
-                        if header.m_packetFormat.ne(&2023) {
-                            error!(
-                                "Not supported client, Game Year : {}, Packet Format: {}",
-                                header.m_gameYear, header.m_packetFormat
-                            );
+                        if header.m_packetFormat != 2023 {
+                            error!("Not supported client");
                             break;
-                        }
+                        };
 
                         let session_id = header.m_sessionUID as i64;
 
@@ -190,13 +187,8 @@ impl F123Service {
                             continue;
                         }
 
-                        let Ok(packet) = F123Data::deserialize(header.m_packetId.into(), buf)
+                        let Some(packet) = F123Data::deserialize(header.m_packetId.into(), buf)
                         else {
-                            error!("Error deserializing F123 packet: {}", header.m_packetId);
-                            continue;
-                        };
-
-                        let Some(packet) = packet else {
                             continue;
                         };
 

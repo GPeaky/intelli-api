@@ -6,7 +6,7 @@ use crate::dtos::PacketSessionHistoryData as BPacketSessionHistoryData;
 impl ToProtoMessage for BPacketSessionHistoryData {
     type ProtoType = PacketSessionHistoryData;
 
-    fn to_proto(self) -> Self::ProtoType {
+    fn to_proto(&self) -> Self::ProtoType {
         PacketSessionHistoryData {
             m_car_idx: self.m_carIdx as u32,
             m_num_laps: self.m_numLaps as u32,

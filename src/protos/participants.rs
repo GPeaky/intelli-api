@@ -7,7 +7,7 @@ use std::ffi::CStr;
 impl ToProtoMessage for BPacketParticipantsData {
     type ProtoType = PacketParticipantsData;
 
-    fn to_proto(self) -> Self::ProtoType {
+    fn to_proto(&self) -> Self::ProtoType {
         PacketParticipantsData {
             m_num_active_cars: self.m_numActiveCars as u32,
             m_participants: self
