@@ -72,7 +72,7 @@ pub struct PacketMotionData {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(FromBytes, FromZeroes, Unaligned)]
 pub struct PacketEventData {
     pub m_header: PacketHeader,           // Header
     pub m_eventStringCode: [u8; 4],       // Event string code, see below
@@ -218,71 +218,170 @@ pub struct WeatherForecastSample {
     pub m_rainPercentage: u8, // Rain percentage (0-100)
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[allow(non_snake_case)]
-#[derive(Debug)]
-pub enum EventDataDetails {
-    FastestLap {
-        vehicleIdx: u8, // Vehicle index of car achieving fastest lap
-        lapTime: f32,   // Lap time is in seconds
-    },
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct FastestLap {
+    pub vehicleIdx: u8,
+    pub lapTime: f32,
+}
 
-    Retirement {
-        vehicleIdx: u8, // Vehicle index of car retiring
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct Retirement {
+    pub vehicleIdx: u8,
+}
 
-    TeamMateInPits {
-        vehicleIdx: u8, // Vehicle index of team mate
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct TeamMateInPits {
+    pub vehicleIdx: u8,
+}
 
-    RaceWinner {
-        vehicleIdx: u8, // Vehicle index of the race winner
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct RaceWinner {
+    pub vehicleIdx: u8,
+}
 
-    Penalty {
-        penaltyType: u8,      // PenaltyTypes // Penalty type – see Appendices
-        infringementType: u8, // InfringementTypes // Infringement type – see Appendices
-        vehicleIdx: u8,       // Vehicle index of the car the penalty is applied to
-        otherVehicleIdx: u8,  // Vehicle index of the other car involved
-        time: u8,             // Time gained, or time spent doing action in seconds
-        lapNum: u8,           // Lap the penalty occurred on
-        placesGained: u8,     // Number of places gained by this
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct Penalty {
+    pub penaltyType: u8,
+    pub infringementType: u8,
+    pub vehicleIdx: u8,
+    pub otherVehicleIdx: u8,
+    pub time: u8,
+    pub lapNum: u8,
+    pub placesGained: u8,
+}
 
-    SpeedTrap {
-        vehicleIdx: u8,                 // Vehicle index of the vehicle triggering speed trap
-        speed: f32,                     // Top speed achieved in kilometres per hour
-        isOverallFastestInSession: u8,  // Overall fastest speed in session = 1, otherwise 0
-        isDriverFastestInSession: u8,   // Fastest speed for driver in session = 1, otherwise 0
-        fastestVehicleIdxInSession: u8, // Vehicle index of the vehicle that is the fastest in this session
-        fastestSpeedInSession: f32,     // Speed of the vehicle that is the fastest in this session
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct SpeedTrap {
+    pub vehicleIdx: u8,
+    pub speed: f32,
+    pub isOverallFastestInSession: u8,
+    pub isDriverFastestInSession: u8,
+    pub fastestVehicleIdxInSession: u8,
+    pub fastestSpeedInSession: f32,
+}
 
-    StartLights {
-        numLights: u8, // Number of lights showing
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct StartLights {
+    pub numLights: u8,
+}
 
-    DriveThroughPenaltyServed {
-        vehicleIdx: u8, // Vehicle index of the vehicle serving drive through
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct DriveThroughPenaltyServed {
+    pub vehicleIdx: u8,
+}
 
-    StopGoPenaltyServed {
-        vehicleIdx: u8, // Vehicle index of the vehicle serving stop go
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct StopGoPenaltyServed {
+    pub vehicleIdx: u8,
+}
 
-    Flashback {
-        flashbackFrameIdentifier: u32, // Frame identifier flashed back to
-        flashbackSessionTime: f32,     // Session time flashed back to
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct Flashback {
+    pub flashbackFrameIdentifier: u32, // Frame identifier flashed back to
+    pub flashbackSessionTime: f32,     // Session time flashed back to
+}
 
-    Buttons {
-        buttonStatus: u32, // Bit flags specifying which buttons are being pressed currently - see appendices
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct Buttons {
+    pub buttonStatus: u32,
+}
 
-    Overtake {
-        overtakingVehicleIdx: u8,     // Vehicle index of the vehicle overtaking
-        beingOvertakenVehicleIdx: u8, // Vehicle index of the vehicle being overtaken
-    },
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
+pub struct Overtake {
+    pub overtakingVehicleIdx: u8,
+    pub beingOvertakenVehicleIdx: u8,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum EventCode {
+    SessionStarted,
+    SessionEnded,
+    FastestLap,
+    Retirement,
+    DRSEnabled,
+    DRSDisabled,
+    TeamMateInPits,
+    ChequeredFlag,
+    RaceWinner,
+    PenaltyIssued,
+    SpeedTrapTriggered,
+    StartLights,
+    LightsOut,
+    DriveThroughServed,
+    StopGoServed,
+    Flashback,
+    ButtonStatus,
+    RedFlag,
+    Overtake,
+}
+
+impl From<&[u8; 4]> for EventCode {
+    fn from(value: &[u8; 4]) -> Self {
+        match value {
+            b"SSTA" => EventCode::SessionStarted,
+            b"SEND" => EventCode::SessionEnded,
+            b"FTLP" => EventCode::FastestLap,
+            b"RTMT" => EventCode::Retirement,
+            b"DRSE" => EventCode::DRSEnabled,
+            b"DRSD" => EventCode::DRSDisabled,
+            b"TMPT" => EventCode::TeamMateInPits,
+            b"CHQF" => EventCode::ChequeredFlag,
+            b"RCWN" => EventCode::RaceWinner,
+            b"PENA" => EventCode::PenaltyIssued,
+            b"SPTP" => EventCode::SpeedTrapTriggered,
+            b"STLG" => EventCode::StartLights,
+            b"LGOT" => EventCode::LightsOut,
+            b"DTSV" => EventCode::DriveThroughServed,
+            b"SGSV" => EventCode::StopGoServed,
+            b"FLBK" => EventCode::Flashback,
+            b"BUTN" => EventCode::ButtonStatus,
+            b"RFGO" => EventCode::RedFlag,
+            b"OVTK" => EventCode::Overtake,
+            _ => panic!("Unknown event code {:?}", value),
+        }
+    }
+}
+
+#[repr(C, packed)]
+#[allow(non_snake_case)]
+#[derive(FromBytes, FromZeroes, Unaligned)]
+pub union EventDataDetails {
+    pub fastest_lap: FastestLap,
+    pub retirement: Retirement,
+    pub team_mate_in_pits: TeamMateInPits,
+    pub race_winner: RaceWinner,
+    pub penalty: Penalty,
+    pub speed_trap: SpeedTrap,
+    pub start_lights: StartLights,
+    pub drive_through_penalty_served: DriveThroughPenaltyServed,
+    pub stop_go_penalty_served: StopGoPenaltyServed,
+    pub flashback: Flashback,
+    pub buttons: Buttons,
+    pub overtake: Overtake,
 }
 
 #[repr(C, packed)]
@@ -346,7 +445,7 @@ pub struct TyreStintHistoryData {
     pub m_tyreVisualCompound: u8, // Visual tyres used by this driver
 }
 
-#[derive(Debug)]
+// Cannot use debug in unions
 pub enum F123Data<'a> {
     Motion(&'a PacketMotionData),
     Session(&'a PacketSessionData),
@@ -388,10 +487,10 @@ impl<'a> F123Data<'a> {
                 Some(F123Data::SessionHistory(packet.unwrap()))
             }
 
-            // TODO: Implement event packet
-            // PacketIds::Event => Ok(Some(F123Data::Event(decode_borrowed_from_slice(
-            //     data, BIN_CONFIG,
-            // )?))),
+            PacketIds::Event => {
+                let packet: Option<&PacketEventData> = FromBytes::ref_from_prefix(data);
+                Some(F123Data::Event(packet.unwrap()))
+            }
             _ => None,
         }
     }

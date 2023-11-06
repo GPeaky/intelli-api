@@ -1,160 +1,171 @@
 include!(concat!(env!("OUT_DIR"), "/protos.event_data.rs"));
 
-use self::event_data_details::Details;
 use super::ToProtoMessage;
-use crate::dtos::{EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData};
+use crate::{
+    dtos::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
+    protos::event_data::event_data_details::Details,
+};
 
 impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;
 
+    // TODO: Not send the whole string code, if it's not important
     fn to_proto(&self) -> Self::ProtoType {
         PacketEventData {
             m_event_string_code: self.m_eventStringCode.to_vec(),
-            m_event_details: (&self.m_eventDetails).into(),
+            m_event_details: convert_event_data_details(
+                &self.m_eventStringCode,
+                &self.m_eventDetails,
+            ),
         }
     }
 }
 
-impl<'a> From<&'a BEventDataDetails> for Option<EventDataDetails> {
-    fn from(value: &'a BEventDataDetails) -> Self {
-        let details = match value {
-            BEventDataDetails::FastestLap {
-                vehicleIdx,
-                lapTime,
-            } => {
-                let fastest_lap = FastestLap {
-                    lap_time: *lapTime,
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+pub fn convert_event_data_details(
+    code: &[u8; 4],
+    event_data_details: &BEventDataDetails,
+) -> Option<EventDataDetails> {
+    let event_code = EventCode::from(code);
 
-                Details::FastestLap(fastest_lap)
-            }
+    let details = match event_code {
+        EventCode::FastestLap => {
+            let fastest_lap = unsafe { &event_data_details.fastest_lap };
 
-            BEventDataDetails::Retirement { vehicleIdx } => {
-                let retirement = Retirement {
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+            let fastest_lap = FastestLap {
+                lap_time: fastest_lap.lapTime,
+                vehicle_idx: fastest_lap.vehicleIdx as u32,
+            };
 
-                Details::Retirement(retirement)
-            }
+            Some(Details::FastestLap(fastest_lap))
+        }
 
-            BEventDataDetails::TeamMateInPits { vehicleIdx } => {
-                let team_mate_in_pits = TeamMateInPits {
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+        EventCode::Retirement => {
+            let retirement = unsafe { &event_data_details.retirement };
 
-                Details::TeamMateInPits(team_mate_in_pits)
-            }
+            let retirement = Retirement {
+                vehicle_idx: retirement.vehicleIdx as u32,
+            };
 
-            BEventDataDetails::RaceWinner { vehicleIdx } => {
-                let race_winner = RaceWinner {
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+            Some(Details::Retirement(retirement))
+        }
 
-                Details::RaceWinner(race_winner)
-            }
+        EventCode::TeamMateInPits => {
+            let team_mate_in_pits = unsafe { &event_data_details.team_mate_in_pits };
 
-            BEventDataDetails::Penalty {
-                vehicleIdx,
-                penaltyType,
-                infringementType,
-                otherVehicleIdx,
-                time,
-                lapNum,
-                placesGained,
-            } => {
-                let penalty = Penalty {
-                    penalty_type: *penaltyType as u32,
-                    infringement_type: *infringementType as u32,
-                    vehicle_idx: *vehicleIdx as u32,
-                    other_vehicle_idx: *otherVehicleIdx as u32,
-                    time: *time as u32,
-                    lap_num: *lapNum as u32,
-                    places_gained: *placesGained as u32,
-                };
+            let team_mate_in_pits = TeamMateInPits {
+                vehicle_idx: team_mate_in_pits.vehicleIdx as u32,
+            };
 
-                Details::Penalty(penalty)
-            }
+            Some(Details::TeamMateInPits(team_mate_in_pits))
+        }
 
-            BEventDataDetails::SpeedTrap {
-                vehicleIdx,
-                speed,
-                isOverallFastestInSession,
-                isDriverFastestInSession,
-                fastestVehicleIdxInSession,
-                fastestSpeedInSession,
-            } => {
-                let speed_trap = SpeedTrap {
-                    speed: *speed,
-                    vehicle_idx: *vehicleIdx as u32,
-                    is_overall_fastest_in_session: *isOverallFastestInSession as u32,
-                    is_driver_fastest_in_session: *isDriverFastestInSession as u32,
-                    fastest_vehicle_idx_in_session: *fastestVehicleIdxInSession as u32,
-                    fastest_speed_in_session: *fastestSpeedInSession,
-                };
+        EventCode::RaceWinner => {
+            let race_winner = unsafe { &event_data_details.race_winner };
 
-                Details::SpeedTrap(speed_trap)
-            }
+            let race_winner = RaceWinner {
+                vehicle_idx: race_winner.vehicleIdx as u32,
+            };
 
-            BEventDataDetails::StartLights { numLights } => {
-                let start_lights = StartLights {
-                    num_lights: *numLights as u32,
-                };
+            Some(Details::RaceWinner(race_winner))
+        }
 
-                Details::StartLights(start_lights)
-            }
+        EventCode::PenaltyIssued => {
+            let penalty = unsafe { &event_data_details.penalty };
 
-            BEventDataDetails::DriveThroughPenaltyServed { vehicleIdx } => {
-                let drive_through_penalty_served = DriveThroughPenaltyServed {
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+            let penalty = Penalty {
+                penalty_type: penalty.penaltyType as u32,
+                infringement_type: penalty.infringementType as u32,
+                vehicle_idx: penalty.vehicleIdx as u32,
+                other_vehicle_idx: penalty.otherVehicleIdx as u32,
+                time: penalty.time as u32,
+                lap_num: penalty.lapNum as u32,
+                places_gained: penalty.placesGained as u32,
+            };
 
-                Details::DriveThroughPenaltyServed(drive_through_penalty_served)
-            }
+            Some(Details::Penalty(penalty))
+        }
 
-            BEventDataDetails::StopGoPenaltyServed { vehicleIdx } => {
-                let stop_go_penalty_served = StopGoPenaltyServed {
-                    vehicle_idx: *vehicleIdx as u32,
-                };
+        EventCode::SpeedTrapTriggered => {
+            let speed_trap = unsafe { &event_data_details.speed_trap };
 
-                Details::StopGoPenaltyServed(stop_go_penalty_served)
-            }
+            let speed_trap = SpeedTrap {
+                speed: speed_trap.speed,
+                vehicle_idx: speed_trap.vehicleIdx as u32,
+                is_overall_fastest_in_session: speed_trap.isOverallFastestInSession as u32,
+                is_driver_fastest_in_session: speed_trap.isDriverFastestInSession as u32,
+                fastest_vehicle_idx_in_session: speed_trap.fastestVehicleIdxInSession as u32,
+                fastest_speed_in_session: speed_trap.fastestSpeedInSession,
+            };
 
-            BEventDataDetails::Flashback {
-                flashbackFrameIdentifier,
-                flashbackSessionTime,
-            } => {
-                let flashback = Flashback {
-                    flashback_frame_identifier: *flashbackFrameIdentifier,
-                    flashback_session_time: *flashbackSessionTime,
-                };
+            Some(Details::SpeedTrap(speed_trap))
+        }
 
-                Details::Flashback(flashback)
-            }
+        EventCode::StartLights => {
+            let start_lights = unsafe { &event_data_details.start_lights };
 
-            BEventDataDetails::Buttons { buttonStatus } => {
-                let buttons = Buttons {
-                    button_status: *buttonStatus,
-                };
+            let start_lights = StartLights {
+                num_lights: start_lights.numLights as u32,
+            };
 
-                Details::Buttons(buttons)
-            }
+            Some(Details::StartLights(start_lights))
+        }
 
-            BEventDataDetails::Overtake {
-                overtakingVehicleIdx,
-                beingOvertakenVehicleIdx,
-            } => {
-                let overtake = Overtake {
-                    overtaking_vehicle_idx: *overtakingVehicleIdx as u32,
-                    being_overtaken_vehicle_idx: *beingOvertakenVehicleIdx as u32,
-                };
+        EventCode::DriveThroughServed => {
+            let drive_through = unsafe { &event_data_details.drive_through_penalty_served };
 
-                Details::Overtake(overtake)
-            }
-        };
+            let drive_through = DriveThroughPenaltyServed {
+                vehicle_idx: drive_through.vehicleIdx as u32,
+            };
 
-        Some(EventDataDetails {
-            details: Some(details),
-        })
-    }
+            Some(Details::DriveThroughPenaltyServed(drive_through))
+        }
+
+        EventCode::StopGoServed => {
+            let stop_go = unsafe { &event_data_details.stop_go_penalty_served };
+
+            let stop_go = StopGoPenaltyServed {
+                vehicle_idx: stop_go.vehicleIdx as u32,
+            };
+
+            Some(Details::StopGoPenaltyServed(stop_go))
+        }
+
+        EventCode::Flashback => {
+            let flashback = unsafe { &event_data_details.flashback };
+
+            let flashback = Flashback {
+                flashback_frame_identifier: flashback.flashbackFrameIdentifier,
+                flashback_session_time: flashback.flashbackSessionTime,
+            };
+
+            Some(Details::Flashback(flashback))
+        }
+
+        EventCode::ButtonStatus => {
+            let buttons = unsafe { &event_data_details.buttons };
+
+            let buttons = Buttons {
+                button_status: buttons.buttonStatus,
+            };
+
+            Some(Details::Buttons(buttons))
+        }
+
+        EventCode::Overtake => {
+            let overtake = unsafe { &event_data_details.overtake };
+
+            let overtake = Overtake {
+                overtaking_vehicle_idx: overtake.overtakingVehicleIdx as u32,
+                being_overtaken_vehicle_idx: overtake.beingOvertakenVehicleIdx as u32,
+            };
+
+            Some(Details::Overtake(overtake))
+        }
+
+        _ => None,
+    };
+
+    details.map(|details| EventDataDetails {
+        details: Some(details),
+    })
 }

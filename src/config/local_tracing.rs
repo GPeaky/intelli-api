@@ -1,5 +1,4 @@
-use tracing_subscriber::fmt;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{fmt, EnvFilter};
 
 pub fn initialize_tracing_subscriber() {
     let filter = EnvFilter::new("intelli=trace");
