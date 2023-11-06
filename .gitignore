@@ -23,3 +23,5 @@ Cargo.lock
 
 # Ignore for Certs
 certs/
+
+.idea/
