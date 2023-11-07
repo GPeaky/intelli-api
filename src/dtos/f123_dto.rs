@@ -427,7 +427,6 @@ pub enum F123Data<'a> {
 }
 
 impl<'a> F123Data<'a> {
-    // TODO: Try to implement zero-copy deserialization
     pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
         match packet_id {
             PacketIds::Motion => {

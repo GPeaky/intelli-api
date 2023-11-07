@@ -292,7 +292,6 @@ impl F123Service {
                                 tx.send(packet).unwrap();
                             }
 
-                            // TODO: Check if this is overbooking the server
                             F123Data::SessionHistory(session_history) => {
                                 let last_update = last_car_lap_update
                                     .entry(session_history.car_idx)

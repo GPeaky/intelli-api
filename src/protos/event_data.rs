@@ -11,7 +11,6 @@ static EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::Tea
 impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;
 
-    // TODO: Not send the whole string code, if it's not important
     fn to_proto(&self) -> Option<Self::ProtoType> {
         let event_code = EventCode::from(&self.event_string_code);
 

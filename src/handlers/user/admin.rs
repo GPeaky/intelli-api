@@ -32,7 +32,6 @@ pub async fn delete_user(
     Ok(StatusCode::OK.into_response())
 }
 
-// TODO: Disable a user by id
 #[inline(always)]
 pub async fn disable_user(
     State(state): State<UserState>,
