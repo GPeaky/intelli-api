@@ -64,7 +64,7 @@ pub async fn create_championship(
         .create_championship(form, &user.id)
         .await?;
 
-    Ok(StatusCode::OK.into_response())
+    Ok(StatusCode::CREATED.into_response())
 }
 
 #[inline(always)]
