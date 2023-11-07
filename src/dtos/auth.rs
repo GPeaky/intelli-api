@@ -1,4 +1,6 @@
-use crate::entity::Provider;
+use std::sync::Arc;
+
+use crate::entity::{Championship, Provider, User};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::string_trim;
@@ -120,4 +122,10 @@ pub struct RefreshTokenQuery {
 #[derive(Debug, Deserialize)]
 pub struct FingerprintQuery {
     pub fingerprint: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserData {
+    pub user: Arc<User>,
+    pub championships: Vec<Championship>,
 }
