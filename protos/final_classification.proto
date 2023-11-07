@@ -3,23 +3,23 @@ syntax = "proto3";
 package protos.final_classification;
 
 message FinalClassificationData {
-    uint32 m_position = 1;               // Finishing position
-    uint32 m_numLaps = 2;                // Number of laps completed
-    uint32 m_gridPosition = 3;           // Grid position of the car
-    uint32 m_points = 4;                 // Number of points scored
-    uint32 m_numPitStops = 5;            // Number of pit stops made
-    uint32 m_resultStatus = 6;           // Result status
-    uint32 m_bestLapTimeInMS = 7;        // Best lap time of the session in milliseconds
-    double m_totalRaceTime = 8;          // Total race time in seconds without penalties
-    uint32 m_penaltiesTime = 9;          // Total penalties accumulated in seconds
-    uint32 m_numPenalties = 10;          // Number of penalties applied to this driver
-    uint32 m_numTyreStints = 11;         // Number of tyres stints up to maximum
-    repeated uint32 m_tyreStintsActual = 12; // Actual tyres used by this driver
-    repeated uint32 m_tyreStintsVisual = 13; // Visual tyres used by this driver
-    repeated uint32 m_tyreStintsEndLaps = 14; // The lap number stints end on
+    uint32 position = 1;               // Finishing position
+    uint32 numLaps = 2;                // Number of laps completed
+    uint32 gridPosition = 3;           // Grid position of the car
+    uint32 points = 4;                 // Number of points scored
+    uint32 numPitStops = 5;            // Number of pit stops made
+    uint32 resultStatus = 6;           // Result status
+    uint32 bestLapTimeInMS = 7;        // Best lap time of the session in milliseconds
+    double totalRaceTime = 8;          // Total race time in seconds without penalties
+    uint32 penaltiesTime = 9;          // Total penalties accumulated in seconds
+    uint32 numPenalties = 10;          // Number of penalties applied to this driver
+    uint32 numTyreStints = 11;         // Number of tyres stints up to maximum
+    repeated uint32 tyreStintsActual = 12; // Actual tyres used by this driver
+    repeated uint32 tyreStintsVisual = 13; // Visual tyres used by this driver
+    repeated uint32 tyreStintsEndLaps = 14; // The lap number stints end on
 }
 
 message PacketFinalClassificationData {
-    uint32 m_numCars = 1;      // Number of cars in the final classification
-    repeated FinalClassificationData m_classificationData = 2; // Classification data for each car
+    uint32 numCars = 1;      // Number of cars in the final classification
+    repeated FinalClassificationData classificationData = 2; // Classification data for each car
 }

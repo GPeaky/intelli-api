@@ -8,28 +8,28 @@ impl ToProtoMessage for BPacketMotionData {
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
         Some(PacketMotionData {
-            m_car_motion_data: self
-                .m_carMotionData
+            car_motion_data: self
+                .car_motion_data
                 .into_iter()
                 .map(|value| CarMotionData {
-                    m_world_position_x: value.m_worldPositionX,
-                    m_world_position_y: value.m_worldPositionY,
-                    m_world_position_z: value.m_worldPositionZ,
-                    m_world_velocity_x: value.m_worldVelocityX,
-                    m_world_velocity_y: value.m_worldVelocityY,
-                    m_world_velocity_z: value.m_worldVelocityZ,
-                    m_world_forward_dir_x: value.m_worldForwardDirX as i32,
-                    m_world_forward_dir_y: value.m_worldForwardDirY as i32,
-                    m_world_forward_dir_z: value.m_worldForwardDirZ as i32,
-                    m_world_right_dir_x: value.m_worldRightDirX as i32,
-                    m_world_right_dir_y: value.m_worldRightDirY as i32,
-                    m_world_right_dir_z: value.m_worldRightDirZ as i32,
-                    m_g_force_lateral: value.m_gForceLateral,
-                    m_g_force_longitudinal: value.m_gForceLongitudinal,
-                    m_yaw: value.m_yaw,
-                    m_pitch: value.m_pitch,
-                    m_roll: value.m_roll,
-                    m_g_force_vertical: value.m_gForceVertical,
+                    world_position_x: value.world_position_x,
+                    world_position_y: value.world_position_y,
+                    world_position_z: value.world_position_z,
+                    world_velocity_x: value.world_velocity_x,
+                    world_velocity_y: value.world_velocity_y,
+                    world_velocity_z: value.world_velocity_z,
+                    world_forward_dir_x: value.world_forward_dir_x as i32,
+                    world_forward_dir_y: value.world_forward_dir_y as i32,
+                    world_forward_dir_z: value.world_forward_dir_z as i32,
+                    world_right_dir_x: value.world_right_dir_x as i32,
+                    world_right_dir_y: value.world_right_dir_y as i32,
+                    world_right_dir_z: value.world_right_dir_z as i32,
+                    g_force_lateral: value.g_force_lateral,
+                    g_force_longitudinal: value.g_force_longitudinal,
+                    yaw: value.yaw,
+                    pitch: value.pitch,
+                    roll: value.roll,
+                    g_force_vertical: value.g_force_vertical,
                 })
                 .collect(),
         })

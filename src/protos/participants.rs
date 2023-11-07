@@ -9,25 +9,25 @@ impl ToProtoMessage for BPacketParticipantsData {
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
         Some(PacketParticipantsData {
-            m_num_active_cars: self.m_numActiveCars as u32,
-            m_participants: self
-                .m_participants
+            num_active_cars: self.num_active_cars as u32,
+            participants: self
+                .participants
                 .into_iter()
                 .map(|value| {
-                    let c_str = CStr::from_bytes_until_nul(&value.m_name).unwrap();
+                    let c_str = CStr::from_bytes_until_nul(&value.name).unwrap();
 
                     ParticipantData {
-                        m_ai_controlled: value.m_aiControlled as u32,
-                        m_driver_id: value.m_driverId as u32,
-                        m_network_id: value.m_networkId as u32,
-                        m_team_id: value.m_teamId as u32,
-                        m_my_team: value.m_myTeam as u32,
-                        m_race_number: value.m_raceNumber as u32,
-                        m_nationality: value.m_nationality as u32,
-                        m_name: c_str.to_str().unwrap().to_string(),
-                        m_your_telemetry: value.m_yourTelemetry as u32,
-                        m_show_online_names: value.m_showOnlineNames as u32,
-                        m_platform: value.m_platform as u32,
+                        ai_controlled: value.ai_controlled as u32,
+                        driver_id: value.driver_id as u32,
+                        network_id: value.network_id as u32,
+                        team_id: value.team_id as u32,
+                        my_team: value.my_team as u32,
+                        race_number: value.race_number as u32,
+                        nationality: value.nationality as u32,
+                        name: c_str.to_str().unwrap().to_string(),
+                        your_telemetry: value.your_telemetry as u32,
+                        show_online_names: value.show_online_names as u32,
+                        platform: value.platform as u32,
                     }
                 })
                 .collect(),
