@@ -6,8 +6,8 @@ use crate::dtos::PacketSessionData as BPacketSessionData;
 impl ToProtoMessage for BPacketSessionData {
     type ProtoType = PacketSessionData;
 
-    fn to_proto(&self) -> Self::ProtoType {
-        PacketSessionData {
+    fn to_proto(&self) -> Option<Self::ProtoType> {
+        Some(PacketSessionData {
             m_weather: self.m_weather as u32,
             m_track_temperature: self.m_trackTemperature as i32,
             m_air_temperature: self.m_airTemperature as i32,
@@ -79,6 +79,6 @@ impl ToProtoMessage for BPacketSessionData {
                     m_rain_percentage: sample.m_rainPercentage as u32,
                 })
                 .collect(),
-        }
+        })
     }
 }

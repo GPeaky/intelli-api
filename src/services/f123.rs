@@ -200,8 +200,9 @@ impl F123Service {
                                     .duration_since(last_car_motion_update)
                                     .ge(&MOTION_INTERVAL)
                                 {
-                                    let packet =
-                                        motion_data.convert_and_encode(PacketType::CarMotion);
+                                    let packet = motion_data
+                                        .convert_and_encode(PacketType::CarMotion)
+                                        .expect("Error converting motion data to proto message");
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -223,8 +224,9 @@ impl F123Service {
                                     .duration_since(last_session_update)
                                     .ge(&SESSION_INTERVAL)
                                 {
-                                    let packet =
-                                        session_data.convert_and_encode(PacketType::SessionData);
+                                    let packet = session_data
+                                        .convert_and_encode(PacketType::SessionData)
+                                        .expect("Error converting session data to proto message");
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -247,7 +249,10 @@ impl F123Service {
                                     .ge(&SESSION_INTERVAL)
                                 {
                                     let packet = participants_data
-                                        .convert_and_encode(PacketType::Participants);
+                                        .convert_and_encode(PacketType::Participants)
+                                        .expect(
+                                            "Error converting participants data to proto message",
+                                        );
 
                                     redis
                                         .set_ex::<String, &[u8], ()>(
@@ -278,7 +283,11 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let packet = event_data.convert_and_encode(PacketType::EventData);
+                                let Some(packet) =
+                                    event_data.convert_and_encode(PacketType::EventData)
+                                else {
+                                    continue;
+                                };
 
                                 tx.send(packet).unwrap();
                             }
@@ -314,7 +323,8 @@ impl F123Service {
 
                                 let car_idx = session_history.m_carIdx;
                                 let packet = session_history
-                                    .convert_and_encode(PacketType::SessionHistoryData);
+                                    .convert_and_encode(PacketType::SessionHistoryData)
+                                    .expect("Error converting history data to proto message");
 
                                 redis
                                     .set_ex::<String, &[u8], ()>(

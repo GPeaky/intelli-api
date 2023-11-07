@@ -12,20 +12,25 @@ pub(crate) mod session_history;
 
 pub trait ToProtoMessage {
     type ProtoType: Message;
-    fn to_proto(&self) -> Self::ProtoType;
+    fn to_proto(&self) -> Option<Self::ProtoType>;
 
     // TODO: Try to remove packet_type from here
-    fn convert_and_encode(&self, packet_type: PacketType) -> Vec<u8>
+    fn convert_and_encode(&self, packet_type: PacketType) -> Option<Vec<u8>>
     where
         Self: Sized,
     {
-        let proto_data = self.to_proto();
-        let proto_data = proto_data.encode_to_vec();
+        let Some(proto_data) = self.to_proto() else {
+            return None;
+        };
 
-        PacketHeader {
-            r#type: packet_type.into(),
-            payload: proto_data,
-        }
-        .encode_to_vec()
+        let proto_data: Vec<u8> = proto_data.encode_to_vec();
+
+        Some(
+            PacketHeader {
+                r#type: packet_type.into(),
+                payload: proto_data,
+            }
+            .encode_to_vec(),
+        )
     }
 }

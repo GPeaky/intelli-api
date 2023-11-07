@@ -6,27 +6,30 @@ use crate::{
     protos::event_data::event_data_details::Details,
 };
 
+static EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
+
 impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;
 
     // TODO: Not send the whole string code, if it's not important
-    fn to_proto(&self) -> Self::ProtoType {
-        PacketEventData {
+    fn to_proto(&self) -> Option<Self::ProtoType> {
+        let event_code = EventCode::from(&self.m_eventStringCode);
+
+        if EVENT_NOT_SEND.contains(&event_code) {
+            return None;
+        };
+
+        Some(PacketEventData {
             m_event_string_code: self.m_eventStringCode.to_vec(),
-            m_event_details: convert_event_data_details(
-                &self.m_eventStringCode,
-                &self.m_eventDetails,
-            ),
-        }
+            m_event_details: convert_event_data_details(&event_code, &self.m_eventDetails),
+        })
     }
 }
 
 pub fn convert_event_data_details(
-    code: &[u8; 4],
+    event_code: &EventCode,
     event_data_details: &BEventDataDetails,
 ) -> Option<EventDataDetails> {
-    let event_code = EventCode::from(code);
-
     let details = match event_code {
         EventCode::FastestLap => {
             let fastest_lap = unsafe { &event_data_details.fastest_lap };

@@ -6,8 +6,8 @@ use crate::dtos::PacketMotionData as BPacketMotionData;
 impl ToProtoMessage for BPacketMotionData {
     type ProtoType = PacketMotionData;
 
-    fn to_proto(&self) -> Self::ProtoType {
-        PacketMotionData {
+    fn to_proto(&self) -> Option<Self::ProtoType> {
+        Some(PacketMotionData {
             m_car_motion_data: self
                 .m_carMotionData
                 .into_iter()
@@ -32,6 +32,6 @@ impl ToProtoMessage for BPacketMotionData {
                     m_g_force_vertical: value.m_gForceVertical,
                 })
                 .collect(),
-        }
+        })
     }
 }

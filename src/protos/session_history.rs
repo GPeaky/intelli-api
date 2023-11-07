@@ -6,8 +6,8 @@ use crate::dtos::PacketSessionHistoryData as BPacketSessionHistoryData;
 impl ToProtoMessage for BPacketSessionHistoryData {
     type ProtoType = PacketSessionHistoryData;
 
-    fn to_proto(&self) -> Self::ProtoType {
-        PacketSessionHistoryData {
+    fn to_proto(&self) -> Option<Self::ProtoType> {
+        Some(PacketSessionHistoryData {
             m_car_idx: self.m_carIdx as u32,
             m_num_laps: self.m_numLaps as u32,
             m_num_tyre_stints: self.m_numTyreStints as u32,
@@ -40,6 +40,6 @@ impl ToProtoMessage for BPacketSessionHistoryData {
                     m_tyre_visual_compound: stint.m_tyreVisualCompound as u32,
                 })
                 .collect(),
-        }
+        })
     }
 }
