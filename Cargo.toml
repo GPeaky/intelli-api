@@ -24,7 +24,7 @@ serde_trim = "1.0.0"
 jsonwebtoken = "9.1.0"
 tokio = { version = "1.33.0", features = ["full"] }
 chrono = { version = "0.4.31", features = ["serde"] }
-serde = { version = "1.0.190", features = ["derive"] }
+serde = { version = "1.0.192", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 hyper = { version = "0.14.27", features = ["full"] }
@@ -54,7 +54,7 @@ tower = { version = "0.4.13", features = [
 rand = "0.8.5"
 prost = "0.12.1"
 askama = "0.12.1"
-zerocopy = { version = "0.7.5", features = ["derive"] }
+zerocopy = { version = "0.7.25", features = ["derive"] }
 
 [profile.release]
 debug = 0
