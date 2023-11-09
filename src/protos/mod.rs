@@ -23,14 +23,19 @@ pub trait ToProtoMessage {
             return None;
         };
 
-        let proto_data: Vec<u8> = proto_data.encode_to_vec();
+        let mut buf = Vec::with_capacity(2048);
 
-        Some(
-            PacketHeader {
-                r#type: packet_type.into(),
-                payload: proto_data,
-            }
-            .encode_to_vec(),
-        )
+        // Encode payload
+        proto_data.encode(&mut buf).unwrap();
+
+        // Encode header
+        PacketHeader {
+            r#type: packet_type.into(),
+            payload: buf.clone(),
+        }
+        .encode(&mut buf)
+        .unwrap();
+
+        Some(buf)
     }
 }
