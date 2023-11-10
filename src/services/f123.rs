@@ -275,7 +275,7 @@ impl F123Service {
                                     VALUES (?, ?, ?)
                                 "#,
                                 )
-                                .bind(session_id)
+                                .bind(session_id as i64)
                                 .bind(event_data.event_string_code.to_vec())
                                 .bind(&buf[..size])
                                 .execute(&session)
