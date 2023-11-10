@@ -342,6 +342,7 @@ impl F123Service {
                                     .convert_and_encode(PacketType::FinalClassificationData)
                                     .expect("Error converting final classification data to proto message");
 
+                                // TODO: If session type is race save all session data in the database and close the socket
                                 tx.send(packet).unwrap();
                             }
                         }
