@@ -282,9 +282,12 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let packet = event_data
-                                    .convert_and_encode(PacketType::EventData)
-                                    .expect("Error converting event data to proto message");
+                                // To avoid sending not important events
+                                let Some(packet) =
+                                    event_data.convert_and_encode(PacketType::EventData)
+                                else {
+                                    continue;
+                                };
 
                                 tx.send(packet).unwrap();
                             }
