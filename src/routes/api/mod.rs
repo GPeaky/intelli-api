@@ -1,5 +1,4 @@
 use self::admin::admin_router;
-use super::handle_error;
 use crate::{
     config::Database,
     handlers::{
@@ -19,13 +18,11 @@ use crate::{
     states::{AuthStateInner, UserStateInner},
 };
 use axum::{
-    error_handling::HandleErrorLayer,
     middleware,
     routing::{get, post},
     Router,
 };
-use std::{sync::Arc, time::Duration};
-use tower::ServiceBuilder;
+use std::sync::Arc;
 
 mod admin;
 
