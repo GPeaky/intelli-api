@@ -44,13 +44,14 @@ impl ChampionshipService {
 
         sqlx::query(
             r#"
-                INSERT INTO championship (id, port, name, owner_id)
+                INSERT INTO championship (id, port, name, season, owner_id)
                 VALUES (?,?,?,?)
             "#,
         )
         .bind(id)
         .bind(port)
         .bind(payload.name)
+        .bind(payload.season)
         .bind(user_id)
         .execute(&self.db.mysql)
         .await?;

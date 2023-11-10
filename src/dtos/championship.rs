@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct CreateChampionshipDto {
     #[garde(length(min = 3, max = 20))]
     pub name: String,
+    #[garde(skip)]
+    pub season: u16,
 }
 
 #[derive(Debug, Serialize)]
