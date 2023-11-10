@@ -16,6 +16,8 @@ impl ToProtoMessage for BPacketParticipantsData {
                 .map(|value| {
                     let c_str = CStr::from_bytes_until_nul(&value.name).unwrap();
 
+                    println!("Network ID: {}", value.network_id);
+
                     ParticipantData {
                         ai_controlled: value.ai_controlled as u32,
                         driver_id: value.driver_id as u32,
