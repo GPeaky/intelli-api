@@ -181,7 +181,7 @@ impl F123Service {
                             break;
                         };
 
-                        let session_id = header.session_uid as i64;
+                        let session_id = header.session_uid;
 
                         if session_id.eq(&0) {
                             continue;
