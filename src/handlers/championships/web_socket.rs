@@ -96,18 +96,23 @@ async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Ch
             cache.motion_data,
             cache.participants_data,
         ];
+
         for data in data_to_send {
-            if let Err(e) = socket.send(Message::Binary(data)).await {
-                error!("Failed sending message:{}", e);
-                return;
-            };
+            if !data.is_empty() {
+                if let Err(e) = socket.send(Message::Binary(data)).await {
+                    error!("Failed sending message:{}", e);
+                    return;
+                };
+            }
         }
 
         for data in cache.history_data {
-            if let Err(e) = socket.send(Message::Binary(data)).await {
-                error!("Failed sending message:{}", e);
-                return;
-            };
+            if !data.is_empty() {
+                if let Err(e) = socket.send(Message::Binary(data)).await {
+                    error!("Failed sending message:{}", e);
+                    return;
+                };
+            }
         }
     }
 
