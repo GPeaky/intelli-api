@@ -141,7 +141,7 @@ impl F123Service {
             let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
-            let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
+            let (tx, _rx) = tokio::sync::broadcast::channel::<Vec<u8>>(50);
 
             let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
@@ -246,7 +246,7 @@ impl F123Service {
                             F123Data::Participants(participants_data) => {
                                 if now
                                     .duration_since(last_participants_update)
-                                    .ge(&SESSION_INTERVAL)
+                                    .lt(&SESSION_INTERVAL)
                                 {
                                     let packet = participants_data
                                         .convert_and_encode(PacketType::Participants)
@@ -283,11 +283,9 @@ impl F123Service {
                                 .await
                                 .unwrap();
 
-                                let Some(packet) =
-                                    event_data.convert_and_encode(PacketType::EventData)
-                                else {
-                                    continue;
-                                };
+                                let packet = event_data
+                                    .convert_and_encode(PacketType::EventData)
+                                    .expect("Error converting event data to proto message");
 
                                 tx.send(packet).unwrap();
                             }
@@ -299,33 +297,30 @@ impl F123Service {
 
                                 if now
                                     .duration_since(*last_update)
-                                    .lt(&SESSION_HISTORY_INTERVAL)
+                                    .gt(&SESSION_HISTORY_INTERVAL)
                                 {
-                                    continue;
-                                }
+                                    let lap = (session_history.num_laps as usize) - 1; // Lap is 0 indexed
 
-                                let lap = (session_history.num_laps as usize) - 1; // Lap is 0 indexed
+                                    let sectors = (
+                                        session_history.lap_history_data[lap].sector1_time_in_ms,
+                                        session_history.lap_history_data[lap].sector2_time_in_ms,
+                                        session_history.lap_history_data[lap].sector3_time_in_ms,
+                                    );
 
-                                let sectors = (
-                                    session_history.lap_history_data[lap].sector1_time_in_ms,
-                                    session_history.lap_history_data[lap].sector2_time_in_ms,
-                                    session_history.lap_history_data[lap].sector3_time_in_ms,
-                                );
+                                    let last_sectors = car_lap_sector_data
+                                        .entry(session_history.car_idx)
+                                        .or_insert(sectors);
 
-                                let last_sectors = car_lap_sector_data
-                                    .entry(session_history.car_idx)
-                                    .or_insert(sectors);
+                                    if sectors == *last_sectors {
+                                        continue;
+                                    }
 
-                                if sectors == *last_sectors {
-                                    continue;
-                                }
+                                    let car_idx = session_history.car_idx;
+                                    let packet = session_history
+                                        .convert_and_encode(PacketType::SessionHistoryData)
+                                        .expect("Error converting history data to proto message");
 
-                                let car_idx = session_history.car_idx;
-                                let packet = session_history
-                                    .convert_and_encode(PacketType::SessionHistoryData)
-                                    .expect("Error converting history data to proto message");
-
-                                redis
+                                    redis
                                     .set_ex::<String, &[u8], ()>(
                                         format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
                                         &packet,
@@ -334,24 +329,20 @@ impl F123Service {
                                     .await
                                     .unwrap();
 
-                                tx.send(packet).unwrap();
+                                    tx.send(packet).unwrap();
 
-                                *last_update = now;
-                                *last_sectors = sectors;
+                                    *last_update = now;
+                                    *last_sectors = sectors;
+                                }
                             }
 
                             //TODO Collect All data from redis and save it to the mariadb database
-                            F123Data::FinalClassification(_classification_data) => {
-                                // tx.send(F123Data::FinalClassification(classification_data))
-                                //     .unwrap();
+                            F123Data::FinalClassification(classification_data) => {
+                                let packet = classification_data
+                                    .convert_and_encode(PacketType::FinalClassificationData)
+                                    .expect("Error converting final classification data to proto message");
 
-                                // Self::external_close_socket(
-                                //     channels.clone(),
-                                //     sockets.clone(),
-                                //     championship_id.clone(),
-                                // )
-                                // .await;
-                                // return;
+                                tx.send(packet).unwrap();
                             }
                         }
                     }
