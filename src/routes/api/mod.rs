@@ -48,12 +48,6 @@ pub(crate) async fn api_router(
         .route("/forgot-password", post(forgot_password))
         .route("/reset-password", post(reset_password))
         .route("/logout", get(logout).route_layer(auth_middleware.clone()))
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(handle_error))
-                .buffer(1024)
-                .rate_limit(8, Duration::from_secs(60)),
-        )
         .with_state(auth_state);
 
     let user_router = Router::new()

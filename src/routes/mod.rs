@@ -35,7 +35,7 @@ pub(crate) async fn service_routes(
                 .layer(HandleErrorLayer::new(handle_error))
                 .layer(LoadShedLayer::new())
                 .layer(cors_layer)
-                .timeout(Duration::from_secs(4)),
+                .timeout(Duration::from_secs(2)),
         )
         .into_make_service()
 }
