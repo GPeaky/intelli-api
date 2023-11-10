@@ -45,7 +45,7 @@ impl ChampionshipService {
         sqlx::query(
             r#"
                 INSERT INTO championship (id, port, name, category, season, owner_id)
-                VALUES (?,?,?,?)
+                VALUES (?,?,?,?,?,?)
             "#,
         )
         .bind(id)
