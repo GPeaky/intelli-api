@@ -1,11 +1,11 @@
 use dotenvy::var;
 use redis::{aio::Connection, Client};
+use redis_pool::RedisPool;
 use sqlx::MySqlPool;
 use tracing::info;
 
-#[derive(Debug)]
 pub struct Database {
-    redis: Client,
+    pub redis: RedisPool<Client, Connection>,
     pub mysql: MySqlPool,
 }
 
@@ -16,13 +16,9 @@ impl Database {
             .await
             .unwrap();
 
-        let redis = Client::open(var("REDIS_URL").unwrap()).unwrap();
+        let client = Client::open(var("REDIS_URL").unwrap()).unwrap();
+        let redis = RedisPool::new(client, 16, Some(200));
 
-        info!("Databases connected!");
         Self { redis, mysql }
-    }
-
-    pub async fn get_redis_async(&self) -> Connection {
-        self.redis.get_async_connection().await.unwrap()
     }
 }

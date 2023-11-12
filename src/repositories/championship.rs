@@ -50,7 +50,7 @@ impl ChampionshipRepository {
             Err(ChampionshipError::NotFound)?
         };
 
-        let mut redis = self.database.get_redis_async().await;
+        let mut redis = self.database.redis.aquire().await.unwrap();
         let (session_data, motion_data, participants_data, session_history_key): (
             Vec<u8>,
             Vec<u8>,

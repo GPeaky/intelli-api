@@ -70,7 +70,7 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
-        let mut redis = self.db_conn.get_redis_async().await;
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         redis
             .set_ex::<_, u8, ()>(format!("reset:{}", token), 1, AUTH_TOKEN_EXPIRATION)
@@ -81,7 +81,7 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn save_email_token(&self, token: &str) -> AppResult<()> {
-        let mut redis = self.db_conn.get_redis_async().await;
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         redis
             .set_ex::<_, u8, ()>(format!("email:{}", token), 1, AUTH_TOKEN_EXPIRATION)
@@ -102,10 +102,8 @@ impl TokenServiceTrait for TokenService {
             Err(TokenError::InvalidTokenType)?
         }
 
-        let db_token: String = self
-            .db_conn
-            .get_redis_async()
-            .await
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let db_token: String = redis
             .get(format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
             .map_err(|_| TokenError::TokenNotFound)?;
@@ -123,9 +121,8 @@ impl TokenServiceTrait for TokenService {
             .generate_token(*user_id, TokenType::RefreshBearer)
             .await?;
 
-        self.db_conn
-            .get_redis_async()
-            .await
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        redis
             .set_ex(
                 format!("rf_tokens:{}:{}", user_id, fingerprint),
                 &token,
@@ -138,9 +135,8 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn remove_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<()> {
-        self.db_conn
-            .get_redis_async()
-            .await
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        redis
             .del(format!("rf_tokens:{}:{}", user_id, fingerprint))
             .await
             .map_err(|e| TokenError::TokenCreationError(e.to_string()))?;

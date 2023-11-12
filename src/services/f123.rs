@@ -130,7 +130,7 @@ impl F123Service {
             let mut port_partial_open = false;
             let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
-            let mut redis = db.get_redis_async().await;
+            let mut redis = db.redis.aquire().await.unwrap();
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();

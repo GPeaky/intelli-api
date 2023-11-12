@@ -129,7 +129,7 @@ impl UserServiceTrait for UserService {
 
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<u32> {
         let user_id;
-        let mut redis = self.db_conn.get_redis_async().await;
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         let Ok(_) = redis.get::<_, u8>(format!("reset:{}", token)).await else {
             error!("Token not found in redis");
@@ -177,7 +177,7 @@ impl UserServiceTrait for UserService {
 
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
         let user_id;
-        let mut redis = self.db_conn.get_redis_async().await;
+        let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         let Ok(_) = redis.get::<_, u8>(format!("email:{}", token)).await else {
             Err(TokenError::InvalidToken)?
