@@ -15,7 +15,7 @@ pub struct Championship {
     pub port: i32,
     pub name: String,
     pub category: Category,
-    pub season: i8,
+    pub season: i16,
     pub driver_count: i16,
     pub owner_id: i32,
     #[serde(skip_serializing)]
