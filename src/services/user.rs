@@ -59,6 +59,9 @@ impl UserServiceTrait for UserService {
 
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
+                info!("Creating user with google provider");
+                info!("Register Data: {:?}", register);
+
                 sqlx::query(
                     r#"
                         INSERT INTO users (id, email, username, avatar, provider, active)
