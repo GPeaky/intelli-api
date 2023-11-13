@@ -25,6 +25,7 @@ use tracing::{error, info};
 const F123_HOST: &str = "0.0.0.0";
 const DATA_PERSISTENCE: usize = 15 * 60;
 const F123_MAX_PACKET_SIZE: usize = 1460;
+const BASE_REDIS_KEY: &str = "f123_service:championships";
 
 // Constants durations & timeouts
 const SESSION_INTERVAL: Duration = Duration::from_secs(10);
@@ -204,15 +205,17 @@ impl F123Service {
                                         .expect("Error converting motion data to proto message");
 
                                     if let Err(e) = redis
-                                        .set_ex::<String, &[u8], ()>(
-                                            format!(
-                                                "f123_service:championships:{championship_id}:motion_data"
+                                        .set_ex::<&str, &[u8], ()>(
+                                            &format!(
+                                                "{BASE_REDIS_KEY}:{championship_id}:motion_data"
                                             ),
                                             &packet,
-                                            DATA_PERSISTENCE
-                                        ).await {
+                                            DATA_PERSISTENCE,
+                                        )
+                                        .await
+                                    {
                                         error!("Error saving motion to redis: {}", e);
-                                        };
+                                    };
 
                                     tx.send(packet).unwrap();
                                     last_car_motion_update = now;
@@ -229,15 +232,17 @@ impl F123Service {
                                         .expect("Error converting session data to proto message");
 
                                     if let Err(e) = redis
-                                        .set_ex::<String, &[u8], ()>(
-                                            format!(
-                                                "f123_service:championships:{championship_id}:session_data"
+                                        .set_ex::<&str, &[u8], ()>(
+                                            &format!(
+                                                "{BASE_REDIS_KEY}:{championship_id}:session_data"
                                             ),
                                             &packet,
-                                            DATA_PERSISTENCE
-                                        ).await {
+                                            DATA_PERSISTENCE,
+                                        )
+                                        .await
+                                    {
                                         error!("Error saving session to redis: {}", e);
-                                        };
+                                    };
 
                                     tx.send(packet).unwrap();
                                     last_session_update = now;
@@ -256,8 +261,8 @@ impl F123Service {
                                         );
 
                                     if let Err(e) = redis
-                                        .set_ex::<String, &[u8], ()>(
-                                            format!("f123_service:championships:{championship_id}:participants_data"),
+                                        .set_ex::<&str, &[u8], ()>(
+                                            &format!("{BASE_REDIS_KEY}:{championship_id}:participants_data"),
                                             &packet,
                                             DATA_PERSISTENCE,
                                         )
@@ -282,7 +287,7 @@ impl F123Service {
                                     std::str::from_utf8(&event_data.event_string_code)
                                         .expect("Error converting string code");
 
-                                if let(Err(e)) = redis.rpush::<String, &[u8], ()>(format!("f123_service:championships:{championship_id}:events:{string_code}"), &packet).await {
+                                if let Err(e) = redis.rpush::<&str, &[u8], ()>(&format!("{BASE_REDIS_KEY}:{championship_id}:events:{string_code}"), &packet).await {
                                     error!("Error saving event to redis: {}", e);
                                 };
 
@@ -320,8 +325,8 @@ impl F123Service {
                                         .expect("Error converting history data to proto message");
 
                                     if let Err(e) =redis
-                                    .set_ex::<String, &[u8], ()>(
-                                        format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
+                                    .set_ex::<&str, &[u8], ()>(
+                                        &format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
                                         &packet,
                                         DATA_PERSISTENCE,
                                     )
