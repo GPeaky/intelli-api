@@ -58,19 +58,19 @@ impl ChampionshipRepository {
             Vec<String>,
         ) = redis::pipe()
             .atomic()
-            .get(format!(
+            .get(&format!(
                 "f123_service:championships:{}:session_data",
                 championship.id
             ))
-            .get(format!(
+            .get(&format!(
                 "f123_service:championships:{}:motion_data",
                 championship.id
             ))
-            .get(format!(
+            .get(&format!(
                 "f123_service:championships:{}:participants_data",
                 championship.id
             ))
-            .keys(format!(
+            .keys(&format!(
                 "f123_service:championships:{}:session_history:*",
                 championship.id
             ))

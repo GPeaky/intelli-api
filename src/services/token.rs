@@ -73,7 +73,7 @@ impl TokenServiceTrait for TokenService {
         let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         redis
-            .set_ex::<_, u8, ()>(format!("reset:{}", token), 1, AUTH_TOKEN_EXPIRATION)
+            .set_ex::<&str, u8, ()>(&format!("reset:{}", token), 1, AUTH_TOKEN_EXPIRATION)
             .await
             .unwrap();
 
@@ -84,7 +84,7 @@ impl TokenServiceTrait for TokenService {
         let mut redis = self.db_conn.redis.aquire().await.unwrap();
 
         redis
-            .set_ex::<_, u8, ()>(format!("email:{}", token), 1, AUTH_TOKEN_EXPIRATION)
+            .set_ex::<&str, u8, ()>(&format!("email:{}", token), 1, AUTH_TOKEN_EXPIRATION)
             .await
             .unwrap();
 
@@ -104,7 +104,7 @@ impl TokenServiceTrait for TokenService {
 
         let mut redis = self.db_conn.redis.aquire().await.unwrap();
         let db_token: String = redis
-            .get(format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
+            .get(&format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
             .map_err(|_| TokenError::TokenNotFound)?;
 
@@ -124,7 +124,7 @@ impl TokenServiceTrait for TokenService {
         let mut redis = self.db_conn.redis.aquire().await.unwrap();
         redis
             .set_ex(
-                format!("rf_tokens:{}:{}", user_id, fingerprint),
+                &format!("rf_tokens:{}:{}", user_id, fingerprint),
                 &token,
                 REFRESH_TOKEN_EXPIRATION,
             )
@@ -137,7 +137,7 @@ impl TokenServiceTrait for TokenService {
     async fn remove_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<()> {
         let mut redis = self.db_conn.redis.aquire().await.unwrap();
         redis
-            .del(format!("rf_tokens:{}:{}", user_id, fingerprint))
+            .del(&format!("rf_tokens:{}:{}", user_id, fingerprint))
             .await
             .map_err(|e| TokenError::TokenCreationError(e.to_string()))?;
 
