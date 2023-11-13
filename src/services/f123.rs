@@ -128,7 +128,7 @@ impl F123Service {
 
         tokio::spawn(async move {
             let mut port_partial_open = false;
-            let session = db.mysql.clone();
+            // let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
             let mut redis = db.redis.aquire().await.unwrap();
 
@@ -203,15 +203,16 @@ impl F123Service {
                                         .convert_and_encode(PacketType::CarMotion)
                                         .expect("Error converting motion data to proto message");
 
-                                    redis
+                                    if let Err(e) = redis
                                         .set_ex::<String, &[u8], ()>(
                                             format!(
                                                 "f123_service:championships:{championship_id}:motion_data"
                                             ),
                                             &packet,
                                             DATA_PERSISTENCE
-                                        ).await
-                                        .unwrap();
+                                        ).await {
+                                        error!("Error saving motion to redis: {}", e);
+                                        };
 
                                     tx.send(packet).unwrap();
                                     last_car_motion_update = now;
@@ -227,15 +228,16 @@ impl F123Service {
                                         .convert_and_encode(PacketType::SessionData)
                                         .expect("Error converting session data to proto message");
 
-                                    redis
+                                    if let Err(e) = redis
                                         .set_ex::<String, &[u8], ()>(
                                             format!(
                                                 "f123_service:championships:{championship_id}:session_data"
                                             ),
                                             &packet,
                                             DATA_PERSISTENCE
-                                        ).await
-                                        .unwrap();
+                                        ).await {
+                                        error!("Error saving session to redis: {}", e);
+                                        };
 
                                     tx.send(packet).unwrap();
                                     last_session_update = now;
@@ -253,14 +255,15 @@ impl F123Service {
                                             "Error converting participants data to proto message",
                                         );
 
-                                    redis
+                                    if let Err(e) = redis
                                         .set_ex::<String, &[u8], ()>(
                                             format!("f123_service:championships:{championship_id}:participants_data"),
                                             &packet,
                                             DATA_PERSISTENCE,
                                         )
-                                        .await
-                                        .unwrap();
+                                        .await {
+                                        error!("Error saving participants to redis: {}", e);
+                                        };
 
                                     tx.send(packet).unwrap();
                                     last_participants_update = now;
@@ -269,24 +272,18 @@ impl F123Service {
 
                             // TODO: Export this to a different service
                             F123Data::Event(event_data) => {
-                                sqlx::query(
-                                    r#"
-                                    INSERT INTO event_data (session_id, string_code, event)
-                                    VALUES (?, ?, ?)
-                                "#,
-                                )
-                                .bind(session_id as i64)
-                                .bind(event_data.event_string_code.to_vec())
-                                .bind(&buf[..size])
-                                .execute(&session)
-                                .await
-                                .unwrap();
-
-                                // To avoid sending not important events
                                 let Some(packet) =
                                     event_data.convert_and_encode(PacketType::EventData)
                                 else {
                                     continue;
+                                };
+
+                                let string_code =
+                                    std::str::from_utf8(&event_data.event_string_code)
+                                        .expect("Error converting string code");
+
+                                if let(Err(e)) = redis.rpush::<String, &[u8], ()>(format!("f123_service:championships:{championship_id}:events:{string_code}"), &packet).await {
+                                    error!("Error saving event to redis: {}", e);
                                 };
 
                                 tx.send(packet).unwrap();
@@ -322,14 +319,15 @@ impl F123Service {
                                         .convert_and_encode(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
 
-                                    redis
+                                    if let Err(e) =redis
                                     .set_ex::<String, &[u8], ()>(
                                         format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
                                         &packet,
                                         DATA_PERSISTENCE,
                                     )
-                                    .await
-                                    .unwrap();
+                                    .await {
+                                        error!("Error saving session history to redis: {}", e);
+                                    };
 
                                     tx.send(packet).unwrap();
 
