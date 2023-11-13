@@ -44,6 +44,14 @@ jobs:
           echo "${{ secrets.JSON_WEB_TOKEN_CRT }}" | base64 -d > ./certs/jsonwebtoken.crt
           echo "${{ secrets.JSON_WEB_TOKEN_KEY }}" | base64 -d > ./certs/jsonwebtoken.key
 
+      - name: Pull latest PostgreSQL image
+        if: github.event_name == 'push'
+        run: docker pull postgres:latest
+
+      - name: Pull latest KeyDB image
+        if: github.event_name == 'push'
+        run: docker pull eqalpha/keydb
+
       - name: Build with Docker Compose
         run: docker-compose build
 
