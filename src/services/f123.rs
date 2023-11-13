@@ -130,7 +130,7 @@ impl F123Service {
         tokio::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
-            let mut redis = db.redis.dedicated_connection().await.unwrap();
+            let mut redis = db.redis.clone();
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -192,6 +192,7 @@ impl F123Service {
                         };
 
                         let now = Instant::now();
+                        let mut redis = redis.get().await.expect("Error getting redis connection");
 
                         match packet {
                             F123Data::Motion(motion_data) => {
