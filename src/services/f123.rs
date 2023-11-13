@@ -5,7 +5,7 @@ use crate::{
     error::{AppResult, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
 };
-use redis::AsyncCommands;
+use bb8_redis::redis::AsyncCommands;
 use rustc_hash::FxHashMap;
 use std::{
     sync::Arc,
@@ -34,8 +34,8 @@ const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 
 type F123Channel = Arc<Sender<Vec<u8>>>;
-type Sockets = Arc<RwLock<FxHashMap<u32, Arc<JoinHandle<()>>>>>;
-type Channels = Arc<RwLock<FxHashMap<u32, F123Channel>>>;
+type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
+type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 
 pub struct F123Service {
     db_conn: Arc<Database>,
@@ -54,7 +54,7 @@ impl F123Service {
         }
     }
 
-    pub async fn new_socket(&self, port: u16, championship_id: Arc<u32>) -> AppResult<()> {
+    pub async fn new_socket(&self, port: i32, championship_id: Arc<i32>) -> AppResult<()> {
         {
             let sockets = self.sockets.read().await;
             let channels = self.channels.read().await;
@@ -72,12 +72,12 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn active_sockets(&self) -> Vec<u32> {
+    pub async fn active_sockets(&self) -> Vec<i32> {
         let sockets = self.sockets.read().await;
         sockets.iter().map(|entry| *entry.0).collect()
     }
 
-    pub async fn stop_socket(&self, championship_id: u32) -> AppResult<()> {
+    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         let mut channels = self.channels.write().await;
         let mut sockets = self.sockets.write().await;
 
@@ -98,7 +98,7 @@ impl F123Service {
         Ok(())
     }
 
-    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &u32) {
+    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &i32) {
         let mut sockets = sockets.write().await;
         let mut channels = channels.write().await;
 
@@ -109,19 +109,19 @@ impl F123Service {
         channels.remove(championship_id);
     }
 
-    pub async fn championship_socket(&self, id: &u32) -> bool {
+    pub async fn championship_socket(&self, id: &i32) -> bool {
         let sockets = self.sockets.read().await;
         sockets.contains_key(id)
     }
 
-    pub async fn get_receiver(&self, championship_id: &u32) -> Option<Receiver<Vec<u8>>> {
+    pub async fn get_receiver(&self, championship_id: &i32) -> Option<Receiver<Vec<u8>>> {
         let channels = self.channels.read().await;
         let channel = channels.get(championship_id);
 
         Some(channel.unwrap().subscribe())
     }
 
-    async fn spawn_socket(&self, championship_id: Arc<u32>, port: u16) -> JoinHandle<()> {
+    async fn spawn_socket(&self, championship_id: Arc<i32>, port: i32) -> JoinHandle<()> {
         let db = self.db_conn.clone();
         let firewall = self.firewall.clone();
         let sockets = self.sockets.clone();
@@ -129,9 +129,8 @@ impl F123Service {
 
         tokio::spawn(async move {
             let mut port_partial_open = false;
-            // let session = db.mysql.clone();
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
-            let mut redis = db.redis.aquire().await.unwrap();
+            let mut redis = db.redis.dedicated_connection().await.unwrap();
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();

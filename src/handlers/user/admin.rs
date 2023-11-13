@@ -16,7 +16,7 @@ use hyper::StatusCode;
 #[inline(always)]
 pub async fn delete_user(
     State(state): State<UserState>,
-    Path(id): Path<u32>,
+    Path(id): Path<i32>,
     Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
@@ -35,7 +35,7 @@ pub async fn delete_user(
 #[inline(always)]
 pub async fn disable_user(
     State(state): State<UserState>,
-    Path(id): Path<u32>,
+    Path(id): Path<i32>,
     Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
@@ -58,7 +58,7 @@ pub async fn disable_user(
 #[inline(always)]
 pub async fn enable_user(
     State(state): State<UserState>,
-    Path(id): Path<u32>,
+    Path(id): Path<i32>,
     Extension(user): Extension<UserExtension>,
 ) -> AppResult<Response> {
     let Some(path_user) = state.user_repository.find(&id).await? else {

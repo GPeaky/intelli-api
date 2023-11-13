@@ -16,14 +16,14 @@ use std::net::IpAddr;
 //
 // #[cfg(target_os = "linux")]
 // struct FirewallRule {
-//     port: u16,
+//     port: i32,
 //     address: Option<IpAddr>,
 //     firewall_type: FirewallType,
 // }
 
 pub struct FirewallService {
     // #[cfg(target_os = "linux")]
-    // rules: RwLock<FxHashMap<u32, FirewallRule>>,
+    // rules: RwLock<FxHashMap<i32, FirewallRule>>,
 }
 
 #[allow(unused)]
@@ -35,7 +35,7 @@ impl FirewallService {
         }
     }
 
-    async fn rule_exists(&self, id: &u32) -> bool {
+    async fn rule_exists(&self, id: &i32) -> bool {
         // #[cfg(target_os = "linux")]
         // {
         //     let rules = self.rules.read().await;
@@ -46,7 +46,7 @@ impl FirewallService {
         false
     }
 
-    pub async fn open(&self, id: u32, port: u16) -> AppResult<()> {
+    pub async fn open(&self, id: i32, port: i32) -> AppResult<()> {
         // #[cfg(target_os = "linux")]
         // {
         //     let exists = self.rule_exists(&id).await;
@@ -83,7 +83,7 @@ impl FirewallService {
         Ok(())
     }
 
-    pub async fn open_partially(&self, id: u32, address: IpAddr) -> AppResult<()> {
+    pub async fn open_partially(&self, id: i32, address: IpAddr) -> AppResult<()> {
         // #[cfg(target_os = "linux")]
         // {
         //     let port;
@@ -140,7 +140,7 @@ impl FirewallService {
         Ok(())
     }
 
-    pub async fn close(&self, id: &u32) -> AppResult<()> {
+    pub async fn close(&self, id: &i32) -> AppResult<()> {
         // #[cfg(target_os = "linux")]
         // {
         //     let (port, firewall_type, address);

@@ -70,7 +70,7 @@ pub async fn create_championship(
 #[inline(always)]
 pub async fn get_championship(
     State(state): State<UserState>,
-    Path(championship_id): Path<u32>,
+    Path(championship_id): Path<i32>,
 ) -> AppResult<Json<Championship>> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
         Err(ChampionshipError::NotFound)?

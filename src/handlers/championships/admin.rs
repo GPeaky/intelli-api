@@ -13,7 +13,7 @@ use hyper::StatusCode;
 #[inline(always)]
 pub async fn user_championships(
     State(state): State<UserState>,
-    Path(user_id): Path<u32>,
+    Path(user_id): Path<i32>,
 ) -> AppResult<Json<Vec<Championship>>> {
     let championships = state.championship_repository.find_all(&user_id).await?;
 
@@ -23,7 +23,7 @@ pub async fn user_championships(
 #[inline(always)]
 pub async fn delete_championship(
     State(state): State<UserState>,
-    Path(id): Path<u32>,
+    Path(id): Path<i32>,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&id).await? else {
         Err(ChampionshipError::NotFound)?

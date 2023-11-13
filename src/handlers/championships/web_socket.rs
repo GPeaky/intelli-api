@@ -20,13 +20,13 @@ use tokio::sync::RwLock;
 use tracing::{error, info};
 
 static DEFAULT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-static ACTIVE_CONNECTIONS: Lazy<Arc<RwLock<FxHashMap<u32, AtomicUsize>>>> =
+static ACTIVE_CONNECTIONS: Lazy<Arc<RwLock<FxHashMap<i32, AtomicUsize>>>> =
     Lazy::new(|| Arc::new(RwLock::new(FxHashMap::default())));
 
 #[inline(always)]
 pub async fn session_socket(
     State(state): State<UserState>,
-    Path(championship_id): Path<u32>,
+    Path(championship_id): Path<i32>,
     ws: WebSocketUpgrade,
 ) -> AppResult<Response> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
@@ -46,7 +46,7 @@ pub async fn session_socket(
 }
 
 #[inline(always)]
-async fn increment_counter(championship_id: u32) {
+async fn increment_counter(championship_id: i32) {
     let mut active_connections = ACTIVE_CONNECTIONS.write().await;
     let counter = active_connections
         .entry(championship_id)
@@ -56,7 +56,7 @@ async fn increment_counter(championship_id: u32) {
 }
 
 #[inline(always)]
-async fn decrement_counter(championship_id: u32) {
+async fn decrement_counter(championship_id: i32) {
     let mut active_connections = ACTIVE_CONNECTIONS.write().await;
     let counter = active_connections
         .entry(championship_id)
@@ -65,7 +65,7 @@ async fn decrement_counter(championship_id: u32) {
     counter.fetch_sub(1, Ordering::Relaxed);
 }
 
-pub async fn websocket_active_connections(championship_id: u32) -> usize {
+pub async fn websocket_active_connections(championship_id: i32) -> usize {
     let active_connection = ACTIVE_CONNECTIONS.read().await;
     let counter = active_connection
         .get(&championship_id)

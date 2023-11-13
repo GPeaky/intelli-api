@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+pub(crate) mod admin;
 pub(crate) mod auth;
 pub(crate) mod championships;
 pub(crate) mod user;

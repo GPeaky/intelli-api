@@ -5,15 +5,15 @@ use std::sync::Arc;
 
 pub type UserExtension = Arc<User>;
 
-#[repr(u8)]
 #[derive(Type, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[sqlx(type_name = "provider")]
 pub enum Provider {
     Local,
     Google,
 }
 
-#[repr(u8)]
 #[derive(Type, Debug, Serialize, PartialEq, Eq)]
+#[sqlx(type_name = "role")]
 pub enum Role {
     Free,
     Premium,
@@ -23,7 +23,7 @@ pub enum Role {
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct User {
-    pub id: u32,
+    pub id: i32,
     pub email: String,
     pub username: String,
     #[serde(skip_serializing)]

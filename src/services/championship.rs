@@ -12,7 +12,7 @@ use tracing::info;
 
 pub struct ChampionshipService {
     db: Arc<Database>,
-    ports: Arc<RwLock<FxHashSet<u16>>>,
+    ports: Arc<RwLock<FxHashSet<i32>>>,
     #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
@@ -36,16 +36,16 @@ impl ChampionshipService {
     pub async fn create_championship(
         &self,
         payload: CreateChampionshipDto,
-        user_id: &u32,
+        user_id: &i32,
     ) -> AppResult<()> {
         let port = self.get_port().await?;
         let mut rand = StdRng::from_entropy();
-        let id: u32 = rand.gen_range(600000000..700000000);
+        let id: i32 = rand.gen_range(600000000..700000000);
 
         sqlx::query(
             r#"
                 INSERT INTO championship (id, port, name, category, season, owner_id)
-                VALUES (?,?,?,?,?,?)
+                VALUES ($1,$2,$3,$4,$5,$6)
             "#,
         )
         .bind(id)
@@ -54,18 +54,18 @@ impl ChampionshipService {
         .bind(payload.category)
         .bind(payload.season)
         .bind(user_id)
-        .execute(&self.db.mysql)
+        .execute(&self.db.pg)
         .await?;
 
         sqlx::query(
             r#"
                 INSERT INTO user_championships (user_id, championship_id)
-                VALUES (?,?)
+                VALUES ($1,$2)
             "#,
         )
         .bind(user_id)
         .bind(id)
-        .execute(&self.db.mysql)
+        .execute(&self.db.pg)
         .await?;
 
         self.remove_port(port).await?;
@@ -73,14 +73,14 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn delete_championship(&self, id: &u32) -> AppResult<()> {
+    pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
-                DELETE FROM championship WHERE id = ?
+                DELETE FROM championship WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.db.mysql)
+        .execute(&self.db.pg)
         .await?;
 
         info!("Championship deleted with success: {id}");
@@ -90,8 +90,8 @@ impl ChampionshipService {
 
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
-    ) -> AppResult<FxHashSet<u16>> {
-        let mut all_ports: FxHashSet<u16> = (20777..=20850).collect();
+    ) -> AppResult<FxHashSet<i32>> {
+        let mut all_ports: FxHashSet<i32> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for (port,) in ports_in_use {
@@ -102,7 +102,7 @@ impl ChampionshipService {
         Ok(all_ports)
     }
 
-    async fn get_port(&self) -> AppResult<u16> {
+    async fn get_port(&self) -> AppResult<i32> {
         let ports = self.ports.read().await;
 
         if let Some(port) = ports.iter().next() {
@@ -112,7 +112,7 @@ impl ChampionshipService {
         }
     }
 
-    async fn remove_port(&self, port: u16) -> AppResult<()> {
+    async fn remove_port(&self, port: i32) -> AppResult<()> {
         let mut ports = self.ports.write().await;
         ports.remove(&port);
 

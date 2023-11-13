@@ -1,24 +1,44 @@
+use bb8_redis::{
+    bb8::{self, Pool},
+    RedisConnectionManager,
+};
 use dotenvy::var;
-use redis::{aio::Connection, Client};
-use redis_pool::RedisPool;
-use sqlx::MySqlPool;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::info;
 
 pub struct Database {
-    pub redis: RedisPool<Client, Connection>,
-    pub mysql: MySqlPool,
+    pub redis: Pool<RedisConnectionManager>,
+    pub pg: PgPool,
 }
 
 impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
-        let mysql = MySqlPool::connect(&var("DATABASE_URL").unwrap())
+        let pg = PgPoolOptions::new()
+            .min_connections(1)
+            .max_connections(100)
+            .connect(&var("DATABASE_URL").expect("Environment DATABASE_URL not found"))
             .await
             .unwrap();
 
-        let client = Client::open(var("REDIS_URL").unwrap()).unwrap();
-        let redis = RedisPool::new(client, 16, Some(200));
+        let manager =
+            RedisConnectionManager::new(var("REDIS_URL").expect("Environment REDIS_URL not found"))
+                .unwrap();
 
-        Self { redis, mysql }
+        let redis = bb8::Pool::builder()
+            .min_idle(Some(1))
+            .max_size(100) // Test if 100 is a good number
+            .build(manager)
+            .await
+            .unwrap();
+
+        Self { redis, pg }
+    }
+
+    pub fn active_pools(&self) -> (u32, u32) {
+        let redis = self.redis.state();
+        let pg = self.pg.size();
+
+        (redis.connections, pg)
     }
 }

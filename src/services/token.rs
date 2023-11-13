@@ -4,8 +4,8 @@ use crate::{
     error::{AppResult, TokenError},
 };
 use axum::async_trait;
+use bb8_redis::redis::AsyncCommands;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use redis::AsyncCommands;
 use std::{fs, sync::Arc};
 
 const AUTH_TOKEN_EXPIRATION: usize = 15 * 60;
@@ -25,9 +25,9 @@ pub trait TokenServiceTrait {
     fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>>;
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()>;
     async fn save_email_token(&self, token: &str) -> AppResult<()>;
-    async fn generate_token(&self, sub: u32, token_type: TokenType) -> AppResult<String>;
-    async fn remove_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<()>;
-    async fn generate_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<String>;
+    async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String>;
+    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()>;
+    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String>;
     async fn refresh_access_token(
         &self,
         refresh_token: &str,
@@ -58,7 +58,7 @@ impl TokenServiceTrait for TokenService {
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
     }
 
-    async fn generate_token(&self, sub: u32, token_type: TokenType) -> AppResult<String> {
+    async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
         let token_claim = TokenClaim {
             sub,
             exp: token_type.get_expiration(),
@@ -70,7 +70,7 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
 
         redis
             .set_ex::<&str, u8, ()>(&format!("reset:{}", token), 1, AUTH_TOKEN_EXPIRATION)
@@ -81,7 +81,7 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn save_email_token(&self, token: &str) -> AppResult<()> {
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
 
         redis
             .set_ex::<&str, u8, ()>(&format!("email:{}", token), 1, AUTH_TOKEN_EXPIRATION)
@@ -102,7 +102,7 @@ impl TokenServiceTrait for TokenService {
             Err(TokenError::InvalidTokenType)?
         }
 
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
         let db_token: String = redis
             .get(&format!("rf_tokens:{}:{}", token.claims.sub, fingerprint))
             .await
@@ -116,12 +116,12 @@ impl TokenServiceTrait for TokenService {
             .await
     }
 
-    async fn generate_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<String> {
+    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String> {
         let token = self
             .generate_token(*user_id, TokenType::RefreshBearer)
             .await?;
 
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
         redis
             .set_ex(
                 &format!("rf_tokens:{}:{}", user_id, fingerprint),
@@ -134,8 +134,8 @@ impl TokenServiceTrait for TokenService {
         Ok(token)
     }
 
-    async fn remove_refresh_token(&self, user_id: &u32, fingerprint: &str) -> AppResult<()> {
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()> {
+        let mut redis = self.db_conn.redis.get().await.unwrap();
         redis
             .del(&format!("rf_tokens:{}:{}", user_id, fingerprint))
             .await

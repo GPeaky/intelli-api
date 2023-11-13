@@ -7,9 +7,9 @@ use crate::{
     repositories::{UserRepository, UserRepositoryTrait},
 };
 use axum::async_trait;
+use bb8_redis::redis::AsyncCommands;
 use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use redis::AsyncCommands;
 use std::sync::Arc;
 use tracing::{error, info};
 
@@ -23,13 +23,13 @@ pub struct UserService {
 #[async_trait]
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32>;
-    async fn delete_user(&self, id: &u32) -> AppResult<()>;
-    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<u32>;
-    async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()>;
-    async fn activate_user(&self, id: &u32) -> AppResult<()>;
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32>;
+    async fn delete_user(&self, id: &i32) -> AppResult<()>;
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
+    async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
+    async fn activate_user(&self, id: &i32) -> AppResult<()>;
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()>;
-    async fn deactivate_user(&self, id: &u32) -> AppResult<()>;
+    async fn deactivate_user(&self, id: &i32) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -42,7 +42,7 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<u32> {
+    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -50,7 +50,7 @@ impl UserServiceTrait for UserService {
         }
 
         let mut rand = StdRng::from_entropy();
-        let id: u32 = rand.gen_range(600000000..700000000);
+        let id: i32 = rand.gen_range(600000000..700000000);
 
         let hashed_password = register
             .password
@@ -61,8 +61,8 @@ impl UserServiceTrait for UserService {
             Some(provider) if provider.eq(&Provider::Google) => {
                 sqlx::query(
                     r#"
-                        INSERT INTO user (id, email, username, avatar, provider, active)
-                        VALUES (?,?,?,?,?,1)
+                        INSERT INTO users (id, email, username, avatar, provider, active)
+                        VALUES ($1,$2,$3,$4,$5,$6)
                     "#,
                 )
                 .bind(id)
@@ -70,15 +70,15 @@ impl UserServiceTrait for UserService {
                 .bind(&register.username)
                 .bind(&register.avatar)
                 .bind(&register.provider)
-                .execute(&self.db_conn.mysql)
+                .execute(&self.db_conn.pg)
                 .await?;
             }
 
             None => {
                 sqlx::query(
                     r#"
-                    INSERT INTO user (id, email, username, password, avatar)
-                    VALUES (?,?,?,?,?)
+                    INSERT INTO users (id, email, username, password, avatar)
+                    VALUES ($1,$2,$3,$4,$5)
                 "#,
                 )
                 .bind(id)
@@ -89,7 +89,7 @@ impl UserServiceTrait for UserService {
                     "https://ui-avatars.com/api/?name={}",
                     &register.username
                 ))
-                .execute(&self.db_conn.mysql)
+                .execute(&self.db_conn.pg)
                 .await?;
             }
 
@@ -101,25 +101,25 @@ impl UserServiceTrait for UserService {
         Ok(id)
     }
 
-    async fn delete_user(&self, id: &u32) -> AppResult<()> {
+    async fn delete_user(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
                 DELETE FROM user_championships
-                WHERE user_id = ?
+                WHERE user_id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.db_conn.mysql)
+        .execute(&self.db_conn.pg)
         .await?;
 
         sqlx::query(
             r#"
-                DELETE FROM user
-                WHERE ID = ?
+                DELETE FROM users
+                WHERE ID = $1
             "#,
         )
         .bind(id)
-        .execute(&self.db_conn.mysql)
+        .execute(&self.db_conn.pg)
         .await?;
 
         info!("User deleted with success: {}", id);
@@ -127,9 +127,9 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<u32> {
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
         let user_id;
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
 
         let Ok(_) = redis.get::<&str, u8>(&format!("reset:{}", token)).await else {
             error!("Token not found in redis");
@@ -156,18 +156,18 @@ impl UserServiceTrait for UserService {
         Ok(user_id)
     }
 
-    async fn reset_password(&self, id: &u32, password: &str) -> AppResult<()> {
+    async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
         // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
         sqlx::query(
             r#"
-                UPDATE user
-                SET password = ?
-                WHERE id = ?
+                UPDATE users
+                SET password = $1
+                WHERE id = $2
             "#,
         )
         .bind(hash(password, DEFAULT_COST).unwrap())
         .bind(id)
-        .execute(&self.db_conn.mysql)
+        .execute(&self.db_conn.pg)
         .await?;
 
         info!("User password reseated with success: {}", id);
@@ -177,7 +177,7 @@ impl UserServiceTrait for UserService {
 
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
         let user_id;
-        let mut redis = self.db_conn.redis.aquire().await.unwrap();
+        let mut redis = self.db_conn.redis.get().await.unwrap();
 
         let Ok(_) = redis.get::<&str, u8>(&format!("email:{}", token)).await else {
             Err(TokenError::InvalidToken)?
@@ -202,16 +202,16 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn activate_user(&self, id: &u32) -> AppResult<()> {
+    async fn activate_user(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
-                UPDATE user
-                SET active = 1
-                WHERE id = ?
+                UPDATE users
+                SET active = true
+                WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.db_conn.mysql)
+        .execute(&self.db_conn.pg)
         .await?;
 
         info!("User activated with success: {}", id);
@@ -219,16 +219,16 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn deactivate_user(&self, id: &u32) -> AppResult<()> {
+    async fn deactivate_user(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
-                UPDATE user
-                SET active = 0
-                WHERE id = ?
+                UPDATE users
+                SET active = false
+                WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.db_conn.mysql)
+        .execute(&self.db_conn.pg)
         .await?;
 
         info!("User deactivated with success: {}", id);

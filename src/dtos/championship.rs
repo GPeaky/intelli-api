@@ -9,7 +9,7 @@ pub struct CreateChampionshipDto {
     #[garde(skip)]
     pub category: Category,
     #[garde(skip)]
-    pub season: u16,
+    pub season: i8,
 }
 
 #[derive(Debug, Serialize)]
