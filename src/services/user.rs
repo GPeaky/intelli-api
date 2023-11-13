@@ -65,7 +65,7 @@ impl UserServiceTrait for UserService {
                 sqlx::query(
                     r#"
                         INSERT INTO users (id, email, username, avatar, provider, active)
-                        VALUES ($1,$2,$3,$4,$5,$6)
+                        VALUES ($1,$2,$3,$4,$5, true)
                     "#,
                 )
                 .bind(id)
