@@ -130,7 +130,7 @@ impl F123Service {
         tokio::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; F123_MAX_PACKET_SIZE];
-            let redis = db.redis.clone();
+            let mut redis = db.redis.dedicated_connection().await.unwrap();
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -203,9 +203,6 @@ impl F123Service {
                                         .convert_and_encode(PacketType::CarMotion)
                                         .expect("Error converting motion data to proto message");
 
-                                    let mut redis =
-                                        redis.get().await.expect("Error getting redis connection");
-
                                     if let Err(e) = redis
                                         .set_ex::<&str, &[u8], ()>(
                                             &format!(
@@ -232,9 +229,6 @@ impl F123Service {
                                     let packet = session_data
                                         .convert_and_encode(PacketType::SessionData)
                                         .expect("Error converting session data to proto message");
-
-                                    let mut redis =
-                                        redis.get().await.expect("Error getting redis connection");
 
                                     if let Err(e) = redis
                                         .set_ex::<&str, &[u8], ()>(
@@ -265,9 +259,6 @@ impl F123Service {
                                             "Error converting participants data to proto message",
                                         );
 
-                                    let mut redis =
-                                        redis.get().await.expect("Error getting redis connection");
-
                                     if let Err(e) = redis
                                         .set_ex::<&str, &[u8], ()>(
                                             &format!("{BASE_REDIS_KEY}:{championship_id}:participants_data"),
@@ -294,9 +285,6 @@ impl F123Service {
                                 let string_code =
                                     std::str::from_utf8(&event_data.event_string_code)
                                         .expect("Error converting string code");
-
-                                let mut redis =
-                                    redis.get().await.expect("Error getting redis connection");
 
                                 if let Err(e) = redis.rpush::<&str, &[u8], ()>(&format!("{BASE_REDIS_KEY}:{championship_id}:events:{string_code}"), &packet).await {
                                     error!("Error saving event to redis: {}", e);
@@ -334,9 +322,6 @@ impl F123Service {
                                     let packet = session_history
                                         .convert_and_encode(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
-
-                                    let mut redis =
-                                        redis.get().await.expect("Error getting redis connection");
 
                                     if let Err(e) =redis
                                     .set_ex::<&str, &[u8], ()>(
