@@ -33,7 +33,7 @@ pub fn admin_router(state: UserState) -> Router {
         .nest("/users", user_router)
         .nest("/championships", championships_router)
         .nest("/sockets", socket_router)
-        .route("pools", get(pool_status))
+        .route("/pools", get(pool_status))
         .route_layer(middleware::from_fn(admin_handler))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_handler))
         .with_state(state)
