@@ -2,6 +2,7 @@ version: "3.8"
 
 volumes:
   keydb-data: {}
+  postgresql-data: {}
 
 services:
   api:
@@ -11,17 +12,36 @@ services:
     container_name: intelli-api
     depends_on:
       - keydb
+      - postgresql
 
     env_file:
       - .env
+
+  postgresql:
+    image: postgresql:latest
+    container_name: postgresql
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: pk
+      POSTGRES_PASSWORD: server
+
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+
+    ports:
+      - 5432:5432
+
 
   keydb:
     container_name: keydb
     image: eqalpha/keydb
     restart: unless-stopped
 
-    ports:
-      - 127.0.0.1:6379:6379
-
     volumes:
       - keydb-data:/data
+      - ./keydb.conf:/etc/keydb/keydb.conf
+
+    ports:
+      - 127.0.0.1:6379:6379
