@@ -18,7 +18,7 @@ services:
       - .env
 
   postgresql:
-    image: postgresql:latest
+    image: postgres:latest
     container_name: postgresql
     restart: unless-stopped
 
