@@ -27,7 +27,7 @@ impl UserRepositoryTrait for UserRepository {
     async fn find(&self, id: &i32) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>(
             r#"
-                SELECT * FROM user
+                SELECT * FROM users
                 WHERE id = $1
             "#,
         )
@@ -41,7 +41,7 @@ impl UserRepositoryTrait for UserRepository {
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
         let user = sqlx::query_as::<_, (String,)>(
             r#"
-                SELECT email FROM user
+                SELECT email FROM users
                 WHERE email = $1
             "#,
         )
@@ -55,7 +55,7 @@ impl UserRepositoryTrait for UserRepository {
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>(
             r#"
-                SELECT * from user
+                SELECT * from users
                 WHERE email = $1
             "#,
         )

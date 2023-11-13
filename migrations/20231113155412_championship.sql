@@ -17,10 +17,6 @@ CREATE TABLE
             AND driver_count <= 255
         ),
         owner_id INTEGER NOT NULL,
-        created_at TIMESTAMP
-        WITH
-            TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP
-        WITH
-            TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
