@@ -11,7 +11,7 @@ pub async fn admin_handler<T>(req: Request<T>, next: Next<T>) -> AppResult<Respo
         .get::<User>()
         .ok_or(UserError::Unauthorized)?;
 
-    dbg!(&user.role);
+    info!("{:?}", user.role);
 
     if user.role != Role::Admin {
         info!(
