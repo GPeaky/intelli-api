@@ -32,8 +32,8 @@ serde = { version = "1.0.192", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 zerocopy = { version = "0.7.25", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde", "rkyv"] }
+tower-http = { version = "0.4.4", features = ["cors", "tokio"] }
 rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
-tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tower = { version = "0.4.13", features = ["tokio", "timeout", "load-shed"] }
 axum = { version = "0.6.20", features = ["form", "macros", "headers", "ws"] }
