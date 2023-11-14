@@ -20,6 +20,27 @@ impl UserCache {
     pub fn new(db: &Arc<Database>) -> Self {
         Self { db: db.clone() }
     }
+
+    #[inline(always)]
+    pub async fn get_by_email(&self, email: &str) -> AppResult<Option<User>> {
+        let mut conn = self.db.redis.get().await?;
+        let user = conn
+            .get::<_, Vec<u8>>(&format!("{USER_PREFIX}:email:{}", email))
+            .await?;
+
+        if user.is_empty() {
+            return Ok(None);
+        }
+
+        let archived = unsafe { rkyv::archived_root::<User>(&user) };
+
+        let Ok(user) = archived.deserialize(&mut Infallible) else {
+            error!("Failed to deserialize user from cache");
+            Err(CacheError::Deserialize)?
+        };
+
+        Ok(Some(user))
+    }
 }
 
 #[async_trait]
@@ -30,7 +51,7 @@ impl EntityCache for UserCache {
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
         let mut conn = self.db.redis.get().await?;
         let user = conn
-            .get::<_, Vec<u8>>(&format!("{USER_PREFIX}:{}", id))
+            .get::<_, Vec<u8>>(&format!("{USER_PREFIX}:id:{}", id))
             .await?;
 
         if user.is_empty() {
@@ -58,6 +79,7 @@ impl EntityCache for UserCache {
             Err(CacheError::Serialize)?
         };
 
+        // TODO: Implement Atomic set with id and email
         conn.set_ex::<&str, &[u8], ()>(
             &format!("{USER_PREFIX}: {}", entity.id),
             &bytes[..],
