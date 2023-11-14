@@ -7,7 +7,7 @@ use crate::{
 use bb8_redis::redis::{self, AsyncCommands};
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::error;
 
 pub struct ChampionshipRepository {
     database: Arc<Database>,
