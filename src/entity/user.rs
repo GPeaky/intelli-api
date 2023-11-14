@@ -1,18 +1,21 @@
 use chrono::{DateTime, Utc};
+use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Type};
 use std::sync::Arc;
 
 pub type UserExtension = Arc<User>;
 
-#[derive(Type, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Type, Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq)]
+#[archive(check_bytes)]
 #[sqlx(type_name = "provider")]
 pub enum Provider {
     Local,
     Google,
 }
 
-#[derive(Type, Debug, Serialize, PartialEq, Eq)]
+#[derive(Type, Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq)]
+#[archive(check_bytes)]
 #[sqlx(type_name = "role")]
 pub enum Role {
     Free,
@@ -21,7 +24,8 @@ pub enum Role {
     Admin,
 }
 
-#[derive(Debug, Serialize, FromRow)]
+#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize, FromRow)]
+#[archive(check_bytes)]
 pub struct User {
     pub id: i32,
     pub email: String,

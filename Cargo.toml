@@ -28,15 +28,16 @@ bb8-redis = "0.13.1"
 jsonwebtoken = "9.1.0"
 tokio = { version = "1.34.0", features = ["full"] }
 hyper = { version = "0.14.27", features = ["full"] }
-chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0.192", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 zerocopy = { version = "0.7.25", features = ["derive"] }
+chrono = { version = "0.4.31", features = ["serde", "rkyv"] }
+rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
 tower-http = { version = "0.4.4", features = ["cors", "fs", "tokio"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 tower = { version = "0.4.13", features = ["tokio", "timeout", "load-shed"] }
-sqlx = { version = "0.7.2", features = ["runtime-tokio", "chrono", "postgres"] }
 axum = { version = "0.6.20", features = ["form", "macros", "headers", "ws"] }
+sqlx = { version = "0.7.2", features = ["runtime-tokio", "chrono", "postgres"] }
 lettre = { version = "0.11.1", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
