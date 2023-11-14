@@ -8,7 +8,6 @@ use crate::{
     repositories::{UserRepository, UserRepositoryTrait},
 };
 use axum::async_trait;
-use bb8_redis::redis::AsyncCommands;
 use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -41,19 +40,24 @@ impl UserServiceTrait for UserService {
             cache: cache.clone(),
             db_conn: db_conn.clone(),
             user_repo: UserRepository::new(db_conn, cache),
-            token_service: TokenService::new(db_conn),
+            token_service: TokenService::new(cache),
         }
     }
 
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
-        let user_exists = self.user_repo.user_exists(&register.email).await?;
+        {
+            let user_exists = self.user_repo.user_exists(&register.email).await?;
 
-        if user_exists {
-            Err(UserError::AlreadyExists)?
+            if user_exists {
+                Err(UserError::AlreadyExists)?
+            }
         }
 
-        let mut rand = StdRng::from_entropy();
-        let id: i32 = rand.gen_range(600000000..700000000);
+        let id;
+        {
+            let mut rand = StdRng::from_entropy();
+            id = rand.gen_range(600000000..700000000);
+        }
 
         let hashed_password = register
             .password
@@ -62,9 +66,6 @@ impl UserServiceTrait for UserService {
 
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
-                info!("Creating user with google provider");
-                info!("Register Data: {:?}", register);
-
                 sqlx::query(
                     r#"
                         INSERT INTO users (id, email, username, avatar, provider, active)
@@ -135,12 +136,11 @@ impl UserServiceTrait for UserService {
 
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
         let user_id;
-        let mut redis = self.db_conn.redis.get().await.unwrap();
 
-        let Ok(_) = redis.get::<&str, u8>(&format!("reset:{}", token)).await else {
-            error!("Token not found in redis");
-            Err(TokenError::InvalidToken)?
-        };
+        self.cache
+            .token
+            .get_token(token, &TokenType::ResetPassword)
+            .await?;
 
         {
             let token_data = self.token_service.validate(token)?;
@@ -154,10 +154,10 @@ impl UserServiceTrait for UserService {
 
         self.reset_password(&user_id, password).await?;
 
-        redis
-            .del::<&str, u8>(&format!("reset:{}", token))
-            .await
-            .unwrap();
+        self.cache
+            .token
+            .remove_token(token, &TokenType::ResetPassword)
+            .await?;
 
         Ok(user_id)
     }
@@ -183,11 +183,7 @@ impl UserServiceTrait for UserService {
 
     async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
         let user_id;
-        let mut redis = self.db_conn.redis.get().await.unwrap();
-
-        let Ok(_) = redis.get::<&str, u8>(&format!("email:{}", token)).await else {
-            Err(TokenError::InvalidToken)?
-        };
+        self.cache.token.get_token(token, &TokenType::Email).await?;
 
         {
             let token_data = self.token_service.validate(token)?;
@@ -200,10 +196,10 @@ impl UserServiceTrait for UserService {
 
         self.activate_user(&user_id).await?;
 
-        redis
-            .del::<&str, u8>(&format!("email:{}", token))
-            .await
-            .unwrap();
+        self.cache
+            .token
+            .remove_token(token, &TokenType::Email)
+            .await?;
 
         Ok(())
     }

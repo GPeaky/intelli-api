@@ -19,7 +19,6 @@ pub struct UserStateInner {
     pub championship_repository: ChampionshipRepository,
     pub f123_service: F123Service,
     pub f123_repository: F123Repository,
-    // pub cache: RedisCache,
 }
 
 impl UserStateInner {
@@ -33,10 +32,9 @@ impl UserStateInner {
             f123_service: F123Service::new(db_conn, firewall_service),
             f123_repository: F123Repository::new(db_conn),
             user_repository: UserRepository::new(db_conn, cache),
-            token_service: TokenService::new(db_conn),
+            token_service: TokenService::new(cache),
             championship_service: ChampionshipService::new(db_conn, cache).await,
             championship_repository: ChampionshipRepository::new(db_conn, cache).await,
-            // cache: RedisCache::new(db_conn),
         }
     }
 }

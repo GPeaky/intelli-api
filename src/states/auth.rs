@@ -14,7 +14,6 @@ pub struct AuthStateInner {
     pub token_service: TokenService,
     pub email_service: EmailService,
     pub google_repository: GoogleRepository,
-    // pub cache: RedisCache,
 }
 
 impl AuthStateInner {
@@ -22,10 +21,9 @@ impl AuthStateInner {
         Self {
             user_service: UserService::new(db_conn, cache),
             user_repository: UserRepository::new(db_conn, cache),
-            token_service: TokenService::new(db_conn),
+            token_service: TokenService::new(cache),
             email_service: EmailService::new(),
             google_repository: GoogleRepository::new(),
-            // cache: RedisCache::new(db_conn),
         }
     }
 }

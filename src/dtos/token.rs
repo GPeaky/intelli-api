@@ -19,7 +19,7 @@ pub struct TokenClaim {
 
 // Token Type Implementation
 impl TokenType {
-    pub fn get_expiration(&self) -> usize {
+    pub fn set_expiration(&self) -> usize {
         let minutes = match self {
             TokenType::RefreshBearer => Duration::days(7),
             TokenType::Bearer => Duration::days(1),
@@ -27,5 +27,14 @@ impl TokenType {
         };
 
         Utc::now().checked_add_signed(minutes).unwrap().timestamp() as usize
+    }
+
+    pub fn base_key(&self) -> &str {
+        match self {
+            TokenType::Email => "tokens:email",
+            TokenType::ResetPassword => "tokens:reset_password",
+            TokenType::RefreshBearer => "tokens:refresh_access",
+            _ => panic!("Invalid token type"),
+        }
     }
 }

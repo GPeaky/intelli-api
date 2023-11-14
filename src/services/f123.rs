@@ -323,7 +323,7 @@ impl F123Service {
                                         .convert_and_encode(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
 
-                                    if let Err(e) =redis
+                                    if let Err(e) = redis
                                     .set_ex::<&str, &[u8], ()>(
                                         &format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
                                         &packet,

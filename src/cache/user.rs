@@ -5,7 +5,7 @@ use crate::{
     error::{AppResult, CacheError},
 };
 use axum::async_trait;
-use bb8_redis::redis::AsyncCommands;
+use bb8_redis::redis::{self, AsyncCommands};
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;
@@ -79,13 +79,20 @@ impl EntityCache for UserCache {
             Err(CacheError::Serialize)?
         };
 
-        // TODO: Implement Atomic set with id and email
-        conn.set_ex::<&str, &[u8], ()>(
-            &format!("{USER_PREFIX}: {}", entity.id),
-            &bytes[..],
-            Self::EXPIRATION,
-        )
-        .await?;
+        let _ = redis::pipe()
+            .atomic()
+            .set_ex::<&str, &[u8]>(
+                &format!("{USER_PREFIX}:id:{}", entity.id),
+                &bytes[..],
+                Self::EXPIRATION,
+            )
+            .set_ex::<&str, &[u8]>(
+                &format!("{USER_PREFIX}:email:{}", entity.id),
+                &bytes[..],
+                Self::EXPIRATION,
+            )
+            .query_async(&mut *conn)
+            .await?;
 
         Ok(())
     }

@@ -54,8 +54,12 @@ impl UserRepositoryTrait for UserRepository {
         Ok(user)
     }
 
-    // TODO: Add cache for this function
+    // TODO: Check if this function is necessary with cache
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
+        if (self.find_by_email(email).await?).is_some() {
+            return Ok(true);
+        };
+
         let user = sqlx::query_as::<_, (String,)>(
             r#"
                 SELECT email FROM users
@@ -69,8 +73,11 @@ impl UserRepositoryTrait for UserRepository {
         Ok(user.is_some())
     }
 
-    // TODO: Add cache for this function
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
+        if let Some(user) = self.cache.user.get_by_email(email).await? {
+            return Ok(Some(user));
+        };
+
         let user = sqlx::query_as::<_, User>(
             r#"
                 SELECT * from users
@@ -80,6 +87,11 @@ impl UserRepositoryTrait for UserRepository {
         .bind(email)
         .fetch_optional(&self.db_conn.pg)
         .await?;
+
+        // TODO: Check if handle it in a better way
+        if let Some(ref user) = user {
+            self.cache.user.set(user).await?;
+        }
 
         Ok(user)
     }
