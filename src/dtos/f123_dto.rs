@@ -426,6 +426,7 @@ pub enum F123Data<'a> {
     SessionHistory(&'a PacketSessionHistoryData),
 }
 
+// TODO: Handle Errors
 impl<'a> F123Data<'a> {
     pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
         match packet_id {

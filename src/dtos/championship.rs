@@ -1,10 +1,12 @@
 use crate::entity::Category;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
+use serde_trim::string_trim;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateChampionshipDto {
     #[garde(length(min = 3, max = 20))]
+    #[serde(deserialize_with = "string_trim")]
     pub name: String,
     #[garde(skip)]
     pub category: Category,

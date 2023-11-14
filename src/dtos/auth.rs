@@ -1,9 +1,8 @@
-use std::sync::Arc;
-
 use crate::entity::{Championship, Provider, User};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::string_trim;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct GoogleCallbackQuery {

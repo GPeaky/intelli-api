@@ -16,7 +16,6 @@ pub struct ChampionshipService {
     ports: Arc<RwLock<FxHashSet<i32>>>,
     #[allow(unused)]
     cache: Arc<RedisCache>,
-    #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
 
@@ -45,6 +44,10 @@ impl ChampionshipService {
         let port = self.get_port().await?;
         let mut rand = StdRng::from_entropy();
         let id: i32 = rand.gen_range(600000000..700000000);
+
+        self.championship_repository
+            .exist_by_name(&payload.name)
+            .await?;
 
         sqlx::query(
             r#"

@@ -56,6 +56,25 @@ impl ChampionshipRepository {
         Ok(championship)
     }
 
+    // TODO: Add cache for this function
+    pub async fn exist_by_name(&self, name: &str) -> AppResult<()> {
+        let championship = sqlx::query_as::<_, (i32,)>(
+            r#"
+                SELECT id FROM championship
+                WHERE name = $1
+            "#,
+        )
+        .bind(name)
+        .fetch_optional(&self.database.pg)
+        .await?;
+
+        if championship.is_some() {
+            Err(ChampionshipError::AlreadyExists)?;
+        }
+
+        Ok(())
+    }
+
     // TODO: Check if this is the best way to do this
     pub async fn session_data(&self, id: &i32) -> AppResult<ChampionshipCacheData> {
         let Some(championship) = self.find(id).await? else {
