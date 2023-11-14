@@ -1,5 +1,6 @@
 use self::admin::admin_router;
 use crate::{
+    cache::RedisCache,
     config::Database,
     handlers::{
         auth::{
@@ -31,8 +32,9 @@ pub(crate) async fn api_router(
     database: Arc<Database>,
     firewall_service: Arc<FirewallService>,
 ) -> Router {
-    let auth_state = Arc::new(AuthStateInner::new(&database));
-    let user_state = Arc::new(UserStateInner::new(&database, firewall_service).await);
+    let redis_cache = Arc::new(RedisCache::new(&database));
+    let auth_state = Arc::new(AuthStateInner::new(&database, &redis_cache));
+    let user_state = Arc::new(UserStateInner::new(&database, firewall_service, &redis_cache).await);
 
     let auth_middleware = middleware::from_fn_with_state(user_state.clone(), auth_handler);
 

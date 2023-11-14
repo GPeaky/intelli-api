@@ -1,4 +1,5 @@
 use crate::{
+    cache::RedisCache,
     config::Database,
     dtos::CreateChampionshipDto,
     error::{AppResult, CommonError},
@@ -14,22 +15,25 @@ pub struct ChampionshipService {
     db: Arc<Database>,
     ports: Arc<RwLock<FxHashSet<i32>>>,
     #[allow(unused)]
+    cache: Arc<RedisCache>,
+    #[allow(unused)]
     championship_repository: ChampionshipRepository,
 }
 
 impl ChampionshipService {
-    pub async fn new(db_conn: &Arc<Database>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         let championship_repository: ChampionshipRepository =
-            ChampionshipRepository::new(db_conn).await;
+            ChampionshipRepository::new(db_conn, cache).await;
 
         let ports = Self::available_ports(&championship_repository)
             .await
             .unwrap();
 
         Self {
-            ports: Arc::new(RwLock::new(ports)),
             db: db_conn.clone(),
+            cache: cache.clone(),
             championship_repository,
+            ports: Arc::new(RwLock::new(ports)),
         }
     }
 

@@ -1,22 +1,23 @@
 use crate::{
+    cache::{EntityCache, RedisCache},
     config::Database,
     dtos::ChampionshipCacheData,
     entity::Championship,
     error::{AppResult, ChampionshipError},
 };
 use bb8_redis::redis::{self, AsyncCommands};
-use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::error;
 
 pub struct ChampionshipRepository {
     database: Arc<Database>,
+    cache: Arc<RedisCache>,
 }
 
 impl ChampionshipRepository {
-    pub async fn new(db_conn: &Arc<Database>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
             database: db_conn.clone(),
+            cache: cache.clone(),
         }
     }
 
@@ -33,7 +34,7 @@ impl ChampionshipRepository {
     }
 
     pub async fn find(&self, id: &i32) -> AppResult<Option<Championship>> {
-        if let Some(championship) = self.get_from_cache(id).await? {
+        if let Some(championship) = self.cache.championship.get(id).await? {
             return Ok(Some(championship));
         };
 
@@ -49,7 +50,7 @@ impl ChampionshipRepository {
 
         // TODO: Check if handle it in a better way
         if let Some(ref championship) = championship {
-            self.set_to_cache(championship).await?;
+            self.cache.championship.set(championship).await?;
         }
 
         Ok(championship)
@@ -139,44 +140,5 @@ impl ChampionshipRepository {
         .await?;
 
         Ok(championships.len())
-    }
-
-    // TODO: Move this to a trait and implement it for all repositories
-    async fn get_from_cache(&self, id: &i32) -> AppResult<Option<Championship>> {
-        let mut conn = self.database.redis.get().await.unwrap();
-        let championship = conn
-            .get::<_, Vec<u8>>(&format!("championship:{}", id))
-            .await;
-
-        match championship {
-            Ok(championship) if !championship.is_empty() => {
-                let archived = unsafe { rkyv::archived_root::<Championship>(&championship) };
-
-                let Ok(championship) = archived.deserialize(&mut Infallible) else {
-                    error!("Failed to deserialize championship from cache");
-                    return Ok(None);
-                };
-
-                Ok(Some(championship))
-            }
-
-            Ok(_) => Ok(None),
-            Err(_) => Ok(None),
-        }
-    }
-
-    async fn set_to_cache(&self, championship: &Championship) -> AppResult<()> {
-        let mut conn = self.database.redis.get().await.unwrap();
-        let bytes = rkyv::to_bytes::<_, 72>(championship).unwrap();
-
-        conn.set_ex::<&str, &[u8], ()>(
-            &format!("championship:{}", championship.id),
-            &bytes[..],
-            60 * 60,
-        )
-        .await
-        .unwrap();
-
-        Ok(())
     }
 }

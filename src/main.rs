@@ -9,6 +9,7 @@ use std::sync::Arc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+mod cache;
 mod config;
 mod dtos;
 mod entity;

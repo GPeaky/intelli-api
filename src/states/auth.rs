@@ -1,4 +1,5 @@
 use crate::{
+    cache::RedisCache,
     config::Database,
     repositories::{GoogleRepository, UserRepository, UserRepositoryTrait},
     services::{EmailService, TokenService, TokenServiceTrait, UserService, UserServiceTrait},
@@ -13,16 +14,18 @@ pub struct AuthStateInner {
     pub token_service: TokenService,
     pub email_service: EmailService,
     pub google_repository: GoogleRepository,
+    // pub cache: RedisCache,
 }
 
 impl AuthStateInner {
-    pub fn new(db_conn: &Arc<Database>) -> Self {
+    pub fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
-            user_service: UserService::new(db_conn),
-            user_repository: UserRepository::new(db_conn),
+            user_service: UserService::new(db_conn, cache),
+            user_repository: UserRepository::new(db_conn, cache),
             token_service: TokenService::new(db_conn),
             email_service: EmailService::new(),
             google_repository: GoogleRepository::new(),
+            // cache: RedisCache::new(db_conn),
         }
     }
 }

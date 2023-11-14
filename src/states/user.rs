@@ -1,4 +1,5 @@
 use crate::{
+    cache::RedisCache,
     config::Database,
     repositories::{ChampionshipRepository, F123Repository, UserRepository, UserRepositoryTrait},
     services::{
@@ -18,18 +19,24 @@ pub struct UserStateInner {
     pub championship_repository: ChampionshipRepository,
     pub f123_service: F123Service,
     pub f123_repository: F123Repository,
+    // pub cache: RedisCache,
 }
 
 impl UserStateInner {
-    pub async fn new(db_conn: &Arc<Database>, firewall_service: Arc<FirewallService>) -> Self {
+    pub async fn new(
+        db_conn: &Arc<Database>,
+        firewall_service: Arc<FirewallService>,
+        cache: &Arc<RedisCache>,
+    ) -> Self {
         Self {
-            user_service: UserService::new(db_conn),
+            user_service: UserService::new(db_conn, cache),
             f123_service: F123Service::new(db_conn, firewall_service),
             f123_repository: F123Repository::new(db_conn),
-            user_repository: UserRepository::new(db_conn),
+            user_repository: UserRepository::new(db_conn, cache),
             token_service: TokenService::new(db_conn),
-            championship_service: ChampionshipService::new(db_conn).await,
-            championship_repository: ChampionshipRepository::new(db_conn).await,
+            championship_service: ChampionshipService::new(db_conn, cache).await,
+            championship_repository: ChampionshipRepository::new(db_conn, cache).await,
+            // cache: RedisCache::new(db_conn),
         }
     }
 }

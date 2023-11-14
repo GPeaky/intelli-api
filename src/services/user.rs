@@ -1,5 +1,6 @@
 use super::{TokenService, TokenServiceTrait};
 use crate::{
+    cache::RedisCache,
     config::Database,
     dtos::{RegisterUserDto, TokenType},
     entity::Provider,
@@ -14,15 +15,16 @@ use std::sync::Arc;
 use tracing::{error, info};
 
 pub struct UserService {
-    db_conn: Arc<Database>,
     #[allow(unused)]
+    cache: Arc<RedisCache>,
+    db_conn: Arc<Database>,
     user_repo: UserRepository,
     token_service: TokenService,
 }
 
 #[async_trait]
 pub trait UserServiceTrait {
-    fn new(db_conn: &Arc<Database>) -> Self;
+    fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
     async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32>;
     async fn delete_user(&self, id: &i32) -> AppResult<()>;
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
@@ -34,10 +36,11 @@ pub trait UserServiceTrait {
 
 #[async_trait]
 impl UserServiceTrait for UserService {
-    fn new(db_conn: &Arc<Database>) -> Self {
+    fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
+            cache: cache.clone(),
             db_conn: db_conn.clone(),
-            user_repo: UserRepository::new(db_conn),
+            user_repo: UserRepository::new(db_conn, cache),
             token_service: TokenService::new(db_conn),
         }
     }

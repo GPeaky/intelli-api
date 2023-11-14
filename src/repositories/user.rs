@@ -1,16 +1,20 @@
-use crate::{config::Database, entity::User, error::AppResult};
+use crate::{
+    cache::{EntityCache, RedisCache},
+    config::Database,
+    entity::User,
+    error::AppResult,
+};
 use axum::async_trait;
-use bb8_redis::redis::AsyncCommands;
-use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::error;
 
 pub struct UserRepository {
     db_conn: Arc<Database>,
+    cache: Arc<RedisCache>,
 }
+
 #[async_trait]
 pub trait UserRepositoryTrait {
-    fn new(db_conn: &Arc<Database>) -> Self;
+    fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
     async fn find(&self, id: &i32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
@@ -20,14 +24,15 @@ pub trait UserRepositoryTrait {
 
 #[async_trait]
 impl UserRepositoryTrait for UserRepository {
-    fn new(db_conn: &Arc<Database>) -> Self {
+    fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
+            cache: cache.clone(),
             db_conn: db_conn.clone(),
         }
     }
 
     async fn find(&self, id: &i32) -> AppResult<Option<User>> {
-        if let Some(user) = self.get_from_cache(id).await? {
+        if let Some(user) = self.cache.user.get(id).await? {
             return Ok(Some(user));
         };
 
@@ -43,7 +48,7 @@ impl UserRepositoryTrait for UserRepository {
 
         // TODO: Check if handle it in a better way
         if let Some(ref user) = user {
-            self.set_to_cache(user).await?;
+            self.cache.user.set(user).await?;
         }
 
         Ok(user)
@@ -86,40 +91,5 @@ impl UserRepositoryTrait for UserRepository {
 
     fn validate_password(&self, pwd: &str, hash: &str) -> bool {
         bcrypt::verify(pwd, hash).unwrap()
-    }
-}
-
-// TODO: Move this to a trait and implement it for all repositories
-impl UserRepository {
-    async fn get_from_cache(&self, id: &i32) -> AppResult<Option<User>> {
-        let mut conn = self.db_conn.redis.get().await.unwrap();
-        let user = conn.get::<_, Vec<u8>>(&format!("user:{}", id)).await;
-
-        match user {
-            Ok(user) if !user.is_empty() => {
-                let archived = unsafe { rkyv::archived_root::<User>(&user) };
-
-                let Ok(user) = archived.deserialize(&mut Infallible) else {
-                    error!("Failed to deserialize user from cache");
-                    return Ok(None);
-                };
-
-                Ok(Some(user))
-            }
-
-            Ok(_) => Ok(None),
-            Err(_) => Ok(None),
-        }
-    }
-
-    async fn set_to_cache(&self, user: &User) -> AppResult<()> {
-        let mut conn = self.db_conn.redis.get().await.unwrap();
-        let bytes = rkyv::to_bytes::<_, 128>(user).unwrap();
-
-        conn.set_ex::<&str, &[u8], ()>(&format!("user:{}", user.id), &bytes[..], 60 * 60)
-            .await
-            .unwrap();
-
-        Ok(())
     }
 }
