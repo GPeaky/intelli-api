@@ -35,7 +35,7 @@ pub async fn session_socket(
 
     let socket_active = state
         .f123_service
-        .championship_socket(&championship.id)
+        .is_championship_socket_active(&championship.id)
         .await;
 
     if !socket_active {
@@ -76,7 +76,11 @@ pub async fn websocket_active_connections(championship_id: i32) -> usize {
 
 #[inline(always)]
 async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
-    let Some(mut rx) = state.f123_service.get_receiver(&championship.id).await else {
+    let Some(mut rx) = state
+        .f123_service
+        .subscribe_to_championship_events(&championship.id)
+        .await
+    else {
         error!("Receiver not Found");
         return;
     };

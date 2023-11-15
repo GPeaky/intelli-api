@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package protos.car_motion_data;
 
 // Main packet

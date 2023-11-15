@@ -1,6 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/protos.packet_header.rs"));
 
-use crate::protos::packet_header::PacketType;
+use crate::{dtos::PacketHeader as BPacketHeader, protos::packet_header::PacketType};
 use prost::Message;
 
 pub(crate) mod car_motion_data;
@@ -34,3 +34,13 @@ pub trait ToProtoMessage {
         )
     }
 }
+
+// impl ToProtoMessage for Vec<BPacketHeader> {
+//     type ProtoType = ChunkPacketHeader;
+
+//     fn to_proto(&self) -> Option<Self::ProtoType> {
+//         Some(ChunkPacketHeader {
+//             packets: self.iter().into
+//         })
+//     }
+// }

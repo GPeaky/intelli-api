@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package protos.participants;
 
 message ParticipantData {

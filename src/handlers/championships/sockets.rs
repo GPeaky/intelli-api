@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 #[inline(always)]
 pub async fn active_sockets(State(state): State<UserState>) -> AppResult<Json<Vec<i32>>> {
-    let sockets = state.f123_service.active_sockets().await;
+    let sockets = state.f123_service.get_active_socket_ids().await;
     Ok(Json(sockets))
 }
 
@@ -29,7 +29,7 @@ pub async fn start_socket(
 
     state
         .f123_service
-        .new_socket(championship.port, Arc::new(championship.id))
+        .setup_championship_listening_socket(championship.port, Arc::new(championship.id))
         .await?;
 
     Ok(StatusCode::CREATED.into_response())
@@ -47,7 +47,7 @@ pub async fn socket_status(
     let mut num_connections = 0;
     let socket_active = state
         .f123_service
-        .championship_socket(&championship.id)
+        .is_championship_socket_active(&championship.id)
         .await;
 
     if socket_active {

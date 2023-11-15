@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package protos.session_data;
 
 // Main message

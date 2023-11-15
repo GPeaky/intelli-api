@@ -1,6 +1,9 @@
 syntax = "proto3";
-
 package protos.packet_header;
+
+message ChunkPacketHeader {
+    repeated PacketHeader packets = 1;
+}
 
 message PacketHeader {
     enum PacketType {
