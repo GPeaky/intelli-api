@@ -1,6 +1,7 @@
 use crate::protos::{packet_header::PacketType, ToProtoMessage};
 use std::time::Duration;
 use tokio::{sync::broadcast::Sender, time::Instant};
+use tracing::error;
 
 const INTERVAL: Duration = Duration::from_millis(700);
 
@@ -36,7 +37,7 @@ impl PacketBatching {
                 .unwrap();
 
             if let Err(e) = self.sender.send(batch) {
-                eprintln!("Error sending batch data: {:?}", e);
+                error!("Error sending batch data: {:?}", e);
             }
 
             self.last_batch_time = Instant::now();
