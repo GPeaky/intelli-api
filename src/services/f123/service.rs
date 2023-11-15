@@ -34,7 +34,7 @@ const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 
-type ChanelData = Vec<Vec<u8>>;
+type ChanelData = Vec<u8>;
 type F123Channel = Arc<Sender<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
@@ -232,7 +232,7 @@ impl F123Service {
                                         error!("Error saving motion to redis: {}", e);
                                     };
 
-                                    packet_batching.push(packet);
+                                    packet_batching.push_and_check(packet);
                                     last_car_motion_update = now;
                                 }
                             }
@@ -259,7 +259,7 @@ impl F123Service {
                                         error!("Error saving session to redis: {}", e);
                                     };
 
-                                    packet_batching.push(packet);
+                                    packet_batching.push_and_check(packet);
                                     last_session_update = now;
                                 }
                             }
@@ -285,7 +285,7 @@ impl F123Service {
                                         error!("Error saving participants to redis: {}", e);
                                         };
 
-                                    packet_batching.push(packet);
+                                    packet_batching.push_and_check(packet);
                                     last_participants_update = now;
                                 }
                             }
@@ -306,7 +306,7 @@ impl F123Service {
                                     error!("Error saving event to redis: {}", e);
                                 };
 
-                                packet_batching.push(packet);
+                                packet_batching.push_and_check(packet);
                             }
 
                             F123Data::SessionHistory(session_history) => {
@@ -349,7 +349,7 @@ impl F123Service {
                                         error!("Error saving session history to redis: {}", e);
                                     };
 
-                                    packet_batching.push(packet);
+                                    packet_batching.push_and_check(packet);
 
                                     *last_update = now;
                                     *last_sectors = sectors;
@@ -363,11 +363,9 @@ impl F123Service {
                                     .expect("Error converting final classification data to proto message");
 
                                 // TODO: If session type is race save all session data in the database and close the socket
-                                packet_batching.push(packet);
+                                packet_batching.push_and_check(packet);
                             }
                         }
-
-                        packet_batching.maybe_send_batch();
                     }
 
                     Ok(Err(e)) => {

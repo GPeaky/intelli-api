@@ -1,3 +1,4 @@
+use crate::protos::{packet_header::PacketType, ToProtoMessage};
 use std::time::Duration;
 use tokio::{sync::broadcast::Sender, time::Instant};
 
@@ -5,15 +6,15 @@ const INTERVAL: Duration = Duration::from_millis(700);
 
 pub struct PacketBatching {
     buf: Vec<Vec<u8>>,
-    sender: Sender<Vec<Vec<u8>>>,
+    sender: Sender<Vec<u8>>,
     last_batch_time: Instant,
 }
 
 impl PacketBatching {
-    pub fn new(sender: Sender<Vec<Vec<u8>>>) -> Self {
+    pub fn new(sender: Sender<Vec<u8>>) -> Self {
         Self {
             sender,
-            buf: Vec::new(),
+            buf: Vec::with_capacity(2048),
             last_batch_time: Instant::now(),
         }
     }
@@ -24,9 +25,15 @@ impl PacketBatching {
     }
 
     #[inline(always)]
-    pub fn maybe_send_batch(&mut self) {
+    // TODO: Check if this is the best way to do this
+    pub fn check(&mut self) {
         if self.last_batch_time.elapsed().gt(&INTERVAL) && !self.buf.is_empty() {
-            let batch = self.buf.drain(..).collect::<Vec<_>>();
+            let batch = self
+                .buf
+                .drain(..)
+                .collect::<Vec<_>>()
+                .convert_and_encode(PacketType::SessionData)
+                .unwrap();
 
             if let Err(e) = self.sender.send(batch) {
                 eprintln!("Error sending batch data: {:?}", e);
@@ -34,5 +41,11 @@ impl PacketBatching {
 
             self.last_batch_time = Instant::now();
         }
+    }
+
+    #[inline(always)]
+    pub fn push_and_check(&mut self, packet: Vec<u8>) {
+        self.push(packet);
+        self.check();
     }
 }

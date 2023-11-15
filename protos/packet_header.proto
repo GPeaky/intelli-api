@@ -1,20 +1,18 @@
 syntax = "proto3";
 package protos.packet_header;
 
-message ChunkPacketHeader {
-    repeated PacketHeader packets = 1;
-}
+message ChunkPacketHeader { repeated bytes packets = 1; }
 
 message PacketHeader {
-    enum PacketType {
-        CAR_MOTION = 0;
-        EVENT_DATA = 1;
-        FINAL_CLASSIFICATION_DATA = 2;
-        PARTICIPANTS = 3;
-        SESSION_DATA = 4;
-        SESSION_HISTORY_DATA = 5;
-    }
+  enum PacketType {
+    CAR_MOTION = 0;
+    EVENT_DATA = 1;
+    FINAL_CLASSIFICATION_DATA = 2;
+    PARTICIPANTS = 3;
+    SESSION_DATA = 4;
+    SESSION_HISTORY_DATA = 5;
+  }
 
-    PacketType type = 1;
-    bytes payload = 2;
+  PacketType type = 1;
+  bytes payload = 2;
 }
