@@ -23,50 +23,45 @@ impl ChampionshipCache {
 
     #[allow(unused)]
     pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
-        info!("Trying to get championships from cache");
         let entities;
+        info!("get_all user_id {}", user_id);
 
         // Drop the connection as soon as possible
         {
             let mut conn = self.db.redis.get().await?;
 
             entities = conn
-                .get::<_, Vec<Vec<u8>>>(&format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{user_id}"))
+                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id))
                 .await?;
         }
 
         info!("Found {} championships in cache", entities.len());
-        info!("Loading Data bytes {:?}", entities);
+        info!("Loading Data bytes {:#?}", entities);
 
         if entities.is_empty() {
-            info!("Loading Data bytes {:?}", entities);
-
             info!("No championships found in cache");
             return Ok(None);
         }
 
-        // let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
-        // let Ok(entities) = archived.deserialize(&mut Infallible) else {
-        //     error!("Error deserializing championships from cache");
-        //     return Err(CacheError::Deserialize)?;
-        // };
+        let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+        let Ok(entities) = archived.deserialize(&mut Infallible) else {
+            error!("Error deserializing championships from cache");
+            return Err(CacheError::Deserialize)?;
+        };
 
-        // info!("Used championships from cache");
+        info!("Used championships from cache");
 
-        // Ok(Some(entities))
-        todo!()
+        Ok(Some(entities))
     }
 
     #[allow(unused)]
     pub async fn set_all(&self, user_id: &i32, championships: &Vec<Championship>) -> AppResult<()> {
-        info!("Received Set All Championship: {:?}", championships);
+        info!("set_all user_id {}", user_id);
 
         let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
             error!("Failed to serialize championships to cache");
             Err(CacheError::Serialize)?
         };
-
-        info!("Saving Data bytes {:?}", bytes);
 
         let mut conn = self.db.redis.get().await?;
 
@@ -76,8 +71,6 @@ impl ChampionshipCache {
             Self::EXPIRATION,
         )
         .await?;
-
-        info!("Saved {} championships to cache", championships.len());
 
         Ok(())
     }
