@@ -57,7 +57,9 @@ impl ChampionshipCache {
 
     #[allow(unused)]
     pub async fn set_all(&self, user_id: &i32, championships: &Vec<Championship>) -> AppResult<()> {
-        let Ok(bytes) = rkyv::to_bytes::<_, 200>(championships) else {
+        info!("Received Set All Championship: {:?}", championships);
+
+        let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
             error!("Failed to serialize championships to cache");
             Err(CacheError::Serialize)?
         };
