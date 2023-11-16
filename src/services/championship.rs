@@ -19,6 +19,7 @@ pub struct ChampionshipService {
     championship_repository: ChampionshipRepository,
 }
 
+// TODO: Implement cache for this service
 impl ChampionshipService {
     pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         let championship_repository: ChampionshipRepository =
