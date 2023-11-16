@@ -8,7 +8,7 @@ use axum::async_trait;
 use bb8_redis::redis::AsyncCommands;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::error;
 
 const CHAMPIONSHIP_PREFIX: &str = "championship";
 
@@ -24,7 +24,6 @@ impl ChampionshipCache {
     #[allow(unused)]
     pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
         let entities;
-        info!("get_all user_id {}", user_id);
 
         // Drop the connection as soon as possible
         {
@@ -35,11 +34,7 @@ impl ChampionshipCache {
                 .await?;
         }
 
-        info!("Found {} championships in cache", entities.len());
-        info!("Loading Data bytes {:#?}", entities);
-
         if entities.is_empty() {
-            info!("No championships found in cache");
             return Ok(None);
         }
 
@@ -49,15 +44,11 @@ impl ChampionshipCache {
             return Err(CacheError::Deserialize)?;
         };
 
-        info!("Used championships from cache");
-
         Ok(Some(entities))
     }
 
     #[allow(unused)]
     pub async fn set_all(&self, user_id: &i32, championships: &Vec<Championship>) -> AppResult<()> {
-        info!("set_all user_id {}", user_id);
-
         let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
             error!("Failed to serialize championships to cache");
             Err(CacheError::Serialize)?
