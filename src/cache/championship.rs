@@ -8,7 +8,7 @@ use axum::async_trait;
 use bb8_redis::redis::AsyncCommands;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::error;
+use tracing::{error, info};
 
 const CHAMPIONSHIP_PREFIX: &str = "championship";
 const CHAMPIONSHIPS_PREFIX: &str = "championships";
@@ -46,6 +46,8 @@ impl ChampionshipCache {
             return Err(CacheError::Deserialize)?;
         };
 
+        info!("Used championships from cache");
+
         Ok(Some(entities))
     }
 
@@ -64,6 +66,8 @@ impl ChampionshipCache {
             Self::EXPIRATION,
         )
         .await?;
+
+        info!("Saved {} championships to cache", championships.len());
 
         Ok(())
     }
