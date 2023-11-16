@@ -20,6 +20,16 @@ impl ChampionshipCache {
     pub fn new(db: &Arc<Database>) -> Self {
         Self { db: db.clone() }
     }
+
+    #[allow(unused)]
+    pub async fn get_all_by_id(&self, id: &i32) -> AppResult<Vec<Championship>> {
+        todo!()
+    }
+
+    #[allow(unused)]
+    pub async fn set_all_by_id(&self, id: &i32) -> AppResult<()> {
+        todo!()
+    }
 }
 
 #[async_trait]
