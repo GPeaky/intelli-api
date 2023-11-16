@@ -119,8 +119,11 @@ impl ChampionshipRepository {
         })
     }
 
-    // TODO: Add cache for this function
     pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
+        if let Some(championships) = self.cache.championship.get_all(user_id).await? {
+            return Ok(championships);
+        };
+
         let championships = sqlx::query_as::<_, Championship>(
             r#"
                 SELECT
@@ -136,6 +139,11 @@ impl ChampionshipRepository {
         .bind(user_id)
         .fetch_all(&self.database.pg)
         .await?;
+
+        self.cache
+            .championship
+            .set_all(user_id, &championships)
+            .await?;
 
         Ok(championships)
     }

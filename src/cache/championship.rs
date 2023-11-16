@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tracing::error;
 
 const CHAMPIONSHIP_PREFIX: &str = "championship";
+const CHAMPIONSHIPS_PREFIX: &str = "championships";
 
 pub struct ChampionshipCache {
     db: Arc<Database>,
@@ -22,13 +23,49 @@ impl ChampionshipCache {
     }
 
     #[allow(unused)]
-    pub async fn get_all_by_id(&self, id: &i32) -> AppResult<Vec<Championship>> {
-        todo!()
+    pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
+        let entities;
+
+        // Drop the connection as soon as possible
+        {
+            let mut conn = self.db.redis.get().await?;
+
+            entities = conn
+                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIPS_PREFIX}:user_id:{user_id}"))
+                .await?;
+        }
+
+        if entities.is_empty() {
+            return Ok(None);
+        }
+
+        let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+
+        let Ok(entities) = archived.deserialize(&mut Infallible) else {
+            error!("Error deserializing championships from cache");
+            return Err(CacheError::Deserialize)?;
+        };
+
+        Ok(Some(entities))
     }
 
     #[allow(unused)]
-    pub async fn set_all_by_id(&self, id: &i32) -> AppResult<()> {
-        todo!()
+    pub async fn set_all(&self, user_id: &i32, championships: &Vec<Championship>) -> AppResult<()> {
+        let Ok(bytes) = rkyv::to_bytes::<_, 200>(championships) else {
+            error!("Failed to serialize championships to cache");
+            Err(CacheError::Serialize)?
+        };
+
+        let mut conn = self.db.redis.get().await?;
+
+        conn.set_ex::<&str, &[u8], ()>(
+            &format!("{CHAMPIONSHIP_PREFIX}:id:{}", user_id),
+            &bytes[..],
+            Self::EXPIRATION,
+        )
+        .await?;
+
+        Ok(())
     }
 }
 
@@ -38,11 +75,16 @@ impl EntityCache for ChampionshipCache {
 
     #[inline(always)]
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
-        let mut conn = self.db.redis.get().await?;
+        let entity;
 
-        let entity = conn
-            .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIP_PREFIX}:{id}"))
-            .await?;
+        // Drop the connection as soon as possible
+        {
+            let mut conn = self.db.redis.get().await?;
+
+            entity = conn
+                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIP_PREFIX}:id:{id}"))
+                .await?;
+        }
 
         if entity.is_empty() {
             return Ok(None);
@@ -61,14 +103,15 @@ impl EntityCache for ChampionshipCache {
 
     #[inline(always)]
     async fn set(&self, entity: &Self::Entity) -> AppResult<()> {
-        let mut conn = self.db.redis.get().await?;
         let Ok(bytes) = rkyv::to_bytes::<_, 72>(entity) else {
             error!("Failed to serialize championship to cache");
             Err(CacheError::Serialize)?
         };
 
+        let mut conn = self.db.redis.get().await?;
+
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{CHAMPIONSHIP_PREFIX}:{}", entity.id),
+            &format!("{CHAMPIONSHIP_PREFIX}:id:{}", entity.id),
             &bytes[..],
             Self::EXPIRATION,
         )
