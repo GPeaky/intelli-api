@@ -11,7 +11,6 @@ use std::sync::Arc;
 use tracing::{error, info};
 
 const CHAMPIONSHIP_PREFIX: &str = "championship";
-const CHAMPIONSHIPS_PREFIX: &str = "championships";
 
 pub struct ChampionshipCache {
     db: Arc<Database>,
@@ -32,11 +31,12 @@ impl ChampionshipCache {
             let mut conn = self.db.redis.get().await?;
 
             entities = conn
-                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIPS_PREFIX}:user_id:{user_id}"))
+                .get::<_, Vec<Vec<u8>>>(&format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{user_id}"))
                 .await?;
         }
 
         info!("Found {} championships in cache", entities.len());
+        info!("Loading Data bytes {:?}", entities);
 
         if entities.is_empty() {
             info!("Loading Data bytes {:?}", entities);
@@ -45,16 +45,16 @@ impl ChampionshipCache {
             return Ok(None);
         }
 
-        let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+        // let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+        // let Ok(entities) = archived.deserialize(&mut Infallible) else {
+        //     error!("Error deserializing championships from cache");
+        //     return Err(CacheError::Deserialize)?;
+        // };
 
-        let Ok(entities) = archived.deserialize(&mut Infallible) else {
-            error!("Error deserializing championships from cache");
-            return Err(CacheError::Deserialize)?;
-        };
+        // info!("Used championships from cache");
 
-        info!("Used championships from cache");
-
-        Ok(Some(entities))
+        // Ok(Some(entities))
+        todo!()
     }
 
     #[allow(unused)]
@@ -71,7 +71,7 @@ impl ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{CHAMPIONSHIPS_PREFIX}:user_id:{}", user_id),
+            &format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id),
             &bytes[..],
             Self::EXPIRATION,
         )
