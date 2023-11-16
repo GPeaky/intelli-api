@@ -9,11 +9,11 @@ repository = "https://github.com/GPeaky/intelli-api"
 license = "MIT"
 
 [build-dependencies]
-prost-build = "0.12.1"
+prost-build = "0.12.2"
 
 [dependencies]
 rand = "0.8.5"
-prost = "0.12.1"
+prost = "0.12.2"
 garde = "0.16.2"
 askama = "0.12.1"
 bcrypt = "0.15.0"
