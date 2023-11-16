@@ -1,4 +1,5 @@
 use crate::{
+    config::constants::*,
     dtos::GoogleCallbackQuery,
     dtos::TokenType,
     error::AppResult,
@@ -10,8 +11,6 @@ use axum::{
     extract::{Query, State},
     response::Response,
 };
-
-const WEB_REDIRECT_URL: &str = "https://intellitelemetry.live/auth/google/callback";
 
 pub async fn callback(
     State(state): State<AuthState>,
@@ -48,7 +47,7 @@ pub async fn callback(
     let (access_token, refresh_token) = tokio::try_join!(access_token_task, refresh_token_task)?;
 
     let redirect_url = format!(
-        "{WEB_REDIRECT_URL}?access_token={}&refresh_token={}",
+        "{GOOGLE_REDIRECT}?access_token={}&refresh_token={}",
         access_token, refresh_token
     );
 

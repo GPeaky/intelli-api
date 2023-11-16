@@ -1,9 +1,9 @@
-use crate::protos::{packet_header::PacketType, ToProtoMessage};
-use std::time::Duration;
+use crate::{
+    config::constants::BATCHING_INTERVAL,
+    protos::{packet_header::PacketType, ToProtoMessage},
+};
 use tokio::{sync::broadcast::Sender, time::Instant};
 use tracing::error;
-
-const INTERVAL: Duration = Duration::from_millis(700);
 
 pub struct PacketBatching {
     buf: Vec<Vec<u8>>,
@@ -28,7 +28,7 @@ impl PacketBatching {
     #[inline(always)]
     // TODO: Check if this is the best way to do this
     pub fn check(&mut self) {
-        if self.last_batch_time.elapsed().gt(&INTERVAL) && !self.buf.is_empty() {
+        if self.last_batch_time.elapsed().gt(&BATCHING_INTERVAL) && !self.buf.is_empty() {
             let batch = self
                 .buf
                 .drain(..)

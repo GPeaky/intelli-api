@@ -1,10 +1,11 @@
-use crate::{config::Database, dtos::TokenType, error::AppResult};
+use crate::{
+    config::{constants::*, Database},
+    dtos::TokenType,
+    error::AppResult,
+};
 use bb8_redis::redis::AsyncCommands;
 use core::panic;
 use std::sync::Arc;
-
-const GENERIC_TOKEN_EXPIRATION: usize = 15 * 60;
-const REFRESH_TOKEN_EXPIRATION: usize = 7 * 24 * 60 * 60;
 
 pub struct TokenCache {
     db: Arc<Database>,

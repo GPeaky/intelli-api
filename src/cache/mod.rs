@@ -1,5 +1,8 @@
 use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
-use crate::{config::Database, error::AppResult};
+use crate::{
+    config::{constants::REDIS_CACHE_EXPIRATION, Database},
+    error::AppResult,
+};
 use axum::async_trait;
 pub(crate) use f123::*;
 use std::sync::Arc;
@@ -29,7 +32,7 @@ impl RedisCache {
 #[async_trait]
 pub trait EntityCache {
     type Entity;
-    const EXPIRATION: usize = 60 * 60 * 24; // 1 day
+    const EXPIRATION: usize = REDIS_CACHE_EXPIRATION;
 
     // TODO: Implement more generic functions
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>>;

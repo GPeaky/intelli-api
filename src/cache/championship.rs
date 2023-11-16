@@ -1,6 +1,6 @@
 use super::EntityCache;
 use crate::{
-    config::Database,
+    config::{constants::*, Database},
     entity::Championship,
     error::{AppResult, CacheError},
 };
@@ -9,8 +9,6 @@ use bb8_redis::redis::AsyncCommands;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;
-
-const CHAMPIONSHIP_PREFIX: &str = "championship";
 
 pub struct ChampionshipCache {
     db: Arc<Database>,
@@ -30,7 +28,10 @@ impl ChampionshipCache {
             let mut conn = self.db.redis.get().await?;
 
             entities = conn
-                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id))
+                .get::<_, Vec<u8>>(&format!(
+                    "{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}",
+                    user_id
+                ))
                 .await?;
         }
 
@@ -57,7 +58,7 @@ impl ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id),
+            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id),
             &bytes[..],
             Self::EXPIRATION,
         )
@@ -80,7 +81,7 @@ impl EntityCache for ChampionshipCache {
             let mut conn = self.db.redis.get().await?;
 
             entity = conn
-                .get::<_, Vec<u8>>(&format!("{CHAMPIONSHIP_PREFIX}:id:{id}"))
+                .get::<_, Vec<u8>>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{id}"))
                 .await?;
         }
 
@@ -109,7 +110,7 @@ impl EntityCache for ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{CHAMPIONSHIP_PREFIX}:id:{}", entity.id),
+            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{}", entity.id),
             &bytes[..],
             Self::EXPIRATION,
         )

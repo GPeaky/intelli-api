@@ -1,6 +1,6 @@
 use super::EntityCache;
 use crate::{
-    config::Database,
+    config::{constants::*, Database},
     entity::User,
     error::{AppResult, CacheError},
 };
@@ -9,8 +9,6 @@ use bb8_redis::redis::{self, AsyncCommands};
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;
-
-const USER_PREFIX: &str = "user";
 
 pub struct UserCache {
     db: Arc<Database>,
@@ -29,7 +27,7 @@ impl UserCache {
         {
             let mut conn = self.db.redis.get().await?;
             user = conn
-                .get::<_, Vec<u8>>(&format!("{USER_PREFIX}:email:{}", email))
+                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:email:{}", email))
                 .await?;
         }
 
@@ -60,7 +58,7 @@ impl EntityCache for UserCache {
         {
             let mut conn = self.db.redis.get().await?;
             user = conn
-                .get::<_, Vec<u8>>(&format!("{USER_PREFIX}:id:{}", id))
+                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
                 .await?;
         }
 
@@ -92,12 +90,12 @@ impl EntityCache for UserCache {
         let _ = redis::pipe()
             .atomic()
             .set_ex::<&str, &[u8]>(
-                &format!("{USER_PREFIX}:id:{}", entity.id),
+                &format!("{REDIS_USER_PREFIX}:id:{}", entity.id),
                 &bytes[..],
                 Self::EXPIRATION,
             )
             .set_ex::<&str, &[u8]>(
-                &format!("{USER_PREFIX}:email:{}", entity.id),
+                &format!("{REDIS_USER_PREFIX}:email:{}", entity.id),
                 &bytes[..],
                 Self::EXPIRATION,
             )

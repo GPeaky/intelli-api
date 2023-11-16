@@ -1,8 +1,5 @@
-use crate::error::AppResult;
+use crate::{config::constants::*, error::AppResult};
 use bb8_redis::redis::{aio::Connection, AsyncCommands};
-
-const DATA_PERSISTENCE: usize = 15 * 60;
-const BASE_REDIS_KEY: &str = "f123_service:championships";
 
 pub struct F123InsiderCache {
     redis: Connection,
@@ -20,9 +17,9 @@ impl F123InsiderCache {
     pub async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex::<&str, &[u8], ()>(
-                &format!("{BASE_REDIS_KEY}:{}:motion", &self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:motion", &self.championship_id),
                 data,
-                DATA_PERSISTENCE,
+                REDIS_F123_PERSISTANCE,
             )
             .await?;
 
@@ -33,9 +30,9 @@ impl F123InsiderCache {
     pub async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex::<&str, &[u8], ()>(
-                &format!("{BASE_REDIS_KEY}:{}:session", &self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:session", &self.championship_id),
                 data,
-                DATA_PERSISTENCE,
+                REDIS_F123_PERSISTANCE,
             )
             .await?;
 
@@ -46,9 +43,9 @@ impl F123InsiderCache {
     pub async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex::<&str, &[u8], ()>(
-                &format!("{BASE_REDIS_KEY}:{}:participants", &self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:participants", &self.championship_id),
                 data,
-                DATA_PERSISTENCE,
+                REDIS_F123_PERSISTANCE,
             )
             .await?;
 
@@ -60,7 +57,7 @@ impl F123InsiderCache {
         self.redis
             .rpush::<&str, &[u8], ()>(
                 &format!(
-                    "{BASE_REDIS_KEY}:{}:events:{string_code}",
+                    "{REDIS_F123_PREFIX}:{}:events:{string_code}",
                     &self.championship_id
                 ),
                 data,
@@ -75,11 +72,11 @@ impl F123InsiderCache {
         self.redis
             .set_ex::<&str, &[u8], ()>(
                 &format!(
-                    "{BASE_REDIS_KEY}:{}:history:{car_idx}",
+                    "{REDIS_F123_PREFIX}:{}:history:{car_idx}",
                     &self.championship_id
                 ),
                 data,
-                DATA_PERSISTENCE,
+                REDIS_F123_PERSISTANCE,
             )
             .await?;
 

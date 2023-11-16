@@ -1,11 +1,9 @@
 use crate::{
+    config::constants::*,
     dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
     error::AppResult,
 };
 use dotenvy::var;
-
-const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
-const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 pub struct GoogleRepository {
     client_id: String,
