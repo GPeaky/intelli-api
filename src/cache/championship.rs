@@ -119,3 +119,28 @@ impl EntityCache for ChampionshipCache {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::error::AppResult;
+
+    #[tokio::test]
+    async fn test_get() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_set() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_all() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_set_all() -> AppResult<()> {
+        Ok(())
+    }
+}

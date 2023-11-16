@@ -105,3 +105,33 @@ impl EntityCache for UserCache {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::error::AppResult;
+
+    #[tokio::test]
+    async fn test_get_by_email() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_set() -> AppResult<()> {
+        Ok(())
+    }
+
+    // #[tokio::test]
+    // async fn test_delete() -> AppResult<()> {
+    //     Ok(())
+    // }
+
+    // #[tokio::test]
+    // async fn test_delete_by_email() -> AppResult<()> {
+    //     Ok(())
+    // }
+}
