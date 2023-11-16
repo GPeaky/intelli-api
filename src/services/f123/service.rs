@@ -1,3 +1,5 @@
+use crate::cache::F123InsiderCache;
+use crate::config::constants::*;
 use crate::services::f123::packet_batching::PacketBatching;
 use crate::FirewallService;
 use crate::{
@@ -6,12 +8,8 @@ use crate::{
     error::{AppResult, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
 };
-use bb8_redis::redis::AsyncCommands;
 use rustc_hash::FxHashMap;
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
     sync::{
@@ -22,17 +20,6 @@ use tokio::{
     time::timeout,
 };
 use tracing::{error, info};
-
-const F123_HOST: &str = "0.0.0.0";
-const DATA_PERSISTENCE: usize = 15 * 60;
-const F123_MAX_PACKET_SIZE: usize = 1460;
-const BASE_REDIS_KEY: &str = "f123_service:championships";
-
-// Constants durations & timeouts
-const SESSION_INTERVAL: Duration = Duration::from_secs(10);
-const MOTION_INTERVAL: Duration = Duration::from_millis(700);
-const SOCKET_TIMEOUT: Duration = Duration::from_secs(10 * 60);
-const SESSION_HISTORY_INTERVAL: Duration = Duration::from_secs(2);
 
 type ChanelData = Vec<u8>;
 type F123Channel = Arc<Sender<ChanelData>>;
@@ -144,8 +131,11 @@ impl F123Service {
 
         tokio::spawn(async move {
             let mut port_partial_open = false;
-            let mut buf = [0u8; F123_MAX_PACKET_SIZE];
-            let mut redis = db.redis.dedicated_connection().await.unwrap();
+            let mut buf = [0u8; BUFFER_SIZE];
+            let mut cache = F123InsiderCache::new(
+                db.redis.dedicated_connection().await.unwrap(),
+                *championship_id,
+            );
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -159,7 +149,7 @@ impl F123Service {
             let (tx, _rx) = tokio::sync::broadcast::channel::<ChanelData>(50);
             let mut packet_batching = PacketBatching::new(tx.clone());
 
-            let Ok(socket) = UdpSocket::bind(format!("{F123_HOST}:{port}")).await else {
+            let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
                 return;
             };
@@ -211,25 +201,13 @@ impl F123Service {
 
                         match packet {
                             F123Data::Motion(motion_data) => {
-                                if now
-                                    .duration_since(last_car_motion_update)
-                                    .ge(&MOTION_INTERVAL)
-                                {
+                                if now.duration_since(last_car_motion_update) > MOTION_INTERVAL {
                                     let packet = motion_data
                                         .convert_and_encode(PacketType::CarMotion)
                                         .expect("Error converting motion data to proto message");
 
-                                    if let Err(e) = redis
-                                        .set_ex::<&str, &[u8], ()>(
-                                            &format!(
-                                                "{BASE_REDIS_KEY}:{championship_id}:motion_data"
-                                            ),
-                                            &packet,
-                                            DATA_PERSISTENCE,
-                                        )
-                                        .await
-                                    {
-                                        error!("Error saving motion to redis: {}", e);
+                                    if let Err(e) = cache.set_motion_data(&packet).await {
+                                        error!("error saving motion_data: {}", e);
                                     };
 
                                     packet_batching.push_and_check(packet);
@@ -238,25 +216,13 @@ impl F123Service {
                             }
 
                             F123Data::Session(session_data) => {
-                                if now
-                                    .duration_since(last_session_update)
-                                    .ge(&SESSION_INTERVAL)
-                                {
+                                if now.duration_since(last_session_update) > SESSION_INTERVAL {
                                     let packet = session_data
                                         .convert_and_encode(PacketType::SessionData)
                                         .expect("Error converting session data to proto message");
 
-                                    if let Err(e) = redis
-                                        .set_ex::<&str, &[u8], ()>(
-                                            &format!(
-                                                "{BASE_REDIS_KEY}:{championship_id}:session_data"
-                                            ),
-                                            &packet,
-                                            DATA_PERSISTENCE,
-                                        )
-                                        .await
-                                    {
-                                        error!("Error saving session to redis: {}", e);
+                                    if let Err(e) = cache.set_session_data(&packet).await {
+                                        error!("error saving session_data: {}", e);
                                     };
 
                                     packet_batching.push_and_check(packet);
@@ -265,32 +231,22 @@ impl F123Service {
                             }
 
                             F123Data::Participants(participants_data) => {
-                                if now
-                                    .duration_since(last_participants_update)
-                                    .lt(&SESSION_INTERVAL)
-                                {
+                                if now.duration_since(last_participants_update) > SESSION_INTERVAL {
                                     let packet = participants_data
                                         .convert_and_encode(PacketType::Participants)
                                         .expect(
                                             "Error converting participants data to proto message",
                                         );
 
-                                    if let Err(e) = redis
-                                        .set_ex::<&str, &[u8], ()>(
-                                            &format!("{BASE_REDIS_KEY}:{championship_id}:participants_data"),
-                                            &packet,
-                                            DATA_PERSISTENCE,
-                                        )
-                                        .await {
-                                        error!("Error saving participants to redis: {}", e);
-                                        };
+                                    if let Err(e) = cache.set_participants_data(&packet).await {
+                                        error!("error saving participants_data: {}", e);
+                                    };
 
                                     packet_batching.push_and_check(packet);
                                     last_participants_update = now;
                                 }
                             }
 
-                            // TODO: Export this to a different service
                             F123Data::Event(event_data) => {
                                 let Some(packet) =
                                     event_data.convert_and_encode(PacketType::EventData)
@@ -299,11 +255,10 @@ impl F123Service {
                                 };
 
                                 let string_code =
-                                    std::str::from_utf8(&event_data.event_string_code)
-                                        .expect("Error converting string code");
+                                    std::str::from_utf8(&event_data.event_string_code).unwrap();
 
-                                if let Err(e) = redis.rpush::<&str, &[u8], ()>(&format!("{BASE_REDIS_KEY}:{championship_id}:events:{string_code}"), &packet).await {
-                                    error!("Error saving event to redis: {}", e);
+                                if let Err(e) = cache.push_event_data(&packet, string_code).await {
+                                    error!("error pushing event_data: {}", e);
                                 };
 
                                 packet_batching.push_and_check(packet);
@@ -314,10 +269,7 @@ impl F123Service {
                                     .entry(session_history.car_idx)
                                     .or_insert(now);
 
-                                if now
-                                    .duration_since(*last_update)
-                                    .gt(&SESSION_HISTORY_INTERVAL)
-                                {
+                                if now.duration_since(*last_update) > HISTORY_INTERVAL {
                                     let lap = (session_history.num_laps as usize) - 1; // Lap is 0 indexed
 
                                     let sectors = (
@@ -331,6 +283,7 @@ impl F123Service {
                                         .or_insert(sectors);
 
                                     if sectors == *last_sectors {
+                                        *last_update = now;
                                         continue;
                                     }
 
@@ -339,14 +292,10 @@ impl F123Service {
                                         .convert_and_encode(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
 
-                                    if let Err(e) = redis
-                                    .set_ex::<&str, &[u8], ()>(
-                                        &format!("f123_service:championships:{championship_id}:session_history:{car_idx}"),
-                                        &packet,
-                                        DATA_PERSISTENCE,
-                                    )
-                                    .await {
-                                        error!("Error saving session history to redis: {}", e);
+                                    if let Err(e) =
+                                        cache.set_session_history(&packet, &car_idx).await
+                                    {
+                                        error!("error saving participants_data: {}", e);
                                     };
 
                                     packet_batching.push_and_check(packet);

@@ -1,6 +1,7 @@
-use self::{championship::ChampionshipCache, f123::F123Cache, token::TokenCache, user::UserCache};
+use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
 use crate::{config::Database, error::AppResult};
 use axum::async_trait;
+pub(crate) use f123::*;
 use std::sync::Arc;
 
 mod championship;
@@ -12,7 +13,6 @@ pub struct RedisCache {
     pub user: UserCache,
     pub championship: ChampionshipCache,
     pub token: TokenCache,
-    pub f123: F123Cache,
 }
 
 impl RedisCache {
@@ -21,7 +21,6 @@ impl RedisCache {
             user: UserCache::new(db),
             championship: ChampionshipCache::new(db),
             token: TokenCache::new(db),
-            f123: F123Cache::new(db),
         }
     }
 }
