@@ -39,6 +39,8 @@ impl ChampionshipCache {
         info!("Found {} championships in cache", entities.len());
 
         if entities.is_empty() {
+            info!("Loading Data bytes {:?}", entities);
+
             info!("No championships found in cache");
             return Ok(None);
         }
@@ -63,6 +65,8 @@ impl ChampionshipCache {
             error!("Failed to serialize championships to cache");
             Err(CacheError::Serialize)?
         };
+
+        info!("Saving Data bytes {:?}", bytes);
 
         let mut conn = self.db.redis.get().await?;
 
