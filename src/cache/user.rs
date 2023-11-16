@@ -95,7 +95,7 @@ impl EntityCache for UserCache {
                 Self::EXPIRATION,
             )
             .set_ex::<&str, &[u8]>(
-                &format!("{REDIS_USER_PREFIX}:email:{}", entity.id),
+                &format!("{REDIS_USER_PREFIX}:email:{}", entity.email),
                 &bytes[..],
                 Self::EXPIRATION,
             )
