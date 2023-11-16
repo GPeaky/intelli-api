@@ -36,6 +36,8 @@ impl ChampionshipCache {
                 .await?;
         }
 
+        info!("Found {} championships in cache", entities.len());
+
         if entities.is_empty() {
             info!("No championships found in cache");
             return Ok(None);
