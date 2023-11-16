@@ -71,7 +71,7 @@ impl ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{CHAMPIONSHIP_PREFIX}:user_id:{}", user_id),
+            &format!("{CHAMPIONSHIPS_PREFIX}:user_id:{}", user_id),
             &bytes[..],
             Self::EXPIRATION,
         )
