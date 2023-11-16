@@ -24,6 +24,7 @@ impl ChampionshipCache {
 
     #[allow(unused)]
     pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
+        info!("Trying to get championships from cache");
         let entities;
 
         // Drop the connection as soon as possible
@@ -36,6 +37,7 @@ impl ChampionshipCache {
         }
 
         if entities.is_empty() {
+            info!("No championships found in cache");
             return Ok(None);
         }
 
