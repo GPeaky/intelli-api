@@ -27,7 +27,7 @@ impl Database {
 
         let redis = bb8::Pool::builder()
             .min_idle(Some(1))
-            .max_size(300) // Test if 100 is a good number
+            .max_size(1000) // Test if 100 is a good number
             .build(manager)
             .await
             .unwrap();
