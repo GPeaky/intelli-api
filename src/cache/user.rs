@@ -44,6 +44,26 @@ impl UserCache {
 
         Ok(Some(user))
     }
+
+    #[inline(always)]
+    pub async fn delete(&self, id: &i32) -> AppResult<()> {
+        let mut conn = self.db.redis.get().await?;
+
+        let bytes = conn
+            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
+            .await?;
+
+        if bytes.is_empty() {
+            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
+            // TODO: Check a better way ton handle this
+            let user: User = archived.deserialize(&mut Infallible).unwrap();
+
+            conn.del(&format!("{REDIS_USER_PREFIX}:email:{}", user.email))
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -125,13 +145,8 @@ mod tests {
         Ok(())
     }
 
-    // #[tokio::test]
-    // async fn test_delete() -> AppResult<()> {
-    //     Ok(())
-    // }
-
-    // #[tokio::test]
-    // async fn test_delete_by_email() -> AppResult<()> {
-    //     Ok(())
-    // }
+    #[tokio::test]
+    async fn test_delete() -> AppResult<()> {
+        Ok(())
+    }
 }

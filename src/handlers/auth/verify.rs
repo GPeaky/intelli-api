@@ -14,7 +14,7 @@ pub async fn verify_email(
 ) -> AppResult<Response> {
     state
         .user_service
-        .activate_user_with_token(&query.token)
+        .activate_with_token(&query.token)
         .await
         .unwrap();
 

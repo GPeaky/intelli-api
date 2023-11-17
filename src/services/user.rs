@@ -24,13 +24,13 @@ pub struct UserService {
 #[async_trait]
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32>;
-    async fn delete_user(&self, id: &i32) -> AppResult<()>;
-    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
+    async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
+    async fn delete(&self, id: &i32) -> AppResult<()>;
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
-    async fn activate_user(&self, id: &i32) -> AppResult<()>;
-    async fn activate_user_with_token(&self, token: &str) -> AppResult<()>;
-    async fn deactivate_user(&self, id: &i32) -> AppResult<()>;
+    async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
+    async fn activate(&self, id: &i32) -> AppResult<()>;
+    async fn activate_with_token(&self, token: &str) -> AppResult<()>;
+    async fn deactivate(&self, id: &i32) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -45,7 +45,7 @@ impl UserServiceTrait for UserService {
         }
     }
 
-    async fn new_user(&self, register: &RegisterUserDto) -> AppResult<i32> {
+    async fn create(&self, register: &RegisterUserDto) -> AppResult<i32> {
         {
             let user_exists = self.user_repo.user_exists(&register.email).await?;
 
@@ -105,11 +105,10 @@ impl UserServiceTrait for UserService {
         }
 
         info!("User created: {}", register.username);
-
         Ok(id)
     }
 
-    async fn delete_user(&self, id: &i32) -> AppResult<()> {
+    async fn delete(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
                 DELETE FROM user_championships
@@ -130,6 +129,7 @@ impl UserServiceTrait for UserService {
         .execute(&self.db_conn.pg)
         .await?;
 
+        self.cache.user.delete(id).await?;
         info!("User deleted with success: {}", id);
 
         Ok(())
@@ -154,7 +154,6 @@ impl UserServiceTrait for UserService {
         }
 
         self.reset_password(&user_id, password).await?;
-
         self.cache
             .token
             .remove_token(token, &TokenType::ResetPassword)
@@ -177,12 +176,13 @@ impl UserServiceTrait for UserService {
         .execute(&self.db_conn.pg)
         .await?;
 
+        self.cache.user.delete(id).await?;
         info!("User password reseated with success: {}", id);
 
         Ok(())
     }
 
-    async fn activate_user_with_token(&self, token: &str) -> AppResult<()> {
+    async fn activate_with_token(&self, token: &str) -> AppResult<()> {
         let user_id;
         self.cache.token.get_token(token, &TokenType::Email).await?;
 
@@ -195,7 +195,7 @@ impl UserServiceTrait for UserService {
             user_id = token_data.claims.sub;
         }
 
-        self.activate_user(&user_id).await?;
+        self.activate(&user_id).await?;
 
         self.cache
             .token
@@ -205,7 +205,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn activate_user(&self, id: &i32) -> AppResult<()> {
+    async fn activate(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
                 UPDATE users
@@ -217,12 +217,13 @@ impl UserServiceTrait for UserService {
         .execute(&self.db_conn.pg)
         .await?;
 
+        self.cache.user.delete(id).await?;
         info!("User activated with success: {}", id);
 
         Ok(())
     }
 
-    async fn deactivate_user(&self, id: &i32) -> AppResult<()> {
+    async fn deactivate(&self, id: &i32) -> AppResult<()> {
         sqlx::query(
             r#"
                 UPDATE users
@@ -234,6 +235,7 @@ impl UserServiceTrait for UserService {
         .execute(&self.db_conn.pg)
         .await?;
 
+        self.cache.user.delete(id).await?;
         info!("User deactivated with success: {}", id);
 
         Ok(())

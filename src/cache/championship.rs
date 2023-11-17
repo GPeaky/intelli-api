@@ -66,6 +66,11 @@ impl ChampionshipCache {
 
         Ok(())
     }
+
+    #[inline(always)]
+    pub async fn delete(&self, id: &i32) -> AppResult<()> {
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -141,6 +146,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_all() -> AppResult<()> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_delete() -> AppResult<()> {
         Ok(())
     }
 }

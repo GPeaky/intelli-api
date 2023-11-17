@@ -27,7 +27,7 @@ pub async fn delete_user(
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.delete_user(&id).await?;
+    state.user_service.delete(&id).await?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -50,7 +50,7 @@ pub async fn disable_user(
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.deactivate_user(&id).await?;
+    state.user_service.deactivate(&id).await?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -73,6 +73,6 @@ pub async fn enable_user(
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.activate_user(&path_user.id).await?;
+    state.user_service.activate(&path_user.id).await?;
     Ok(StatusCode::OK.into_response())
 }

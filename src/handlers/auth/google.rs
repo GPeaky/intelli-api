@@ -31,7 +31,7 @@ pub async fn callback(
     let user = match user {
         Some(user) => user,
         None => {
-            let id = state.user_service.new_user(&google_user.into()).await?;
+            let id = state.user_service.create(&google_user.into()).await?;
             state.user_repository.find(&id).await?.unwrap()
         }
     };
