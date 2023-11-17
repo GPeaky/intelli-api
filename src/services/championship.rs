@@ -77,6 +77,7 @@ impl ChampionshipService {
         .await?;
 
         self.remove_port(port).await?;
+        self.cache.championship.delete_by_user_id(user_id).await?;
 
         Ok(())
     }

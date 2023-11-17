@@ -68,7 +68,15 @@ impl ChampionshipCache {
     }
 
     #[inline(always)]
-    pub async fn delete(&self, id: &i32) -> AppResult<()> {
+    pub async fn delete_by_user_id(&self, user_id: &i32) -> AppResult<()> {
+        let mut conn = self.db.redis.get().await?;
+
+        conn.del::<&str, ()>(&format!(
+            "{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}",
+            user_id
+        ))
+        .await?;
+
         Ok(())
     }
 }
