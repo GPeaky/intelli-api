@@ -2,7 +2,8 @@ use crate::{
     config::constants::*,
     dtos::GoogleCallbackQuery,
     dtos::TokenType,
-    error::AppResult,
+    entity::Provider,
+    error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AuthState,
@@ -29,7 +30,14 @@ pub async fn callback(
         .await?;
 
     let user = match user {
-        Some(user) => user,
+        Some(user) => {
+            if user.provider != Provider::Google {
+                Err(UserError::WrongProvider)?
+            }
+
+            user
+        }
+
         None => {
             let id = state.user_service.create(&google_user.into()).await?;
             state.user_repository.find(&id).await?.unwrap()
