@@ -1,5 +1,5 @@
 use crate::{
-    cache::RedisCache,
+    cache::{EntityCache, RedisCache},
     config::Database,
     dtos::CreateChampionshipDto,
     error::{AppResult, CommonError},
@@ -19,7 +19,6 @@ pub struct ChampionshipService {
     championship_repository: ChampionshipRepository,
 }
 
-// TODO: Implement cache for this service
 impl ChampionshipService {
     pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         let championship_repository: ChampionshipRepository =
@@ -92,6 +91,7 @@ impl ChampionshipService {
         .execute(&self.db.pg)
         .await?;
 
+        self.cache.championship.delete(id).await?;
         info!("Championship deleted with success: {id}");
 
         Ok(())

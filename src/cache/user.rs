@@ -44,26 +44,6 @@ impl UserCache {
 
         Ok(Some(user))
     }
-
-    #[inline(always)]
-    pub async fn delete(&self, id: &i32) -> AppResult<()> {
-        let mut conn = self.db.redis.get().await?;
-
-        let bytes = conn
-            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
-            .await?;
-
-        if bytes.is_empty() {
-            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
-            // TODO: Check a better way ton handle this
-            let user: User = archived.deserialize(&mut Infallible).unwrap();
-
-            conn.del(&format!("{REDIS_USER_PREFIX}:email:{}", user.email))
-                .await?;
-        }
-
-        Ok(())
-    }
 }
 
 #[async_trait]
@@ -88,7 +68,6 @@ impl EntityCache for UserCache {
 
         let archived = unsafe { rkyv::archived_root::<Self::Entity>(&user) };
 
-        // TODO: Check a better way ton handle this
         let Ok(user) = archived.deserialize(&mut Infallible) else {
             error!("Failed to deserialize user from cache");
             Err(CacheError::Deserialize)?
@@ -99,7 +78,6 @@ impl EntityCache for UserCache {
 
     #[inline(always)]
     async fn set(&self, entity: &Self::Entity) -> AppResult<()> {
-        // TODO: Check a better way ton handle this
         let Ok(bytes) = rkyv::to_bytes::<_, 128>(entity) else {
             error!("Failed to serialize user to cache");
             Err(CacheError::Serialize)?
@@ -121,6 +99,26 @@ impl EntityCache for UserCache {
             )
             .query_async(&mut *conn)
             .await?;
+
+        Ok(())
+    }
+
+    #[inline(always)]
+    async fn delete(&self, id: &i32) -> AppResult<()> {
+        let mut conn = self.db.redis.get().await?;
+
+        let bytes = conn
+            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
+            .await?;
+
+        if bytes.is_empty() {
+            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
+            // TODO: Check a better way ton handle this
+            let user: User = archived.deserialize(&mut Infallible).unwrap();
+
+            conn.del(&format!("{REDIS_USER_PREFIX}:email:{}", user.email))
+                .await?;
+        }
 
         Ok(())
     }

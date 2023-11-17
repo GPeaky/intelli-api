@@ -10,7 +10,6 @@ use tracing::info;
 
 pub type AppResult<T> = Result<T, AppError>;
 
-// TODO: Handle Database, Redis and Pool errors in a better way
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error(transparent)]
@@ -33,6 +32,7 @@ pub enum AppError {
     Pool(#[from] RunError<RedisError>),
 }
 
+// TODO: Handle Database, Redis and Pool errors in a better way
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {

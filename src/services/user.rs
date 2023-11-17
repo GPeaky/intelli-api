@@ -1,6 +1,6 @@
 use super::{TokenService, TokenServiceTrait};
 use crate::{
-    cache::RedisCache,
+    cache::{EntityCache, RedisCache},
     config::Database,
     dtos::{RegisterUserDto, TokenType},
     entity::Provider,

@@ -104,7 +104,6 @@ impl EntityCache for ChampionshipCache {
 
         let archived = unsafe { rkyv::archived_root::<Self::Entity>(&entity) };
 
-        // TODO: Check a better way ton handle this
         let Ok(entity) = archived.deserialize(&mut Infallible) else {
             error!("Error deserializing championship from cache");
             return Err(CacheError::Deserialize)?;
@@ -128,6 +127,15 @@ impl EntityCache for ChampionshipCache {
             Self::EXPIRATION,
         )
         .await?;
+
+        Ok(())
+    }
+
+    async fn delete(&self, id: &i32) -> AppResult<()> {
+        let mut conn = self.db.redis.get().await?;
+
+        conn.del::<&str, ()>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{}", id))
+            .await?;
 
         Ok(())
     }
