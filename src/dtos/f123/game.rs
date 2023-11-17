@@ -1,49 +1,5 @@
 use zerocopy::{FromBytes, FromZeroes, Unaligned};
 
-//*  --- F1 2023 Packet Data Enums ---
-
-#[repr(C)]
-#[derive(Debug)]
-pub enum PacketIds {
-    Motion,
-    Session,
-    LapData,
-    Event,
-    Participants,
-    CarSetups,
-    CarTelemetry,
-    CarStatus,
-    FinalClassification,
-    LobbyInfo,
-    CarDamage,
-    SessionHistory,
-    TyreSets,
-    MotionEx,
-}
-
-impl From<u8> for PacketIds {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => PacketIds::Motion,
-            1 => PacketIds::Session,
-            2 => PacketIds::LapData,
-            3 => PacketIds::Event,
-            4 => PacketIds::Participants,
-            5 => PacketIds::CarSetups,
-            6 => PacketIds::CarTelemetry,
-            7 => PacketIds::CarStatus,
-            8 => PacketIds::FinalClassification,
-            9 => PacketIds::LobbyInfo,
-            10 => PacketIds::CarDamage,
-            11 => PacketIds::SessionHistory,
-            12 => PacketIds::TyreSets,
-            13 => PacketIds::MotionEx,
-            _ => panic!("Unknown packet id {}", value),
-        }
-    }
-}
-
-//*  --- F1 2023 Packet Data Structures ---
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketHeader {
@@ -161,8 +117,6 @@ pub struct PacketSessionData {
     pub num_virtual_safety_car_periods: u8, // Number of virtual safety cars called
     pub num_red_flag_periods: u8, // Number of red flags called during session
 }
-
-//* --- F1 23 Unpacked Data ---
 
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
@@ -414,58 +368,4 @@ pub struct TyreStintHistoryData {
     pub end_lap: u8,              // Lap the tyre usage ends on (255 of current tyre)
     pub tyre_actual_compound: u8, // Actual tyres used by this driver
     pub tyre_visual_compound: u8, // Visual tyres used by this driver
-}
-
-// Cannot use debug in unions
-pub enum F123Data<'a> {
-    Motion(&'a PacketMotionData),
-    Session(&'a PacketSessionData),
-    Event(&'a PacketEventData),
-    Participants(&'a PacketParticipantsData),
-    FinalClassification(&'a PacketFinalClassificationData),
-    SessionHistory(&'a PacketSessionHistoryData),
-}
-
-// TODO: Handle Errors
-impl<'a> F123Data<'a> {
-    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
-        match packet_id {
-            PacketIds::Motion => {
-                let packet: Option<&PacketMotionData> = FromBytes::ref_from_prefix(data);
-                Some(F123Data::Motion(packet.unwrap()))
-            }
-
-            PacketIds::Session => {
-                let packet: Option<&PacketSessionData> = FromBytes::ref_from_prefix(data);
-                Some(F123Data::Session(packet.unwrap()))
-            }
-
-            PacketIds::Participants => {
-                let packet: Option<&PacketParticipantsData> = FromBytes::ref_from_prefix(data);
-                Some(F123Data::Participants(packet.unwrap()))
-            }
-
-            PacketIds::FinalClassification => {
-                let packet: Option<&PacketFinalClassificationData> =
-                    FromBytes::ref_from_prefix(data);
-
-                Some(F123Data::FinalClassification(packet.unwrap()))
-            }
-
-            PacketIds::SessionHistory => {
-                let packet: Option<&PacketSessionHistoryData> = FromBytes::ref_from_prefix(data);
-                Some(F123Data::SessionHistory(packet.unwrap()))
-            }
-
-            PacketIds::Event => {
-                let packet: Option<&PacketEventData> = FromBytes::ref_from_prefix(data);
-                Some(F123Data::Event(packet.unwrap()))
-            }
-            _ => None,
-        }
-    }
-
-    pub fn deserialize_header(data: &[u8]) -> Option<PacketHeader> {
-        FromBytes::read_from_prefix(data)
-    }
 }
