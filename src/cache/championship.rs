@@ -10,6 +10,9 @@ use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;
 
+const ID: &str = "id";
+const USER_ID: &str = "user_id";
+
 pub struct ChampionshipCache {
     db: Arc<Database>,
 }
@@ -29,7 +32,7 @@ impl ChampionshipCache {
 
             entities = conn
                 .get::<_, Vec<u8>>(&format!(
-                    "{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}",
+                    "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
                     user_id
                 ))
                 .await?;
@@ -58,7 +61,7 @@ impl ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}", user_id),
+            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user_id),
             &bytes[..],
             Self::EXPIRATION,
         )
@@ -72,7 +75,7 @@ impl ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.del::<&str, ()>(&format!(
-            "{REDIS_CHAMPIONSHIP_PREFIX}:by_user_id:{}",
+            "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
             user_id
         ))
         .await?;
@@ -94,7 +97,7 @@ impl EntityCache for ChampionshipCache {
             let mut conn = self.db.redis.get().await?;
 
             entity = conn
-                .get::<_, Vec<u8>>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{id}"))
+                .get::<_, Vec<u8>>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{id}"))
                 .await?;
         }
 
@@ -122,7 +125,7 @@ impl EntityCache for ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         conn.set_ex::<&str, &[u8], ()>(
-            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{}", entity.id),
+            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", entity.id),
             &bytes[..],
             Self::EXPIRATION,
         )
@@ -134,7 +137,7 @@ impl EntityCache for ChampionshipCache {
     async fn delete(&self, id: &i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
-        conn.del::<&str, ()>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:id:{}", id))
+        conn.del::<&str, ()>(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id))
             .await?;
 
         Ok(())

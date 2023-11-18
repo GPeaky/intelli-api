@@ -10,6 +10,9 @@ use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;
 
+const ID: &str = "id";
+const EMAIL: &str = "email";
+
 pub struct UserCache {
     db: Arc<Database>,
 }
@@ -27,7 +30,7 @@ impl UserCache {
         {
             let mut conn = self.db.redis.get().await?;
             user = conn
-                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:email:{}", email))
+                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", email))
                 .await?;
         }
 
@@ -58,7 +61,7 @@ impl EntityCache for UserCache {
         {
             let mut conn = self.db.redis.get().await?;
             user = conn
-                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
+                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
                 .await?;
         }
 
@@ -88,12 +91,12 @@ impl EntityCache for UserCache {
         let _ = redis::pipe()
             .atomic()
             .set_ex::<&str, &[u8]>(
-                &format!("{REDIS_USER_PREFIX}:id:{}", entity.id),
+                &format!("{REDIS_USER_PREFIX}:{ID}:{}", entity.id),
                 &bytes[..],
                 Self::EXPIRATION,
             )
             .set_ex::<&str, &[u8]>(
-                &format!("{REDIS_USER_PREFIX}:email:{}", entity.email),
+                &format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", entity.email),
                 &bytes[..],
                 Self::EXPIRATION,
             )
@@ -108,7 +111,7 @@ impl EntityCache for UserCache {
         let mut conn = self.db.redis.get().await?;
 
         let bytes = conn
-            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:id:{}", id))
+            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
             .await?;
 
         if bytes.is_empty() {
@@ -116,7 +119,7 @@ impl EntityCache for UserCache {
             // TODO: Check a better way ton handle this
             let user: User = archived.deserialize(&mut Infallible).unwrap();
 
-            conn.del(&format!("{REDIS_USER_PREFIX}:email:{}", user.email))
+            conn.del(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", user.email))
                 .await?;
         }
 
