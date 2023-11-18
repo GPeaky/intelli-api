@@ -38,7 +38,7 @@ impl TokenCache {
     pub async fn get_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
-        conn.get::<&str, u8>(&format!("{}:{}", token_type.base_key(), token))
+        conn.get(&format!("{}:{}", token_type.base_key(), token))
             .await?;
 
         Ok(())

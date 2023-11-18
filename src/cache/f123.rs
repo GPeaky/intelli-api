@@ -22,7 +22,7 @@ impl F123InsiderCache {
 
     pub async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
-            .set_ex::<&str, &[u8], ()>(
+            .set_ex(
                 &format!("{REDIS_F123_PREFIX}:{}:{MOTION}", &self.championship_id),
                 data,
                 REDIS_F123_PERSISTANCE,
@@ -35,7 +35,7 @@ impl F123InsiderCache {
     #[inline(always)]
     pub async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
-            .set_ex::<&str, &[u8], ()>(
+            .set_ex(
                 &format!("{REDIS_F123_PREFIX}:{}:{SESSION}", &self.championship_id),
                 data,
                 REDIS_F123_PERSISTANCE,
@@ -48,7 +48,7 @@ impl F123InsiderCache {
     #[inline(always)]
     pub async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
-            .set_ex::<&str, &[u8], ()>(
+            .set_ex(
                 &format!(
                     "{REDIS_F123_PREFIX}:{}:{PARTICIPANTS}",
                     &self.championship_id
@@ -64,7 +64,7 @@ impl F123InsiderCache {
     #[inline(always)]
     pub async fn push_event_data(&mut self, data: &[u8], string_code: &str) -> AppResult<()> {
         self.redis
-            .rpush::<&str, &[u8], ()>(
+            .rpush(
                 &format!(
                     "{REDIS_F123_PREFIX}:{}:{EVENTS}:{string_code}",
                     &self.championship_id
@@ -79,7 +79,7 @@ impl F123InsiderCache {
     #[inline(always)]
     pub async fn set_session_history(&mut self, data: &[u8], car_idx: &u8) -> AppResult<()> {
         self.redis
-            .set_ex::<&str, &[u8], ()>(
+            .set_ex(
                 &format!(
                     "{REDIS_F123_PREFIX}:{}:{HISTORY}:{car_idx}",
                     &self.championship_id

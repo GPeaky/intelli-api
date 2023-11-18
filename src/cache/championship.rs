@@ -24,31 +24,34 @@ impl ChampionshipCache {
 
     #[allow(unused)]
     pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
-        let entities;
+        let entities: Option<Vec<u8>>;
 
         // Drop the connection as soon as possible
         {
             let mut conn = self.db.redis.get().await?;
 
             entities = conn
-                .get::<_, Vec<u8>>(&format!(
+                .get(&format!(
                     "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
                     user_id
                 ))
                 .await?;
         }
 
-        if entities.is_empty() {
-            return Ok(None);
+        if let Some(entities) = entities {
+            if !entities.is_empty() {
+                let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+
+                let Ok(entities) = archived.deserialize(&mut Infallible) else {
+                    error!("Failed to deserialize championships from cache");
+                    Err(CacheError::Deserialize)?
+                };
+
+                return Ok(Some(entities));
+            }
         }
 
-        let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
-        let Ok(entities) = archived.deserialize(&mut Infallible) else {
-            error!("Error deserializing championships from cache");
-            return Err(CacheError::Deserialize)?;
-        };
-
-        Ok(Some(entities))
+        Ok(None)
     }
 
     #[allow(unused)]
@@ -60,7 +63,7 @@ impl ChampionshipCache {
 
         let mut conn = self.db.redis.get().await?;
 
-        conn.set_ex::<&str, &[u8], ()>(
+        conn.set_ex(
             &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user_id),
             &bytes[..],
             Self::EXPIRATION,
@@ -74,7 +77,7 @@ impl ChampionshipCache {
     pub async fn delete_by_user_id(&self, user_id: &i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
-        conn.del::<&str, ()>(&format!(
+        conn.del(&format!(
             "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
             user_id
         ))

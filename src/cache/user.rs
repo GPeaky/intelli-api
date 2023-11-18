@@ -24,28 +24,28 @@ impl UserCache {
 
     #[inline(always)]
     pub async fn get_by_email(&self, email: &str) -> AppResult<Option<User>> {
-        let user;
+        let bytes: Option<Vec<u8>>;
 
         // Drop the connection as soon as possible
         {
             let mut conn = self.db.redis.get().await?;
-            user = conn
-                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", email))
+            bytes = conn
+                .get(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", email))
                 .await?;
         }
 
-        if user.is_empty() {
-            return Ok(None);
+        if let Some(bytes) = bytes {
+            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
+
+            let Ok(user) = archived.deserialize(&mut Infallible) else {
+                error!("Failed to deserialize user from cache");
+                Err(CacheError::Deserialize)?
+            };
+
+            return Ok(Some(user));
         }
 
-        let archived = unsafe { rkyv::archived_root::<User>(&user) };
-
-        let Ok(user) = archived.deserialize(&mut Infallible) else {
-            error!("Failed to deserialize user from cache");
-            Err(CacheError::Deserialize)?
-        };
-
-        Ok(Some(user))
+        Ok(None)
     }
 }
 
@@ -55,28 +55,28 @@ impl EntityCache for UserCache {
 
     #[inline(always)]
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
-        let user;
+        let bytes: Option<Vec<u8>>;
 
         // Drop the connection as soon as possible
         {
             let mut conn = self.db.redis.get().await?;
-            user = conn
-                .get::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
+            bytes = conn
+                .get(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
                 .await?;
         }
 
-        if user.is_empty() {
-            return Ok(None);
+        if let Some(bytes) = bytes {
+            let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };
+
+            let Ok(user) = archived.deserialize(&mut Infallible) else {
+                error!("Failed to deserialize user from cache");
+                Err(CacheError::Deserialize)?
+            };
+
+            return Ok(Some(user));
         }
 
-        let archived = unsafe { rkyv::archived_root::<Self::Entity>(&user) };
-
-        let Ok(user) = archived.deserialize(&mut Infallible) else {
-            error!("Failed to deserialize user from cache");
-            Err(CacheError::Deserialize)?
-        };
-
-        Ok(Some(user))
+        Ok(None)
     }
 
     #[inline(always)]
@@ -90,12 +90,12 @@ impl EntityCache for UserCache {
 
         let _ = redis::pipe()
             .atomic()
-            .set_ex::<&str, &[u8]>(
+            .set_ex(
                 &format!("{REDIS_USER_PREFIX}:{ID}:{}", entity.id),
                 &bytes[..],
                 Self::EXPIRATION,
             )
-            .set_ex::<&str, &[u8]>(
+            .set_ex(
                 &format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", entity.email),
                 &bytes[..],
                 Self::EXPIRATION,
@@ -110,18 +110,23 @@ impl EntityCache for UserCache {
     async fn delete(&self, id: &i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
-        let bytes = conn
-            .get_del::<_, Vec<u8>>(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
+        let bytes: Option<Vec<u8>> = conn
+            .get_del(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
             .await?;
 
-        if bytes.is_empty() {
-            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
-            // TODO: Check a better way ton handle this
-            let user: User = archived.deserialize(&mut Infallible).unwrap();
+        if let Some(bytes) = bytes {
+            let archived = unsafe { rkyv::archived_root::<User>(&bytes[..]) };
+
+            let Ok(user): Result<User, std::convert::Infallible> =
+                archived.deserialize(&mut Infallible)
+            else {
+                error!("Failed to deserialize user from cache");
+                Err(CacheError::Deserialize)?
+            };
 
             conn.del(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", user.email))
                 .await?;
-        }
+        };
 
         Ok(())
     }
