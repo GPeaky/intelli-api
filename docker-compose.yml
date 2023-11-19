@@ -23,8 +23,8 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: ${ DB_USER }
-      POSTGRES_PASSWORD: ${ DB_PASS }
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
 
     volumes:
       - postgresql-data:/var/lib/postgresql/data
