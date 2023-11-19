@@ -45,6 +45,7 @@ impl ToProtoMessage for Vec<Vec<u8>> {
         })
     }
 
+    // TODO: Try to remove packet_type from here
     fn convert_and_encode(&self, _packet_type: PacketType) -> Option<Vec<u8>>
     where
         Self: Sized,

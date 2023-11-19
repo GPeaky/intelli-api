@@ -76,7 +76,7 @@ impl ChampionshipRepository {
 
     // TODO: Check if this is the best way to do this
     pub async fn session_data(&self, id: &i32) -> AppResult<ChampionshipCacheData> {
-        let Some(championship) = self.find(id).await? else {
+        let Some(_) = self.find(id).await? else {
             Err(ChampionshipError::NotFound)?
         };
 
@@ -88,22 +88,10 @@ impl ChampionshipRepository {
             Vec<String>,
         ) = redis::pipe()
             .atomic()
-            .get(&format!(
-                "f123_service:championships:{}:session_data",
-                championship.id
-            ))
-            .get(&format!(
-                "f123_service:championships:{}:motion_data",
-                championship.id
-            ))
-            .get(&format!(
-                "f123_service:championships:{}:participants_data",
-                championship.id
-            ))
-            .keys(&format!(
-                "f123_service:championships:{}:session_history:*",
-                championship.id
-            ))
+            .get(&format!("f123:championships:{}:session", id))
+            .get(&format!("f123:championships:{}:motion", id))
+            .get(&format!("f123:championships:{}:participants", id))
+            .keys(&format!("f123:championships:{}:history:*", id))
             .query_async(&mut *redis)
             .await
             .unwrap();
@@ -115,6 +103,7 @@ impl ChampionshipRepository {
             motion_data,
             participants_data,
             history_data,
+            events_data: None,
         })
     }
 

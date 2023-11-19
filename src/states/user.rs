@@ -3,8 +3,8 @@ use crate::{
     config::Database,
     repositories::{ChampionshipRepository, F123Repository, UserRepository, UserRepositoryTrait},
     services::{
-        ChampionshipService, F123Service, FirewallService, TokenService, TokenServiceTrait,
-        UserService, UserServiceTrait,
+        ChampionshipService, F123Service, FirewallService, SavedSessionService, TokenService,
+        TokenServiceTrait, UserService, UserServiceTrait,
     },
 };
 use std::sync::Arc;
@@ -19,6 +19,7 @@ pub struct UserStateInner {
     pub championship_repository: ChampionshipRepository,
     pub f123_service: F123Service,
     pub f123_repository: F123Repository,
+    pub saved_session_service: SavedSessionService,
 }
 
 impl UserStateInner {
@@ -35,6 +36,7 @@ impl UserStateInner {
             token_service: TokenService::new(cache),
             championship_service: ChampionshipService::new(db_conn, cache).await,
             championship_repository: ChampionshipRepository::new(db_conn, cache).await,
+            saved_session_service: SavedSessionService::new(db_conn, cache),
         }
     }
 }

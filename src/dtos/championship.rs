@@ -2,6 +2,7 @@ use crate::entity::Category;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::string_trim;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateChampionshipDto {
@@ -25,4 +26,5 @@ pub struct ChampionshipCacheData {
     pub motion_data: Vec<u8>,
     pub participants_data: Vec<u8>,
     pub history_data: Vec<Vec<u8>>,
+    pub events_data: Option<HashMap<String, Vec<u8>>>,
 }

@@ -1,6 +1,7 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
+    protos::{packet_header::PacketType, ToProtoMessage},
     states::UserState,
 };
 use axum::{
@@ -95,29 +96,22 @@ async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Ch
             .await
             .unwrap();
 
-        let data_to_send = vec![
+        let data = vec![
             cache.session_data,
             cache.motion_data,
             cache.participants_data,
         ];
 
-        for data in data_to_send {
-            if !data.is_empty() {
-                if let Err(e) = socket.send(Message::Binary(data)).await {
-                    error!("Failed sending message:{}", e);
-                    return;
-                };
-            }
-        }
+        // TODO: Remove packet_type from here
+        let Some(data) = data.convert_and_encode(PacketType::SessionData) else {
+            error!("Failed converting data to proto");
+            return;
+        };
 
-        for data in cache.history_data {
-            if !data.is_empty() {
-                if let Err(e) = socket.send(Message::Binary(data)).await {
-                    error!("Failed sending message:{}", e);
-                    return;
-                };
-            }
-        }
+        if let Err(e) = socket.send(Message::Binary(data)).await {
+            error!("Failed sending message:{}", e);
+            return;
+        };
     }
 
     loop {
