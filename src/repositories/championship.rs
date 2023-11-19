@@ -47,8 +47,7 @@ impl ChampionshipRepository {
         .bind(id)
         .fetch_optional(&self.database.pg)
         .await?;
-
-        // TODO: Check if handle it in a better way
+    
         if let Some(ref championship) = championship {
             self.cache.championship.set(championship).await?;
         }

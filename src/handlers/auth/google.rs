@@ -23,7 +23,6 @@ pub async fn callback(
         .await
         .unwrap();
 
-    // TODO: Check if the provided type is the same as the one in the database
     let user = state
         .user_repository
         .find_by_email(&google_user.email)

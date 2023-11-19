@@ -28,19 +28,17 @@ impl PacketBatching {
     #[inline(always)]
     // TODO: Check if this is the best way to do this
     pub fn check(&mut self) {
-        if self.last_batch_time.elapsed().gt(&BATCHING_INTERVAL) && !self.buf.is_empty() {
-            let batch = self
-                .buf
-                .drain(..)
-                .collect::<Vec<_>>()
-                .convert_and_encode(PacketType::SessionData)
-                .unwrap();
-
-            if let Err(e) = self.sender.send(batch) {
-                error!("Error sending batch data: {:?}", e);
+        if self.last_batch_time.elapsed() > BATCHING_INTERVAL && !self.buf.is_empty() {
+            if let Some(batch) = self.buf.convert_and_encode(PacketType::SessionData) {
+                if let Err(e) = self.sender.send(batch) {
+                    error!("Error sending batch data: {:?}", e);
+                } else {
+                    self.last_batch_time = Instant::now();
+                }
+            } else {
+                error!("Error converting and encoding data");
             }
-
-            self.last_batch_time = Instant::now();
+            self.buf.clear();
         }
     }
 

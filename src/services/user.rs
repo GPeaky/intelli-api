@@ -34,7 +34,6 @@ pub trait UserServiceTrait {
 }
 
 #[async_trait]
-// TODO: Implement cache for this service
 impl UserServiceTrait for UserService {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
