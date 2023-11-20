@@ -142,7 +142,7 @@ impl ChampionshipRepository {
 
         let championships = rows
             .iter()
-            .map(|r| Championship::from_row(r))
+            .map(Championship::from_row)
             .collect::<Result<Vec<Championship>, AppError>>()?;
 
         self.cache

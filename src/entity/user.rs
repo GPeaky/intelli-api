@@ -1,13 +1,11 @@
+use super::FromRow;
+use crate::error::AppResult;
 use bb8_postgres::tokio_postgres::Row;
 use chrono::{DateTime, Utc};
 use postgres_types::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-use crate::error::AppResult;
-
-use super::FromRow;
 
 pub type UserExtension = Arc<User>;
 
@@ -58,7 +56,7 @@ pub struct User {
 }
 
 impl FromRow for User {
-    fn from_row<'a>(row: &'a Row) -> AppResult<Self> {
+    fn from_row(row: &Row) -> AppResult<Self> {
         Ok(User {
             id: row.try_get("id")?,
             email: row.try_get("email")?,

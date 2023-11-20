@@ -22,7 +22,7 @@ impl Database {
 
         let pg = bb8::Pool::builder()
             .min_idle(Some(1))
-            .max_size(1000) // Test if 100 is a good number
+            .max_size(100) // Test if 100 is a good number
             .build(pg_manager)
             .await
             .unwrap();
@@ -44,6 +44,11 @@ impl Database {
     pub fn active_pools(&self) -> (u32, u32) {
         let redis = self.redis.state();
         let pg = self.pg.state();
+
+        info!(
+            "Active connections: Redis: {:#?}, Postgres: {:#?}",
+            redis, pg
+        );
 
         (redis.connections, pg.connections)
     }

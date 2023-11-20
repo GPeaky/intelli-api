@@ -7,7 +7,7 @@ use axum::{
 use bb8_postgres::tokio_postgres::Error as PgError;
 use bb8_redis::{bb8::RunError, redis::RedisError};
 use thiserror::Error;
-use tracing::{error, info};
+use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 

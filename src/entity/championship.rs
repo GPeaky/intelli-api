@@ -2,11 +2,11 @@ use super::FromRow;
 use crate::error::AppResult;
 use bb8_postgres::tokio_postgres::Row;
 use chrono::{DateTime, Utc};
-use postgres_types::FromSql;
+use postgres_types::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql)]
+#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "category")]
 #[archive(check_bytes)]
 pub enum Category {
@@ -33,7 +33,7 @@ pub struct Championship {
 }
 
 impl FromRow for Championship {
-    fn from_row<'a>(row: &'a Row) -> AppResult<Self> {
+    fn from_row(row: &Row) -> AppResult<Self> {
         Ok(Championship {
             id: row.try_get("id")?,
             port: row.try_get("port")?,
