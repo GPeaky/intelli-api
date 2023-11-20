@@ -52,11 +52,17 @@ impl ChampionshipService {
         {
             let conn = self.db.pg.get().await?;
 
-            conn.execute(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     INSERT INTO championship (id, port, name, category, season, owner_id)
                     VALUES ($1,$2,$3,$4,$5,$6)
                 "#,
+                )
+                .await?;
+
+            conn.execute(
+                &cached_statement,
                 &[
                     &id,
                     &port,
@@ -88,21 +94,24 @@ impl ChampionshipService {
         {
             let conn = self.db.pg.get().await?;
 
-            conn.execute(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     DELETE FROM championship WHERE id = $1
                 "#,
-                &[&id],
-            )
-            .await?;
+                )
+                .await?;
 
-            conn.execute(
-                r#"
+            let cached_2 = conn
+                .prepare_cached(
+                    r#"
                     DELETE FROM user_championships WHERE championship_id = $1
                 "#,
-                &[&id],
-            )
-            .await?;
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[&id]).await?;
+            conn.execute(&cached_2, &[&id]).await?;
         }
 
         self.cache.championship.delete(id).await?;

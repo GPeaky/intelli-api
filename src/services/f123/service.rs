@@ -132,10 +132,7 @@ impl F123Service {
         tokio::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
-            let mut cache = F123InsiderCache::new(
-                db.redis.dedicated_connection().await.unwrap(),
-                *championship_id,
-            );
+            let mut cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
 
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();

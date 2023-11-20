@@ -4,8 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use bb8_postgres::tokio_postgres::Error as PgError;
-use bb8_redis::{bb8::RunError, redis::RedisError};
+use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
+use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
 use thiserror::Error;
 use tracing::error;
 
@@ -28,11 +28,11 @@ pub enum AppError {
     #[error(transparent)]
     Database(#[from] PgError),
     #[error(transparent)]
-    DbPool(#[from] RunError<PgError>),
+    DbPool(#[from] PoolError),
     #[error(transparent)]
     Redis(#[from] RedisError),
     #[error(transparent)]
-    RedisPool(#[from] RunError<RedisError>),
+    RedisPool(#[from] RedisPoolError),
 }
 
 // TODO: Handle Database, Redis and Pool errors in a better way

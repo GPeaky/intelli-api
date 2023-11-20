@@ -1,5 +1,5 @@
 use crate::{config::constants::*, error::AppResult};
-use bb8_redis::redis::{aio::Connection, AsyncCommands};
+use deadpool_redis::{redis::AsyncCommands, Connection};
 
 const MOTION: &str = "motion";
 const SESSION: &str = "session";

@@ -19,7 +19,7 @@ pub trait UserRepositoryTrait {
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     fn validate_password(&self, password: &str, hash: &str) -> bool;
-    fn active_pools(&self) -> (u32, u32);
+    fn active_pools(&self) -> (usize, usize);
 }
 
 #[async_trait]
@@ -39,14 +39,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.query_opt(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT * FROM users
                     WHERE id = $1
                 "#,
-                &[id],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[id]).await?
         };
 
         if let Some(row) = row {
@@ -68,14 +70,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.query_opt(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT EMAIL FROM users
                     WHERE email = $1
                 "#,
-                &[&email],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[&email]).await?
         };
 
         Ok(row.is_some())
@@ -89,14 +93,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.query_opt(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT * FROM users
                     WHERE email = $1
                 "#,
-                &[&email],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[&email]).await?
         };
 
         if let Some(row) = row {
@@ -110,7 +116,7 @@ impl UserRepositoryTrait for UserRepository {
     }
 
     // TODO: Remove this function from this trait
-    fn active_pools(&self) -> (u32, u32) {
+    fn active_pools(&self) -> (usize, usize) {
         self.db_conn.active_pools()
     }
 

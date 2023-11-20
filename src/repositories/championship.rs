@@ -5,7 +5,7 @@ use crate::{
     entity::{Championship, FromRow},
     error::{AppError, AppResult, ChampionshipError},
 };
-use bb8_redis::redis::{self, AsyncCommands};
+use deadpool_redis::redis::{self, AsyncCommands};
 use std::sync::Arc;
 
 pub struct ChampionshipRepository {
@@ -25,13 +25,15 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            conn.query(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT port FROM championship
                 "#,
-                &[],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query(&cached_statement, &[]).await?
         };
 
         let ports_in_use = rows.iter().map(|row| row.get("port")).collect();
@@ -47,14 +49,16 @@ impl ChampionshipRepository {
         let row = {
             let conn = self.database.pg.get().await?;
 
-            conn.query_opt(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT * FROM championship
                     WHERE id = $1
                 "#,
-                &[&id],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[&id]).await?
         };
 
         if let Some(row) = row {
@@ -72,14 +76,16 @@ impl ChampionshipRepository {
         let row = {
             let conn = self.database.pg.get().await?;
 
-            conn.query_opt(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT id FROM championship
                     WHERE name = $1
                 "#,
-                &[&name],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[&name]).await?
         };
 
         if row.is_some() {
@@ -128,16 +134,19 @@ impl ChampionshipRepository {
 
         let rows = {
             let conn = self.database.pg.get().await?;
-            conn.query(
-                r#"
-                    SELECT c.*
-                    FROM championship c
-                    JOIN user_championships uc ON c.id = uc.championship_id
-                    WHERE uc.user_id = $1
-                "#,
-                &[user_id],
-            )
-            .await?
+
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                        SELECT c.*
+                        FROM championship c
+                        JOIN user_championships uc ON c.id = uc.championship_id
+                        WHERE uc.user_id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.query(&cached_statement, &[user_id]).await?
         };
 
         let championships = rows
@@ -158,8 +167,9 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            conn.query(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     SELECT
                         c.id
                     FROM
@@ -169,9 +179,10 @@ impl ChampionshipRepository {
                     WHERE
                         uc.user_id = $1
                 "#,
-                &[user_id],
-            )
-            .await?
+                )
+                .await?;
+
+            conn.query(&cached_statement, &[user_id]).await?
         };
 
         Ok(rows.len())

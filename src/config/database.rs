@@ -1,55 +1,50 @@
-use bb8_postgres::{tokio_postgres::NoTls, PostgresConnectionManager};
-use bb8_redis::{
-    bb8::{self, Pool},
-    RedisConnectionManager,
-};
+use deadpool_postgres::tokio_postgres::{Config, NoTls};
+use deadpool_redis::{Config as RedisConfig, PoolConfig, Runtime};
 use dotenvy::var;
+use std::str::FromStr;
 use tracing::info;
 
 pub struct Database {
-    pub redis: Pool<RedisConnectionManager>,
-    pub pg: Pool<PostgresConnectionManager<NoTls>>,
+    pub redis: deadpool_redis::Pool,
+    pub pg: deadpool_postgres::Pool,
 }
 
 impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
-        let pg_manager = PostgresConnectionManager::new_from_stringlike(
-            var("DATABASE_URL").expect("Database url not found"),
-            NoTls,
-        )
-        .unwrap();
 
-        let pg = bb8::Pool::builder()
-            .min_idle(Some(1))
-            .max_size(100) // Test if 100 is a good number
-            .build(pg_manager)
-            .await
-            .unwrap();
-
-        let manager =
-            RedisConnectionManager::new(var("REDIS_URL").expect("Environment REDIS_URL not found"))
+        // Postgres connection
+        let config =
+            Config::from_str(&var("DATABASE_URL").expect("Environment DATABASE_URL not found"))
                 .unwrap();
 
-        let redis = bb8::Pool::builder()
-            .min_idle(Some(1))
-            .max_size(1000) // Test if 100 is a good number
-            .build(manager)
-            .await
+        let manager = deadpool_postgres::Manager::new(config, NoTls);
+        let pg = deadpool_postgres::Pool::builder(manager)
+            .max_size(100)
+            .build()
             .unwrap();
+
+        // Redis connection
+        let mut config =
+            RedisConfig::from_url(var("REDIS_URL").expect("Environment REDIS_URL not found"));
+        config.pool = Some(PoolConfig::new(100)); // Set the pool size
+
+        let redis = config
+            .create_pool(Some(Runtime::Tokio1))
+            .expect("Failed to create Redis pool");
 
         Self { redis, pg }
     }
 
-    pub fn active_pools(&self) -> (u32, u32) {
-        let redis = self.redis.state();
-        let pg = self.pg.state();
+    pub fn active_pools(&self) -> (usize, usize) {
+        let redis = self.redis.status();
+        let pg = self.pg.status();
 
         info!(
             "Active connections: Redis: {:#?}, Postgres: {:#?}",
             redis, pg
         );
 
-        (redis.connections, pg.connections)
+        (redis.size, pg.size)
     }
 }

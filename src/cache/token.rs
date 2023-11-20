@@ -3,8 +3,8 @@ use crate::{
     dtos::TokenType,
     error::AppResult,
 };
-use bb8_redis::redis::AsyncCommands;
 use core::panic;
+use deadpool_redis::redis::AsyncCommands;
 use std::sync::Arc;
 
 pub struct TokenCache {

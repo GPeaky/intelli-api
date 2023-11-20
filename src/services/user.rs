@@ -59,11 +59,18 @@ impl UserServiceTrait for UserService {
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
                 let conn = self.db_conn.pg.get().await?;
-                conn.execute(
-                    r#"
+
+                let cached_statement = conn
+                    .prepare_cached(
+                        r#"
                         INSERT INTO users (id, email, username, avatar, provider, active)
                         VALUES ($1,$2,$3,$4,$5, true)
                     "#,
+                    )
+                    .await?;
+
+                conn.execute(
+                    &cached_statement,
                     &[
                         &id,
                         &register.email,
@@ -79,11 +86,18 @@ impl UserServiceTrait for UserService {
                 let hashed_password =
                     hash(register.password.clone().unwrap(), DEFAULT_COST).unwrap();
                 let conn = self.db_conn.pg.get().await?;
-                conn.execute(
-                    r#"
-                        INSERT INTO users (id, email, username, password, avatar)
-                        VALUES ($1,$2,$3,$4,$5)
+
+                let cached_statement = conn
+                    .prepare_cached(
+                        r#"
+                        INSERT INTO users (id, email, username, password, avatar, active)
+                        VALUES ($1,$2,$3,$4,$5, false)
                     "#,
+                    )
+                    .await?;
+
+                conn.execute(
+                    &cached_statement,
                     &[
                         &id,
                         &register.email,
@@ -106,23 +120,26 @@ impl UserServiceTrait for UserService {
         {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.execute(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     DELETE FROM user_championships
                     WHERE user_id = $1
                 "#,
-                &[id],
-            )
-            .await?;
+                )
+                .await?;
 
-            conn.execute(
-                r#"
-                    DELETE FROM users
-                    WHERE ID = $1
+            let cached2 = conn
+                .prepare_cached(
+                    r#"
+                    DELETE FROM user
+                    WHERE id = $1
                 "#,
-                &[id],
-            )
-            .await?;
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[id]).await?;
+            conn.execute(&cached2, &[id]).await?;
         }
 
         self.cache.user.delete(id).await?;
@@ -163,15 +180,19 @@ impl UserServiceTrait for UserService {
         {
             let hashed_password = hash(password, DEFAULT_COST).unwrap();
             let conn = self.db_conn.pg.get().await?;
-            conn.execute(
-                r#"
-                    UPDATE users
-                    SET password = $1
-                    WHERE id = $2
-                "#,
-                &[&hashed_password, id],
-            )
-            .await?;
+
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                        UPDATE users
+                        SET password = $1
+                        WHERE id = $2
+                    "#,
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[&hashed_password, id])
+                .await?;
         }
 
         self.cache.user.delete(id).await?;
@@ -207,15 +228,17 @@ impl UserServiceTrait for UserService {
         {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.execute(
-                r#"
-                    UPDATE users
-                    SET active = true
-                    WHERE id = $1
-                "#,
-                &[id],
-            )
-            .await?;
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                        UPDATE users
+                        SET active = true
+                        WHERE id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[id]).await?;
         }
 
         self.cache.user.delete(id).await?;
@@ -228,15 +251,17 @@ impl UserServiceTrait for UserService {
         {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.execute(
-                r#"
-                    UPDATE users
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                    UPDATE user
                     SET active = false
                     WHERE id = $1
                 "#,
-                &[id],
-            )
-            .await?;
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[id]).await?;
         }
 
         self.cache.user.delete(id).await?;

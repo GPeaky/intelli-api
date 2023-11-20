@@ -5,7 +5,7 @@ use crate::{
     error::{AppResult, CacheError},
 };
 use axum::async_trait;
-use bb8_redis::redis::AsyncCommands;
+use deadpool_redis::redis::AsyncCommands;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
 use tracing::error;

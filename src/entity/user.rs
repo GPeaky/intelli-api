@@ -1,7 +1,7 @@
 use super::FromRow;
 use crate::error::AppResult;
-use bb8_postgres::tokio_postgres::Row;
 use chrono::{DateTime, Utc};
+use deadpool_postgres::tokio_postgres::Row;
 use postgres_types::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};

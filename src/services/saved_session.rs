@@ -30,14 +30,16 @@ impl SavedSessionService {
         {
             let conn = self.db_conn.pg.get().await?;
 
-            conn.execute(
-                r#"
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
                     INSERT INTO saved_session (id)
                     VALUES ($1)
                 "#,
-                &[&id],
-            )
-            .await?;
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[&id]).await?;
         }
 
         Ok(())

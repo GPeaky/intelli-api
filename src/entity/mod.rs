@@ -3,8 +3,8 @@ mod saved_sessions;
 mod user;
 
 use crate::error::AppResult;
-use bb8_postgres::tokio_postgres::Row;
 pub use championship::*;
+use deadpool_postgres::tokio_postgres::Row;
 #[allow(unused)]
 pub use saved_sessions::*;
 pub use user::*;
