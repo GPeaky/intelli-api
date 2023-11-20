@@ -39,12 +39,13 @@ rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tower = { version = "0.4.13", features = ["tokio", "timeout", "load-shed"] }
 axum = { version = "0.6.20", features = ["form", "macros", "headers", "ws"] }
-sqlx = { version = "0.7.2", features = ["runtime-tokio", "chrono", "postgres"] }
 lettre = { version = "0.11.1", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
 ] }
+bb8-postgres = { version = "0.8.1", features = ["with-chrono-0_4"] }
+postgres-types = { version = "0.2.6", features = ["derive", "with-chrono-0_4"] }
 
 
 [profile.release]

@@ -2,8 +2,8 @@ use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     dtos::ChampionshipCacheData,
-    entity::Championship,
-    error::{AppResult, ChampionshipError},
+    entity::{Championship, FromRow},
+    error::{AppError, AppResult, ChampionshipError},
 };
 use bb8_redis::redis::{self, AsyncCommands};
 use std::sync::Arc;
@@ -21,14 +21,20 @@ impl ChampionshipRepository {
         }
     }
 
-    pub async fn ports_in_use(&self) -> AppResult<Vec<(i32,)>> {
-        let ports_in_use = sqlx::query_as::<_, (i32,)>(
-            r#"
-                SELECT port FROM championship
-            "#,
-        )
-        .fetch_all(&self.database.pg)
-        .await?;
+    pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
+        let rows = {
+            let conn = self.database.pg.get().await?;
+
+            conn.query(
+                r#"
+                    SELECT port FROM championship
+                "#,
+                &[],
+            )
+            .await?
+        };
+
+        let ports_in_use = rows.iter().map(|row| row.get("port")).collect();
 
         Ok(ports_in_use)
     }
@@ -38,49 +44,58 @@ impl ChampionshipRepository {
             return Ok(Some(championship));
         };
 
-        let championship = sqlx::query_as::<_, Championship>(
-            r#"
-                SELECT * FROM championship
-                WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&self.database.pg)
-        .await?;
+        let row = {
+            let conn = self.database.pg.get().await?;
 
-        if let Some(ref championship) = championship {
-            self.cache.championship.set(championship).await?;
+            conn.query_opt(
+                r#"
+                    SELECT * FROM championship
+                    WHERE id = $1
+                "#,
+                &[&id],
+            )
+            .await?
+        };
+
+        if let Some(row) = row {
+            let championship = Championship::from_row(&row)?;
+
+            self.cache.championship.set(&championship).await?;
+            return Ok(Some(championship));
         }
 
-        Ok(championship)
+        Ok(None)
     }
 
     // TODO: Add cache for this function
     pub async fn exist_by_name(&self, name: &str) -> AppResult<()> {
-        let championship = sqlx::query_as::<_, (i32,)>(
-            r#"
-                SELECT id FROM championship
-                WHERE name = $1
-            "#,
-        )
-        .bind(name)
-        .fetch_optional(&self.database.pg)
-        .await?;
+        let row = {
+            let conn = self.database.pg.get().await?;
 
-        if championship.is_some() {
+            conn.query_opt(
+                r#"
+                    SELECT id FROM championship
+                    WHERE name = $1
+                "#,
+                &[&name],
+            )
+            .await?
+        };
+
+        if row.is_some() {
             Err(ChampionshipError::AlreadyExists)?;
         }
 
         Ok(())
     }
 
-    // TODO: Check if this is the best way to do this
+    // TODO: Move it to cache struct
     pub async fn session_data(&self, id: &i32) -> AppResult<ChampionshipCacheData> {
         let Some(_) = self.find(id).await? else {
             Err(ChampionshipError::NotFound)?
         };
 
-        let mut redis = self.database.redis.get().await.unwrap();
+        let mut redis = self.database.redis.get().await?;
         let (session_data, motion_data, participants_data, session_history_key): (
             Vec<u8>,
             Vec<u8>,
@@ -93,10 +108,9 @@ impl ChampionshipRepository {
             .get(&format!("f123:championships:{}:participants", id))
             .keys(&format!("f123:championships:{}:history:*", id))
             .query_async(&mut *redis)
-            .await
-            .unwrap();
+            .await?;
 
-        let history_data: Vec<Vec<u8>> = redis.mget(&session_history_key).await.unwrap_or_default();
+        let history_data: Vec<Vec<u8>> = redis.mget(&session_history_key).await?;
 
         Ok(ChampionshipCacheData {
             session_data,
@@ -112,21 +126,24 @@ impl ChampionshipRepository {
             return Ok(championships);
         };
 
-        let championships = sqlx::query_as::<_, Championship>(
-            r#"
-                SELECT
-                    c.*
-                FROM
-                    championship c
-                JOIN
-                    user_championships uc ON c.id = uc.championship_id
-                WHERE
-                    uc.user_id = $1
-            "#,
-        )
-        .bind(user_id)
-        .fetch_all(&self.database.pg)
-        .await?;
+        let rows = {
+            let conn = self.database.pg.get().await?;
+            conn.query(
+                r#"
+                    SELECT c.*
+                    FROM championship c
+                    JOIN user_championships uc ON c.id = uc.championship_id
+                    WHERE uc.user_id = $1
+                "#,
+                &[user_id],
+            )
+            .await?
+        };
+
+        let championships = rows
+            .iter()
+            .map(|r| Championship::from_row(r))
+            .collect::<Result<Vec<Championship>, AppError>>()?;
 
         self.cache
             .championship
@@ -138,22 +155,25 @@ impl ChampionshipRepository {
 
     // TODO: Add cache for this function
     pub async fn user_champions_len(&self, user_id: &i32) -> AppResult<usize> {
-        let championships = sqlx::query_as::<_, (i32,)>(
-            r#"
-                SELECT
-                    c.id
-                FROM
-                    championship c
-                JOIN
-                    user_championships uc ON c.id = uc.championship_id
-                WHERE
-                    uc.user_id = $1
-            "#,
-        )
-        .bind(user_id)
-        .fetch_all(&self.database.pg)
-        .await?;
+        let rows = {
+            let conn = self.database.pg.get().await?;
 
-        Ok(championships.len())
+            conn.query(
+                r#"
+                    SELECT
+                        c.id
+                    FROM
+                        championship c
+                    JOIN
+                        user_championships uc ON c.id = uc.championship_id
+                    WHERE
+                        uc.user_id = $1
+                "#,
+                &[user_id],
+            )
+            .await?
+        };
+
+        Ok(rows.len())
     }
 }

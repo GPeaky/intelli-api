@@ -1,23 +1,29 @@
+use bb8_postgres::{tokio_postgres::NoTls, PostgresConnectionManager};
 use bb8_redis::{
     bb8::{self, Pool},
     RedisConnectionManager,
 };
 use dotenvy::var;
-use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::info;
 
 pub struct Database {
     pub redis: Pool<RedisConnectionManager>,
-    pub pg: PgPool,
+    pub pg: Pool<PostgresConnectionManager<NoTls>>,
 }
 
 impl Database {
     pub async fn default() -> Self {
         info!("Connecting Databases...");
-        let pg = PgPoolOptions::new()
-            .min_connections(1)
-            .max_connections(100)
-            .connect(&var("DATABASE_URL").expect("Environment DATABASE_URL not found"))
+        let pg_manager = PostgresConnectionManager::new_from_stringlike(
+            var("DATABASE_URL").expect("Database url not found"),
+            NoTls,
+        )
+        .unwrap();
+
+        let pg = bb8::Pool::builder()
+            .min_idle(Some(1))
+            .max_size(1000) // Test if 100 is a good number
+            .build(pg_manager)
             .await
             .unwrap();
 
@@ -37,8 +43,8 @@ impl Database {
 
     pub fn active_pools(&self) -> (u32, u32) {
         let redis = self.redis.state();
-        let pg = self.pg.size();
+        let pg = self.pg.state();
 
-        (redis.connections, pg)
+        (redis.connections, pg.connections)
     }
 }

@@ -49,52 +49,56 @@ impl ChampionshipService {
             .exist_by_name(&payload.name)
             .await?;
 
-        sqlx::query(
-            r#"
-                INSERT INTO championship (id, port, name, category, season, owner_id)
-                VALUES ($1,$2,$3,$4,$5,$6)
-            "#,
-        )
-        .bind(id)
-        .bind(port)
-        .bind(payload.name)
-        .bind(payload.category)
-        .bind(payload.season)
-        .bind(user_id)
-        .execute(&self.db.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         INSERT INTO championship (id, port, name, category, season, owner_id)
+        //         VALUES ($1,$2,$3,$4,$5,$6)
+        //     "#,
+        // )
+        // .bind(id)
+        // .bind(port)
+        // .bind(payload.name)
+        // .bind(payload.category)
+        // .bind(payload.season)
+        // .bind(user_id)
+        // .execute(&self.db.pg)
+        // .await?;
 
-        sqlx::query(
-            r#"
-                INSERT INTO user_championships (user_id, championship_id)
-                VALUES ($1,$2)
-            "#,
-        )
-        .bind(user_id)
-        .bind(id)
-        .execute(&self.db.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         INSERT INTO user_championships (user_id, championship_id)
+        //         VALUES ($1,$2)
+        //     "#,
+        // )
+        // .bind(user_id)
+        // .bind(id)
+        // .execute(&self.db.pg)
+        // .await?;
 
-        self.remove_port(port).await?;
-        self.cache.championship.delete_by_user_id(user_id).await?;
+        // self.remove_port(port).await?;
+        // self.cache.championship.delete_by_user_id(user_id).await?;
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 
     pub async fn delete_championship(&self, id: &i32) -> AppResult<()> {
-        sqlx::query(
-            r#"
-                DELETE FROM championship WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.db.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         DELETE FROM championship WHERE id = $1
+        //     "#,
+        // )
+        // .bind(id)
+        // .execute(&self.db.pg)
+        // .await?;
 
-        self.cache.championship.delete(id).await?;
-        info!("Championship deleted with success: {id}");
+        // self.cache.championship.delete(id).await?;
+        // info!("Championship deleted with success: {id}");
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 
     async fn available_ports(
@@ -103,7 +107,7 @@ impl ChampionshipService {
         let mut all_ports: FxHashSet<i32> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
-        for (port,) in ports_in_use {
+        for port in ports_in_use {
             all_ports.remove(&port);
         }
 

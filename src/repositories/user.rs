@@ -1,7 +1,7 @@
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    entity::User,
+    entity::{FromRow, User},
     error::AppResult,
 };
 use axum::async_trait;
@@ -36,22 +36,27 @@ impl UserRepositoryTrait for UserRepository {
             return Ok(Some(user));
         };
 
-        let user = sqlx::query_as::<_, User>(
-            r#"
-                SELECT * FROM users
-                WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&self.db_conn.pg)
-        .await?;
+        let row = {
+            let conn = self.db_conn.pg.get().await?;
 
-        // TODO: Check if handle it in a better way
-        if let Some(ref user) = user {
-            self.cache.user.set(user).await?;
+            conn.query_opt(
+                r#"
+                    SELECT * FROM users
+                    WHERE id = $1
+                "#,
+                &[id],
+            )
+            .await?
+        };
+
+        if let Some(row) = row {
+            let user = User::from_row(&row)?;
+            self.cache.user.set(&user).await?;
+
+            return Ok(Some(user));
         }
 
-        Ok(user)
+        Ok(None)
     }
 
     // TODO: Check if this function is necessary with cache
@@ -60,17 +65,20 @@ impl UserRepositoryTrait for UserRepository {
             return Ok(true);
         };
 
-        let user = sqlx::query_as::<_, (String,)>(
-            r#"
-                SELECT email FROM users
-                WHERE email = $1
-            "#,
-        )
-        .bind(email)
-        .fetch_optional(&self.db_conn.pg)
-        .await?;
+        let row = {
+            let conn = self.db_conn.pg.get().await?;
 
-        Ok(user.is_some())
+            conn.query_opt(
+                r#"
+                    SELECT EMAIL FROM users
+                    WHERE email = $1
+                "#,
+                &[&email],
+            )
+            .await?
+        };
+
+        Ok(row.is_some())
     }
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
@@ -78,22 +86,27 @@ impl UserRepositoryTrait for UserRepository {
             return Ok(Some(user));
         };
 
-        let user = sqlx::query_as::<_, User>(
-            r#"
-                SELECT * from users
-                WHERE email = $1
-            "#,
-        )
-        .bind(email)
-        .fetch_optional(&self.db_conn.pg)
-        .await?;
+        let row = {
+            let conn = self.db_conn.pg.get().await?;
 
-        // TODO: Check if handle it in a better way
-        if let Some(ref user) = user {
-            self.cache.user.set(user).await?;
+            conn.query_opt(
+                r#"
+                    SELECT * FROM users
+                    WHERE email = $1
+                "#,
+                &[&email],
+            )
+            .await?
+        };
+
+        if let Some(row) = row {
+            let user = User::from_row(&row)?;
+            self.cache.user.set(&user).await?;
+
+            return Ok(Some(user));
         }
 
-        Ok(user)
+        Ok(None)
     }
 
     // TODO: Remove this function from this trait

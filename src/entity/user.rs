@@ -1,30 +1,43 @@
+use bb8_postgres::tokio_postgres::Row;
 use chrono::{DateTime, Utc};
+use postgres_types::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Type};
 use std::sync::Arc;
+
+use crate::error::AppResult;
+
+use super::FromRow;
 
 pub type UserExtension = Arc<User>;
 
-#[derive(Type, Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(
+    Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql,
+)]
+#[postgres(name = "provider")]
 #[archive(check_bytes)]
-#[sqlx(type_name = "provider")]
 pub enum Provider {
+    #[postgres(name = "Local")]
     Local,
+    #[postgres(name = "Google")]
     Google,
 }
 
-#[derive(Type, Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql)]
+#[postgres(name = "role")]
 #[archive(check_bytes)]
-#[sqlx(type_name = "role")]
 pub enum Role {
+    #[postgres(name = "Free")]
     Free,
+    #[postgres(name = "Premium")]
     Premium,
+    #[postgres(name = "Business")]
     Business,
+    #[postgres(name = "Admin")]
     Admin,
 }
 
-#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize, FromRow)]
+#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
 #[archive(check_bytes)]
 pub struct User {
     pub id: i32,
@@ -42,4 +55,21 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing)]
     pub updated_at: DateTime<Utc>,
+}
+
+impl FromRow for User {
+    fn from_row<'a>(row: &'a Row) -> AppResult<Self> {
+        Ok(User {
+            id: row.try_get("id")?,
+            email: row.try_get("email")?,
+            username: row.try_get("username")?,
+            password: row.try_get("password")?,
+            provider: row.try_get("provider")?,
+            avatar: row.try_get("avatar")?,
+            role: row.try_get("role")?,
+            active: row.try_get("active")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
 }

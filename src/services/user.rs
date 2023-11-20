@@ -45,93 +45,97 @@ impl UserServiceTrait for UserService {
     }
 
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32> {
-        {
-            let user_exists = self.user_repo.user_exists(&register.email).await?;
+        // {
+        //     let user_exists = self.user_repo.user_exists(&register.email).await?;
 
-            if user_exists {
-                Err(UserError::AlreadyExists)?
-            }
-        }
+        //     if user_exists {
+        //         Err(UserError::AlreadyExists)?
+        //     }
+        // }
 
-        let id;
-        {
-            let mut rand = StdRng::from_entropy();
-            id = rand.gen_range(600000000..700000000);
-        }
+        // let id;
+        // {
+        //     let mut rand = StdRng::from_entropy();
+        //     id = rand.gen_range(600000000..700000000);
+        // }
 
-        let hashed_password = register
-            .password
-            .as_ref()
-            .map(|password| hash(password, DEFAULT_COST).unwrap());
+        // let hashed_password = register
+        //     .password
+        //     .as_ref()
+        //     .map(|password| hash(password, DEFAULT_COST).unwrap());
 
-        match &register.provider {
-            Some(provider) if provider.eq(&Provider::Google) => {
-                sqlx::query(
-                    r#"
-                        INSERT INTO users (id, email, username, avatar, provider, active)
-                        VALUES ($1,$2,$3,$4,$5, true)
-                    "#,
-                )
-                .bind(id)
-                .bind(&register.email)
-                .bind(&register.username)
-                .bind(&register.avatar)
-                .bind(&register.provider)
-                .execute(&self.db_conn.pg)
-                .await?;
-            }
+        // match &register.provider {
+        //     Some(provider) if provider.eq(&Provider::Google) => {
+        //         sqlx::query(
+        //             r#"
+        //                 INSERT INTO users (id, email, username, avatar, provider, active)
+        //                 VALUES ($1,$2,$3,$4,$5, true)
+        //             "#,
+        //         )
+        //         .bind(id)
+        //         .bind(&register.email)
+        //         .bind(&register.username)
+        //         .bind(&register.avatar)
+        //         .bind(&register.provider)
+        //         .execute(&self.db_conn.pg)
+        //         .await?;
+        //     }
 
-            None => {
-                sqlx::query(
-                    r#"
-                    INSERT INTO users (id, email, username, password, avatar)
-                    VALUES ($1,$2,$3,$4,$5)
-                "#,
-                )
-                .bind(id)
-                .bind(&register.email)
-                .bind(&register.username)
-                .bind(hashed_password)
-                .bind(format!(
-                    "https://ui-avatars.com/api/?name={}",
-                    &register.username
-                ))
-                .execute(&self.db_conn.pg)
-                .await?;
-            }
+        //     None => {
+        //         sqlx::query(
+        //             r#"
+        //             INSERT INTO users (id, email, username, password, avatar)
+        //             VALUES ($1,$2,$3,$4,$5)
+        //         "#,
+        //         )
+        //         .bind(id)
+        //         .bind(&register.email)
+        //         .bind(&register.username)
+        //         .bind(hashed_password)
+        //         .bind(format!(
+        //             "https://ui-avatars.com/api/?name={}",
+        //             &register.username
+        //         ))
+        //         .execute(&self.db_conn.pg)
+        //         .await?;
+        //     }
 
-            _ => Err(UserError::InvalidProvider)?,
-        }
+        //     _ => Err(UserError::InvalidProvider)?,
+        // }
 
-        info!("User created: {}", register.username);
-        Ok(id)
+        // info!("User created: {}", register.username);
+        // Ok(id)
+
+        todo!()
     }
 
     async fn delete(&self, id: &i32) -> AppResult<()> {
-        sqlx::query(
-            r#"
-                DELETE FROM user_championships
-                WHERE user_id = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.db_conn.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         DELETE FROM user_championships
+        //         WHERE user_id = $1
+        //     "#,
+        // )
+        // .bind(id)
+        // .execute(&self.db_conn.pg)
+        // .await?;
 
-        sqlx::query(
-            r#"
-                DELETE FROM users
-                WHERE ID = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.db_conn.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         DELETE FROM users
+        //         WHERE ID = $1
+        //     "#,
+        // )
+        // .bind(id)
+        // .execute(&self.db_conn.pg)
+        // .await?;
 
-        self.cache.user.delete(id).await?;
-        info!("User deleted with success: {}", id);
+        // self.cache.user.delete(id).await?;
+        // info!("User deleted with success: {}", id);
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
@@ -162,23 +166,25 @@ impl UserServiceTrait for UserService {
     }
 
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
-        // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
-        sqlx::query(
-            r#"
-                UPDATE users
-                SET password = $1
-                WHERE id = $2
-            "#,
-        )
-        .bind(hash(password, DEFAULT_COST).unwrap())
-        .bind(id)
-        .execute(&self.db_conn.pg)
-        .await?;
+        // // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
+        // sqlx::query(
+        //     r#"
+        //         UPDATE users
+        //         SET password = $1
+        //         WHERE id = $2
+        //     "#,
+        // )
+        // .bind(hash(password, DEFAULT_COST).unwrap())
+        // .bind(id)
+        // .execute(&self.db_conn.pg)
+        // .await?;
 
-        self.cache.user.delete(id).await?;
-        info!("User password reseated with success: {}", id);
+        // self.cache.user.delete(id).await?;
+        // info!("User password reseated with success: {}", id);
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 
     async fn activate_with_token(&self, token: &str) -> AppResult<()> {
@@ -205,38 +211,42 @@ impl UserServiceTrait for UserService {
     }
 
     async fn activate(&self, id: &i32) -> AppResult<()> {
-        sqlx::query(
-            r#"
-                UPDATE users
-                SET active = true
-                WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.db_conn.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         UPDATE users
+        //         SET active = true
+        //         WHERE id = $1
+        //     "#,
+        // )
+        // .bind(id)
+        // .execute(&self.db_conn.pg)
+        // .await?;
 
-        self.cache.user.delete(id).await?;
-        info!("User activated with success: {}", id);
+        // self.cache.user.delete(id).await?;
+        // info!("User activated with success: {}", id);
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 
     async fn deactivate(&self, id: &i32) -> AppResult<()> {
-        sqlx::query(
-            r#"
-                UPDATE users
-                SET active = false
-                WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.db_conn.pg)
-        .await?;
+        // sqlx::query(
+        //     r#"
+        //         UPDATE users
+        //         SET active = false
+        //         WHERE id = $1
+        //     "#,
+        // )
+        // .bind(id)
+        // .execute(&self.db_conn.pg)
+        // .await?;
 
-        self.cache.user.delete(id).await?;
-        info!("User deactivated with success: {}", id);
+        // self.cache.user.delete(id).await?;
+        // info!("User deactivated with success: {}", id);
 
-        Ok(())
+        // Ok(())
+
+        todo!()
     }
 }

@@ -24,15 +24,11 @@ impl UserCache {
 
     #[inline(always)]
     pub async fn get_by_email(&self, email: &str) -> AppResult<Option<User>> {
-        let bytes: Option<Vec<u8>>;
-
-        // Drop the connection as soon as possible
-        {
+        let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
-            bytes = conn
-                .get(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", email))
-                .await?;
-        }
+            conn.get(&format!("{REDIS_USER_PREFIX}:{EMAIL}:{}", email))
+                .await?
+        };
 
         if let Some(bytes) = bytes {
             let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
@@ -52,18 +48,15 @@ impl UserCache {
 #[async_trait]
 impl EntityCache for UserCache {
     type Entity = User;
+    const EXPIRATION: usize = REDIS_CACHE_EXPIRATION;
 
     #[inline(always)]
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
-        let bytes: Option<Vec<u8>>;
-
-        // Drop the connection as soon as possible
-        {
+        let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
-            bytes = conn
-                .get(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
-                .await?;
-        }
+            conn.get(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
+                .await?
+        };
 
         if let Some(bytes) = bytes {
             let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };

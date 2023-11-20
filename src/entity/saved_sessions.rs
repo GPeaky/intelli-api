@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
-use sqlx::prelude::FromRow;
 
-#[derive(Serialize, Deserialize, Archive, RSerialize, RDeserialize, FromRow)]
+#[derive(Serialize, Deserialize, Archive, RSerialize, RDeserialize)]
 pub struct SavedSession<'a> {
     pub id: i32,
     pub events: &'a [u8],

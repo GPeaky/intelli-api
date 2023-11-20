@@ -4,9 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use bb8_postgres::tokio_postgres::Error as PgError;
 use bb8_redis::{bb8::RunError, redis::RedisError};
 use thiserror::Error;
-use tracing::info;
+use tracing::{error, info};
 
 pub type AppResult<T> = Result<T, AppError>;
 
@@ -25,11 +26,13 @@ pub enum AppError {
     #[error(transparent)]
     Socket(#[from] SocketError),
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] PgError),
+    #[error(transparent)]
+    DbPool(#[from] RunError<PgError>),
     #[error(transparent)]
     Redis(#[from] RedisError),
     #[error(transparent)]
-    Pool(#[from] RunError<RedisError>),
+    RedisPool(#[from] RunError<RedisError>),
 }
 
 // TODO: Handle Database, Redis and Pool errors in a better way
@@ -43,7 +46,7 @@ impl IntoResponse for AppError {
             AppError::Cache(e) => e.into_response(),
             AppError::Socket(e) => e.into_response(),
             AppError::Database(e) => {
-                info!("{e}");
+                error!("{e}");
 
                 AppErrorResponse::send(
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -51,8 +54,8 @@ impl IntoResponse for AppError {
                 )
             }
 
-            AppError::Redis(e) => {
-                info!("{e}");
+            AppError::DbPool(e) => {
+                error!("{e}");
 
                 AppErrorResponse::send(
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -60,8 +63,17 @@ impl IntoResponse for AppError {
                 )
             }
 
-            AppError::Pool(e) => {
-                info!("{e}");
+            AppError::Redis(e) => {
+                error!("{e}");
+
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Cache Error".to_owned()),
+                )
+            }
+
+            AppError::RedisPool(e) => {
+                error!("{e}");
 
                 AppErrorResponse::send(
                     StatusCode::INTERNAL_SERVER_ERROR,
