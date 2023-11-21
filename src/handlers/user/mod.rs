@@ -4,6 +4,8 @@ use crate::{
     error::{AppResult, CommonError},
     states::AppState,
 };
+pub(crate) use admin::*;
+
 use ntex::web;
 
 mod admin;

@@ -1,7 +1,6 @@
 use cache::RedisCache;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
-use middlewares::{Admin, Authentication};
 use mimalloc::MiMalloc;
 use ntex::web;
 use services::FirewallService;
@@ -35,10 +34,9 @@ async fn main() {
 
     web::server(move || {
         web::App::new()
-            .configure(routes::service_routes)
+            .configure(routes::api_routes)
+            .configure(routes::admin_routes)
             .state(app_state.clone())
-            .wrap(Admin)
-            .wrap(Authentication)
     })
     .bind(var("HOST").unwrap())
     .unwrap()
