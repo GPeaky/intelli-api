@@ -30,7 +30,7 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
 
     cfg.service(
         web::scope("/auth/logout")
-            .route("/", web::get().to(logout))
+            .route("", web::get().to(logout))
             .wrap(Authentication),
     );
 
