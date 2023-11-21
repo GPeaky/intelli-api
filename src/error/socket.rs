@@ -1,8 +1,4 @@
-use crate::response::AppErrorResponse;
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use ntex::{http::StatusCode, web};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -13,22 +9,20 @@ pub enum SocketError {
     AlreadyExists,
     #[error("Socket is not active")]
     NotActive,
-    // #[error("Rule Already Exists")]
-    // RuleAlreadyExists,
-    // #[error("Command failed")]
-    // CommandFailed,
 }
 
-impl IntoResponse for SocketError {
-    fn into_response(self) -> Response {
-        let status_code = match self {
+impl web::error::WebResponseError for SocketError {
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
             SocketError::NotFound => StatusCode::BAD_REQUEST,
             SocketError::AlreadyExists => StatusCode::CONFLICT,
             SocketError::NotActive => StatusCode::NOT_FOUND,
-            // SocketError::RuleAlreadyExists => StatusCode::CONFLICT,
-            // SocketError::CommandFailed => StatusCode::INTERNAL_SERVER_ERROR,
-        };
-
-        AppErrorResponse::send(status_code, Some(self.to_string()))
+        }
     }
 }

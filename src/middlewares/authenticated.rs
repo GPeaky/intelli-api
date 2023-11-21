@@ -1,44 +1,71 @@
-use crate::{
-    error::{AppResult, TokenError, UserError},
-    repositories::UserRepositoryTrait,
-    services::TokenServiceTrait,
-    states::UserState,
-};
-use axum::{
-    extract::State,
-    http::{header::AUTHORIZATION, Request},
-    middleware::Next,
-    response::Response,
-};
 use std::sync::Arc;
 
-pub async fn auth_handler<T>(
-    State(state): State<UserState>,
-    mut req: Request<T>,
-    next: Next<T>,
-) -> AppResult<Response> {
-    let header = req
-        .headers()
-        .get(AUTHORIZATION)
-        .ok_or(TokenError::MissingToken)?;
+use ntex::{
+    service::{Middleware, Service, ServiceCtx},
+    util::BoxFuture,
+    web,
+};
 
-    let mut header = header.to_str().map_err(|_| TokenError::InvalidToken)?;
-    if !header.starts_with("Bearer ") {
-        return Err(TokenError::InvalidToken)?;
+use crate::{error::{TokenError, UserError}, states::AppState, services::TokenServiceTrait, repositories::UserRepositoryTrait};
+
+pub struct Authentication;
+
+impl<S> Middleware<S> for Authentication {
+    type Service = AuthenticationMiddleware<S>;
+
+    fn create(&self, service: S) -> Self::Service {
+        AuthenticationMiddleware { service }
     }
+}
 
-    header = &header[7..];
+pub struct AuthenticationMiddleware<S> {
+    service: S,
+}
 
-    let token = state.token_service.validate(header)?;
+impl<S, Err> Service<web::WebRequest<Err>> for AuthenticationMiddleware<S>
+where
+    S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
+    Err: web::ErrorRenderer,
+{
+    type Response = web::WebResponse;
+    type Error = web::Error;
+    type Future<'f> = BoxFuture<'f, Result<Self::Response, Self::Error>> where Self: 'f;
 
-    let Some(user) = state.user_repository.find(&token.claims.sub).await? else {
-        return Err(UserError::NotFound)?;
-    };
+    ntex::forward_poll_ready!(service);
 
-    if !user.active {
-        return Err(UserError::NotVerified)?;
+    fn call<'a>(
+        &'a self,
+        req: web::WebRequest<Err>,
+        ctx: ServiceCtx<'a, Self>,
+    ) -> Self::Future<'_> {
+        if let Some(state) = req.app_state::<AppState>() {
+            let header = req
+                .headers()
+                .get("Authorization")
+                .ok_or(TokenError::MissingToken)?;
+
+            let mut header = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+            if !header.starts_with("Bearer ") {
+                return Box::pin(async move { Err(TokenError::InvalidToken.into()) });
+            }
+
+            header = &header[7..];
+
+            let token = state.token_service.validate(header)?;
+
+            if let Some(user) = state.user_repository.find(&token.claims.sub).await? else {
+                return Err(UserError::NotFound)?
+            }
+
+            if !user.active {
+                return Err(UserError::Inactive)?
+            }
+
+            req.extensions_mut().insert(Arc::new(user))
+
+            ctx.call(&self.service, req);
+        } else {
+            panic!("No app state")
+        }
     }
-
-    req.extensions_mut().insert(Arc::new(user));
-    Ok(next.run(req).await)
 }

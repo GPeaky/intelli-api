@@ -1,11 +1,7 @@
 use super::{user::UserError, CacheError, ChampionshipError, CommonError, SocketError, TokenError};
-use crate::response::AppErrorResponse;
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
+use ntex::{http::StatusCode, web};
 use thiserror::Error;
 use tracing::error;
 
@@ -36,50 +32,61 @@ pub enum AppError {
 }
 
 // TODO: Handle Database, Redis and Pool errors in a better way
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
+impl web::error::WebResponseError for AppError {
+    fn error_response(&self, r: &web::HttpRequest) -> web::HttpResponse {
         match self {
-            AppError::User(e) => e.into_response(),
-            AppError::Championship(e) => e.into_response(),
-            AppError::Token(e) => e.into_response(),
-            AppError::Common(e) => e.into_response(),
-            AppError::Cache(e) => e.into_response(),
-            AppError::Socket(e) => e.into_response(),
+            AppError::User(e) => e.error_response(r),
+            AppError::Championship(e) => e.error_response(r),
+            AppError::Token(e) => e.error_response(r),
+            AppError::Common(e) => e.error_response(r),
+            AppError::Cache(e) => e.error_response(r),
+            AppError::Socket(e) => e.error_response(r),
             AppError::Database(e) => {
                 error!("{e}");
 
-                AppErrorResponse::send(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some("Database Error".to_owned()),
-                )
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Database error")
             }
 
             AppError::DbPool(e) => {
                 error!("{e}");
 
-                AppErrorResponse::send(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some("Cache Error".to_owned()),
-                )
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Pool error")
             }
 
             AppError::Redis(e) => {
                 error!("{e}");
 
-                AppErrorResponse::send(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some("Cache Error".to_owned()),
-                )
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Cache error")
             }
 
             AppError::RedisPool(e) => {
                 error!("{e}");
 
-                AppErrorResponse::send(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some("Cache Error".to_owned()),
-                )
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Cache pool error")
             }
+        }
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
+            AppError::User(e) => e.status_code(),
+            AppError::Championship(e) => e.status_code(),
+            AppError::Token(e) => e.status_code(),
+            AppError::Common(e) => e.status_code(),
+            AppError::Cache(e) => e.status_code(),
+            AppError::Socket(e) => e.status_code(),
+            AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::DbPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

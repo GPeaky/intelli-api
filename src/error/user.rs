@@ -1,8 +1,4 @@
-use crate::response::AppErrorResponse;
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use ntex::{http::StatusCode, web};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -31,9 +27,15 @@ pub enum UserError {
     WrongProvider,
 }
 
-impl IntoResponse for UserError {
-    fn into_response(self) -> Response {
-        let status_code = match self {
+impl web::error::WebResponseError for UserError {
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
             UserError::NotFound => StatusCode::NOT_FOUND,
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
@@ -45,8 +47,6 @@ impl IntoResponse for UserError {
             UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
             UserError::InvalidProvider => StatusCode::BAD_REQUEST,
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
-        };
-
-        AppErrorResponse::send(status_code, Some(self.to_string()))
+        }
     }
 }
