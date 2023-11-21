@@ -1,6 +1,9 @@
 use crate::{
     handlers::{
-        auth::{callback, forgot_password, login, logout, register, reset_password, verify_email},
+        auth::{
+            callback, forgot_password, login, logout, refresh_token, register, reset_password,
+            verify_email,
+        },
         championships::{
             all_championships, create_championship, get_championship, socket_status, start_socket,
             stop_socket,
@@ -19,6 +22,7 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
             .route("/google/callback", web::get().to(callback))
             .route("/register", web::post().to(register))
             .route("/login", web::post().to(login))
+            .route("/refresh", web::get().to(refresh_token))
             .route("/verify/email", web::get().to(verify_email))
             .route("/forgot-password", web::post().to(forgot_password))
             .route("/reset-password", web::post().to(reset_password)), // .route("/logout", web::get().to(logout)),

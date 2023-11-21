@@ -21,6 +21,7 @@ pub struct SocketStatus {
     pub connections: usize,
 }
 
+#[allow(dead_code)]
 pub struct ChampionshipCacheData {
     pub session_data: Vec<u8>,
     pub motion_data: Vec<u8>,

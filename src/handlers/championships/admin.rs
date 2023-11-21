@@ -36,5 +36,6 @@ pub async fn delete_championship(
 pub async fn update_championship() -> AppResult<impl web::Responder> {
     todo!("Update a championship by id");
 
+    #[allow(unreachable_code)]
     Ok(web::HttpResponse::Ok())
 }

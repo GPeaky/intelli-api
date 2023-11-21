@@ -98,6 +98,7 @@ impl F123Service {
         sockets.contains_key(id)
     }
 
+    #[allow(unused)]
     pub async fn subscribe_to_championship_events(
         &self,
         championship_id: &i32,

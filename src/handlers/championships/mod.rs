@@ -9,7 +9,7 @@ use ntex::web;
 
 pub(crate) use admin::*;
 pub(crate) use sockets::*;
-pub(crate) use web_socket::*;
+// pub(crate) use web_socket::*;
 
 mod admin;
 mod sockets;
