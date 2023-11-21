@@ -42,7 +42,7 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
 
     cfg.service(
         web::scope("/championships")
-            .route("/", web::post().to(create_championship))
+            .route("", web::post().to(create_championship))
             .route("/all", web::get().to(all_championships))
             .route("/{id}", web::get().to(get_championship))
             .route("/{id}/socket/start", web::get().to(start_socket))
