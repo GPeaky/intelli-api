@@ -1,9 +1,11 @@
+use crate::entity::UserExtension;
 use ntex::web;
 // mod api;
 
 pub async fn handler_test(req: web::HttpRequest) -> impl web::Responder {
-    println!("{:?}", req);
-    web::HttpResponse::Ok().body("Hello world!")
+    let user = req.extensions().get::<UserExtension>().unwrap().clone();
+
+    web::HttpResponse::Ok().json(&user)
 }
 
 #[inline(always)]

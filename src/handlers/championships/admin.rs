@@ -1,30 +1,24 @@
 use crate::{
-    entity::Championship,
     error::{AppResult, ChampionshipError},
-    states::UserState,
+    states::AppState,
 };
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Response},
-    Json,
-};
-use hyper::StatusCode;
+use ntex::web;
 
 #[inline(always)]
 pub async fn user_championships(
-    State(state): State<UserState>,
-    Path(user_id): Path<i32>,
-) -> AppResult<Json<Vec<Championship>>> {
+    state: web::types::State<AppState>,
+    user_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let championships = state.championship_repository.find_all(&user_id).await?;
 
-    Ok(Json(championships))
+    Ok(web::HttpResponse::Ok().json(&championships))
 }
 
 #[inline(always)]
 pub async fn delete_championship(
-    State(state): State<UserState>,
-    Path(id): Path<i32>,
-) -> AppResult<Response> {
+    state: web::types::State<AppState>,
+    id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let Some(championship) = state.championship_repository.find(&id).await? else {
         Err(ChampionshipError::NotFound)?
     };
@@ -34,7 +28,7 @@ pub async fn delete_championship(
         .delete_championship(&championship.id)
         .await?;
 
-    Ok(StatusCode::OK.into_response())
+    Ok(web::HttpResponse::Ok())
 }
 
 // TODO: Update a championship by id

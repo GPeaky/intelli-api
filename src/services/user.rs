@@ -7,7 +7,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
-use axum::async_trait;
+use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;

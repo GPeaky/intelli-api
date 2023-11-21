@@ -1,28 +1,23 @@
 use crate::{
     dtos::SocketStatus,
     error::{AppResult, ChampionshipError},
-    handlers::championships::websocket_active_connections,
-    states::UserState,
+    // handlers::championships::websocket_active_connections,
+    states::AppState,
 };
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Response},
-    Json,
-};
-use hyper::StatusCode;
+use ntex::web;
 use std::sync::Arc;
 
 #[inline(always)]
-pub async fn active_sockets(State(state): State<UserState>) -> AppResult<Json<Vec<i32>>> {
+pub async fn active_sockets(state: web::types::State<AppState>) -> AppResult<impl web::Responder> {
     let sockets = state.f123_service.get_active_socket_ids().await;
-    Ok(Json(sockets))
+    Ok(web::HttpResponse::Ok().json(&sockets))
 }
 
 #[inline(always)]
 pub async fn start_socket(
-    State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
-) -> AppResult<Response> {
+    state: web::types::State<AppState>,
+    championship_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
         Err(ChampionshipError::NotFound)?
     };
@@ -32,40 +27,43 @@ pub async fn start_socket(
         .setup_championship_listening_socket(championship.port, Arc::new(championship.id))
         .await?;
 
-    Ok(StatusCode::CREATED.into_response())
+    Ok(web::HttpResponse::Created())
 }
 
 #[inline(always)]
 pub async fn socket_status(
-    State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
-) -> AppResult<Json<SocketStatus>> {
+    state: web::types::State<AppState>,
+    championship_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
+    #[allow(unused_mut)]
     let mut num_connections = 0;
     let socket_active = state
         .f123_service
         .is_championship_socket_active(&championship.id)
         .await;
 
-    if socket_active {
-        num_connections = websocket_active_connections(championship_id).await;
-    }
+    // if socket_active {
+    // num_connections = websocket_active_connections(*championship_id).await;
+    // }
 
-    Ok(Json(SocketStatus {
+    let socket_status = SocketStatus {
         active: socket_active,
         connections: num_connections,
-    }))
+    };
+
+    Ok(web::HttpResponse::Ok().json(&socket_status))
 }
 
 #[inline(always)]
 pub async fn stop_socket(
-    State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
-) -> AppResult<Response> {
-    state.f123_service.stop_socket(championship_id).await?;
+    state: web::types::State<AppState>,
+    championship_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
+    state.f123_service.stop_socket(*championship_id).await?;
 
-    Ok(StatusCode::OK.into_response())
+    Ok(web::HttpResponse::Ok())
 }

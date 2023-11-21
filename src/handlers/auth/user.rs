@@ -115,14 +115,20 @@ pub(crate) async fn refresh_token(
 // TODO: Implement logout
 #[inline(always)]
 pub(crate) async fn logout(
-    _state: web::types::State<AppState>,
-    // Extension(user): web::types::,
-    _query: web::types::Query<FingerprintQuery>,
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    query: web::types::Query<FingerprintQuery>,
 ) -> AppResult<impl web::Responder> {
-    // state
-    //     .token_service
-    //     .remove_refresh_token(&user.id, &query.fingerprint)
-    //     .await?;
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
+    state
+        .token_service
+        .remove_refresh_token(&user.id, &query.fingerprint)
+        .await?;
 
     Ok(web::HttpResponse::Ok())
 }

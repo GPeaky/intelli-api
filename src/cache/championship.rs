@@ -4,7 +4,7 @@ use crate::{
     entity::Championship,
     error::{AppResult, CacheError},
 };
-use axum::async_trait;
+use async_trait::async_trait;
 use deadpool_redis::redis::AsyncCommands;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;

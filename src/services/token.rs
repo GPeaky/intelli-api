@@ -3,15 +3,16 @@ use crate::{
     dtos::{TokenClaim, TokenType},
     error::{AppResult, TokenError},
 };
-use axum::async_trait;
+use async_trait::async_trait;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use ntex::rt::spawn_blocking;
 use std::{fs, sync::Arc};
 
 pub struct TokenService {
-    header: Header,
+    header: Arc<Header>,
     cache: Arc<RedisCache>,
     validation: Validation,
-    encoding_key: EncodingKey,
+    encoding_key: Arc<EncodingKey>,
     decoding_key: DecodingKey,
 }
 
@@ -34,14 +35,18 @@ pub trait TokenServiceTrait {
 #[async_trait]
 impl TokenServiceTrait for TokenService {
     fn new(cache: &Arc<RedisCache>) -> Self {
+        let header = Header::new(jsonwebtoken::Algorithm::RS256);
+
+        let encoding_key = EncodingKey::from_rsa_pem(
+            &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),
+        )
+        .unwrap();
+
         Self {
             cache: cache.clone(),
-            header: Header::new(jsonwebtoken::Algorithm::RS256),
+            header: Arc::from(header),
+            encoding_key: Arc::from(encoding_key),
             validation: Validation::new(jsonwebtoken::Algorithm::RS256),
-            encoding_key: EncodingKey::from_rsa_pem(
-                &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),
-            )
-            .unwrap(),
             decoding_key: DecodingKey::from_rsa_pem(
                 &fs::read("certs/jsonwebtoken.crt").expect("Unable to read key"),
             )
@@ -55,14 +60,20 @@ impl TokenServiceTrait for TokenService {
     }
 
     async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
+        let header = self.header.clone();
+        let encoding_key = self.encoding_key.clone();
         let token_claim = TokenClaim {
             sub,
             exp: token_type.set_expiration(),
             token_type,
         };
 
-        encode(&self.header, &token_claim, &self.encoding_key)
-            .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
+        spawn_blocking(move || {
+            encode(&header, &token_claim, &encoding_key)
+                .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
+        })
+        .await
+        .unwrap()
     }
 
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {

@@ -9,6 +9,8 @@ pub enum CommonError {
     NotPortsAvailable,
     #[error("Mail Server Error")]
     MailServerError,
+    #[error("Internal Server Error")]
+    InternalServerError,
 }
 
 impl web::error::WebResponseError for CommonError {
@@ -23,6 +25,7 @@ impl web::error::WebResponseError for CommonError {
             CommonError::FormValidationFailed => StatusCode::BAD_REQUEST,
             CommonError::NotPortsAvailable => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::MailServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

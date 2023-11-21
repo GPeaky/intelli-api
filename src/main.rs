@@ -1,7 +1,7 @@
 use cache::RedisCache;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
-use middlewares::Authentication;
+use middlewares::{Admin, Authentication};
 use mimalloc::MiMalloc;
 use ntex::web;
 use services::FirewallService;
@@ -16,11 +16,10 @@ mod config;
 mod dtos;
 mod entity;
 mod error;
-// mod handlers;
+mod handlers;
 mod middlewares;
 mod protos;
 mod repositories;
-mod response;
 mod routes;
 mod services;
 mod states;
@@ -29,16 +28,17 @@ mod states;
 async fn main() {
     dotenv().ok();
     initialize_tracing_subscriber();
-    // let db = Arc::new(Database::default().await);
-    // let redis_cache = Arc::new(RedisCache::new(&db));
-    // let firewall_service = Arc::new(FirewallService::new());
-    // let app_state = Arc::new(AppStateInner::new(&db, firewall_service, &redis_cache).await);
+    let db = Arc::new(Database::default().await);
+    let redis_cache = Arc::new(RedisCache::new(&db));
+    let firewall_service = Arc::new(FirewallService::new());
+    let app_state = Arc::new(AppStateInner::new(&db, firewall_service, &redis_cache).await);
 
     web::server(move || {
         web::App::new()
             .configure(routes::service_routes)
+            .state(app_state.clone())
+            .wrap(Admin)
             .wrap(Authentication)
-        // .state(app_state.clone())
     })
     .bind(var("HOST").unwrap())
     .unwrap()

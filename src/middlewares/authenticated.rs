@@ -1,12 +1,17 @@
-use std::sync::Arc;
-
+use crate::{
+    error::{CommonError, TokenError, UserError},
+    repositories::UserRepositoryTrait,
+    services::TokenServiceTrait,
+    states::AppState,
+};
 use ntex::{
     service::{Middleware, Service, ServiceCtx},
     util::BoxFuture,
     web,
 };
+use std::sync::Arc;
 
-use crate::{error::{TokenError, UserError}, states::AppState, services::TokenServiceTrait, repositories::UserRepositoryTrait};
+const BEARER_PREFIX: &str = "Bearer ";
 
 pub struct Authentication;
 
@@ -38,34 +43,37 @@ where
         req: web::WebRequest<Err>,
         ctx: ServiceCtx<'a, Self>,
     ) -> Self::Future<'_> {
-        if let Some(state) = req.app_state::<AppState>() {
-            let header = req
-                .headers()
-                .get("Authorization")
-                .ok_or(TokenError::MissingToken)?;
+        let state = req.app_state::<AppState>().cloned();
+        let header = req.headers().get("Authorization").cloned();
 
-            let mut header = header.to_str().map_err(|_| TokenError::InvalidToken)?;
-            if !header.starts_with("Bearer ") {
-                return Box::pin(async move { Err(TokenError::InvalidToken.into()) });
-            }
+        let fut = async move {
+            let state = state.ok_or(CommonError::InternalServerError)?;
+            let header = {
+                let header = header.ok_or(TokenError::MissingToken)?;
+                let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
 
-            header = &header[7..];
+                if !header_str.starts_with(BEARER_PREFIX) {
+                    return Err(TokenError::InvalidToken.into());
+                }
 
-            let token = state.token_service.validate(header)?;
+                header_str[BEARER_PREFIX.len()..].to_string()
+            };
 
-            if let Some(user) = state.user_repository.find(&token.claims.sub).await? else {
-                return Err(UserError::NotFound)?
-            }
+            let id = state.token_service.validate(&header)?.claims.sub;
+            let user = state
+                .user_repository
+                .find(&id)
+                .await?
+                .ok_or(UserError::NotFound)?;
 
             if !user.active {
-                return Err(UserError::Inactive)?
+                return Err(web::Error::from(UserError::NotVerified));
             }
 
-            req.extensions_mut().insert(Arc::new(user))
+            req.extensions_mut().insert(Arc::new(user));
+            ctx.call(&self.service, req).await
+        };
 
-            ctx.call(&self.service, req);
-        } else {
-            panic!("No app state")
-        }
+        Box::pin(fut)
     }
 }

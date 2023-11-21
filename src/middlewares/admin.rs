@@ -1,23 +1,47 @@
+use ntex::{util::BoxFuture, web, Middleware, Service, ServiceCtx};
+
 use crate::{
     entity::{Role, UserExtension},
-    error::{AppResult, UserError},
+    error::UserError,
 };
-use axum::{http::Request, middleware::Next, response::Response};
-use tracing::info;
 
-pub async fn admin_handler<T>(req: Request<T>, next: Next<T>) -> AppResult<Response> {
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(UserError::Unauthorized)?;
+pub struct Admin;
+pub struct AdminMiddleware<S> {
+    service: S,
+}
 
-    if user.role != Role::Admin {
-        info!(
-            "User: {}, tried to access to admin area without having admin role",
-            user.id
-        );
-        Err(UserError::Unauthorized)?
+impl<S> Middleware<S> for Admin {
+    type Service = AdminMiddleware<S>;
+
+    fn create(&self, service: S) -> Self::Service {
+        AdminMiddleware { service }
     }
+}
 
-    Ok(next.run(req).await)
+impl<S, Err> Service<web::WebRequest<Err>> for AdminMiddleware<S>
+where
+    S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
+    Err: web::ErrorRenderer,
+{
+    type Response = web::WebResponse;
+    type Error = web::Error;
+    type Future<'f> = BoxFuture<'f, Result<Self::Response, Self::Error>> where Self: 'f;
+
+    ntex::forward_poll_ready!(service);
+
+    fn call<'a>(
+        &'a self,
+        req: web::WebRequest<Err>,
+        ctx: ServiceCtx<'a, Self>,
+    ) -> Self::Future<'_> {
+        let Some(user) = req.extensions().get::<UserExtension>().cloned() else {
+            return Box::pin(async { Err(UserError::Unauthorized)? });
+        };
+
+        if user.role != Role::Admin {
+            return Box::pin(async { Err(UserError::Unauthorized)? });
+        }
+
+        Box::pin(ctx.call(&self.service, req))
+    }
 }

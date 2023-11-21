@@ -1,16 +1,11 @@
 use crate::{
     dtos::CreateChampionshipDto,
-    entity::{Championship, Role, UserExtension},
+    entity::{Role, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
-    states::UserState,
-};
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Response},
-    Extension, Form, Json,
+    states::AppState,
 };
 use garde::Validate;
-use hyper::StatusCode;
+use ntex::web;
 
 pub(crate) use admin::*;
 pub(crate) use sockets::*;
@@ -22,13 +17,19 @@ mod web_socket;
 
 #[inline(always)]
 pub async fn create_championship(
-    Extension(user): Extension<UserExtension>,
-    State(state): State<UserState>,
-    Form(form): Form<CreateChampionshipDto>,
-) -> AppResult<Response> {
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    form: web::types::Form<CreateChampionshipDto>,
+) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::FormValidationFailed)?;
     }
+
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
 
     {
         let championships_len = state
@@ -61,30 +62,36 @@ pub async fn create_championship(
 
     state
         .championship_service
-        .create_championship(form, &user.id)
+        .create_championship(form.into_inner(), &user.id)
         .await?;
 
-    Ok(StatusCode::CREATED.into_response())
+    Ok(web::HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn get_championship(
-    State(state): State<UserState>,
-    Path(championship_id): Path<i32>,
-) -> AppResult<Json<Championship>> {
+    state: web::types::State<AppState>,
+    championship_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
-    Ok(Json(championship))
+    Ok(web::HttpResponse::Ok().json(&championship))
 }
 
 #[inline(always)]
 pub async fn all_championships(
-    State(state): State<UserState>,
-    Extension(user): Extension<UserExtension>,
-) -> AppResult<Json<Vec<Championship>>> {
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+) -> AppResult<impl web::Responder> {
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
     let championships = state.championship_repository.find_all(&user.id).await?;
 
-    Ok(Json(championships))
+    Ok(web::HttpResponse::Ok().json(&championships))
 }
