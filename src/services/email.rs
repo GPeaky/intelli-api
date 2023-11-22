@@ -2,12 +2,12 @@ use crate::{
     dtos::EmailUser,
     error::{AppResult, CommonError},
 };
-use askama::Template;
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
+use sailfish::TemplateOnce;
 use std::str::FromStr;
 use tracing::error;
 
@@ -36,7 +36,7 @@ impl EmailService {
         }
     }
 
-    pub async fn send_mail<'a, T: Template>(
+    pub async fn send_mail<'a, T: TemplateOnce>(
         &self,
         user: EmailUser<'a>,
         subject: &'a str,
@@ -50,7 +50,7 @@ impl EmailService {
             ))
             .header(ContentType::TEXT_HTML)
             .subject(subject)
-            .body(body.render().unwrap())
+            .body(body.render_once().unwrap())
             .expect("Message builder error");
 
         self.mailer.send(message).await.map_err(|e| {

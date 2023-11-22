@@ -3,25 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Password Recovery</title>
+    <title>Verify Your Email Address</title>
     <style>
       @import "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
     </style>
   </head>
   <body class="bg-gray-100 p-6">
     <div class="bg-white max-w-lg mx-auto p-8 rounded shadow">
-      <h1 class="text-2xl mb-4">Password Recovery</h1>
+      <h1 class="text-2xl mb-4">Welcome to Our Platform</h1>
       <p class="mb-6">
-        It seems you've forgotten your password. Don't worry, we all do from
-        time to time. Click on the link below to set a new password.
+        We're thrilled to have you here. We just need you to verify your email
+        address to continue.
       </p>
       <a
-        href="{{ reset_password_link }}"
-        class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
-        >Reset Password</a
+        href="<%= verification_link %>"
+        class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+        >Verify Email Address</a
       >
       <p class="mt-6 text-gray-600">
-        If you didn't request a password reset, simply ignore this email.
+        If you didn't request this email, simply ignore it.
       </p>
     </div>
   </body>
