@@ -25,13 +25,8 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
             .route("/refresh", web::get().to(refresh_token))
             .route("/verify/email", web::get().to(verify_email))
             .route("/forgot-password", web::post().to(forgot_password))
-            .route("/reset-password", web::post().to(reset_password)), // .route("/logout", web::get().to(logout)),
-    );
-
-    cfg.service(
-        web::scope("/auth")
-            .route("/logout", web::get().to(logout))
-            .wrap(Authentication),
+            .route("/reset-password", web::post().to(reset_password))
+            .route("/logout", web::get().to(logout)),
     );
 
     cfg.service(
