@@ -2,7 +2,8 @@ use cache::RedisCache;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use mimalloc::MiMalloc;
-use ntex::web;
+use ntex::{http, web};
+use ntex_cors::Cors;
 use services::FirewallService;
 use states::AppStateInner;
 use std::sync::Arc;
@@ -37,6 +38,16 @@ async fn main() {
             .configure(routes::api_routes)
             .configure(routes::admin_routes)
             .state(app_state.clone())
+            .wrap(
+                Cors::new()
+                    .allowed_origin("https://intellitelemetry.live")
+                    .allowed_origin("http://localhost:5173")
+                    .allowed_methods(vec!["GET", "POST", "DELETE"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .max_age(3600)
+                    .finish(),
+            )
     })
     .bind(var("HOST").unwrap())
     .unwrap()
