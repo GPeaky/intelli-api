@@ -96,6 +96,7 @@ impl ChampionshipRepository {
     }
 
     // TODO: Move it to cache struct
+    #[allow(unused)]
     pub async fn session_data(&self, id: &i32) -> AppResult<ChampionshipCacheData> {
         let Some(_) = self.find(id).await? else {
             Err(ChampionshipError::NotFound)?
