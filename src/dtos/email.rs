@@ -1,20 +1,20 @@
 use super::RegisterUserDto;
-use askama::Template;
+use sailfish::TemplateOnce;
 
-#[derive(Template)]
-#[template(path = "verify_email.html")]
+#[derive(TemplateOnce)]
+#[template(path = "verify_email.stpl")]
 pub struct VerifyEmail<'a> {
     pub verification_link: &'a str,
 }
 
-#[derive(Template)]
-#[template(path = "reset_password.html")]
+#[derive(TemplateOnce)]
+#[template(path = "reset_password.stpl")]
 pub struct ResetPassword<'a> {
     pub reset_password_link: &'a str,
 }
 
-#[derive(Template)]
-#[template(path = "password_changed.html")]
+#[derive(TemplateOnce)]
+#[template(path = "password_changed.stpl")]
 pub struct PasswordChanged {}
 
 #[derive(Debug)]
