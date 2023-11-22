@@ -40,16 +40,12 @@ async fn main() {
             .state(app_state.clone())
             .wrap(
                 Cors::new()
-                    .allowed_origin("http://localhost:5173")
                     .allowed_origin("https://intellitelemetry.live")
-                    .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
-                    .allowed_headers(vec![
-                        http::header::AUTHORIZATION,
-                        http::header::ACCEPT,
-                        http::header::CONTENT_TYPE,
-                        http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                    ])
-                    .max_age(0) // Development
+                    .allowed_origin("http://localhost:5173")
+                    .allowed_methods(vec!["GET", "POST", "DELETE"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .max_age(3600)
                     .finish(),
             )
     })
