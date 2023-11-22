@@ -17,7 +17,7 @@ impl WebSocketCounter {
         }
     }
 
-    pub async fn get(&self, championship_id: i32) -> Option<usize> {
+    pub fn get(&self, championship_id: i32) -> Option<usize> {
         let connections = self.connections.read();
 
         let Some(counter) = connections.get(&championship_id) else {
@@ -27,7 +27,7 @@ impl WebSocketCounter {
         Some(counter.load(Ordering::Relaxed))
     }
 
-    pub async fn increment(&self, championship_id: i32) {
+    pub fn increment(&self, championship_id: i32) {
         let mut connections = self.connections.write();
 
         let counter = connections
@@ -37,7 +37,7 @@ impl WebSocketCounter {
         counter.fetch_add(1, Ordering::Relaxed);
     }
 
-    pub async fn decrement(&self, championship_id: i32) {
+    pub fn decrement(&self, championship_id: i32) {
         let mut connections = self.connections.write();
 
         let counter = connections

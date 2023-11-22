@@ -31,12 +31,12 @@ pub async fn session_socket(
     }
 
     //* Testing counter
-    COUNTER.increment(championship.id).await;
+    COUNTER.increment(championship.id);
 
-    let get = COUNTER.get(championship.id).await;
+    let get = COUNTER.get(championship.id);
     info!("Counter Size: {:?}", get);
 
-    COUNTER.decrement(championship.id).await;
+    COUNTER.decrement(championship.id);
 
     info!("Implement socket");
     // web::ws::start(req, fn_factory_with_config())
