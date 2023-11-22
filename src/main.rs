@@ -49,7 +49,7 @@ async fn main() {
                         http::header::CONTENT_TYPE,
                         http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
                     ])
-                    .max_age(3600)
+                    .max_age(0) // Development
                     .finish(),
             )
     })
