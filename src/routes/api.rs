@@ -29,8 +29,8 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
     );
 
     cfg.service(
-        web::scope("/auth/logout")
-            .route("", web::get().to(logout))
+        web::scope("/auth")
+            .route("/logout", web::get().to(logout))
             .wrap(Authentication),
     );
 
