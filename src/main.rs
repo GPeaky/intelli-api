@@ -38,13 +38,16 @@ async fn main() {
             .configure(routes::api_routes)
             .configure(routes::admin_routes)
             .state(app_state.clone())
-            .wrap(web::middleware::Logger::default())
             .wrap(
                 Cors::new()
                     .allowed_origin("https://intellitelemetry.live")
                     .allowed_origin("http://localhost:5173")
                     .allowed_methods(vec!["GET", "POST", "DELETE"])
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_headers(vec![
+                        http::header::AUTHORIZATION,
+                        http::header::ACCEPT,
+                        http::header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
+                    ])
                     .allowed_header(http::header::CONTENT_TYPE)
                     .max_age(3600)
                     .finish(),
