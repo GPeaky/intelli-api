@@ -6,9 +6,9 @@ use crate::{
 };
 use async_trait::async_trait;
 use deadpool_redis::redis::AsyncCommands;
+use log::error;
 use rkyv::{Deserialize, Infallible};
 use std::sync::Arc;
-use tracing::error;
 
 const ID: &str = "id";
 const USER_ID: &str = "user_id";

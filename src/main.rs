@@ -37,6 +37,7 @@ async fn main() {
             .configure(routes::api_routes)
             .configure(routes::admin_routes)
             .state(app_state.clone())
+            .wrap(web::middleware::Logger::default())
     })
     .bind(var("HOST").unwrap())
     .unwrap()

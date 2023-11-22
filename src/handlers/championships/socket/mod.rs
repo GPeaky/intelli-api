@@ -3,9 +3,9 @@ use crate::{
     states::AppState,
 };
 use counter::*;
+use log::info;
 use ntex::web;
 use once_cell::sync::Lazy;
-use tracing::info;
 
 mod counter;
 

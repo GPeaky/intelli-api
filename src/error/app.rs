@@ -1,9 +1,9 @@
 use super::{user::UserError, CacheError, ChampionshipError, CommonError, SocketError, TokenError};
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
+use log::error;
 use ntex::{http::StatusCode, web};
 use thiserror::Error;
-use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 

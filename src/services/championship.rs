@@ -5,11 +5,11 @@ use crate::{
     error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
+use log::info;
 use parking_lot::RwLock;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
-use tracing::info;
 
 pub struct ChampionshipService {
     db: Arc<Database>,

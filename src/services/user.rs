@@ -9,9 +9,9 @@ use crate::{
 };
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
+use log::{error, info};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
-use tracing::{error, info};
 
 pub struct UserService {
     #[allow(unused)]

@@ -18,7 +18,6 @@ prost = "0.12.3"
 garde = "0.16.2"
 askama = "0.12.1"
 bcrypt = "0.15.0"
-tracing = "0.1.40"
 dotenvy = "0.15.7"
 mimalloc = "0.1.39"
 rustc-hash = "1.1.0"
@@ -36,7 +35,6 @@ zerocopy = { version = "0.7.26", features = ["derive"] }
 serde = { version = "1.0.193", features = ["derive", "rc"] }
 chrono = { version = "0.4.31", features = ["serde", "rkyv"] }
 rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tokio-postgres = { version = "0.7.10", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.6", features = ["derive", "with-chrono-0_4"] }
 parking_lot = { version = "0.12.1", features = [
@@ -48,6 +46,8 @@ lettre = { version = "0.11.1", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
+env_logger = "0.10.1"
+log = "0.4.20"
 
 
 [profile.release]

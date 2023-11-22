@@ -9,12 +9,12 @@ use crate::{
     protos::{packet_header::PacketType, ToProtoMessage},
 };
 use flume::{bounded, Receiver};
+use log::{error, info};
 use ntex::rt;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use std::{sync::Arc, time::Instant};
 use tokio::{net::UdpSocket, task::JoinHandle, time::timeout};
-use tracing::{error, info};
 
 type ChanelData = Vec<u8>;
 type F123Channel = Arc<Receiver<ChanelData>>;

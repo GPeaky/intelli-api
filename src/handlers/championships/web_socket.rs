@@ -18,7 +18,7 @@
 //     Arc,
 // };
 // use tokio::sync::RwLock;
-// use tracing::{error, info};
+// use log::{error, info};
 
 // #[inline(always)]
 // async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {

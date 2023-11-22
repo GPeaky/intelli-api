@@ -3,8 +3,8 @@ use crate::{
     protos::{packet_header::PacketType, ToProtoMessage},
 };
 use flume::Sender;
+use log::error;
 use tokio::time::Instant;
-use tracing::error;
 
 pub struct PacketBatching {
     buf: Vec<Vec<u8>>,

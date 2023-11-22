@@ -8,8 +8,8 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
+use log::error;
 use std::str::FromStr;
-use tracing::error;
 
 pub struct EmailService {
     from_mailbox: Mailbox,

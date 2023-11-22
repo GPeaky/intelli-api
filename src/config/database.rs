@@ -1,8 +1,8 @@
 use deadpool_postgres::tokio_postgres::{Config, NoTls};
 use deadpool_redis::{Config as RedisConfig, PoolConfig, Runtime};
 use dotenvy::var;
+use log::info;
 use std::str::FromStr;
-use tracing::info;
 
 pub struct Database {
     pub redis: deadpool_redis::Pool,
