@@ -5,8 +5,8 @@ use crate::{
             verify_email,
         },
         championships::{
-            all_championships, create_championship, get_championship, socket_status, start_socket,
-            stop_socket,
+            all_championships, create_championship, get_championship, session_socket,
+            socket_status, start_socket, stop_socket,
         },
         heartbeat,
         user::user_data,
@@ -52,5 +52,8 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
     );
 
     cfg.route("/heartbeat", web::get().to(heartbeat));
-    // cfg.route("/championships/{id}/web_socket", web::get().to(web_socket));
+    cfg.route(
+        "/championships/{id}/web_socket",
+        web::get().to(session_socket),
+    );
 }

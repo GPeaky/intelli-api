@@ -8,10 +8,11 @@ use garde::Validate;
 use ntex::web;
 
 pub(crate) use admin::*;
+pub(crate) use socket::*;
 pub(crate) use sockets::*;
-// pub(crate) use web_socket::*;
 
 mod admin;
+mod socket;
 mod sockets;
 mod web_socket;
 

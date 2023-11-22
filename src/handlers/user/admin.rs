@@ -49,7 +49,7 @@ pub async fn disable_user(
         Err(UserError::NotFound)?
     };
 
-    if path_user.active == false {
+    if !path_user.active {
         Err(UserError::AlreadyInactive)?
     }
 

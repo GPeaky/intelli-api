@@ -20,61 +20,6 @@
 // use tokio::sync::RwLock;
 // use tracing::{error, info};
 
-// static DEFAULT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-// static ACTIVE_CONNECTIONS: Lazy<Arc<RwLock<FxHashMap<i32, AtomicUsize>>>> =
-//     Lazy::new(|| Arc::new(RwLock::new(FxHashMap::default())));
-
-// #[inline(always)]
-// pub async fn session_socket(
-//     State(state): State<UserState>,
-//     Path(championship_id): Path<i32>,
-//     ws: WebSocketUpgrade,
-// ) -> AppResult<Response> {
-//     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
-//         Err(ChampionshipError::NotFound)?
-//     };
-
-//     let socket_active = state
-//         .f123_service
-//         .is_championship_socket_active(&championship.id)
-//         .await;
-
-//     if !socket_active {
-//         Err(SocketError::NotActive)?
-//     }
-
-//     Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, championship)))
-// }
-
-// #[inline(always)]
-// async fn increment_counter(championship_id: i32) {
-//     let mut active_connections = ACTIVE_CONNECTIONS.write().await;
-//     let counter = active_connections
-//         .entry(championship_id)
-//         .or_insert(AtomicUsize::new(0));
-
-//     counter.fetch_add(1, Ordering::Relaxed);
-// }
-
-// #[inline(always)]
-// async fn decrement_counter(championship_id: i32) {
-//     let mut active_connections = ACTIVE_CONNECTIONS.write().await;
-//     let counter = active_connections
-//         .entry(championship_id)
-//         .or_insert(AtomicUsize::new(1));
-
-//     counter.fetch_sub(1, Ordering::Relaxed);
-// }
-
-// pub async fn websocket_active_connections(championship_id: i32) -> usize {
-//     let active_connection = ACTIVE_CONNECTIONS.read().await;
-//     let counter = active_connection
-//         .get(&championship_id)
-//         .unwrap_or(&DEFAULT_COUNTER);
-
-//     counter.load(Ordering::Relaxed)
-// }
-
 // #[inline(always)]
 // async fn handle_socket(mut socket: WebSocket, state: UserState, championship: Championship) {
 //     let Some(mut rx) = state

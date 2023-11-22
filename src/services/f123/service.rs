@@ -8,14 +8,12 @@ use crate::{
     error::{AppResult, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
 };
+use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use std::{sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
-    sync::{
-        broadcast::{Receiver, Sender},
-        RwLock,
-    },
+    sync::broadcast::{Receiver, Sender},
     task::JoinHandle,
     time::timeout,
 };
@@ -33,6 +31,7 @@ pub struct F123Service {
     firewall: Arc<FirewallService>,
 }
 
+// TODO: Check implementation of the RwLock
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>, firewall_service: Arc<FirewallService>) -> Self {
         Self {
@@ -49,8 +48,8 @@ impl F123Service {
         championship_id: Arc<i32>,
     ) -> AppResult<()> {
         {
-            let sockets = self.sockets.read().await;
-            let channels = self.channels.read().await;
+            let sockets = self.sockets.read();
+            let channels = self.channels.read();
 
             if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
                 error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
@@ -62,19 +61,19 @@ impl F123Service {
             .start_listening_on_socket(port, championship_id.clone())
             .await;
 
-        let mut sockets = self.sockets.write().await;
+        let mut sockets = self.sockets.write();
         sockets.insert(*championship_id, Arc::new(socket));
         Ok(())
     }
 
     pub async fn get_active_socket_ids(&self) -> Vec<i32> {
-        let sockets = self.sockets.read().await;
+        let sockets = self.sockets.read();
         sockets.iter().map(|entry| *entry.0).collect()
     }
 
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
-        let mut channels = self.channels.write().await;
-        let mut sockets = self.sockets.write().await;
+        let mut channels = self.channels.write();
+        let mut sockets = self.sockets.write();
 
         let channel_removed = channels.remove(&championship_id).is_some();
 
@@ -94,7 +93,7 @@ impl F123Service {
     }
 
     pub async fn is_championship_socket_active(&self, id: &i32) -> bool {
-        let sockets = self.sockets.read().await;
+        let sockets = self.sockets.read();
         sockets.contains_key(id)
     }
 
@@ -103,15 +102,15 @@ impl F123Service {
         &self,
         championship_id: &i32,
     ) -> Option<Receiver<ChanelData>> {
-        let channels = self.channels.read().await;
+        let channels = self.channels.read();
         let channel = channels.get(championship_id);
 
         Some(channel.unwrap().subscribe())
     }
 
     async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &i32) {
-        let mut sockets = sockets.write().await;
-        let mut channels = channels.write().await;
+        let mut sockets = sockets.write();
+        let mut channels = channels.write();
 
         if let Some(socket) = sockets.remove(championship_id) {
             socket.abort();
@@ -155,7 +154,7 @@ impl F123Service {
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
 
             {
-                let mut channels = channels.write().await;
+                let mut channels = channels.write();
                 channels.insert(*championship_id, Arc::new(tx.clone()));
             }
 

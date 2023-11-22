@@ -38,6 +38,7 @@ rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tokio-postgres = { version = "0.7.10", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.6", features = ["derive", "with-chrono-0_4"] }
+parking_lot = { version = "0.12.1", features = ["arc_lock", "hardware-lock-elision"] }
 lettre = { version = "0.11.1", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
