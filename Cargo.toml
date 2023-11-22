@@ -13,6 +13,7 @@ prost-build = "0.12.3"
 
 [dependencies]
 rand = "0.8.5"
+log = "0.4.20"
 flume = "0.11.0"
 prost = "0.12.3"
 garde = "0.16.2"
@@ -24,6 +25,7 @@ rustc-hash = "1.1.0"
 once_cell = "1.18.0"
 thiserror = "1.0.50"
 serde_trim = "1.0.0"
+env_logger = "0.10.1"
 jsonwebtoken = "9.1.0"
 async-trait = "0.1.74"
 deadpool-redis = "0.13.0"
@@ -46,8 +48,6 @@ lettre = { version = "0.11.1", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
-env_logger = "0.10.1"
-log = "0.4.20"
 
 
 [profile.release]
