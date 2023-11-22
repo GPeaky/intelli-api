@@ -4,7 +4,7 @@ use crate::{
     entity::{FromRow, User},
     error::AppResult,
 };
-use axum::async_trait;
+use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct UserRepository {

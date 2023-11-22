@@ -3,7 +3,7 @@ use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
     error::AppResult,
 };
-use axum::async_trait;
+use async_trait::async_trait;
 pub(crate) use f123::*;
 use std::sync::Arc;
 

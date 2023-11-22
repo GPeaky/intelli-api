@@ -1,9 +1,9 @@
-use crate::{error::AppResult, repositories::UserRepositoryTrait, states::UserState};
-use axum::{extract::State, Json};
+use crate::{error::AppResult, repositories::UserRepositoryTrait, states::AppState};
+use ntex::web;
 
 #[inline(always)]
-pub async fn pool_status(State(state): State<UserState>) -> AppResult<Json<(usize, usize)>> {
-    let (redis, pg) = state.user_repository.active_pools();
+pub async fn pool_status(state: web::types::State<AppState>) -> AppResult<impl web::Responder> {
+    let active_pools = state.user_repository.active_pools();
 
-    Ok(Json((redis, pg)))
+    Ok(web::HttpResponse::Ok().json(&active_pools))
 }

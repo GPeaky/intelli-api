@@ -1,8 +1,4 @@
-use crate::response::AppErrorResponse;
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use ntex::{http::StatusCode, web};
 use thiserror::Error;
 
 #[allow(unused)]
@@ -18,15 +14,19 @@ pub enum ChampionshipError {
     LimitReached,
 }
 
-impl IntoResponse for ChampionshipError {
-    fn into_response(self) -> Response {
-        let status_code = match self {
+impl web::error::WebResponseError for ChampionshipError {
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
             ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,
             ChampionshipError::NotFound => StatusCode::NOT_FOUND,
             ChampionshipError::LimitReached => StatusCode::BAD_REQUEST,
-        };
-
-        AppErrorResponse::send(status_code, Some(self.to_string()))
+        }
     }
 }

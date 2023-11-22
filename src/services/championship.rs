@@ -5,10 +5,10 @@ use crate::{
     error::{AppResult, CommonError},
     repositories::ChampionshipRepository,
 };
+use parking_lot::RwLock;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::info;
 
 pub struct ChampionshipService {
@@ -135,7 +135,7 @@ impl ChampionshipService {
     }
 
     async fn get_port(&self) -> AppResult<i32> {
-        let ports = self.ports.read().await;
+        let ports = self.ports.read();
 
         if let Some(port) = ports.iter().next() {
             Ok(*port)
@@ -145,7 +145,7 @@ impl ChampionshipService {
     }
 
     async fn remove_port(&self, port: i32) -> AppResult<()> {
-        let mut ports = self.ports.write().await;
+        let mut ports = self.ports.write();
         ports.remove(&port);
 
         Ok(())

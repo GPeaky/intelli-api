@@ -6,17 +6,14 @@ use crate::{
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
-    states::AuthState,
+    states::AppState,
 };
-use axum::{
-    extract::{Query, State},
-    response::Response,
-};
+use ntex::web;
 
 pub async fn callback(
-    State(state): State<AuthState>,
-    query: Query<GoogleCallbackQuery>,
-) -> AppResult<Response<String>> {
+    state: web::types::State<AppState>,
+    query: web::types::Query<GoogleCallbackQuery>,
+) -> AppResult<impl web::Responder> {
     let google_user = state
         .google_repository
         .account_info(&query.code)
@@ -58,10 +55,7 @@ pub async fn callback(
         access_token, refresh_token
     );
 
-    let resp = Response::builder()
-        .header("Location", redirect_url)
-        .status(302)
-        .body("Redirecting...".into());
-
-    Ok(resp.unwrap())
+    Ok(web::HttpResponse::Found()
+        .set_header("Location", redirect_url)
+        .body("Redirecting..."))
 }

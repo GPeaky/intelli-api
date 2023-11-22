@@ -1,24 +1,25 @@
 use crate::{
     entity::UserExtension,
-    error::{AppResult, UserError},
+    error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
-    states::UserState,
+    states::AppState,
 };
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Response},
-    Extension,
-};
-use hyper::StatusCode;
+use ntex::web;
 
 // TODO: Add admin user handlers
 #[inline(always)]
 pub async fn delete_user(
-    State(state): State<UserState>,
-    Path(id): Path<i32>,
-    Extension(user): Extension<UserExtension>,
-) -> AppResult<Response> {
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
     };
@@ -29,38 +30,44 @@ pub async fn delete_user(
 
     state.user_service.delete(&id).await?;
 
-    Ok(StatusCode::OK.into_response())
+    Ok(web::HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn disable_user(
-    State(state): State<UserState>,
-    Path(id): Path<i32>,
-    Extension(user): Extension<UserExtension>,
-) -> AppResult<Response> {
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
     };
 
-    if path_user.active.eq(&false) {
+    if !path_user.active {
         Err(UserError::AlreadyInactive)?
     }
 
-    if path_user.id.eq(&user.id) {
+    if path_user.id == user.id {
         Err(UserError::AutoDelete)?
     }
 
     state.user_service.deactivate(&id).await?;
 
-    Ok(StatusCode::OK.into_response())
+    Ok(web::HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn enable_user(
-    State(state): State<UserState>,
-    Path(id): Path<i32>,
-    Extension(user): Extension<UserExtension>,
-) -> AppResult<Response> {
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
     };
@@ -69,10 +76,16 @@ pub async fn enable_user(
         Err(UserError::AlreadyActive)?
     }
 
-    if path_user.id.eq(&user.id) {
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
+    if path_user.id == user.id {
         Err(UserError::AutoDelete)?
     }
 
     state.user_service.activate(&path_user.id).await?;
-    Ok(StatusCode::OK.into_response())
+    Ok(web::HttpResponse::Ok())
 }

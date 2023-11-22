@@ -1,5 +1,3 @@
-mod auth;
-mod user;
+mod app;
 
-pub(crate) use auth::*;
-pub(crate) use user::*;
+pub(crate) use app::*;
