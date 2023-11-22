@@ -13,6 +13,7 @@ prost-build = "0.12.3"
 
 [dependencies]
 rand = "0.8.5"
+flume = "0.11.0"
 prost = "0.12.3"
 garde = "0.16.2"
 askama = "0.12.1"
@@ -32,18 +33,22 @@ tokio = { version = "1.34.0", features = ["full"] }
 ntex = { version = "0.7.11", features = ["tokio"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 zerocopy = { version = "0.7.26", features = ["derive"] }
-serde = { version = "1.0.192", features = ["derive", "rc"] }
+serde = { version = "1.0.193", features = ["derive", "rc"] }
 chrono = { version = "0.4.31", features = ["serde", "rkyv"] }
 rkyv = { version = "0.7.42", features = ["bytecheck", "validation"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tokio-postgres = { version = "0.7.10", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.6", features = ["derive", "with-chrono-0_4"] }
-parking_lot = { version = "0.12.1", features = ["arc_lock", "hardware-lock-elision"] }
+parking_lot = { version = "0.12.1", features = [
+    "arc_lock",
+    "hardware-lock-elision",
+] }
 lettre = { version = "0.11.1", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
 ] }
+
 
 [profile.release]
 debug = 0

@@ -8,19 +8,16 @@ use crate::{
     error::{AppResult, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
 };
+use flume::{bounded, Receiver};
+use ntex::rt;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use std::{sync::Arc, time::Instant};
-use tokio::{
-    net::UdpSocket,
-    sync::broadcast::{Receiver, Sender},
-    task::JoinHandle,
-    time::timeout,
-};
+use tokio::{net::UdpSocket, task::JoinHandle, time::timeout};
 use tracing::{error, info};
 
 type ChanelData = Vec<u8>;
-type F123Channel = Arc<Sender<ChanelData>>;
+type F123Channel = Arc<Receiver<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
 
@@ -101,11 +98,13 @@ impl F123Service {
     pub async fn subscribe_to_championship_events(
         &self,
         championship_id: &i32,
-    ) -> Option<Receiver<ChanelData>> {
+    ) -> Option<Arc<Receiver<ChanelData>>> {
         let channels = self.channels.read();
-        let channel = channels.get(championship_id);
+        let Some(channel) = channels.get(championship_id) else {
+            return None;
+        };
 
-        Some(channel.unwrap().subscribe())
+        Some(channel.clone())
     }
 
     async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &i32) {
@@ -129,7 +128,7 @@ impl F123Service {
         let sockets = self.sockets.clone();
         let channels = self.channels.clone();
 
-        tokio::spawn(async move {
+        rt::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
@@ -143,7 +142,7 @@ impl F123Service {
             let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
-            let (tx, _rx) = tokio::sync::broadcast::channel::<ChanelData>(50);
+            let (tx, rx) = bounded::<ChanelData>(50);
             let mut packet_batching = PacketBatching::new(tx.clone());
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
@@ -155,7 +154,7 @@ impl F123Service {
 
             {
                 let mut channels = channels.write();
-                channels.insert(*championship_id, Arc::new(tx.clone()));
+                channels.insert(*championship_id, Arc::new(rx));
             }
 
             firewall.open(*championship_id, port).await.unwrap();
@@ -207,7 +206,7 @@ impl F123Service {
                                         error!("error saving motion_data: {}", e);
                                     };
 
-                                    packet_batching.push_and_check(packet);
+                                    packet_batching.push_and_check(packet).await;
                                     last_car_motion_update = now;
                                 }
                             }
@@ -222,7 +221,7 @@ impl F123Service {
                                         error!("error saving session_data: {}", e);
                                     };
 
-                                    packet_batching.push_and_check(packet);
+                                    packet_batching.push_and_check(packet).await;
                                     last_session_update = now;
                                 }
                             }
@@ -239,7 +238,7 @@ impl F123Service {
                                         error!("error saving participants_data: {}", e);
                                     };
 
-                                    packet_batching.push_and_check(packet);
+                                    packet_batching.push_and_check(packet).await;
                                     last_participants_update = now;
                                 }
                             }
@@ -258,7 +257,7 @@ impl F123Service {
                                     error!("error pushing event_data: {}", e);
                                 };
 
-                                packet_batching.push_and_check(packet);
+                                packet_batching.push_and_check(packet).await;
                             }
 
                             F123Data::SessionHistory(session_history) => {
@@ -295,7 +294,7 @@ impl F123Service {
                                         error!("error saving participants_data: {}", e);
                                     };
 
-                                    packet_batching.push_and_check(packet);
+                                    packet_batching.push_and_check(packet).await;
 
                                     *last_update = now;
                                     *last_sectors = sectors;
@@ -309,7 +308,7 @@ impl F123Service {
                                     .expect("Error converting final classification data to proto message");
 
                                 // TODO: If session type is race save all session data in the database and close the socket
-                                packet_batching.push_and_check(packet);
+                                packet_batching.push_and_check(packet).await;
                             }
                         }
                     }
