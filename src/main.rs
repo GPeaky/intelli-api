@@ -28,10 +28,13 @@ mod states;
 async fn main() {
     dotenv().ok();
     initialize_tracing_subscriber();
-    let db = Arc::new(Database::default().await);
-    let redis_cache = Arc::new(RedisCache::new(&db));
-    let firewall_service = Arc::new(FirewallService::new());
-    let app_state = Arc::new(AppStateInner::new(&db, firewall_service, &redis_cache).await);
+    let app_state = {
+        let db = Arc::new(Database::default().await);
+        let redis_cache = Arc::new(RedisCache::new(&db));
+        let firewall_service = Arc::new(FirewallService::new());
+
+        Arc::new(AppStateInner::new(&db, firewall_service, &redis_cache).await)
+    };
 
     web::server(move || {
         web::App::new()

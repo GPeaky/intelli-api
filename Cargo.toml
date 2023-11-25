@@ -44,7 +44,7 @@ parking_lot = { version = "0.12.1", features = [
     "arc_lock",
     "hardware-lock-elision",
 ] }
-lettre = { version = "0.11.1", default-features = false, features = [
+lettre = { version = "0.11.2", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
