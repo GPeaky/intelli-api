@@ -149,22 +149,20 @@ impl UserServiceTrait for UserService {
     }
 
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
-        let user_id;
-
         self.cache
             .token
             .get_token(token, &TokenType::ResetPassword)
             .await?;
 
-        {
+        let user_id = {
             let token_data = self.token_service.validate(token)?;
             if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
                 error!("Token type is not ResetPassword");
                 Err(TokenError::InvalidToken)?
             }
 
-            user_id = token_data.claims.sub;
-        }
+            token_data.claims.sub
+        };
 
         self.reset_password(&user_id, password).await?;
         self.cache
@@ -202,17 +200,16 @@ impl UserServiceTrait for UserService {
     }
 
     async fn activate_with_token(&self, token: &str) -> AppResult<()> {
-        let user_id;
         self.cache.token.get_token(token, &TokenType::Email).await?;
 
-        {
+        let user_id = {
             let token_data = self.token_service.validate(token)?;
             if token_data.claims.token_type.ne(&TokenType::Email) {
                 Err(TokenError::InvalidToken)?
             }
 
-            user_id = token_data.claims.sub;
-        }
+            token_data.claims.sub
+        };
 
         self.activate(&user_id).await?;
 

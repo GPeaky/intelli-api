@@ -14,7 +14,7 @@ pub const REDIS_USER_PREFIX: &str = "user";
 pub const REDIS_CACHE_EXPIRATION: usize = 60 * 60 * 24;
 pub const REDIS_CHAMPIONSHIP_PREFIX: &str = "championship";
 pub const REDIS_F123_PREFIX: &str = "f123:championships";
-pub const REDIS_F123_PERSISTANCE: usize = 15 * 60;
+pub const REDIS_F123_PERSISTENCE: usize = 15 * 60;
 
 // F123 Service
 // Socket

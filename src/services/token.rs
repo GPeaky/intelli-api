@@ -81,17 +81,15 @@ impl TokenServiceTrait for TokenService {
         refresh_token: &str,
         fingerprint: &str,
     ) -> AppResult<String> {
-        let id;
-
-        {
+        let id = {
             let token = self.validate(refresh_token)?;
 
             if token.claims.token_type.ne(&TokenType::RefreshBearer) {
                 Err(TokenError::InvalidTokenType)?
             }
 
-            id = token.claims.sub;
-        }
+            token.claims.sub
+        };
 
         let db_token = self.cache.token.get_refresh_token(&id, fingerprint).await?;
 

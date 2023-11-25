@@ -25,7 +25,7 @@ impl F123InsiderCache {
             .set_ex(
                 &format!("{REDIS_F123_PREFIX}:{}:{MOTION}", &self.championship_id),
                 data,
-                REDIS_F123_PERSISTANCE,
+                REDIS_F123_PERSISTENCE,
             )
             .await?;
 
@@ -38,7 +38,7 @@ impl F123InsiderCache {
             .set_ex(
                 &format!("{REDIS_F123_PREFIX}:{}:{SESSION}", &self.championship_id),
                 data,
-                REDIS_F123_PERSISTANCE,
+                REDIS_F123_PERSISTENCE,
             )
             .await?;
 
@@ -54,7 +54,7 @@ impl F123InsiderCache {
                     &self.championship_id
                 ),
                 data,
-                REDIS_F123_PERSISTANCE,
+                REDIS_F123_PERSISTENCE,
             )
             .await?;
 
@@ -85,7 +85,7 @@ impl F123InsiderCache {
                     &self.championship_id
                 ),
                 data,
-                REDIS_F123_PERSISTANCE,
+                REDIS_F123_PERSISTENCE,
             )
             .await?;
 

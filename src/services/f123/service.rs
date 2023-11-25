@@ -44,8 +44,9 @@ impl F123Service {
         port: i32,
         championship_id: Arc<i32>,
     ) -> AppResult<()> {
+        let mut sockets = self.sockets.upgradable_read_arc();
+
         {
-            let sockets = self.sockets.read();
             let channels = self.channels.read();
 
             if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
@@ -58,14 +59,16 @@ impl F123Service {
             .start_listening_on_socket(port, championship_id.clone())
             .await;
 
-        let mut sockets = self.sockets.write();
-        sockets.insert(*championship_id, Arc::new(socket));
+        sockets.with_upgraded(|sockets| {
+            sockets.insert(*championship_id, Arc::new(socket));
+        });
+
         Ok(())
     }
 
     pub async fn get_active_socket_ids(&self) -> Vec<i32> {
-        let sockets = self.sockets.read();
-        sockets.iter().map(|entry| *entry.0).collect()
+        let sockets = self.sockets.read_arc();
+        sockets.keys().copied().collect()
     }
 
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
@@ -99,7 +102,7 @@ impl F123Service {
         &self,
         championship_id: &i32,
     ) -> Option<Arc<Receiver<ChanelData>>> {
-        let channels = self.channels.read();
+        let channels = self.channels.read_arc();
         let Some(channel) = channels.get(championship_id) else {
             return None;
         };

@@ -26,9 +26,7 @@ impl GoogleRepository {
     }
 
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
-        let access_token;
-
-        {
+        let access_token = {
             let token_request = GoogleTokenRequest {
                 client_id: &self.client_id,
                 client_secret: &self.client_secret,
@@ -48,8 +46,8 @@ impl GoogleRepository {
                 .await
                 .unwrap();
 
-            access_token = response.access_token;
-        }
+            response.access_token
+        };
 
         let user_info: GoogleUserInfo = self
             .reqwest_client
