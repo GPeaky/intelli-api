@@ -1,22 +1,28 @@
 use crate::{
+    entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
+    protos::{packet_header::PacketType, ToProtoMessage},
     states::AppState,
 };
-use counter::*;
-use log::info;
-use ntex::web;
-use once_cell::sync::Lazy;
+use flume::Receiver;
+use ntex::{
+    chain,
+    channel::oneshot,
+    fn_service, rt,
+    service::{fn_factory_with_config, fn_shutdown, map_config},
+    util::{select, Bytes, Either},
+    web,
+    ws::{self, Message},
+    Service,
+};
+use std::{future::ready, io, sync::Arc};
 
-mod counter;
-
-#[allow(unused)]
-static COUNTER: Lazy<WebSocketCounter> = Lazy::new(WebSocketCounter::new);
-
+#[inline(always)]
 pub async fn session_socket(
-    _req: web::HttpRequest,
+    req: web::HttpRequest,
     state: web::types::State<AppState>,
     championship_id: web::types::Path<i32>,
-) -> AppResult<impl web::Responder> {
+) -> AppResult<web::HttpResponse> {
     let Some(championship) = state.championship_repository.find(&championship_id).await? else {
         Err(ChampionshipError::NotFound)?
     };
@@ -30,15 +36,74 @@ pub async fn session_socket(
         Err(SocketError::NotActive)?
     }
 
-    //* Testing counter
-    COUNTER.increment(championship.id);
+    web::ws::start(
+        req,
+        map_config(fn_factory_with_config(web_socket), move |cfg| {
+            (cfg, state.clone(), championship.clone())
+        }),
+    )
+    .await
+}
 
-    let get = COUNTER.get(championship.id);
-    info!("Counter Size: {:?}", get);
+#[inline(always)]
+async fn web_socket(
+    (sink, state, championship): (web::ws::WsSink, web::types::State<AppState>, Championship),
+) -> AppResult<impl Service<ws::Frame, Response = Option<Message>, Error = io::Error>> {
+    let (tx, close_rx) = oneshot::channel();
 
-    COUNTER.decrement(championship.id);
+    {
+        let cache = state
+            .championship_repository
+            .session_data(&championship.id)
+            .await?;
 
-    info!("Implement socket");
-    // web::ws::start(req, fn_factory_with_config())
-    Ok(web::HttpResponse::Ok())
+        let data = vec![
+            cache.session_data,
+            cache.motion_data,
+            cache.participants_data,
+        ];
+
+        let Some(data) = data.convert_and_encode(PacketType::SessionData) else {
+            return Err(SocketError::FailedToConvertData.into());
+        };
+
+        let bt = Bytes::from(data);
+
+        if sink.send(Message::Binary(bt)).await.is_err() {
+            return Err(SocketError::FailedToSendMessage.into());
+        };
+    }
+
+    let Some(rx) = state
+        .f123_service
+        .subscribe_to_championship_events(&championship.id)
+        .await
+    else {
+        return Err(SocketError::NotFound.into());
+    };
+
+    rt::spawn(send_data(sink, rx, close_rx));
+
+    let service = fn_service(move |_| ready(Ok(None)));
+
+    let on_shutdown = fn_shutdown(move || {
+        let _ = tx.send(());
+    });
+
+    Ok(chain(service).and_then(on_shutdown))
+}
+
+#[inline(always)]
+async fn send_data(
+    sink: web::ws::WsSink,
+    rx: Arc<Receiver<Vec<u8>>>,
+    mut close_rx: oneshot::Receiver<()>,
+) {
+    while let Either::Left(Ok(data)) = select(rx.recv_async(), &mut close_rx).await {
+        let bt = Bytes::from(data);
+
+        if sink.send(Message::Binary(bt)).await.is_err() {
+            break;
+        }
+    }
 }

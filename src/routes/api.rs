@@ -52,8 +52,9 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
     );
 
     cfg.route("/heartbeat", web::get().to(heartbeat));
+
     cfg.route(
-        "/championships/{id}/web_socket",
+        "/web_socket/championship/{id}",
         web::get().to(session_socket),
     );
 }

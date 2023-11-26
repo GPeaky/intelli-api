@@ -103,7 +103,7 @@ impl ChampionshipRepository {
         };
 
         let mut redis = self.database.redis.get().await?;
-        let (session_data, motion_data, participants_data, session_history_key): (
+        let (session_data, motion_data, participants_data, history_keys): (
             Vec<u8>,
             Vec<u8>,
             Vec<u8>,
@@ -117,14 +117,20 @@ impl ChampionshipRepository {
             .query_async(&mut *redis)
             .await?;
 
-        let history_data: Vec<Vec<u8>> = redis.mget(&session_history_key).await?;
+        let history_data = {
+            if history_keys.is_empty() {
+                None
+            } else {
+                let history_data = redis.mget(&history_keys).await?;
+                Some(history_data)
+            }
+        };
 
         Ok(ChampionshipCacheData {
             session_data,
             motion_data,
             participants_data,
             history_data,
-            events_data: None,
         })
     }
 

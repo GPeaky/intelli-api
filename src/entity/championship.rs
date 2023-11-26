@@ -6,7 +6,9 @@ use postgres_types::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
+#[derive(
+    Debug, Archive, Clone, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql,
+)]
 #[postgres(name = "category")]
 #[archive(check_bytes)]
 pub enum Category {
@@ -16,7 +18,8 @@ pub enum Category {
     F2,
 }
 
-#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
+// TODO: Check if clone is necessary handlers/championships/socket/mod.rs
+#[derive(Debug, Serialize, Clone, Archive, RDeserialize, RSerialize)]
 #[archive(check_bytes)]
 pub struct Championship {
     pub id: i32,

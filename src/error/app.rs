@@ -2,7 +2,7 @@ use super::{user::UserError, CacheError, ChampionshipError, CommonError, SocketE
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
 use log::error;
-use ntex::{http::StatusCode, web};
+use ntex::{http::StatusCode, web, ws::error::HandshakeError};
 use thiserror::Error;
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -29,6 +29,8 @@ pub enum AppError {
     Redis(#[from] RedisError),
     #[error(transparent)]
     RedisPool(#[from] RedisPoolError),
+    #[error(transparent)]
+    Handshake(#[from] HandshakeError),
 }
 
 // TODO: Handle Database, Redis and Pool errors in a better way
@@ -72,6 +74,14 @@ impl web::error::WebResponseError for AppError {
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Cache pool error")
             }
+
+            AppError::Handshake(e) => {
+                error!("{e}");
+
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Handshake error")
+            }
         }
     }
 
@@ -87,6 +97,7 @@ impl web::error::WebResponseError for AppError {
             AppError::DbPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

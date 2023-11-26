@@ -44,7 +44,7 @@ impl F123Service {
         port: i32,
         championship_id: Arc<i32>,
     ) -> AppResult<()> {
-        let mut sockets = self.sockets.upgradable_read_arc();
+        let mut sockets = self.sockets.upgradable_read();
 
         {
             let channels = self.channels.read();
@@ -67,7 +67,7 @@ impl F123Service {
     }
 
     pub async fn get_active_socket_ids(&self) -> Vec<i32> {
-        let sockets = self.sockets.read_arc();
+        let sockets = self.sockets.read();
         sockets.keys().copied().collect()
     }
 
@@ -102,7 +102,7 @@ impl F123Service {
         &self,
         championship_id: &i32,
     ) -> Option<Arc<Receiver<ChanelData>>> {
-        let channels = self.channels.read_arc();
+        let channels = self.channels.read();
         let Some(channel) = channels.get(championship_id) else {
             return None;
         };
