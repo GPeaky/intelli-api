@@ -11,12 +11,13 @@ use crate::{
 use flume::{bounded, Receiver};
 use log::{error, info};
 use ntex::rt;
+use ntex::util::Bytes;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use std::{sync::Arc, time::Instant};
 use tokio::{net::UdpSocket, task::JoinHandle, time::timeout};
 
-type ChanelData = Vec<u8>;
+type ChanelData = Bytes;
 type F123Channel = Arc<Receiver<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;

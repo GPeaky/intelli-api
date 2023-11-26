@@ -4,25 +4,26 @@ use crate::{
 };
 use flume::Sender;
 use log::error;
+use ntex::util::Bytes;
 use tokio::time::Instant;
 
 pub struct PacketBatching {
-    buf: Vec<Vec<u8>>,
-    sender: Sender<Vec<u8>>,
+    buf: Vec<Bytes>,
+    sender: Sender<Bytes>,
     last_batch_time: Instant,
 }
 
 impl PacketBatching {
-    pub fn new(sender: Sender<Vec<u8>>) -> Self {
+    pub fn new(sender: Sender<Bytes>) -> Self {
         Self {
             sender,
-            buf: Vec::with_capacity(2048),
+            buf: Vec::with_capacity(1024),
             last_batch_time: Instant::now(),
         }
     }
 
     #[inline(always)]
-    pub fn push(&mut self, packet: Vec<u8>) {
+    pub fn push(&mut self, packet: Bytes) {
         self.buf.push(packet);
     }
 
@@ -39,12 +40,13 @@ impl PacketBatching {
             } else {
                 error!("Error converting and encoding data");
             }
+
             self.buf.clear();
         }
     }
 
     #[inline(always)]
-    pub async fn push_and_check(&mut self, packet: Vec<u8>) {
+    pub async fn push_and_check(&mut self, packet: Bytes) {
         self.push(packet);
         self.check().await;
     }

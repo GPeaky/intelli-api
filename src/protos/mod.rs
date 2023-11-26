@@ -1,6 +1,7 @@
 include!(concat!(env!("OUT_DIR"), "/protos.packet_header.rs"));
 
 use crate::protos::packet_header::PacketType;
+use ntex::util::{Bytes, BytesMut};
 use prost::Message;
 
 pub(crate) mod car_motion_data;
@@ -15,7 +16,7 @@ pub trait ToProtoMessage {
     fn to_proto(&self) -> Option<Self::ProtoType>;
 
     // TODO: Try to remove packet_type from here
-    fn convert_and_encode(&self, packet_type: PacketType) -> Option<Vec<u8>>
+    fn convert_and_encode(&self, packet_type: PacketType) -> Option<Bytes>
     where
         Self: Sized,
     {
@@ -24,29 +25,31 @@ pub trait ToProtoMessage {
         };
 
         let proto_data: Vec<u8> = proto_data.encode_to_vec();
+        let mut buf = BytesMut::with_capacity(8192); //TODO: Check if this is enough
 
-        Some(
-            PacketHeader {
-                r#type: packet_type.into(),
-                payload: proto_data,
-            }
-            .encode_to_vec(),
-        )
+        PacketHeader {
+            r#type: packet_type.into(),
+            payload: proto_data,
+        }
+        .encode(&mut buf)
+        .unwrap();
+
+        Some(buf.freeze())
     }
 }
 
 // TODO: Avoid Cloning & Implementing ToProtoMessage for Vec<Vec<u8>>
-impl ToProtoMessage for Vec<Vec<u8>> {
+impl ToProtoMessage for Vec<Bytes> {
     type ProtoType = ChunkPacketHeader;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
         Some(ChunkPacketHeader {
-            packets: self.clone(),
+            packets: self.iter().map(|b| b.to_vec()).collect(),
         })
     }
 
     // TODO: Try to remove packet_type from here
-    fn convert_and_encode(&self, _packet_type: PacketType) -> Option<Vec<u8>>
+    fn convert_and_encode(&self, _packet_type: PacketType) -> Option<Bytes>
     where
         Self: Sized,
     {
@@ -54,6 +57,9 @@ impl ToProtoMessage for Vec<Vec<u8>> {
             return None;
         };
 
-        Some(data.encode_to_vec())
+        let mut buf = BytesMut::with_capacity(8192); //TODO: Check if this is enough
+        data.encode(&mut buf).unwrap();
+
+        Some(buf.freeze())
     }
 }

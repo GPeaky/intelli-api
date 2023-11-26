@@ -58,18 +58,16 @@ async fn web_socket(
             .await?;
 
         let data = vec![
-            cache.session_data,
-            cache.motion_data,
-            cache.participants_data,
+            Bytes::from(cache.session_data),
+            Bytes::from(cache.motion_data),
+            Bytes::from(cache.participants_data),
         ];
 
         let Some(data) = data.convert_and_encode(PacketType::SessionData) else {
             return Err(SocketError::FailedToConvertData.into());
         };
 
-        let bt = Bytes::from(data);
-
-        if sink.send(Message::Binary(bt)).await.is_err() {
+        if sink.send(Message::Binary(data)).await.is_err() {
             return Err(SocketError::FailedToSendMessage.into());
         };
     }
@@ -96,13 +94,11 @@ async fn web_socket(
 #[inline(always)]
 async fn send_data(
     sink: web::ws::WsSink,
-    rx: Arc<Receiver<Vec<u8>>>,
+    rx: Arc<Receiver<Bytes>>,
     mut close_rx: oneshot::Receiver<()>,
 ) {
     while let Either::Left(Ok(data)) = select(rx.recv_async(), &mut close_rx).await {
-        let bt = Bytes::from(data);
-
-        if sink.send(Message::Binary(bt)).await.is_err() {
+        if sink.send(Message::Binary(data)).await.is_err() {
             break;
         }
     }
