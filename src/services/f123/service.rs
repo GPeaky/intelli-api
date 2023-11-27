@@ -217,6 +217,8 @@ impl F123Service {
 
                             F123Data::Session(session_data) => {
                                 if now.duration_since(last_session_update) > SESSION_INTERVAL {
+                                    info!("Session data received: {:#?}", session_data);
+
                                     let packet = session_data
                                         .convert_and_encode(PacketType::SessionData)
                                         .expect("Error converting session data to proto message");
@@ -232,6 +234,8 @@ impl F123Service {
 
                             F123Data::Participants(participants_data) => {
                                 if now.duration_since(last_participants_update) > SESSION_INTERVAL {
+                                    info!("Participants data received: {:#?}", participants_data);
+
                                     let packet = participants_data
                                         .convert_and_encode(PacketType::Participants)
                                         .expect(
