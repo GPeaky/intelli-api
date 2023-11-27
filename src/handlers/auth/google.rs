@@ -14,11 +14,7 @@ pub async fn callback(
     state: web::types::State<AppState>,
     query: web::types::Query<GoogleCallbackQuery>,
 ) -> AppResult<impl web::Responder> {
-    let google_user = state
-        .google_repository
-        .account_info(&query.code)
-        .await
-        .unwrap();
+    let google_user = state.google_repository.account_info(&query.code).await?;
 
     let user = state
         .user_repository

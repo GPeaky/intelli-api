@@ -5,7 +5,6 @@ use crate::{
     states::AppState,
 };
 pub(crate) use admin::*;
-
 use ntex::web;
 
 mod admin;

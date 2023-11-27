@@ -58,7 +58,7 @@ impl ToProtoMessage for BPacketSessionData {
 
             marshal_zones: self
                 .marshal_zones
-                .into_iter()
+                .iter()
                 .map(|marshal_zone| MarshalZone {
                     zone_start: marshal_zone.zone_start,
                     zone_flag: marshal_zone.zone_flag as i32,
@@ -67,7 +67,7 @@ impl ToProtoMessage for BPacketSessionData {
 
             weather_forecast_samples: self
                 .weather_forecast_samples
-                .into_iter()
+                .iter()
                 .map(|sample| WeatherForecastSample {
                     session_type: sample.session_type as u32,
                     time_offset: sample.time_offset as u32,

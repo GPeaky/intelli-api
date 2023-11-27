@@ -25,7 +25,8 @@ pub trait ToProtoMessage {
         };
 
         let proto_data: Vec<u8> = proto_data.encode_to_vec();
-        let mut buf = BytesMut::with_capacity(8192); //TODO: Check if this is enough
+        //TODO: Check if this is enough
+        let mut buf = BytesMut::with_capacity(8192);
 
         PacketHeader {
             r#type: packet_type.into(),
@@ -57,7 +58,8 @@ impl ToProtoMessage for Vec<Bytes> {
             return None;
         };
 
-        let mut buf = BytesMut::with_capacity(8192); //TODO: Check if this is enough
+        //TODO: Check if this is enough
+        let mut buf = BytesMut::with_capacity(8192);
         data.encode(&mut buf).unwrap();
 
         Some(buf.freeze())
