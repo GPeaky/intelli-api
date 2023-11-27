@@ -44,25 +44,21 @@ pub enum EventCode {
     Overtake,
 }
 
-#[derive(Debug)]
-pub enum GameModes {
-    EventMode,
-    GrandPrix,
-    GrandPrix23,
+#[derive(Debug, PartialEq, Eq)]
+pub enum SessionType {
+    P1,
+    P2,
+    P3,
+    ShortP,
+    Q1,
+    Q2,
+    Q3,
+    ShortQ,
+    Osq,
+    R,
+    R2,
+    R3,
     TimeTrial,
-    Splitscreen,
-    OnlineCustom,
-    OnlineLeague,
-    CareerInvitational,
-    Championship,
-    OnlineChampionship,
-    OnlineWeeklyEvent,
-    StoryMode,
-    Career22,
-    Career22Online,
-    Career23,
-    Career23Online,
-    Benchmark,
 }
 
 #[derive(Debug)]
@@ -196,6 +192,27 @@ pub enum Ruleset {
     RivalDuel,
 }
 
+impl From<u8> for SessionType {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => Self::P1,
+            2 => Self::P2,
+            3 => Self::P3,
+            4 => Self::ShortP,
+            5 => Self::Q1,
+            6 => Self::Q2,
+            7 => Self::Q3,
+            8 => Self::ShortQ,
+            9 => Self::Osq,
+            10 => Self::R,
+            11 => Self::R2,
+            12 => Self::R3,
+            13 => Self::TimeTrial,
+            _ => panic!("Unknown session type {}", value),
+        }
+    }
+}
+
 impl From<u8> for PenaltyTypes {
     fn from(value: u8) -> Self {
         match value {
@@ -322,31 +339,6 @@ impl From<i8> for Tracks {
             31 => Self::LasVegas,
             32 => Self::Losail,
             _ => panic!("Unknown track id {}", value),
-        }
-    }
-}
-
-impl From<u8> for GameModes {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => Self::EventMode,
-            3 => Self::GrandPrix,
-            4 => Self::GrandPrix23,
-            5 => Self::TimeTrial,
-            6 => Self::Splitscreen,
-            7 => Self::OnlineCustom,
-            8 => Self::OnlineLeague,
-            11 => Self::CareerInvitational,
-            13 => Self::Championship,
-            14 => Self::OnlineChampionship,
-            15 => Self::OnlineWeeklyEvent,
-            17 => Self::StoryMode,
-            19 => Self::Career22,
-            20 => Self::Career22Online,
-            21 => Self::Career23,
-            22 => Self::Career23Online,
-            127 => Self::Benchmark,
-            _ => panic!("Unknown game mode {}", value),
         }
     }
 }

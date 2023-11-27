@@ -1,5 +1,6 @@
 use crate::cache::F123InsiderCache;
 use crate::config::constants::*;
+use crate::dtos::SessionType;
 use crate::services::f123::packet_batching::PacketBatching;
 use crate::FirewallService;
 use crate::{
@@ -14,6 +15,7 @@ use ntex::rt;
 use ntex::util::Bytes;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
+use std::cell::RefCell;
 use std::{sync::Arc, time::Instant};
 use tokio::{net::UdpSocket, task::JoinHandle, time::timeout};
 
@@ -111,7 +113,14 @@ impl F123Service {
         Some(channel.clone())
     }
 
-    async fn external_close_socket(channels: &Channels, sockets: &Sockets, championship_id: &i32) {
+    async fn external_close_socket(
+        channels: &Channels,
+        sockets: &Sockets,
+        championship_id: &i32,
+        firewall: &FirewallService,
+    ) {
+        firewall.close(championship_id).await.unwrap();
+
         let mut sockets = sockets.write();
         let mut channels = channels.write();
 
@@ -140,6 +149,7 @@ impl F123Service {
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
+            let session_type = RefCell::new(None);
 
             // Session History Data
             let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
@@ -217,7 +227,25 @@ impl F123Service {
 
                             F123Data::Session(session_data) => {
                                 if now.duration_since(last_session_update) > SESSION_INTERVAL {
-                                    info!("Session data received: {:#?}", session_data);
+                                    #[cfg(not(debug_assertions))]
+                                    if session_data.network_game != 1 {
+                                        error!(
+                                            "Not Online Game, closing socket for championship: {}",
+                                            championship_id
+                                        );
+
+                                        Self::external_close_socket(
+                                            &channels,
+                                            &sockets,
+                                            &championship_id,
+                                            &firewall,
+                                        )
+                                        .await;
+                                    }
+
+                                    let _ = session_type
+                                        .borrow_mut()
+                                        .insert(SessionType::from(session_data.session_type));
 
                                     let packet = session_data
                                         .convert_and_encode(PacketType::SessionData)
@@ -234,8 +262,6 @@ impl F123Service {
 
                             F123Data::Participants(participants_data) => {
                                 if now.duration_since(last_participants_update) > SESSION_INTERVAL {
-                                    info!("Participants data received: {:#?}", participants_data);
-
                                     let packet = participants_data
                                         .convert_and_encode(PacketType::Participants)
                                         .expect(
@@ -315,6 +341,19 @@ impl F123Service {
                                     .convert_and_encode(PacketType::FinalClassificationData)
                                     .expect("Error converting final classification data to proto message");
 
+                                // TODO: Only for testing purposes, in the future this should close the socket when the race is finished
+                                {
+                                    let session_type = session_type.borrow();
+
+                                    info!("Session type: {:?}", session_type);
+
+                                    if let SessionType::R | SessionType::R2 | SessionType::R3 =
+                                        session_type.as_ref().unwrap()
+                                    {
+                                        info!("Race Finished, saving final classification data");
+                                    }
+                                }
+
                                 // TODO: If session type is race save all session data in the database and close the socket
                                 packet_batching.push_and_check(packet).await;
                             }
@@ -324,15 +363,25 @@ impl F123Service {
                     Ok(Err(e)) => {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-                        firewall.close(&championship_id).await.unwrap();
-                        Self::external_close_socket(&channels, &sockets, &championship_id).await;
-                        break;
+                        Self::external_close_socket(
+                            &channels,
+                            &sockets,
+                            &championship_id,
+                            &firewall,
+                        )
+                        .await;
                     }
 
                     Err(_) => {
                         info!("Socket  timeout for championship: {}", championship_id);
                         firewall.close(&championship_id).await.unwrap();
-                        Self::external_close_socket(&channels, &sockets, &championship_id).await;
+                        Self::external_close_socket(
+                            &channels,
+                            &sockets,
+                            &championship_id,
+                            &firewall,
+                        )
+                        .await;
                     }
                 }
             }
