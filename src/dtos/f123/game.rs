@@ -1,7 +1,5 @@
 use zerocopy::{FromBytes, FromZeroes, Unaligned};
 
-use super::{GameModes, InfringementType, NationalityIds, PenaltyTypes, Ruleset, TeamsIds, Tracks};
-
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct PacketHeader {
@@ -75,7 +73,7 @@ pub struct PacketSessionData {
     pub total_laps: u8, // Total number of laps in this race
     pub track_length: u16, // Track length in metres
     pub session_type: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
-    pub track_id: Tracks, // TrackIds//  -1 for unknown, see appendix
+    pub track_id: i8,     // TrackIds//  -1 for unknown, see appendix
     pub formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 5 = Supercars, 6 = Esports, 7 = F2 2021
     pub session_time_left: u16, // Time left in session in seconds
     pub session_duration: u16, // Session duration in seconds
@@ -107,8 +105,8 @@ pub struct PacketSessionData {
     pub drs_assist: u8, // 0 = off, 1 = on
     pub dynamic_racing_line: u8, // 0 = off, 1 = corners only, 2 = full
     pub dynamic_racing_line_type: u8, // 0 = 2D, 1 = 3D
-    pub game_mode: GameModes, //GameModeIds // Game mode id - see appendix
-    pub rule_set: Ruleset, // RuleSetIds // Ruleset - see appendix
+    pub game_mode: u8, //GameModeIds // Game mode id - see appendix
+    pub rule_set: u8, // RuleSetIds // Ruleset - see appendix
     pub time_of_day: u32, // Local time of day - minutes since midnight
     pub session_length: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium 5 = Medium Long, 6 = Long, 7 = Full
     pub speed_units_lead_player: u8, // 0 = MPH, 1 = KPH
@@ -191,8 +189,8 @@ pub struct RaceWinner {
 #[repr(C, packed)]
 #[derive(Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct Penalty {
-    pub penalty_type: PenaltyTypes,
-    pub infringement_type: InfringementType,
+    pub penalty_type: u8,
+    pub infringement_type: u8,
     pub vehicle_idx: u8,
     pub other_vehicle_idx: u8,
     pub time: u8,
@@ -269,13 +267,13 @@ pub union EventDataDetails {
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, FromZeroes, Unaligned)]
 pub struct ParticipantData {
-    pub ai_controlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
-    pub driver_id: u8,     // Driver id - see appendix, 255 if network human
-    pub network_id: u8,    // Network id – unique identifier for network players
-    pub team_id: TeamsIds, // Team id - see appendix
-    pub my_team: u8,       // My team flag – 1 = My Team, 0 = otherwise
-    pub race_number: u8,   // Race number of the car
-    pub nationality: NationalityIds, // ParticipantNationality // Nationality of the driver
+    pub ai_controlled: u8,  // Whether the vehicle is AI (1) or Human (0) controlled
+    pub driver_id: u8,      // Driver id - see appendix, 255 if network human
+    pub network_id: u8,     // Network id – unique identifier for network players
+    pub team_id: u8,        // Team id - see appendix
+    pub my_team: u8,        // My team flag – 1 = My Team, 0 = otherwise
+    pub race_number: u8,    // Race number of the car
+    pub nationality: u8,    // ParticipantNationality // Nationality of the driver
     pub name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
     pub your_telemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub show_online_names: u8, // The player's show online names setting, 0 = off, 1 = on
