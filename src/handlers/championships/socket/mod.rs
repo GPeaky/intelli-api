@@ -1,7 +1,7 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
-    protos::{packet_header::PacketType, ToProtoMessage},
+    protos::ToProtoMessageBatched,
     states::AppState,
 };
 use flume::Receiver;
@@ -63,7 +63,7 @@ async fn web_socket(
             Bytes::from(cache.participants_data),
         ];
 
-        let Some(data) = data.convert_and_encode(PacketType::SessionData) else {
+        let Some(data) = data.batched_encoded() else {
             return Err(SocketError::FailedToConvertData.into());
         };
 

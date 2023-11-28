@@ -39,18 +39,24 @@ pub trait ToProtoMessage {
     }
 }
 
-// TODO: Avoid Cloning & Implementing ToProtoMessage for Vec<Vec<u8>>
-impl ToProtoMessage for Vec<Bytes> {
+pub trait ToProtoMessageBatched {
+    type ProtoType: Message;
+    fn to_proto(&self) -> Option<Self::ProtoType>;
+    fn batched_encoded(&self) -> Option<Bytes>;
+}
+
+// TODO: Implement this for more specific type instead of Vec<Bytes>
+impl ToProtoMessageBatched for Vec<Bytes> {
     type ProtoType = ChunkPacketHeader;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
+        // TODO: See if this can be done without the clone
         Some(ChunkPacketHeader {
             packets: self.iter().map(|b| b.to_vec()).collect(),
         })
     }
 
-    // TODO: Try to remove packet_type from here
-    fn convert_and_encode(&self, _packet_type: PacketType) -> Option<Bytes>
+    fn batched_encoded(&self) -> Option<Bytes>
     where
         Self: Sized,
     {
