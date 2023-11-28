@@ -1,7 +1,4 @@
-use crate::{
-    dtos::EmailUser,
-    error::{AppResult},
-};
+use crate::{dtos::EmailUser, error::AppResult};
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,

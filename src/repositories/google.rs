@@ -18,7 +18,8 @@ impl GoogleRepository {
     pub fn new() -> Self {
         Self {
             client_id: var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID secret not found"),
-            client_secret: var("GOOGLE_CLIENT_SECRET").expect("GOOGLE_CLIENT_SECRET secret not found"),
+            client_secret: var("GOOGLE_CLIENT_SECRET")
+                .expect("GOOGLE_CLIENT_SECRET secret not found"),
             redirect_uri: var("GOOGLE_REDIRECT_URI").expect("GOOGLE_REDIRECT_URI secret not found"),
             grant_type: var("GOOGLE_GRANT_TYPE").expect("GOOGLE_GRANT_TYPE secret not found"),
             reqwest_client: reqwest::Client::new(),
