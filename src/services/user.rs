@@ -83,8 +83,7 @@ impl UserServiceTrait for UserService {
             }
 
             None => {
-                let hashed_password =
-                    hash(register.password.clone().unwrap(), DEFAULT_COST).unwrap();
+                let hashed_password = hash(register.password.clone().unwrap(), DEFAULT_COST)?;
                 let conn = self.db_conn.pg.get().await?;
 
                 let cached_statement = conn
@@ -176,7 +175,7 @@ impl UserServiceTrait for UserService {
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
         // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
         {
-            let hashed_password = hash(password, DEFAULT_COST).unwrap();
+            let hashed_password = hash(password, DEFAULT_COST)?;
             let conn = self.db_conn.pg.get().await?;
 
             let cached_statement = conn

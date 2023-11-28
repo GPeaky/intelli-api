@@ -1,4 +1,5 @@
 use super::{user::UserError, CacheError, ChampionshipError, CommonError, SocketError, TokenError};
+use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
 use log::error;
@@ -7,6 +8,7 @@ use thiserror::Error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
+// TODO: Add more errors and handle them in a better way
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error(transparent)]
@@ -22,15 +24,23 @@ pub enum AppError {
     #[error(transparent)]
     Socket(#[from] SocketError),
     #[error(transparent)]
-    Database(#[from] PgError),
+    PgError(#[from] PgError),
     #[error(transparent)]
-    DbPool(#[from] PoolError),
+    PgPool(#[from] PoolError),
+    #[error(transparent)]
+    Bcrypt(#[from] BcryptError),
     #[error(transparent)]
     Redis(#[from] RedisError),
     #[error(transparent)]
     RedisPool(#[from] RedisPoolError),
     #[error(transparent)]
     Handshake(#[from] HandshakeError),
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
+    #[error(transparent)]
+    Sailfish(#[from] sailfish::RenderError),
+    #[error(transparent)]
+    Lettre(#[from] lettre::transport::smtp::Error),
 }
 
 // TODO: Handle Database, Redis and Pool errors in a better way
@@ -43,7 +53,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Common(e) => e.error_response(r),
             AppError::Cache(e) => e.error_response(r),
             AppError::Socket(e) => e.error_response(r),
-            AppError::Database(e) => {
+            AppError::PgError(e) => {
                 error!("{e}");
 
                 web::HttpResponse::build(self.status_code())
@@ -51,12 +61,20 @@ impl web::error::WebResponseError for AppError {
                     .body("Database error")
             }
 
-            AppError::DbPool(e) => {
+            AppError::PgPool(e) => {
                 error!("{e}");
 
                 web::HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Pool error")
+            }
+
+            AppError::Bcrypt(e) => {
+                error!("{e}");
+
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Encryption error")
             }
 
             AppError::Redis(e) => {
@@ -82,9 +100,34 @@ impl web::error::WebResponseError for AppError {
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Handshake error")
             }
+
+            AppError::Reqwest(e) => {
+                error!("{e}");
+
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Reqwest error")
+            }
+
+            AppError::Sailfish(e) => {
+                error!("{e}");
+
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Email Render Error")
+            }
+
+            AppError::Lettre(e) => {
+                error!("{e}");
+
+                web::HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Email Error")
+            }
         }
     }
 
+    #[inline(always)]
     fn status_code(&self) -> StatusCode {
         match self {
             AppError::User(e) => e.status_code(),
@@ -93,11 +136,15 @@ impl web::error::WebResponseError for AppError {
             AppError::Common(e) => e.status_code(),
             AppError::Cache(e) => e.status_code(),
             AppError::Socket(e) => e.status_code(),
-            AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::DbPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Sailfish(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Lettre(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -32,7 +32,12 @@ pub async fn callback(
 
         None => {
             let id = state.user_service.create(&google_user.into()).await?;
-            state.user_repository.find(&id).await?.unwrap()
+
+            if let Some(user) = state.user_repository.find(&id).await? {
+                user
+            } else {
+                Err(UserError::NotFound)?
+            }
         }
     };
 

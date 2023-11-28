@@ -1,13 +1,13 @@
 use crate::{
     dtos::EmailUser,
-    error::{AppResult, CommonError},
+    error::{AppResult},
 };
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use log::error;
+
 use sailfish::TemplateOnce;
 use std::str::FromStr;
 
@@ -50,14 +50,10 @@ impl EmailService {
             ))
             .header(ContentType::TEXT_HTML)
             .subject(subject)
-            .body(body.render_once().unwrap())
+            .body(body.render_once()?)
             .expect("Message builder error");
 
-        self.mailer.send(message).await.map_err(|e| {
-            error!("{:?}", e);
-            CommonError::MailServerError
-        })?;
-
+        self.mailer.send(message).await?;
         Ok(())
     }
 }

@@ -17,10 +17,10 @@ pub struct GoogleRepository {
 impl GoogleRepository {
     pub fn new() -> Self {
         Self {
-            client_id: var("GOOGLE_CLIENT_ID").unwrap(),
-            client_secret: var("GOOGLE_CLIENT_SECRET").unwrap(),
-            redirect_uri: var("GOOGLE_REDIRECT_URI").unwrap(),
-            grant_type: var("GOOGLE_GRANT_TYPE").unwrap(),
+            client_id: var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID secret not found"),
+            client_secret: var("GOOGLE_CLIENT_SECRET").expect("GOOGLE_CLIENT_SECRET secret not found"),
+            redirect_uri: var("GOOGLE_REDIRECT_URI").expect("GOOGLE_REDIRECT_URI secret not found"),
+            grant_type: var("GOOGLE_GRANT_TYPE").expect("GOOGLE_GRANT_TYPE secret not found"),
             reqwest_client: reqwest::Client::new(),
         }
     }
@@ -40,11 +40,9 @@ impl GoogleRepository {
                 .post(GOOGLE_TOKEN_URL)
                 .form(&token_request)
                 .send()
-                .await
-                .unwrap()
+                .await?
                 .json()
-                .await
-                .unwrap();
+                .await?;
 
             response.access_token
         };
@@ -54,11 +52,9 @@ impl GoogleRepository {
             .get(GOOGLE_USER_INFO)
             .bearer_auth(access_token)
             .send()
-            .await
-            .unwrap()
+            .await?
             .json()
-            .await
-            .unwrap();
+            .await?;
 
         Ok(user_info)
     }

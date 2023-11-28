@@ -18,7 +18,7 @@ pub trait UserRepositoryTrait {
     async fn find(&self, id: &i32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
-    fn validate_password(&self, password: &str, hash: &str) -> bool;
+    fn validate_password(&self, password: &str, hash: &str) -> AppResult<bool>;
     fn active_pools(&self) -> (usize, usize);
 }
 
@@ -120,7 +120,7 @@ impl UserRepositoryTrait for UserRepository {
         self.db_conn.active_pools()
     }
 
-    fn validate_password(&self, pwd: &str, hash: &str) -> bool {
-        bcrypt::verify(pwd, hash).unwrap()
+    fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {
+        Ok(bcrypt::verify(pwd, hash)?)
     }
 }
