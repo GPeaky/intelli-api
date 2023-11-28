@@ -31,7 +31,6 @@ pub struct F123Service {
     firewall: Arc<FirewallService>,
 }
 
-// TODO: Check implementation of the RwLock
 impl F123Service {
     pub fn new(db_conn: &Arc<Database>, firewall_service: Arc<FirewallService>) -> Self {
         Self {
@@ -341,7 +340,7 @@ impl F123Service {
                                     .convert_and_encode(PacketType::FinalClassificationData)
                                     .expect("Error converting final classification data to proto message");
 
-                                // TODO: Only for testing purposes, in the future this should close the socket when the race is finished
+                                // Only for testing purposes, in the future this should close the socket when the race is finished
                                 {
                                     let session_type = session_type.borrow();
 
@@ -354,7 +353,7 @@ impl F123Service {
                                     }
                                 }
 
-                                // TODO: If session type is race save all session data in the database and close the socket
+                                // If session type is race save all session data in the database and close the socket
                                 packet_batching.push_and_check(packet).await;
                             }
                         }

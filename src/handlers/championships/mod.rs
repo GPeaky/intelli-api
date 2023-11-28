@@ -14,7 +14,6 @@ pub(crate) use sockets::*;
 mod admin;
 mod socket;
 mod sockets;
-mod web_socket;
 
 #[inline(always)]
 pub async fn create_championship(

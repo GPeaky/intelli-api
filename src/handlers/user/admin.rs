@@ -7,7 +7,6 @@ use crate::{
 };
 use ntex::web;
 
-// TODO: Add admin user handlers
 #[inline(always)]
 pub async fn delete_user(
     req: web::HttpRequest,

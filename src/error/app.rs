@@ -43,7 +43,6 @@ pub enum AppError {
     Lettre(#[from] lettre::transport::smtp::Error),
 }
 
-// TODO: Handle Database, Redis and Pool errors in a better way
 impl web::error::WebResponseError for AppError {
     fn error_response(&self, r: &web::HttpRequest) -> web::HttpResponse {
         match self {

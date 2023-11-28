@@ -112,7 +112,6 @@ pub(crate) async fn refresh_token(
     Ok(web::HttpResponse::Ok().json(&refresh_response))
 }
 
-// TODO: Implement logout
 #[inline(always)]
 pub(crate) async fn logout(
     req: web::HttpRequest,
