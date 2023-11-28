@@ -1,10 +1,12 @@
 use crate::{
-    dtos::UserData,
+    dtos::{UpdateUser, UserData},
     entity::UserExtension,
     error::{AppResult, CommonError},
+    services::UserServiceTrait,
     states::AppState,
 };
 pub(crate) use admin::*;
+use garde::Validate;
 use ntex::web;
 
 mod admin;
@@ -26,4 +28,25 @@ pub(crate) async fn user_data(
         user,
         championships,
     }))
+}
+
+#[inline(always)]
+pub(crate) async fn edit_user(
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    form: web::types::Form<UpdateUser>,
+) -> AppResult<impl web::Responder> {
+    if form.validate(&()).is_err() {
+        Err(CommonError::FormValidationFailed)?
+    };
+
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
+    state.user_service.update(&user.id, &form).await?;
+
+    Ok(web::HttpResponse::Ok())
 }

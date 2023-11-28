@@ -9,7 +9,7 @@ use crate::{
             socket_status, start_socket, stop_socket,
         },
         heartbeat,
-        user::user_data,
+        user::{edit_user, user_data},
     },
     middlewares::Authentication,
 };
@@ -36,6 +36,7 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
 
     cfg.service(
         web::scope("/user")
+            .route("/edit", web::put().to(edit_user))
             .route("/data", web::get().to(user_data))
             .wrap(Authentication),
     );

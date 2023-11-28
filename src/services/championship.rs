@@ -13,9 +13,8 @@ use std::sync::Arc;
 
 pub struct ChampionshipService {
     db: Arc<Database>,
-    ports: Arc<RwLock<FxHashSet<i32>>>,
-    #[allow(unused)]
     cache: Arc<RedisCache>,
+    ports: Arc<RwLock<FxHashSet<i32>>>,
     championship_repository: ChampionshipRepository,
 }
 
@@ -42,8 +41,10 @@ impl ChampionshipService {
         user_id: &i32,
     ) -> AppResult<()> {
         let port = self.get_port().await?;
-        let mut rand = StdRng::from_entropy();
-        let id: i32 = rand.gen_range(600000000..700000000);
+        let id = {
+            let mut rand = StdRng::from_entropy();
+            rand.gen_range(600000000..700000000)
+        };
 
         self.championship_repository
             .exist_by_name(&payload.name)

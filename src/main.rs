@@ -23,6 +23,7 @@ mod repositories;
 mod routes;
 mod services;
 mod states;
+mod utils;
 
 #[ntex::main]
 async fn main() {

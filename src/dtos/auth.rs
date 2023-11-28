@@ -52,7 +52,7 @@ pub struct RefreshResponse {
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct RegisterUserDto {
-    #[garde(length(min = 3, max = 20))]
+    #[garde(ascii, length(min = 3, max = 20))]
     #[serde(deserialize_with = "string_trim")]
     pub username: String,
     #[garde(email)]
@@ -60,7 +60,7 @@ pub struct RegisterUserDto {
     pub email: String,
     #[garde(length(min = 8, max = 20))]
     pub password: Option<String>,
-    #[garde(skip)]
+    #[garde(inner(length(min = 10, max = 100)))]
     pub avatar: Option<String>,
     #[garde(skip)]
     pub provider: Option<Provider>,

@@ -5,8 +5,7 @@ mod user;
 use crate::error::AppResult;
 pub use championship::*;
 use deadpool_postgres::tokio_postgres::Row;
-#[allow(unused)]
-pub use saved_sessions::*;
+// pub use saved_sessions::*;
 pub use user::*;
 
 pub trait FromRow {

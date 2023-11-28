@@ -2,7 +2,7 @@ use super::{TokenService, TokenServiceTrait};
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    dtos::{RegisterUserDto, TokenType},
+    dtos::{RegisterUserDto, TokenType, UpdateUser},
     entity::Provider,
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
@@ -10,6 +10,7 @@ use crate::{
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use log::{error, info};
+use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 
@@ -25,6 +26,7 @@ pub struct UserService {
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
+    async fn update(&self, id: &i32, form: &UpdateUser) -> AppResult<()>;
     async fn delete(&self, id: &i32) -> AppResult<()>;
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
@@ -113,6 +115,52 @@ impl UserServiceTrait for UserService {
 
         info!("User created: {}", register.username);
         Ok(id)
+    }
+
+    // TODO: Check if this can be improved with a macro & limit for 1 update per 15 days
+    async fn update(&self, id: &i32, form: &UpdateUser) -> AppResult<()> {
+        let mut query = String::from("UPDATE users SET");
+        let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
+        let mut counter = 1;
+
+        if let Some(username) = &form.username {
+            if counter > 1 {
+                query.push(',');
+            }
+
+            query.push_str(&format!(" username = ${counter}"));
+            params.push(username);
+            counter += 1;
+        }
+
+        if let Some(avatar) = &form.avatar {
+            if counter > 1 {
+                query.push(',');
+            }
+
+            query.push_str(&format!(" avatar = ${counter}"));
+            params.push(avatar);
+            counter += 1;
+        }
+
+        if counter == 1 {
+            Err(UserError::InvalidUpdate)?
+        }
+
+        query.push_str(&format!(" WHERE id = ${}", counter));
+        params.push(id);
+
+        {
+            let conn = self.db_conn.pg.get().await?;
+
+            let cached_statement = conn.prepare_cached(&query).await?;
+
+            conn.execute(&cached_statement, &params[..]).await?;
+        }
+
+        self.cache.user.delete(id).await?;
+
+        Ok(())
     }
 
     async fn delete(&self, id: &i32) -> AppResult<()> {

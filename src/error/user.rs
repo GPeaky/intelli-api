@@ -25,6 +25,8 @@ pub enum UserError {
     InvalidProvider,
     #[error("Using wrong provider")]
     WrongProvider,
+    #[error("Invalid Update")]
+    InvalidUpdate,
 }
 
 impl web::error::WebResponseError for UserError {
@@ -47,6 +49,7 @@ impl web::error::WebResponseError for UserError {
             UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
             UserError::InvalidProvider => StatusCode::BAD_REQUEST,
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
+            UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
         }
     }
 }
