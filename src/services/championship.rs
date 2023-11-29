@@ -218,6 +218,50 @@ impl ChampionshipService {
         Ok(())
     }
 
+    pub async fn remove_user(
+        &self,
+        id: &i32,
+        user_id: &i32,
+        remove_user_id: &i32,
+    ) -> AppResult<()> {
+        {
+            let Some(championship) = self.championship_repository.find(id).await? else {
+                Err(ChampionshipError::NotFound)?
+            };
+
+            if championship.owner_id != *user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+        }
+
+        let Some(bind_user) = self.user_repository.find(remove_user_id).await? else {
+            Err(UserError::NotFound)?
+        };
+
+        {
+            let conn = self.db.pg.get().await?;
+
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                    DELETE FROM user_championships WHERE user_id = $1 AND championship_id = $2
+                "#,
+                )
+                .await?;
+
+            conn.execute(&cached_statement, &[&bind_user.id, &id])
+                .await?;
+        }
+
+        self.cache.championship.delete(id).await?;
+        let del_by_user_id_task = self.cache.championship.delete_by_user_id(user_id);
+        let del_by_new_user_id_task = self.cache.championship.delete_by_user_id(&bind_user.id);
+
+        tokio::try_join!(del_by_user_id_task, del_by_new_user_id_task)?;
+
+        Ok(())
+    }
+
     pub async fn delete(&self, id: &i32) -> AppResult<()> {
         {
             let conn = self.db.pg.get().await?;

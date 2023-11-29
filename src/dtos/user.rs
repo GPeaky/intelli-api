@@ -18,3 +18,10 @@ pub struct AddUser {
     #[garde(email)]
     pub email: String,
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct RemoveUser {
+    #[serde(deserialize_with = "string_trim")]
+    #[garde(email)]
+    pub email: String,
+}
