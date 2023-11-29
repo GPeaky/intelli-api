@@ -1,10 +1,11 @@
 use crate::{
     cache::{EntityCache, RedisCache},
-    config::Database,
+    config::{constants::TIME_BEFORE_UPDATE, Database},
     dtos::{CreateChampionshipDto, UpdateChampionship},
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
 };
+use chrono::{Duration, Utc};
 use log::info;
 use parking_lot::RwLock;
 use postgres_types::ToSql;
@@ -103,6 +104,11 @@ impl ChampionshipService {
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
+            };
+
+            let now = Utc::now();
+            if now - championship.updated_at <= TIME_BEFORE_UPDATE {
+                Err(ChampionshipError::IntervalNotReached)?
             };
 
             if championship.owner_id != *user_id {

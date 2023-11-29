@@ -1,3 +1,4 @@
+use chrono::Duration as ChronoDuration;
 use std::time::Duration;
 
 // Google auth
@@ -8,6 +9,9 @@ pub const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinf
 // Tokens
 pub const GENERIC_TOKEN_EXPIRATION: usize = 15 * 60;
 pub const REFRESH_TOKEN_EXPIRATION: usize = 15 * 60;
+
+// Database
+pub const TIME_BEFORE_UPDATE: ChronoDuration = ChronoDuration::days(7);
 
 // Redis
 pub const REDIS_USER_PREFIX: &str = "user";

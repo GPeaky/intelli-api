@@ -158,7 +158,6 @@ impl UserServiceTrait for UserService {
 
         let conn = self.db_conn.pg.get().await?;
         let cached_statement = conn.prepare_cached(&query).await?;
-
         let delete_cache_future = self.cache.user.delete(id);
         let update_user_future = conn.execute(&cached_statement, &params[..]);
 

@@ -14,6 +14,8 @@ pub enum ChampionshipError {
     LimitReached,
     #[error("Not Owner of Championship")]
     NotOwner,
+    #[error("Interval update time not reached")]
+    IntervalNotReached,
 }
 
 impl web::error::WebResponseError for ChampionshipError {
@@ -30,6 +32,7 @@ impl web::error::WebResponseError for ChampionshipError {
             ChampionshipError::NotFound => StatusCode::NOT_FOUND,
             ChampionshipError::LimitReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NotOwner => StatusCode::UNAUTHORIZED,
+            ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
         }
     }
 }
