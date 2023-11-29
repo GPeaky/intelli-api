@@ -31,7 +31,7 @@ pub(crate) async fn user_data(
 }
 
 #[inline(always)]
-pub(crate) async fn edit_user(
+pub(crate) async fn update_user(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
     form: web::types::Form<UpdateUser>,
