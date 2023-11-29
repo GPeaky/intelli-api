@@ -10,7 +10,6 @@ use crate::{
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use log::{error, info};
-use ntex::util::join;
 use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -160,10 +159,10 @@ impl UserServiceTrait for UserService {
         let conn = self.db_conn.pg.get().await?;
         let cached_statement = conn.prepare_cached(&query).await?;
 
-        let delete_cache_task = self.cache.user.delete(id);
-        let update_db_task = conn.execute(&cached_statement, &params[..]);
+        let delete_cache_future = self.cache.user.delete(id);
+        let update_user_future = conn.execute(&cached_statement, &params[..]);
 
-        let (db_result, cache_result) = join(update_db_task, delete_cache_task).await;
+        let (db_result, cache_result) = tokio::join!(update_user_future, delete_cache_future);
 
         db_result?;
         cache_result?;
@@ -193,12 +192,13 @@ impl UserServiceTrait for UserService {
         let binding: [&(dyn ToSql + Sync); 1] = [id];
         conn.execute(&cached, &binding).await?;
 
-        let del_from_db_task = conn.execute(&cached2, &binding);
-        let del_from_cache_task = self.cache.user.delete(id);
-        let (db_result, cache_result) = join(del_from_db_task, del_from_cache_task).await;
+        let user_deletion_future = conn.execute(&cached2, &binding);
+        let cache_del_future = self.cache.user.delete(id);
 
-        db_result?;
-        cache_result?;
+        let (user_delete_res, cache_del_res) = tokio::join!(user_deletion_future, cache_del_future);
+
+        user_delete_res?;
+        cache_del_res?;
 
         info!("User deleted with success: {}", id);
 
@@ -233,7 +233,6 @@ impl UserServiceTrait for UserService {
     // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
-
         let cached_statement = conn
             .prepare_cached(
                 r#"
@@ -246,12 +245,12 @@ impl UserServiceTrait for UserService {
 
         let hashed_password = hash(password, DEFAULT_COST)?;
         let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, id];
-        let update_db_task = conn.execute(&cached_statement, &bindings);
-        let rm_cache_task = self.cache.user.delete(id);
+        let update_user_future = conn.execute(&cached_statement, &bindings);
+        let remove_cache_future = self.cache.user.delete(id);
 
-        let (db_result, cache_result) = join(update_db_task, rm_cache_task).await;
+        let (update_result, cache_result) = tokio::join!(update_user_future, remove_cache_future);
 
-        db_result?;
+        update_result?;
         cache_result?;
 
         info!("User password reseated with success: {}", id);
@@ -261,7 +260,6 @@ impl UserServiceTrait for UserService {
 
     async fn activate_with_token(&self, token: &str) -> AppResult<()> {
         self.cache.token.get_token(token, &TokenType::Email).await?;
-
         let user_id = {
             let token_data = self.token_service.validate(token)?;
             if token_data.claims.token_type.ne(&TokenType::Email) {
@@ -272,7 +270,6 @@ impl UserServiceTrait for UserService {
         };
 
         self.activate(&user_id).await?;
-
         self.cache
             .token
             .remove_token(token, &TokenType::Email)
@@ -295,10 +292,10 @@ impl UserServiceTrait for UserService {
             .await?;
 
         let bindings: [&(dyn ToSql + Sync); 1] = [id];
-        let update_user_task = conn.execute(&cached_statement, &bindings);
-        let del_cache_task = self.cache.user.delete(id);
+        let activate_user_future = conn.execute(&cached_statement, &bindings);
+        let delete_cache_future = self.cache.user.delete(id);
 
-        let (db_result, cache_result) = join(update_user_task, del_cache_task).await;
+        let (db_result, cache_result) = tokio::join!(activate_user_future, delete_cache_future);
 
         db_result?;
         cache_result?;
@@ -310,7 +307,6 @@ impl UserServiceTrait for UserService {
 
     async fn deactivate(&self, id: &i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
-
         let cached_statement = conn
             .prepare_cached(
                 r#"
@@ -322,10 +318,10 @@ impl UserServiceTrait for UserService {
             .await?;
 
         let bindings: [&(dyn ToSql + Sync); 1] = [id];
-        let update_user_task = conn.execute(&cached_statement, &bindings);
-        let delete_cache_task = self.cache.user.delete(id);
+        let deactivate_user_future = conn.execute(&cached_statement, &bindings);
+        let delete_cache_future = self.cache.user.delete(id);
 
-        let (db_result, cache_result) = join(update_user_task, delete_cache_task).await;
+        let (db_result, cache_result) = tokio::join!(deactivate_user_future, delete_cache_future);
 
         db_result?;
         cache_result?;
