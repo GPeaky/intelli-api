@@ -15,7 +15,6 @@ pub trait ToProtoMessage {
     type ProtoType: Message;
     fn to_proto(&self) -> Option<Self::ProtoType>;
 
-    // TODO: Try to remove packet_type from here
     fn convert_and_encode(&self, packet_type: PacketType) -> Option<Bytes>
     where
         Self: Sized,

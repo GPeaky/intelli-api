@@ -10,6 +10,7 @@ use crate::{
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
 };
+use chrono::{Duration, Utc};
 use garde::Validate;
 use ntex::web;
 
@@ -36,13 +37,14 @@ pub(crate) async fn register(
         ),
     };
 
-    let save_email = state.token_service.save_email_token(&token);
+    let save_email_future = state.token_service.save_email_token(&token);
 
-    let send_email = state
-        .email_service
-        .send_mail((&*form).into(), "Verify Email", template);
+    let send_email_future =
+        state
+            .email_service
+            .send_mail((&*form).into(), "Verify Email", template);
 
-    tokio::try_join!(save_email, send_email)?;
+    tokio::try_join!(save_email_future, send_email_future)?;
 
     Ok(web::HttpResponse::Ok())
 }
@@ -144,6 +146,10 @@ pub(crate) async fn forgot_password(
     let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
         return Err(UserError::NotFound)?;
     };
+
+    if Utc::now().signed_duration_since(user.updated_at) > Duration::hours(1) {
+        return Err(UserError::UpdateLimitExceeded)?;
+    }
 
     let token = state
         .token_service

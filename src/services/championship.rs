@@ -21,7 +21,6 @@ pub struct ChampionshipService {
     championship_repository: ChampionshipRepository,
 }
 
-// TODO: Check try_join! macro
 impl ChampionshipService {
     pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         let championship_repository = ChampionshipRepository::new(db_conn, cache).await;
@@ -106,8 +105,7 @@ impl ChampionshipService {
                 Err(ChampionshipError::NotFound)?
             };
 
-            let now = Utc::now();
-            if now - championship.updated_at <= Duration::days(7) {
+            if Utc::now().signed_duration_since(championship.updated_at) <= Duration::days(7) {
                 Err(ChampionshipError::IntervalNotReached)?
             };
 
@@ -180,7 +178,6 @@ impl ChampionshipService {
         Ok(())
     }
 
-    // TODO: Check if we receive new_user id or email
     pub async fn add_user(&self, id: &i32, user_id: &i32, bind_user_email: &str) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repository.find(id).await? else {

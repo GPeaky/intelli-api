@@ -37,7 +37,6 @@ pub trait UserServiceTrait {
 }
 
 #[async_trait]
-// TODO: Check join method from ntex
 impl UserServiceTrait for UserService {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
@@ -121,7 +120,7 @@ impl UserServiceTrait for UserService {
     }
 
     async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()> {
-        if Utc::now() - user.updated_at <= Duration::days(7) {
+        if Utc::now().signed_duration_since(user.updated_at) <= Duration::days(7) {
             Err(UserError::UpdateLimitExceeded)?
         }
 
@@ -233,8 +232,15 @@ impl UserServiceTrait for UserService {
         Ok(user_id)
     }
 
-    // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
+        let Some(user) = self.user_repo.find(id).await? else {
+            Err(UserError::NotFound)?
+        };
+
+        if Utc::now().signed_duration_since(user.updated_at) <= Duration::minutes(15) {
+            Err(UserError::UpdateLimitExceeded)?
+        }
+
         let conn = self.db_conn.pg.get().await?;
         let cached_statement = conn
             .prepare_cached(

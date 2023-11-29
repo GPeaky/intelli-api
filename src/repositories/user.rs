@@ -65,7 +65,6 @@ impl UserRepositoryTrait for UserRepository {
         Ok(None)
     }
 
-    // TODO: Check if this function is necessary with cache
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
         if (self.find_by_email(email).await?).is_some() {
             return Ok(true);
