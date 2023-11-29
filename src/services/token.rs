@@ -93,7 +93,7 @@ impl TokenServiceTrait for TokenService {
 
         let db_token = self.cache.token.get_refresh_token(&id, fingerprint).await?;
 
-        if db_token.ne(refresh_token) {
+        if db_token != refresh_token {
             Err(TokenError::InvalidToken)?
         }
 
