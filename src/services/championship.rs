@@ -163,7 +163,10 @@ impl ChampionshipService {
             conn.execute(&cached_statement, &params).await?;
         }
 
-        self.cache.championship.delete(id).await?;
+        let del_task = self.cache.championship.delete(id);
+        let del_by_id_task = self.cache.championship.delete_by_user_id(user_id);
+
+        tokio::try_join!(del_task, del_by_id_task)?;
 
         Ok(())
     }
@@ -199,6 +202,12 @@ impl ChampionshipService {
             conn.execute(&cached_statement, &[&bind_user.id, &id])
                 .await?;
         }
+
+        self.cache.championship.delete(id).await?;
+        let del_by_user_id_task = self.cache.championship.delete_by_user_id(user_id);
+        let del_by_new_user_id_task = self.cache.championship.delete_by_user_id(&bind_user.id);
+
+        tokio::try_join!(del_by_user_id_task, del_by_new_user_id_task)?;
 
         Ok(())
     }
