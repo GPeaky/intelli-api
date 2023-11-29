@@ -23,10 +23,7 @@ pub async fn delete_championship(
         Err(ChampionshipError::NotFound)?
     };
 
-    state
-        .championship_service
-        .delete_championship(&championship.id)
-        .await?;
+    state.championship_service.delete(&championship.id).await?;
 
     Ok(web::HttpResponse::Ok())
 }

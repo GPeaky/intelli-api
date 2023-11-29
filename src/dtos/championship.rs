@@ -1,7 +1,7 @@
 use crate::entity::Category;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
-use serde_trim::string_trim;
+use serde_trim::{option_string_trim, string_trim};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateChampionshipDto {
@@ -12,6 +12,17 @@ pub struct CreateChampionshipDto {
     pub category: Category,
     #[garde(skip)]
     pub season: i16,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdateChampionship {
+    #[serde(default, deserialize_with = "option_string_trim")]
+    #[garde(ascii, length(min = 3, max = 20))]
+    pub name: Option<String>,
+    #[garde(skip)]
+    pub category: Option<Category>,
+    #[garde(skip)]
+    pub season: Option<i16>,
 }
 
 #[derive(Debug, Serialize)]

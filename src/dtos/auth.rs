@@ -1,7 +1,7 @@
 use crate::entity::{Championship, Provider, User};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
-use serde_trim::string_trim;
+use serde_trim::{option_string_trim, string_trim};
 use std::sync::Arc;
 
 #[derive(Deserialize)]
@@ -58,6 +58,7 @@ pub struct RegisterUserDto {
     #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
+    #[serde(default, deserialize_with = "option_string_trim")]
     #[garde(length(min = 8, max = 20))]
     pub password: Option<String>,
     #[garde(inner(length(min = 10, max = 100)))]

@@ -119,36 +119,40 @@ impl UserServiceTrait for UserService {
 
     // TODO: Check if this can be improved with a macro & limit for 1 update per 15 days
     async fn update(&self, id: &i32, form: &UpdateUser) -> AppResult<()> {
-        let mut query = String::from("UPDATE users SET");
-        let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
-        let mut counter = 1;
+        let (query, params) = {
+            let mut counter = 1;
+            let mut query = String::from("UPDATE users SET");
+            let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
 
-        if let Some(username) = &form.username {
-            if counter > 1 {
-                query.push(',');
+            if let Some(username) = &form.username {
+                if counter > 1 {
+                    query.push(',');
+                }
+
+                query.push_str(&format!(" username = ${counter}"));
+                params.push(username);
+                counter += 1;
             }
 
-            query.push_str(&format!(" username = ${counter}"));
-            params.push(username);
-            counter += 1;
-        }
+            if let Some(avatar) = &form.avatar {
+                if counter > 1 {
+                    query.push(',');
+                }
 
-        if let Some(avatar) = &form.avatar {
-            if counter > 1 {
-                query.push(',');
+                query.push_str(&format!(" avatar = ${counter}"));
+                params.push(avatar);
+                counter += 1;
             }
 
-            query.push_str(&format!(" avatar = ${counter}"));
-            params.push(avatar);
-            counter += 1;
-        }
+            if counter == 1 {
+                Err(UserError::InvalidUpdate)?
+            }
 
-        if counter == 1 {
-            Err(UserError::InvalidUpdate)?
-        }
+            query.push_str(&format!(" WHERE id = ${}", counter));
+            params.push(id);
 
-        query.push_str(&format!(" WHERE id = ${}", counter));
-        params.push(id);
+            (query, params)
+        };
 
         {
             let conn = self.db_conn.pg.get().await?;

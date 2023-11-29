@@ -1,5 +1,5 @@
 use crate::{
-    dtos::CreateChampionshipDto,
+    dtos::{AddUser, CreateChampionshipDto, UpdateChampionship},
     entity::{Role, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
@@ -62,7 +62,57 @@ pub async fn create_championship(
 
     state
         .championship_service
-        .create_championship(form.into_inner(), &user.id)
+        .create(form.into_inner(), &user.id)
+        .await?;
+
+    Ok(web::HttpResponse::Ok())
+}
+
+#[inline(always)]
+pub async fn update(
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    form: web::types::Form<UpdateChampionship>,
+    championship_id: web::types::Path<i32>,
+) -> AppResult<impl web::Responder> {
+    if form.validate(&()).is_err() {
+        Err(CommonError::FormValidationFailed)?
+    }
+
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
+    state
+        .championship_service
+        .update(&championship_id, &user.id, &form)
+        .await?;
+
+    Ok(web::HttpResponse::Ok())
+}
+
+#[inline(always)]
+pub async fn add_user(
+    req: web::HttpRequest,
+    state: web::types::State<AppState>,
+    championship_id: web::types::Path<i32>,
+    form: web::types::Form<AddUser>,
+) -> AppResult<impl web::Responder> {
+    if form.validate(&()).is_err() {
+        Err(CommonError::FormValidationFailed)?
+    }
+
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .clone();
+
+    state
+        .championship_service
+        .add_user(&championship_id, &user.id, &form.email)
         .await?;
 
     Ok(web::HttpResponse::Ok())

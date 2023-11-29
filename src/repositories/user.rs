@@ -2,7 +2,7 @@ use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     entity::{FromRow, User},
-    error::AppResult,
+    error::{AppResult, UserError},
 };
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -33,6 +33,10 @@ impl UserRepositoryTrait for UserRepository {
 
     async fn find(&self, id: &i32) -> AppResult<Option<User>> {
         if let Some(user) = self.cache.user.get(id).await? {
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
             return Ok(Some(user));
         };
 
@@ -87,6 +91,10 @@ impl UserRepositoryTrait for UserRepository {
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         if let Some(user) = self.cache.user.get_by_email(email).await? {
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
             return Ok(Some(user));
         };
 
