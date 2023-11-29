@@ -10,6 +10,7 @@ use crate::{
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use log::{error, info};
+use ntex::util::join;
 use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -36,6 +37,7 @@ pub trait UserServiceTrait {
 }
 
 #[async_trait]
+// TODO: Check join method from ntex
 impl UserServiceTrait for UserService {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
         Self {
@@ -46,6 +48,7 @@ impl UserServiceTrait for UserService {
         }
     }
 
+    // TODO: Refactor this method
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32> {
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
@@ -154,46 +157,49 @@ impl UserServiceTrait for UserService {
             (query, params)
         };
 
-        {
-            let conn = self.db_conn.pg.get().await?;
+        let conn = self.db_conn.pg.get().await?;
+        let cached_statement = conn.prepare_cached(&query).await?;
 
-            let cached_statement = conn.prepare_cached(&query).await?;
+        let delete_cache_task = self.cache.user.delete(id);
+        let update_db_task = conn.execute(&cached_statement, &params[..]);
 
-            conn.execute(&cached_statement, &params[..]).await?;
-        }
+        let (db_result, cache_result) = join(update_db_task, delete_cache_task).await;
 
-        self.cache.user.delete(id).await?;
+        db_result?;
+        cache_result?;
 
         Ok(())
     }
 
     async fn delete(&self, id: &i32) -> AppResult<()> {
-        {
-            let conn = self.db_conn.pg.get().await?;
+        let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_task = conn.prepare_cached(
+            r#"
                     DELETE FROM user_championships
                     WHERE user_id = $1
                 "#,
-                )
-                .await?;
+        );
 
-            let cached2 = conn
-                .prepare_cached(
-                    r#"
+        let cached2_task = conn.prepare_cached(
+            r#"
                     DELETE FROM user
                     WHERE id = $1
                 "#,
-                )
-                .await?;
+        );
 
-            conn.execute(&cached_statement, &[id]).await?;
-            conn.execute(&cached2, &[id]).await?;
-        }
+        let (cached, cached2) = tokio::try_join!(cached_task, cached2_task)?;
 
-        self.cache.user.delete(id).await?;
+        let binding: [&(dyn ToSql + Sync); 1] = [id];
+        conn.execute(&cached, &binding).await?;
+
+        let del_from_db_task = conn.execute(&cached2, &binding);
+        let del_from_cache_task = self.cache.user.delete(id);
+        let (db_result, cache_result) = join(del_from_db_task, del_from_cache_task).await;
+
+        db_result?;
+        cache_result?;
+
         info!("User deleted with success: {}", id);
 
         Ok(())
@@ -224,27 +230,30 @@ impl UserServiceTrait for UserService {
         Ok(user_id)
     }
 
+    // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
-        // TODO: Check if updated_at is less than 5 minutes & if the updated_at is being updated
-        {
-            let hashed_password = hash(password, DEFAULT_COST)?;
-            let conn = self.db_conn.pg.get().await?;
+        let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                         UPDATE users
                         SET password = $1
                         WHERE id = $2
                     "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[&hashed_password, id])
-                .await?;
-        }
+        let hashed_password = hash(password, DEFAULT_COST)?;
+        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, id];
+        let update_db_task = conn.execute(&cached_statement, &bindings);
+        let rm_cache_task = self.cache.user.delete(id);
 
-        self.cache.user.delete(id).await?;
+        let (db_result, cache_result) = join(update_db_task, rm_cache_task).await;
+
+        db_result?;
+        cache_result?;
+
         info!("User password reseated with success: {}", id);
 
         Ok(())
@@ -273,46 +282,54 @@ impl UserServiceTrait for UserService {
     }
 
     async fn activate(&self, id: &i32) -> AppResult<()> {
-        {
-            let conn = self.db_conn.pg.get().await?;
+        let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                         UPDATE users
                         SET active = true
                         WHERE id = $1
                     "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[id]).await?;
-        }
+        let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let update_user_task = conn.execute(&cached_statement, &bindings);
+        let del_cache_task = self.cache.user.delete(id);
 
-        self.cache.user.delete(id).await?;
+        let (db_result, cache_result) = join(update_user_task, del_cache_task).await;
+
+        db_result?;
+        cache_result?;
+
         info!("User activated with success: {}", id);
 
         Ok(())
     }
 
     async fn deactivate(&self, id: &i32) -> AppResult<()> {
-        {
-            let conn = self.db_conn.pg.get().await?;
+        let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                     UPDATE user
                     SET active = false
                     WHERE id = $1
                 "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[id]).await?;
-        }
+        let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let update_user_task = conn.execute(&cached_statement, &bindings);
+        let delete_cache_task = self.cache.user.delete(id);
 
-        self.cache.user.delete(id).await?;
+        let (db_result, cache_result) = join(update_user_task, delete_cache_task).await;
+
+        db_result?;
+        cache_result?;
+
         info!("User activated with success: {}", id);
 
         Ok(())
