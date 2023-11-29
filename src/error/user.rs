@@ -27,6 +27,8 @@ pub enum UserError {
     WrongProvider,
     #[error("Invalid Update")]
     InvalidUpdate,
+    #[error("Update Limit Exceeded")]
+    UpdateLimitExceeded,
 }
 
 impl web::error::WebResponseError for UserError {
@@ -50,6 +52,7 @@ impl web::error::WebResponseError for UserError {
             UserError::InvalidProvider => StatusCode::BAD_REQUEST,
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
             UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
+            UserError::UpdateLimitExceeded => StatusCode::BAD_REQUEST,
         }
     }
 }

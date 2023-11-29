@@ -1,6 +1,6 @@
 use crate::{
     cache::{EntityCache, RedisCache},
-    config::{constants::TIME_BEFORE_UPDATE, Database},
+    config::Database,
     dtos::{CreateChampionshipDto, UpdateChampionship},
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
@@ -107,7 +107,7 @@ impl ChampionshipService {
             };
 
             let now = Utc::now();
-            if now - championship.updated_at <= TIME_BEFORE_UPDATE {
+            if now - championship.updated_at <= Duration::days(7) {
                 Err(ChampionshipError::IntervalNotReached)?
             };
 

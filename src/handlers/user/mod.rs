@@ -46,7 +46,7 @@ pub(crate) async fn update_user(
         .ok_or(CommonError::InternalServerError)?
         .clone();
 
-    state.user_service.update(&user.id, &form).await?;
+    state.user_service.update(&user, &form).await?;
 
     Ok(web::HttpResponse::Ok())
 }

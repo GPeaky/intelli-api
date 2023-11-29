@@ -3,12 +3,13 @@ use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     dtos::{RegisterUserDto, TokenType, UpdateUser},
-    entity::Provider,
+    entity::{Provider, UserExtension},
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
+use chrono::{Duration, Utc};
 use log::{error, info};
 use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -26,7 +27,7 @@ pub struct UserService {
 pub trait UserServiceTrait {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
-    async fn update(&self, id: &i32, form: &UpdateUser) -> AppResult<()>;
+    async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()>;
     async fn delete(&self, id: &i32) -> AppResult<()>;
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
@@ -119,8 +120,11 @@ impl UserServiceTrait for UserService {
         Ok(id)
     }
 
-    // TODO: Check if this can be improved with a macro & limit for 1 update per 15 days
-    async fn update(&self, id: &i32, form: &UpdateUser) -> AppResult<()> {
+    async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()> {
+        if Utc::now() - user.updated_at <= Duration::days(7) {
+            Err(UserError::UpdateLimitExceeded)?
+        }
+
         let (query, params) = {
             let mut counter = 1;
             let mut query = String::from("UPDATE users SET");
@@ -151,14 +155,14 @@ impl UserServiceTrait for UserService {
             }
 
             query.push_str(&format!(" WHERE id = ${}", counter));
-            params.push(id);
+            params.push(&user.id);
 
             (query, params)
         };
 
         let conn = self.db_conn.pg.get().await?;
         let cached_statement = conn.prepare_cached(&query).await?;
-        let delete_cache_future = self.cache.user.delete(id);
+        let delete_cache_future = self.cache.user.delete(&user.id);
         let update_user_future = conn.execute(&cached_statement, &params[..]);
 
         let (db_result, cache_result) = tokio::join!(update_user_future, delete_cache_future);
