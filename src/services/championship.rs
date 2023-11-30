@@ -238,6 +238,10 @@ impl ChampionshipService {
             if championship.owner_id != *user_id {
                 Err(ChampionshipError::NotOwner)?
             }
+
+            if championship.owner_id == *remove_user_id {
+                Err(ChampionshipError::CannotRemoveOwner)?
+            }
         }
 
         let Some(_) = self.user_repository.find(remove_user_id).await? else {
