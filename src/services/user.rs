@@ -80,7 +80,7 @@ impl UserServiceTrait for UserService {
                         &register.email,
                         &register.username,
                         &register.avatar,
-                        &provider,
+                        provider,
                     ],
                 )
                 .await?;

@@ -33,10 +33,6 @@ impl UserRepositoryTrait for UserRepository {
 
     async fn find(&self, id: &i32) -> AppResult<Option<User>> {
         if let Some(user) = self.cache.user.get(id).await? {
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
             return Ok(Some(user));
         };
 
@@ -57,8 +53,12 @@ impl UserRepositoryTrait for UserRepository {
 
         if let Some(row) = row {
             let user = User::from_row(&row)?;
-            self.cache.user.set(&user).await?;
 
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
+            self.cache.user.set(&user).await?;
             return Ok(Some(user));
         }
 
@@ -90,10 +90,6 @@ impl UserRepositoryTrait for UserRepository {
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         if let Some(user) = self.cache.user.get_by_email(email).await? {
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
             return Ok(Some(user));
         };
 
@@ -114,8 +110,12 @@ impl UserRepositoryTrait for UserRepository {
 
         if let Some(row) = row {
             let user = User::from_row(&row)?;
-            self.cache.user.set(&user).await?;
 
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
+            self.cache.user.set(&user).await?;
             return Ok(Some(user));
         }
 

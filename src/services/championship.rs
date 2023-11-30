@@ -78,12 +78,12 @@ impl ChampionshipService {
                     &payload.name,
                     &payload.category,
                     &payload.season,
-                    &user_id,
+                    user_id,
                 ],
             )
             .await?;
 
-            conn.execute(&cached2, &[&user_id, &id]).await?;
+            conn.execute(&cached2, &[user_id, &id]).await?;
         }
 
         let remove_port_task = self.remove_port(port);
@@ -172,6 +172,7 @@ impl ChampionshipService {
 
         let del_task = self.cache.championship.delete(id);
         let del_by_id_task = self.cache.championship.delete_by_user_id(user_id);
+        // TODO: Delete cache from all championship users
 
         tokio::try_join!(del_task, del_by_id_task)?;
 
@@ -189,31 +190,36 @@ impl ChampionshipService {
             }
         }
 
-        let Some(bind_user) = self.user_repository.find_by_email(bind_user_email).await? else {
-            Err(UserError::NotFound)?
+        let new_user_id = {
+            let Some(bind_user) = self.user_repository.find_by_email(bind_user_email).await? else {
+                Err(UserError::NotFound)?
+            };
+
+            bind_user.id
         };
 
-        {
-            let conn = self.db.pg.get().await?;
+        let conn = self.db.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                     INSERT INTO user_championships (user_id, championship_id)
                     VALUES ($1,$2)
                 "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[&bind_user.id, &id])
-                .await?;
-        }
+        let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
+        let add_user_future = conn.execute(&cached_statement, &bindings);
 
-        self.cache.championship.delete(id).await?;
-        let del_by_user_id_task = self.cache.championship.delete_by_user_id(user_id);
-        let del_by_new_user_id_task = self.cache.championship.delete_by_user_id(&bind_user.id);
+        // Delete New User Championship Cache
+        let delete_user_cache_future = self.cache.championship.delete_by_user_id(&new_user_id);
 
-        tokio::try_join!(del_by_user_id_task, del_by_new_user_id_task)?;
+        let (add_user_res, delete_user_cache_res) =
+            tokio::join!(add_user_future, delete_user_cache_future);
+
+        add_user_res?;
+        delete_user_cache_res?;
 
         Ok(())
     }
@@ -234,58 +240,64 @@ impl ChampionshipService {
             }
         }
 
-        let Some(bind_user) = self.user_repository.find(remove_user_id).await? else {
+        let Some(_) = self.user_repository.find(remove_user_id).await? else {
             Err(UserError::NotFound)?
         };
 
-        {
-            let conn = self.db.pg.get().await?;
+        let conn = self.db.pg.get().await?;
 
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                     DELETE FROM user_championships WHERE user_id = $1 AND championship_id = $2
                 "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[&bind_user.id, &id])
-                .await?;
-        }
+        let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
+        let remove_user_future = conn.execute(&cached_statement, &bindings);
+        // Delete Removed User Championship Cache
+        let remove_user_cache_future = self.cache.championship.delete_by_user_id(remove_user_id);
 
-        self.cache.championship.delete(id).await?;
-        let del_by_user_id_task = self.cache.championship.delete_by_user_id(user_id);
-        let del_by_new_user_id_task = self.cache.championship.delete_by_user_id(&bind_user.id);
+        let (remove_user, remove_user_cache) =
+            tokio::join!(remove_user_future, remove_user_cache_future);
 
-        tokio::try_join!(del_by_user_id_task, del_by_new_user_id_task)?;
+        remove_user?;
+        remove_user_cache?;
 
         Ok(())
     }
 
+    // TODO: Delete cache of all users related with this championship
     pub async fn delete(&self, id: &i32) -> AppResult<()> {
-        {
-            let conn = self.db.pg.get().await?;
-            let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let conn = self.db.pg.get().await?;
+        let bindings: [&(dyn ToSql + Sync); 1] = [id];
 
-            let cached_task = conn.prepare_cached(
-                r#"
-                    DELETE FROM championship WHERE id = $1
-                "#,
-            );
-
-            let cached_2_task = conn.prepare_cached(
-                r#"
+        let cached_task = conn.prepare_cached(
+            r#"
                     DELETE FROM user_championships WHERE championship_id = $1
                 "#,
-            );
+        );
 
-            let (cached, cached_2) = tokio::try_join!(cached_task, cached_2_task)?;
+        let cached2_task = conn.prepare_cached(
+            r#"
+                    DELETE FROM championship WHERE id = $1
+                "#,
+        );
 
-            conn.execute(&cached, &bindings).await?;
-            conn.execute(&cached_2, &bindings).await?;
-        }
+        let (cached, cached_2) = tokio::try_join!(cached_task, cached2_task)?;
 
-        self.cache.championship.delete(id).await?;
+        let remove_users_ref_future = conn.execute(&cached, &bindings);
+        let remove_championship_future = self.cache.championship.delete(id);
+
+        let (remove_users_ref, remove_championship) =
+            tokio::join!(remove_users_ref_future, remove_championship_future);
+
+        remove_users_ref?;
+        remove_championship?;
+
+        conn.execute(&cached_2, &bindings).await?;
+
         info!("Championship deleted with success: {id}");
 
         Ok(())

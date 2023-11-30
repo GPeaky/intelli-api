@@ -58,7 +58,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[&id]).await?
+            conn.query_opt(&cached_statement, &[id]).await?
         };
 
         if let Some(row) = row {
