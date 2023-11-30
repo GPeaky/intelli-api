@@ -1,5 +1,5 @@
 use crate::{
-    dtos::{AddUser, CreateChampionshipDto, RemoveUser, UpdateChampionship},
+    dtos::{AddUser, CreateChampionshipDto, UpdateChampionship},
     entity::{Role, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
@@ -122,20 +122,20 @@ pub async fn add_user(
 pub async fn remove_user(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
-    form: web::types::Form<RemoveUser>,
+    ids: web::types::Path<(i32, i32)>,
 ) -> AppResult<impl web::Responder> {
-    if form.validate(&()).is_err() {
-        Err(CommonError::FormValidationFailed)?
-    }
-
     let user = req
         .extensions()
         .get::<UserExtension>()
         .ok_or(CommonError::InternalServerError)?
         .clone();
 
-    state.championship_service.
+    state
+        .championship_service
+        .remove_user(&ids.0, &user.id, &ids.1)
+        .await?;
+
+    Ok(web::HttpResponse::Ok())
 }
 
 #[inline(always)]

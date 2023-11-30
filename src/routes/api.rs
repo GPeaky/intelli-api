@@ -5,8 +5,8 @@ use crate::{
             verify_email,
         },
         championships::{
-            add_user, all_championships, create_championship, get_championship, session_socket,
-            socket_status, start_socket, stop_socket, update,
+            add_user, all_championships, create_championship, get_championship, remove_user,
+            session_socket, socket_status, start_socket, stop_socket, update,
         },
         heartbeat,
         user::{update_user, user_data},
@@ -48,7 +48,7 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
             .route("/{id}", web::get().to(get_championship))
             .route("/{id}", web::put().to(update))
             .route("/{id}/user/add", web::put().to(add_user))
-            .route("/{id}/user/remove", web::put().to(todo!()))
+            .route("/{id}/user/{user_id}", web::delete().to(remove_user))
             .route("/{id}/socket/start", web::get().to(start_socket))
             .route("/{id}/socket/status", web::get().to(socket_status))
             .route("/{id}/socket/stop", web::get().to(stop_socket))
