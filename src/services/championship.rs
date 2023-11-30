@@ -224,6 +224,7 @@ impl ChampionshipService {
         Ok(())
     }
 
+    // TODO: Check if the user is related to the championship
     pub async fn remove_user(
         &self,
         id: &i32,
@@ -275,7 +276,6 @@ impl ChampionshipService {
     // TODO: Delete cache of all users related with this championship
     pub async fn delete(&self, id: &i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
-        let bindings: [&(dyn ToSql + Sync); 1] = [id];
 
         let cached_task = conn.prepare_cached(
             r#"
@@ -289,6 +289,7 @@ impl ChampionshipService {
                 "#,
         );
 
+        let bindings: [&(dyn ToSql + Sync); 1] = [id];
         let (cached, cached_2) = tokio::try_join!(cached_task, cached2_task)?;
 
         let remove_users_ref_future = conn.execute(&cached, &bindings);
