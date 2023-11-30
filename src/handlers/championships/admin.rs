@@ -27,12 +27,3 @@ pub async fn delete_championship(
 
     Ok(web::HttpResponse::Ok())
 }
-
-// TODO: Update a championship by id
-#[inline(always)]
-pub async fn update_championship() -> AppResult<impl web::Responder> {
-    todo!("Update a championship by id");
-
-    #[allow(unreachable_code)]
-    Ok(web::HttpResponse::Ok())
-}
