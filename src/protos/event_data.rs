@@ -6,7 +6,7 @@ use crate::{
     protos::event_data::event_data_details::Details,
 };
 
-static EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
+const EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
 
 impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;
