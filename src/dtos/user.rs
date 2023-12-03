@@ -18,3 +18,9 @@ pub struct AddUser {
     #[garde(email)]
     pub email: String,
 }
+
+#[derive(Debug, Serialize)]
+pub struct UserData {
+    pub user: Arc<User>,
+    pub championships: Vec<Championship>,
+}

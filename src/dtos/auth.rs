@@ -123,9 +123,3 @@ pub struct RefreshTokenQuery {
 pub struct FingerprintQuery {
     pub fingerprint: String,
 }
-
-#[derive(Debug, Serialize)]
-pub struct UserData {
-    pub user: Arc<User>,
-    pub championships: Vec<Championship>,
-}
