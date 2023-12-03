@@ -28,8 +28,8 @@ pub async fn create_championship(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     {
         let championships_len = state
@@ -82,8 +82,8 @@ pub async fn update(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     state
         .championship_service
@@ -107,8 +107,8 @@ pub async fn add_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     state
         .championship_service
@@ -127,8 +127,8 @@ pub async fn remove_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     state
         .championship_service
@@ -158,8 +158,8 @@ pub async fn all_championships(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     let championships = state.championship_repository.find_all(&user.id).await?;
 

@@ -16,8 +16,8 @@ pub async fn delete_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
@@ -41,8 +41,8 @@ pub async fn disable_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     let Some(path_user) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
@@ -78,8 +78,8 @@ pub async fn enable_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     if path_user.id == user.id {
         Err(UserError::AutoDelete)?

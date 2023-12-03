@@ -19,8 +19,8 @@ pub(crate) async fn user_data(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     let championships = state.championship_repository.find_all(&user.id).await?;
 
@@ -43,8 +43,8 @@ pub(crate) async fn update_user(
     let user = req
         .extensions()
         .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
 
     state.user_service.update(&user, &form).await?;
 
