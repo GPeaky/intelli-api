@@ -4,7 +4,6 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-
 use sailfish::TemplateOnce;
 use std::str::FromStr;
 

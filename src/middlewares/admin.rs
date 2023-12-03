@@ -1,9 +1,8 @@
-use ntex::{util::BoxFuture, web, Middleware, Service, ServiceCtx};
-
 use crate::{
     entity::{Role, UserExtension},
     error::UserError,
 };
+use ntex::{util::BoxFuture, web, Middleware, Service, ServiceCtx};
 
 pub struct Admin;
 pub struct AdminMiddleware<S> {
