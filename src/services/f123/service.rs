@@ -197,8 +197,7 @@ impl F123Service {
                         }
 
                         let now = Instant::now();
-                        // TODO: Test if this is faster than deserializing the whole packet
-                        let time = tokio::time::Instant::now();
+                        // TODO: Try to implement this in a more elegant way
                         match PacketIds::from(header.packet_id) {
                             PacketIds::Motion => {
                                 if now.duration_since(last_car_motion_update) < MOTION_INTERVAL {
@@ -220,14 +219,11 @@ impl F123Service {
 
                             _ => {}
                         }
-                        info!("TIme to check packet id: {:?}", time.elapsed());
 
-                        let time = tokio::time::Instant::now();
                         let Some(packet) = F123Data::deserialize(header.packet_id.into(), buf)
                         else {
                             continue;
                         };
-                        info!("TIme to deserialize packet: {:?}", time.elapsed());
 
                         match packet {
                             F123Data::Motion(motion_data) => {
