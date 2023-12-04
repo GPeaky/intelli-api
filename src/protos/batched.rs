@@ -5,10 +5,6 @@ use prost::Message;
 pub struct ToProtoMessageBatched {}
 
 impl ToProtoMessageBatched {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     #[inline(always)]
     pub fn to_proto(data: Vec<PacketHeader>) -> Option<ChunkPacketHeader> {
         Some(ChunkPacketHeader { packets: data })

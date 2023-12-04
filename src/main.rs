@@ -1,15 +1,15 @@
 use cache::RedisCache;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
-// use mimalloc::MiMalloc;
+use mimalloc::MiMalloc;
 use ntex::{http, web};
 use ntex_cors::Cors;
 use services::FirewallService;
 use states::AppStateInner;
 use std::sync::Arc;
 
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 mod cache;
 mod config;

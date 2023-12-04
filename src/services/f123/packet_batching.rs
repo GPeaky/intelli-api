@@ -1,4 +1,5 @@
 use crate::{
+    cache::F123InsiderCache,
     config::constants::BATCHING_INTERVAL,
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
@@ -11,14 +12,16 @@ pub struct PacketBatching {
     buf: Vec<PacketHeader>,
     sender: Sender<Bytes>,
     last_batch_time: Instant,
+    cache: F123InsiderCache,
 }
 
 impl PacketBatching {
-    pub fn new(sender: Sender<Bytes>) -> Self {
+    pub fn new(sender: Sender<Bytes>, cache: F123InsiderCache) -> Self {
         Self {
             sender,
             buf: Vec::with_capacity(1024),
             last_batch_time: Instant::now(),
+            cache,
         }
     }
 
@@ -31,7 +34,10 @@ impl PacketBatching {
     // TODO: See if we can make this more efficient
     pub async fn check(&mut self) {
         if self.last_batch_time.elapsed() > BATCHING_INTERVAL && !self.buf.is_empty() {
+            // TODO: Implement another cache method for events
             if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
+                self.cache.set_cache(&batch).await.unwrap();
+
                 if let Err(e) = self.sender.send(batch).await {
                     error!("Error sending batch data: {:?}", e);
                 } else {

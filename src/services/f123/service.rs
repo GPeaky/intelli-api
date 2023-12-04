@@ -139,10 +139,6 @@ impl F123Service {
         rt::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
-            #[allow(unused)]
-            // TODO: Implement Cache with the new batching system
-            let mut cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
-
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
@@ -154,7 +150,8 @@ impl F123Service {
 
             // Define channel
             let (tx, rx) = bounded::<ChanelData>(100);
-            let mut packet_batching = PacketBatching::new(tx.clone());
+            let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
+            let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
@@ -238,10 +235,6 @@ impl F123Service {
                                     .convert(PacketType::CarMotion)
                                     .expect("Error converting motion data to proto message");
 
-                                // if let Err(e) = cache.set_motion_data(&packet).await {
-                                //     error!("error saving motion_data: {}", e);
-                                // };
-
                                 packet_batching.push_and_check(packet).await;
                                 last_car_motion_update = now;
                             }
@@ -271,10 +264,6 @@ impl F123Service {
                                     .convert(PacketType::SessionData)
                                     .expect("Error converting session data to proto message");
 
-                                // if let Err(e) = cache.set_session_data(&packet).await {
-                                //     error!("error saving session_data: {}", e);
-                                // };
-
                                 packet_batching.push_and_check(packet).await;
                                 last_session_update = now;
                             }
@@ -284,10 +273,6 @@ impl F123Service {
                                     .convert(PacketType::Participants)
                                     .expect("Error converting participants data to proto message");
 
-                                // if let Err(e) = cache.set_participants_data(&packet).await {
-                                //     error!("error saving participants_data: {}", e);
-                                // };
-
                                 packet_batching.push_and_check(packet).await;
                                 last_participants_update = now;
                             }
@@ -296,13 +281,6 @@ impl F123Service {
                                 let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
                                 };
-
-                                // let string_code =
-                                //     std::str::from_utf8(&event_data.event_string_code).unwrap();
-
-                                // if let Err(e) = cache.push_event_data(&packet, string_code).await {
-                                //     error!("error pushing event_data: {}", e);
-                                // };
 
                                 packet_batching.push_and_check(packet).await;
                             }
@@ -333,13 +311,6 @@ impl F123Service {
                                     let packet = session_history
                                         .convert(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
-
-                                    // let car_idx = session_history.car_idx;
-                                    // if let Err(e) =
-                                    //     cache.set_session_history(&packet, &car_idx).await
-                                    // {
-                                    //     error!("error saving participants_data: {}", e);
-                                    // };
 
                                     packet_batching.push_and_check(packet).await;
 

@@ -1,11 +1,9 @@
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    dtos::ChampionshipCacheData,
     entity::{Championship, FromRow},
     error::{AppError, AppResult, ChampionshipError},
 };
-use deadpool_redis::redis::{self, AsyncCommands};
 use std::sync::Arc;
 
 pub struct ChampionshipRepository {
@@ -93,45 +91,6 @@ impl ChampionshipRepository {
         }
 
         Ok(())
-    }
-
-    // TODO: Move it to cache struct
-    #[allow(unused)]
-    pub async fn session_data(&self, id: &i32) -> AppResult<ChampionshipCacheData> {
-        let Some(_) = self.find(id).await? else {
-            Err(ChampionshipError::NotFound)?
-        };
-
-        let mut redis = self.database.redis.get().await?;
-        let (session_data, motion_data, participants_data, history_keys): (
-            Vec<u8>,
-            Vec<u8>,
-            Vec<u8>,
-            Vec<String>,
-        ) = redis::pipe()
-            .atomic()
-            .get(&format!("f123:championships:{}:session", id))
-            .get(&format!("f123:championships:{}:motion", id))
-            .get(&format!("f123:championships:{}:participants", id))
-            .keys(&format!("f123:championships:{}:history:*", id))
-            .query_async(&mut *redis)
-            .await?;
-
-        let history_data = {
-            if history_keys.is_empty() {
-                None
-            } else {
-                let history_data = redis.mget(&history_keys).await?;
-                Some(history_data)
-            }
-        };
-
-        Ok(ChampionshipCacheData {
-            session_data,
-            motion_data,
-            participants_data,
-            history_data,
-        })
     }
 
     pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {

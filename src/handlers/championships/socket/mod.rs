@@ -1,7 +1,6 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
-    // protos::batched::ToProtoMessageBatched,
     states::AppState,
 };
 use async_channel::Receiver;
@@ -51,22 +50,20 @@ async fn web_socket(
 ) -> AppResult<impl Service<ws::Frame, Response = Option<Message>, Error = io::Error>> {
     let (tx, close_rx) = oneshot::channel();
 
-    // {
-    //     let cache = state
-    //         .championship_repository
-    //         .session_data(&championship.id)
-    //         .await?;
+    {
+        let cache = state
+            .f123_repository
+            .get_cache_data(&championship.id)
+            .await?;
 
-    //     cache
-
-    //     let Some(data) = ToProtoMessageBatched::batched_encoded(data) else {
-    //         return Err(SocketError::FailedToConvertData.into());
-    //     };
-
-    //     if sink.send(Message::Binary(data)).await.is_err() {
-    //         return Err(SocketError::FailedToSendMessage.into());
-    //     };
-    // }
+        if sink
+            .send(Message::Binary(Bytes::from(cache)))
+            .await
+            .is_err()
+        {
+            return Err(SocketError::FailedToSendMessage.into());
+        };
+    }
 
     let Some(rx) = state
         .f123_service
