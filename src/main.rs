@@ -1,7 +1,7 @@
 use cache::RedisCache;
 use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
-use mimalloc::MiMalloc;
+// use mimalloc::MiMalloc;
 use ntex::{http, web};
 use ntex_cors::Cors;
 use services::FirewallService;
