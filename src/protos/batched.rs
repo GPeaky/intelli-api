@@ -1,11 +1,6 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use super::{ChunkPacketHeader, PacketHeader};
-use log::info;
 use ntex::util::{Bytes, BytesMut};
 use prost::Message;
-
-static MAX_SIZE: AtomicUsize = AtomicUsize::new(0);
 
 pub struct ToProtoMessageBatched {}
 
