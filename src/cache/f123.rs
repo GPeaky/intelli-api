@@ -12,6 +12,8 @@ pub struct F123InsiderCache {
     championship_id: i32,
 }
 
+#[allow(unused)]
+// TODO: Implement cache with new batching method
 impl F123InsiderCache {
     pub fn new(redis: Connection, championship_id: i32) -> Self {
         Self {
