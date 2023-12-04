@@ -11,8 +11,6 @@ pub enum SocketError {
     NotActive,
     #[error("Failed to send message")]
     FailedToSendMessage,
-    #[error("Failed to convert data")]
-    FailedToConvertData,
 }
 
 impl web::error::WebResponseError for SocketError {
@@ -28,7 +26,6 @@ impl web::error::WebResponseError for SocketError {
             SocketError::AlreadyExists => StatusCode::CONFLICT,
             SocketError::NotActive => StatusCode::NOT_FOUND,
             SocketError::FailedToSendMessage => StatusCode::INTERNAL_SERVER_ERROR,
-            SocketError::FailedToConvertData => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
