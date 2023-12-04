@@ -8,8 +8,8 @@ use services::FirewallService;
 use states::AppStateInner;
 use std::sync::Arc;
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 mod cache;
 mod config;
