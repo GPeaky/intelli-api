@@ -7,7 +7,7 @@ use crate::{
     services::f123::packet_batching::PacketBatching,
     FirewallService,
 };
-use flume::{bounded, Receiver};
+use async_channel::{bounded, Receiver};
 use log::{error, info};
 use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
@@ -151,7 +151,7 @@ impl F123Service {
             let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
-            let (tx, rx) = bounded::<ChanelData>(50);
+            let (tx, rx) = bounded::<ChanelData>(100);
             let mut packet_batching = PacketBatching::new(tx.clone());
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {

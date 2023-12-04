@@ -4,7 +4,7 @@ use crate::{
     protos::ToProtoMessageBatched,
     states::AppState,
 };
-use flume::Receiver;
+use async_channel::Receiver;
 use ntex::{
     chain,
     channel::oneshot,
@@ -97,7 +97,7 @@ async fn send_data(
     rx: Arc<Receiver<Bytes>>,
     mut close_rx: oneshot::Receiver<()>,
 ) {
-    while let Either::Left(Ok(data)) = select(rx.recv_async(), &mut close_rx).await {
+    while let Either::Left(Ok(data)) = select(rx.recv(), &mut close_rx).await {
         if sink.send(Message::Binary(data)).await.is_err() {
             break;
         }

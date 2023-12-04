@@ -1,5 +1,5 @@
 use crate::{config::constants::BATCHING_INTERVAL, protos::ToProtoMessageBatched};
-use flume::Sender;
+use async_channel::Sender;
 use log::error;
 use ntex::util::Bytes;
 use tokio::time::Instant;
@@ -29,7 +29,7 @@ impl PacketBatching {
     pub async fn check(&mut self) {
         if self.last_batch_time.elapsed() > BATCHING_INTERVAL && !self.buf.is_empty() {
             if let Some(batch) = self.buf.batched_encoded() {
-                if let Err(e) = self.sender.send_async(batch).await {
+                if let Err(e) = self.sender.send(batch).await {
                     error!("Error sending batch data: {:?}", e);
                 } else {
                     self.last_batch_time = Instant::now();
