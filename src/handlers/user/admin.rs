@@ -13,22 +13,21 @@ pub async fn delete_user(
     state: web::types::State<AppState>,
     id: web::types::Path<i32>,
 ) -> AppResult<impl web::Responder> {
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
-    let Some(path_user) = state.user_repository.find(&id).await? else {
+    let Some(_) = state.user_repository.find(&id).await? else {
         Err(UserError::NotFound)?
     };
 
-    if path_user.id.eq(&user.id) {
+    if *id == user_id {
         Err(UserError::AutoDelete)?
     }
 
     state.user_service.delete(&id).await?;
-
     Ok(web::HttpResponse::Ok())
 }
 
@@ -38,26 +37,25 @@ pub async fn disable_user(
     state: web::types::State<AppState>,
     id: web::types::Path<i32>,
 ) -> AppResult<impl web::Responder> {
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
-
-    let Some(path_user) = state.user_repository.find(&id).await? else {
+    let Some(path_user_active) = state.user_repository.status(&id).await? else {
         Err(UserError::NotFound)?
     };
 
-    if !path_user.active {
+    if !path_user_active {
         Err(UserError::AlreadyInactive)?
     }
 
-    if path_user.id == user.id {
+    let user_id = req
+        .extensions()
+        .get::<UserExtension>()
+        .ok_or(CommonError::InternalServerError)?
+        .id;
+
+    if *id == user_id {
         Err(UserError::AutoDelete)?
     }
 
     state.user_service.deactivate(&id).await?;
-
     Ok(web::HttpResponse::Ok())
 }
 
@@ -67,24 +65,24 @@ pub async fn enable_user(
     state: web::types::State<AppState>,
     id: web::types::Path<i32>,
 ) -> AppResult<impl web::Responder> {
-    let Some(path_user) = state.user_repository.find(&id).await? else {
+    let Some(path_user_active) = state.user_repository.status(&id).await? else {
         Err(UserError::NotFound)?
     };
 
-    if path_user.active.eq(&true) {
+    if path_user_active {
         Err(UserError::AlreadyActive)?
     }
 
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
-    if path_user.id == user.id {
+    if *id == user_id {
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.activate(&path_user.id).await?;
+    state.user_service.activate(&id).await?;
     Ok(web::HttpResponse::Ok())
 }

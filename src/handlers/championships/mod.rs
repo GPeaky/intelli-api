@@ -79,15 +79,15 @@ pub async fn update(
         Err(CommonError::FormValidationFailed)?
     }
 
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
     state
         .championship_service
-        .update(&championship_id, &user.id, &form)
+        .update(&championship_id, &user_id, &form)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -104,15 +104,15 @@ pub async fn add_user(
         Err(CommonError::FormValidationFailed)?
     }
 
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
     state
         .championship_service
-        .add_user(&championship_id, &user.id, &form.email)
+        .add_user(&championship_id, &user_id, &form.email)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -124,15 +124,15 @@ pub async fn remove_user(
     state: web::types::State<AppState>,
     ids: web::types::Path<(i32, i32)>,
 ) -> AppResult<impl web::Responder> {
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
     state
         .championship_service
-        .remove_user(&ids.0, &user.id, &ids.1)
+        .remove_user(&ids.0, &user_id, &ids.1)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -155,13 +155,13 @@ pub async fn all_championships(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
 ) -> AppResult<impl web::Responder> {
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
+        .ok_or(CommonError::InternalServerError)?
+        .id;
 
-    let championships = state.championship_repository.find_all(&user.id).await?;
+    let championships = state.championship_repository.find_all(&user_id).await?;
 
     Ok(web::HttpResponse::Ok().json(&championships))
 }

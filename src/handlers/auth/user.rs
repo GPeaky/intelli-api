@@ -120,15 +120,15 @@ pub(crate) async fn logout(
     state: web::types::State<AppState>,
     query: web::types::Query<FingerprintQuery>,
 ) -> AppResult<impl web::Responder> {
-    let user = req
+    let user_id = req
         .extensions()
         .get::<UserExtension>()
         .ok_or(CommonError::InternalServerError)?
-        .clone();
+        .id;
 
     state
         .token_service
-        .remove_refresh_token(&user.id, &query.fingerprint)
+        .remove_refresh_token(&user_id, &query.fingerprint)
         .await?;
 
     Ok(web::HttpResponse::Ok())

@@ -17,6 +17,7 @@ pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self;
     async fn find(&self, id: &i32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
+    async fn status(&self, id: &i32) -> AppResult<Option<bool>>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     fn validate_password(&self, password: &str, hash: &str) -> AppResult<bool>;
     fn active_pools(&self) -> (usize, usize);
@@ -86,6 +87,29 @@ impl UserRepositoryTrait for UserRepository {
         };
 
         Ok(row.is_some())
+    }
+
+    async fn status(&self, id: &i32) -> AppResult<Option<bool>> {
+        let row = {
+            let conn = self.db_conn.pg.get().await?;
+
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                    SELECT active FROM users
+                    WHERE id = $1
+                "#,
+                )
+                .await?;
+
+            conn.query_opt(&cached_statement, &[id]).await?
+        };
+
+        if let Some(row) = row {
+            return Ok(Some(row.get(0)));
+        }
+
+        Ok(None)
     }
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
