@@ -1,7 +1,7 @@
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
-    protos::ToProtoMessageBatched,
+    // protos::batched::ToProtoMessageBatched,
     states::AppState,
 };
 use async_channel::Receiver;
@@ -51,26 +51,22 @@ async fn web_socket(
 ) -> AppResult<impl Service<ws::Frame, Response = Option<Message>, Error = io::Error>> {
     let (tx, close_rx) = oneshot::channel();
 
-    {
-        let cache = state
-            .championship_repository
-            .session_data(&championship.id)
-            .await?;
+    // {
+    //     let cache = state
+    //         .championship_repository
+    //         .session_data(&championship.id)
+    //         .await?;
 
-        let data = vec![
-            Bytes::from(cache.session_data),
-            Bytes::from(cache.motion_data),
-            Bytes::from(cache.participants_data),
-        ];
+    //     cache
 
-        let Some(data) = data.batched_encoded() else {
-            return Err(SocketError::FailedToConvertData.into());
-        };
+    //     let Some(data) = ToProtoMessageBatched::batched_encoded(data) else {
+    //         return Err(SocketError::FailedToConvertData.into());
+    //     };
 
-        if sink.send(Message::Binary(data)).await.is_err() {
-            return Err(SocketError::FailedToSendMessage.into());
-        };
-    }
+    //     if sink.send(Message::Binary(data)).await.is_err() {
+    //         return Err(SocketError::FailedToSendMessage.into());
+    //     };
+    // }
 
     let Some(rx) = state
         .f123_service

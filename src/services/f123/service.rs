@@ -139,6 +139,8 @@ impl F123Service {
         rt::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
+            #[allow(unused)]
+            // TODO: Implement Cache with the new batching system
             let mut cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
 
             let mut last_session_update = Instant::now();
@@ -233,12 +235,12 @@ impl F123Service {
                         match packet {
                             F123Data::Motion(motion_data) => {
                                 let packet = motion_data
-                                    .convert_and_encode(PacketType::CarMotion)
+                                    .convert(PacketType::CarMotion)
                                     .expect("Error converting motion data to proto message");
 
-                                if let Err(e) = cache.set_motion_data(&packet).await {
-                                    error!("error saving motion_data: {}", e);
-                                };
+                                // if let Err(e) = cache.set_motion_data(&packet).await {
+                                //     error!("error saving motion_data: {}", e);
+                                // };
 
                                 packet_batching.push_and_check(packet).await;
                                 last_car_motion_update = now;
@@ -266,12 +268,12 @@ impl F123Service {
                                     .insert(SessionType::from(session_data.session_type));
 
                                 let packet = session_data
-                                    .convert_and_encode(PacketType::SessionData)
+                                    .convert(PacketType::SessionData)
                                     .expect("Error converting session data to proto message");
 
-                                if let Err(e) = cache.set_session_data(&packet).await {
-                                    error!("error saving session_data: {}", e);
-                                };
+                                // if let Err(e) = cache.set_session_data(&packet).await {
+                                //     error!("error saving session_data: {}", e);
+                                // };
 
                                 packet_batching.push_and_check(packet).await;
                                 last_session_update = now;
@@ -279,30 +281,28 @@ impl F123Service {
 
                             F123Data::Participants(participants_data) => {
                                 let packet = participants_data
-                                    .convert_and_encode(PacketType::Participants)
+                                    .convert(PacketType::Participants)
                                     .expect("Error converting participants data to proto message");
 
-                                if let Err(e) = cache.set_participants_data(&packet).await {
-                                    error!("error saving participants_data: {}", e);
-                                };
+                                // if let Err(e) = cache.set_participants_data(&packet).await {
+                                //     error!("error saving participants_data: {}", e);
+                                // };
 
                                 packet_batching.push_and_check(packet).await;
                                 last_participants_update = now;
                             }
 
                             F123Data::Event(event_data) => {
-                                let Some(packet) =
-                                    event_data.convert_and_encode(PacketType::EventData)
-                                else {
+                                let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
                                 };
 
-                                let string_code =
-                                    std::str::from_utf8(&event_data.event_string_code).unwrap();
+                                // let string_code =
+                                //     std::str::from_utf8(&event_data.event_string_code).unwrap();
 
-                                if let Err(e) = cache.push_event_data(&packet, string_code).await {
-                                    error!("error pushing event_data: {}", e);
-                                };
+                                // if let Err(e) = cache.push_event_data(&packet, string_code).await {
+                                //     error!("error pushing event_data: {}", e);
+                                // };
 
                                 packet_batching.push_and_check(packet).await;
                             }
@@ -330,16 +330,16 @@ impl F123Service {
                                         continue;
                                     }
 
-                                    let car_idx = session_history.car_idx;
                                     let packet = session_history
-                                        .convert_and_encode(PacketType::SessionHistoryData)
+                                        .convert(PacketType::SessionHistoryData)
                                         .expect("Error converting history data to proto message");
 
-                                    if let Err(e) =
-                                        cache.set_session_history(&packet, &car_idx).await
-                                    {
-                                        error!("error saving participants_data: {}", e);
-                                    };
+                                    // let car_idx = session_history.car_idx;
+                                    // if let Err(e) =
+                                    //     cache.set_session_history(&packet, &car_idx).await
+                                    // {
+                                    //     error!("error saving participants_data: {}", e);
+                                    // };
 
                                     packet_batching.push_and_check(packet).await;
 
@@ -351,7 +351,7 @@ impl F123Service {
                             //TODO Collect All data from redis and save it to the mariadb database
                             F123Data::FinalClassification(classification_data) => {
                                 let packet = classification_data
-                                    .convert_and_encode(PacketType::FinalClassificationData)
+                                    .convert(PacketType::FinalClassificationData)
                                     .expect("Error converting final classification data to proto message");
 
                                 // Only for testing purposes, in the future this should close the socket when the race is finished

@@ -1,11 +1,14 @@
-use crate::{config::constants::BATCHING_INTERVAL, protos::ToProtoMessageBatched};
+use crate::{
+    config::constants::BATCHING_INTERVAL,
+    protos::{batched::ToProtoMessageBatched, PacketHeader},
+};
 use async_channel::Sender;
 use log::error;
 use ntex::util::Bytes;
 use tokio::time::Instant;
 
 pub struct PacketBatching {
-    buf: Vec<Bytes>,
+    buf: Vec<PacketHeader>,
     sender: Sender<Bytes>,
     last_batch_time: Instant,
 }
@@ -20,15 +23,15 @@ impl PacketBatching {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, packet: Bytes) {
+    pub fn push(&mut self, packet: PacketHeader) {
         self.buf.push(packet);
     }
 
     #[inline(always)]
-    // TODO: Check if this is the best way to do this
+    // TODO: See if we can make this more efficient
     pub async fn check(&mut self) {
         if self.last_batch_time.elapsed() > BATCHING_INTERVAL && !self.buf.is_empty() {
-            if let Some(batch) = self.buf.batched_encoded() {
+            if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
                 if let Err(e) = self.sender.send(batch).await {
                     error!("Error sending batch data: {:?}", e);
                 } else {
@@ -43,7 +46,7 @@ impl PacketBatching {
     }
 
     #[inline(always)]
-    pub async fn push_and_check(&mut self, packet: Bytes) {
+    pub async fn push_and_check(&mut self, packet: PacketHeader) {
         self.push(packet);
         self.check().await;
     }
