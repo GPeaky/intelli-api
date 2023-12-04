@@ -41,6 +41,10 @@ jobs:
           rustup toolchain install nightly --component miri
           rustup override set nightly
           cargo miri setup
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+
       - name: Test with Miri
         run: cargo miri test
 
