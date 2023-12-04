@@ -19,7 +19,7 @@ impl PacketBatching {
     pub fn new(sender: Sender<Bytes>, cache: F123InsiderCache) -> Self {
         Self {
             sender,
-            buf: Vec::with_capacity(1024),
+            buf: Vec::with_capacity(2048),
             last_batch_time: Instant::now(),
             cache,
         }
