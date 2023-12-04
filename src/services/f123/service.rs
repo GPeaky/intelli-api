@@ -1,7 +1,7 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
-    dtos::{F123Data, SessionType},
+    dtos::{F123Data, PacketIds, SessionType},
     error::{AppResult, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
@@ -193,83 +193,101 @@ impl F123Service {
                         };
 
                         let session_id = header.session_uid;
-                        if session_id.eq(&0) {
+                        if session_id == 0 {
                             continue;
                         }
 
+                        let now = Instant::now();
+                        // TODO: Test if this is faster than deserializing the whole packet
+                        let time = tokio::time::Instant::now();
+                        match PacketIds::from(header.packet_id) {
+                            PacketIds::Motion => {
+                                if now.duration_since(last_car_motion_update) < MOTION_INTERVAL {
+                                    continue;
+                                }
+                            }
+
+                            PacketIds::Session => {
+                                if now.duration_since(last_session_update) < SESSION_INTERVAL {
+                                    continue;
+                                }
+                            }
+
+                            PacketIds::Participants => {
+                                if now.duration_since(last_participants_update) < SESSION_INTERVAL {
+                                    continue;
+                                }
+                            }
+
+                            _ => {}
+                        }
+                        info!("TIme to check packet id: {:?}", time.elapsed());
+
+                        let time = tokio::time::Instant::now();
                         let Some(packet) = F123Data::deserialize(header.packet_id.into(), buf)
                         else {
                             continue;
                         };
-
-                        let now = Instant::now();
+                        info!("TIme to deserialize packet: {:?}", time.elapsed());
 
                         match packet {
                             F123Data::Motion(motion_data) => {
-                                if now.duration_since(last_car_motion_update) > MOTION_INTERVAL {
-                                    let packet = motion_data
-                                        .convert_and_encode(PacketType::CarMotion)
-                                        .expect("Error converting motion data to proto message");
+                                let packet = motion_data
+                                    .convert_and_encode(PacketType::CarMotion)
+                                    .expect("Error converting motion data to proto message");
 
-                                    if let Err(e) = cache.set_motion_data(&packet).await {
-                                        error!("error saving motion_data: {}", e);
-                                    };
+                                if let Err(e) = cache.set_motion_data(&packet).await {
+                                    error!("error saving motion_data: {}", e);
+                                };
 
-                                    packet_batching.push_and_check(packet).await;
-                                    last_car_motion_update = now;
-                                }
+                                packet_batching.push_and_check(packet).await;
+                                last_car_motion_update = now;
                             }
 
                             F123Data::Session(session_data) => {
-                                if now.duration_since(last_session_update) > SESSION_INTERVAL {
-                                    #[cfg(not(debug_assertions))]
-                                    if session_data.network_game != 1 {
-                                        error!(
-                                            "Not Online Game, closing socket for championship: {}",
-                                            championship_id
-                                        );
+                                #[cfg(not(debug_assertions))]
+                                if session_data.network_game != 1 {
+                                    error!(
+                                        "Not Online Game, closing socket for championship: {}",
+                                        championship_id
+                                    );
 
-                                        Self::external_close_socket(
-                                            &channels,
-                                            &sockets,
-                                            &championship_id,
-                                            &firewall,
-                                        )
-                                        .await;
-                                    }
-
-                                    let _ = session_type
-                                        .borrow_mut()
-                                        .insert(SessionType::from(session_data.session_type));
-
-                                    let packet = session_data
-                                        .convert_and_encode(PacketType::SessionData)
-                                        .expect("Error converting session data to proto message");
-
-                                    if let Err(e) = cache.set_session_data(&packet).await {
-                                        error!("error saving session_data: {}", e);
-                                    };
-
-                                    packet_batching.push_and_check(packet).await;
-                                    last_session_update = now;
+                                    Self::external_close_socket(
+                                        &channels,
+                                        &sockets,
+                                        &championship_id,
+                                        &firewall,
+                                    )
+                                    .await;
                                 }
+
+                                let _ = session_type
+                                    .borrow_mut()
+                                    .insert(SessionType::from(session_data.session_type));
+
+                                let packet = session_data
+                                    .convert_and_encode(PacketType::SessionData)
+                                    .expect("Error converting session data to proto message");
+
+                                if let Err(e) = cache.set_session_data(&packet).await {
+                                    error!("error saving session_data: {}", e);
+                                };
+
+                                packet_batching.push_and_check(packet).await;
+                                last_session_update = now;
                             }
 
                             F123Data::Participants(participants_data) => {
-                                if now.duration_since(last_participants_update) > SESSION_INTERVAL {
-                                    let packet = participants_data
-                                        .convert_and_encode(PacketType::Participants)
-                                        .expect(
-                                            "Error converting participants data to proto message",
-                                        );
+                                let packet = participants_data
+                                    .convert_and_encode(PacketType::Participants)
+                                    .expect("Error converting participants data to proto message");
 
-                                    if let Err(e) = cache.set_participants_data(&packet).await {
-                                        error!("error saving participants_data: {}", e);
-                                    };
+                                if let Err(e) = cache.set_participants_data(&packet).await {
+                                    error!("error saving participants_data: {}", e);
+                                };
 
-                                    packet_batching.push_and_check(packet).await;
-                                    last_participants_update = now;
-                                }
+                                packet_batching.push_and_check(packet).await;
+                                last_participants_update = now;
                             }
 
                             F123Data::Event(event_data) => {

@@ -488,7 +488,7 @@ impl<'a> F123Data<'a> {
         }
     }
 
-    pub fn deserialize_header(data: &[u8]) -> Option<PacketHeader> {
-        FromBytes::read_from_prefix(data)
+    pub fn deserialize_header(data: &[u8]) -> Option<&'a PacketHeader> {
+        FromBytes::ref_from_prefix(data)
     }
 }
