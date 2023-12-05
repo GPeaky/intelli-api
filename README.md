@@ -22,7 +22,7 @@ The main Libraries/Frameworks/Language that i used to build this package
 - [Rust](https://www.rust-lang.org)
 - [Tokio](https://tokio.rs/)
 - [Axum](https://crates.io/crates/axum)
-- [Scylla](https://www.scylladb.com/)
+- [Postgresql](https://www.postgresql.org/)
 - [Redis](https://redis.io/)
 
 ## Getting Started
@@ -31,7 +31,7 @@ The main Libraries/Frameworks/Language that i used to build this package
 
 - Rust
 - Email Service
-- Scylla Database
+- Postgresql Database
 - Redis Database
 
 ```sh
