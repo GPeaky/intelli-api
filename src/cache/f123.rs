@@ -18,13 +18,24 @@ impl F123InsiderCache {
         }
     }
 
-    pub async fn set_cache(&mut self, data: &[u8]) -> AppResult<()> {
+    pub async fn set(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
                 &format!("{REDIS_F123_PREFIX}:{}:cache", &self.championship_id),
                 data,
                 REDIS_F123_PERSISTENCE,
             )
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn prune(&mut self) -> AppResult<()> {
+        self.redis
+            .del(&format!(
+                "{REDIS_F123_PREFIX}:{}:cache",
+                &self.championship_id
+            ))
             .await?;
 
         Ok(())

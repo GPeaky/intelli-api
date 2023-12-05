@@ -335,7 +335,8 @@ impl F123Service {
                                 }
 
                                 // If session type is race save all session data in the database and close the socket
-                                packet_batching.push_and_check(packet).await;
+                                // Todo: this should be called after saving all data in the database
+                                packet_batching.final_send(packet).await;
                             }
                         }
                     }
