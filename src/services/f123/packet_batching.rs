@@ -26,29 +26,25 @@ impl PacketBatching {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, packet: PacketHeader) {
-        self.buf.push(packet);
-    }
-
-    #[inline(always)]
-    // TODO: See if we can make this more efficient
     pub async fn check(&mut self) {
-        if self.last_batch_time.elapsed() > BATCHING_INTERVAL && !self.buf.is_empty() {
-            // TODO: Implement another cache method for events
-            if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-                self.cache.set(&batch).await.unwrap();
+        if self.last_batch_time.elapsed() < BATCHING_INTERVAL || self.buf.is_empty() {
+            return;
+        }
 
-                if let Err(e) = self.tx.send(batch).await {
-                    error!("Error sending batch data: {:?}", e);
-                } else {
-                    self.last_batch_time = Instant::now();
-                }
-            } else {
-                error!("Error converting and encoding data");
+        // TODO: Implement another cache method for events
+        if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
+            self.cache.set(&batch).await.unwrap();
+
+            if let Err(e) = self.tx.send(batch).await {
+                error!("Error sending batch data: {:?}", e);
             }
 
-            self.buf.clear();
+            self.last_batch_time = Instant::now();
+        } else {
+            error!("Error converting and encoding data");
         }
+
+        self.buf.clear();
     }
 
     // This method is used to send the last batch of data
@@ -57,26 +53,28 @@ impl PacketBatching {
     pub async fn final_send(&mut self, packet: PacketHeader) {
         self.buf.push(packet);
 
-        if !self.buf.is_empty() {
-            if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-                self.cache.prune().await.unwrap();
+        if self.buf.is_empty() {
+            return;
+        }
 
-                if let Err(e) = self.tx.send(batch).await {
-                    error!("Error sending batch data: {:?}", e);
-                } else {
-                    self.last_batch_time = Instant::now();
-                }
-            } else {
-                error!("Error converting and encoding data");
+        if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
+            self.cache.prune().await.unwrap();
+
+            if let Err(e) = self.tx.send(batch).await {
+                error!("Error sending batch data: {:?}", e);
             }
 
-            self.buf.clear();
+            self.last_batch_time = Instant::now();
+        } else {
+            error!("Error converting and encoding data");
         }
+
+        self.buf.clear();
     }
 
     #[inline(always)]
     pub async fn push_and_check(&mut self, packet: PacketHeader) {
-        self.push(packet);
+        self.buf.push(packet);
         self.check().await;
     }
 }
