@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use std::{fs, sync::Arc};
 
+#[derive(Clone)]
 pub struct TokenService {
     header: Header,
     cache: Arc<RedisCache>,

@@ -15,6 +15,7 @@ use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct UserService {
     #[allow(unused)]
     cache: Arc<RedisCache>,
@@ -60,10 +61,10 @@ impl UserServiceTrait for UserService {
             rand.gen_range(600000000..700000000)
         };
 
+        let conn = self.db_conn.pg.get().await?;
+
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
-                let conn = self.db_conn.pg.get().await?;
-
                 let cached_statement = conn
                     .prepare_cached(
                         r#"
@@ -88,7 +89,6 @@ impl UserServiceTrait for UserService {
 
             None => {
                 let hashed_password = hash(register.password.clone().unwrap(), DEFAULT_COST)?;
-                let conn = self.db_conn.pg.get().await?;
 
                 let cached_statement = conn
                     .prepare_cached(

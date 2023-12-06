@@ -13,6 +13,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct ChampionshipService {
     db: Arc<Database>,
     cache: Arc<RedisCache>,

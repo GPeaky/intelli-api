@@ -7,6 +7,7 @@ use crate::{
 use async_trait::async_trait;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct UserRepository {
     db_conn: Arc<Database>,
     cache: Arc<RedisCache>,

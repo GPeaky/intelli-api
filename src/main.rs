@@ -4,7 +4,7 @@ use dotenvy::{dotenv, var};
 use ntex::{http, web};
 use ntex_cors::Cors;
 use services::FirewallService;
-use states::AppStateInner;
+use states::AppState;
 use std::sync::Arc;
 
 #[cfg(not(test))]
@@ -34,7 +34,7 @@ async fn main() {
         let redis_cache = Arc::new(RedisCache::new(&db));
         let firewall_service = Arc::new(FirewallService::new());
 
-        Arc::new(AppStateInner::new(&db, firewall_service, &redis_cache).await)
+        AppState::new(&db, firewall_service, &redis_cache).await
     };
 
     web::server(move || {

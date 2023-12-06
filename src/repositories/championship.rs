@@ -6,6 +6,7 @@ use crate::{
 };
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct ChampionshipRepository {
     database: Arc<Database>,
     cache: Arc<RedisCache>,

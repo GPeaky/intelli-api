@@ -5,6 +5,7 @@ use crate::{
 use deadpool_redis::redis::AsyncCommands;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct F123Repository {
     #[allow(unused)]
     database: Arc<Database>,

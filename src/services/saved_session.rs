@@ -2,6 +2,7 @@ use crate::{cache::RedisCache, config::Database, error::AppResult};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct SavedSessionService {
     #[allow(unused)]
     cache: Arc<RedisCache>,

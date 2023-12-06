@@ -20,6 +20,7 @@ type F123Channel = Arc<Receiver<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
 
+#[derive(Clone)]
 pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Sockets,
@@ -69,6 +70,7 @@ impl F123Service {
         sockets.keys().copied().collect()
     }
 
+    // TODO: Implement oneshot channel to stop the socket in the best way possible
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         let mut channels = self.channels.write();
         let mut sockets = self.sockets.write();

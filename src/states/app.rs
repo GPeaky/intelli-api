@@ -12,9 +12,8 @@ use crate::{
 };
 use std::sync::Arc;
 
-pub type AppState = Arc<AppStateInner>;
-
-pub struct AppStateInner {
+#[derive(Clone)]
+pub struct AppState {
     pub user_service: UserService,
     pub user_repository: UserRepository,
     pub token_service: TokenService,
@@ -27,7 +26,7 @@ pub struct AppStateInner {
     pub google_repository: GoogleRepository,
 }
 
-impl AppStateInner {
+impl AppState {
     pub async fn new(
         db_conn: &Arc<Database>,
         firewall_service: Arc<FirewallService>,

@@ -5,6 +5,7 @@ use crate::{
 };
 use dotenvy::var;
 
+#[derive(Clone)]
 pub struct GoogleRepository {
     client_id: String,
     client_secret: String,
