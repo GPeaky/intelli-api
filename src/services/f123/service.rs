@@ -38,6 +38,48 @@ impl F123Service {
         }
     }
 
+    pub async fn get_active_socket_ids(&self) -> Vec<i32> {
+        let sockets = self.sockets.read();
+        sockets.keys().copied().collect()
+    }
+
+    pub async fn is_championship_socket_active(&self, id: &i32) -> bool {
+        let sockets = self.sockets.read();
+        sockets.contains_key(id)
+    }
+
+    #[allow(unused)]
+    pub async fn subscribe_to_championship_events(
+        &self,
+        championship_id: &i32,
+    ) -> Option<Arc<Receiver<ChanelData>>> {
+        let channels = self.channels.read();
+        let Some(channel) = channels.get(championship_id) else {
+            return None;
+        };
+
+        Some(channel.clone())
+    }
+
+    // TODO: Implement oneshot channel to stop the socket in the best way possible
+    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
+        let mut channels = self.channels.write();
+        let mut sockets = self.sockets.write();
+
+        if channels.remove(&championship_id).is_none() {
+            Err(SocketError::NotFound)?;
+        };
+
+        if let Some(socket) = sockets.remove(&championship_id) {
+            socket.abort();
+        } else {
+            Err(SocketError::NotFound)?;
+        };
+
+        info!("Socket stopped for championship: {}", championship_id);
+        Ok(())
+    }
+
     pub async fn setup_championship_listening_socket(
         &self,
         port: i32,
@@ -65,51 +107,6 @@ impl F123Service {
         Ok(())
     }
 
-    pub async fn get_active_socket_ids(&self) -> Vec<i32> {
-        let sockets = self.sockets.read();
-        sockets.keys().copied().collect()
-    }
-
-    // TODO: Implement oneshot channel to stop the socket in the best way possible
-    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
-        let mut channels = self.channels.write();
-        let mut sockets = self.sockets.write();
-
-        let channel_removed = channels.remove(&championship_id).is_some();
-
-        let socket_removed_and_aborted = if let Some(socket) = sockets.remove(&championship_id) {
-            socket.abort();
-            true
-        } else {
-            false
-        };
-
-        if !channel_removed && !socket_removed_and_aborted {
-            Err(SocketError::NotFound)?;
-        }
-
-        info!("Socket stopped for championship: {}", championship_id);
-        Ok(())
-    }
-
-    pub async fn is_championship_socket_active(&self, id: &i32) -> bool {
-        let sockets = self.sockets.read();
-        sockets.contains_key(id)
-    }
-
-    #[allow(unused)]
-    pub async fn subscribe_to_championship_events(
-        &self,
-        championship_id: &i32,
-    ) -> Option<Arc<Receiver<ChanelData>>> {
-        let channels = self.channels.read();
-        let Some(channel) = channels.get(championship_id) else {
-            return None;
-        };
-
-        Some(channel.clone())
-    }
-
     async fn external_close_socket(
         channels: &Channels,
         sockets: &Sockets,
@@ -121,10 +118,7 @@ impl F123Service {
         let mut sockets = sockets.write();
         let mut channels = channels.write();
 
-        if let Some(socket) = sockets.remove(championship_id) {
-            socket.abort();
-        }
-
+        sockets.remove(championship_id);
         channels.remove(championship_id);
     }
 
@@ -145,6 +139,8 @@ impl F123Service {
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
+            let close_socket =
+                Self::external_close_socket(&channels, &sockets, &championship_id, &firewall);
 
             // Session History Data
             let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
@@ -190,6 +186,7 @@ impl F123Service {
 
                         if header.packet_format != 2023 {
                             error!("Not supported client");
+                            close_socket.await;
                             break;
                         };
 
@@ -346,25 +343,14 @@ impl F123Service {
                     Ok(Err(e)) => {
                         error!("Error receiving data from F123 socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-                        Self::external_close_socket(
-                            &channels,
-                            &sockets,
-                            &championship_id,
-                            &firewall,
-                        )
-                        .await;
+                        close_socket.await;
+                        break;
                     }
 
                     Err(_) => {
                         info!("Socket  timeout for championship: {}", championship_id);
-                        firewall.close(&championship_id).await.unwrap();
-                        Self::external_close_socket(
-                            &channels,
-                            &sockets,
-                            &championship_id,
-                            &firewall,
-                        )
-                        .await;
+                        close_socket.await;
+                        break;
                     }
                 }
             }
