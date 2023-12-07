@@ -1,19 +1,18 @@
+mod admin;
+mod socket;
+mod sockets;
+
 use crate::{
     dtos::{AddUser, CreateChampionshipDto, UpdateChampionship},
     entity::{Role, UserExtension},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
 };
+pub(crate) use admin::*;
 use garde::Validate;
 use ntex::web;
-
-pub(crate) use admin::*;
 pub(crate) use socket::*;
 pub(crate) use sockets::*;
-
-mod admin;
-mod socket;
-mod sockets;
 
 #[inline(always)]
 pub async fn create_championship(

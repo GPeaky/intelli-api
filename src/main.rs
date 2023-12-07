@@ -1,16 +1,3 @@
-use cache::RedisCache;
-use config::{initialize_tracing_subscriber, Database};
-use dotenvy::{dotenv, var};
-use ntex::{http, web};
-use ntex_cors::Cors;
-use services::FirewallService;
-use states::AppState;
-use std::sync::Arc;
-
-#[cfg(not(test))]
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 mod cache;
 mod config;
 mod dtos;
@@ -24,6 +11,19 @@ mod routes;
 mod services;
 mod states;
 mod utils;
+
+use cache::RedisCache;
+use config::{initialize_tracing_subscriber, Database};
+use dotenvy::{dotenv, var};
+use ntex::{http, web};
+use ntex_cors::Cors;
+use services::FirewallService;
+use states::AppState;
+use std::sync::Arc;
+
+#[cfg(not(test))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[ntex::main]
 async fn main() {

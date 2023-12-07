@@ -1,3 +1,8 @@
+mod championship;
+mod f123;
+mod token;
+mod user;
+
 use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
 use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
@@ -6,12 +11,6 @@ use crate::{
 use async_trait::async_trait;
 pub(crate) use f123::*;
 use std::sync::Arc;
-
-mod championship;
-mod f123;
-mod token;
-mod user;
-
 pub struct RedisCache {
     pub user: UserCache,
     pub championship: ChampionshipCache,
