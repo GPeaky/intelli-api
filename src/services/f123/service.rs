@@ -242,13 +242,8 @@ impl F123Service {
                                         championship_id
                                     );
 
-                                    Self::external_close_socket(
-                                        &channels,
-                                        &sockets,
-                                        &championship_id,
-                                        &firewall,
-                                    )
-                                    .await;
+                                    close_socket.await;
+                                    break;
                                 }
 
                                 let _ = session_type
