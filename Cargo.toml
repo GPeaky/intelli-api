@@ -1,7 +1,7 @@
 [package]
 name = "intelli"
 edition = "2021"
-version = "0.4.11"
+version = "0.4.12"
 readme = "README.md"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
