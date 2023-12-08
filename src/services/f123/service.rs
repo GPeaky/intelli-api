@@ -7,16 +7,20 @@ use crate::{
     services::f123::packet_batching::PacketBatching,
     FirewallService,
 };
-use async_channel::{bounded, Receiver};
 use log::{error, info};
 use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, sync::Arc, time::Instant};
-use tokio::{net::UdpSocket, task::JoinHandle, time::timeout};
+use tokio::{
+    net::UdpSocket,
+    sync::broadcast::{channel, Receiver, Sender},
+    task::JoinHandle,
+    time::timeout,
+};
 
 type ChanelData = Bytes;
-type F123Channel = Arc<Receiver<ChanelData>>;
+type F123Channel = Arc<Sender<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
 type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
 
@@ -52,13 +56,13 @@ impl F123Service {
     pub async fn subscribe_to_championship_events(
         &self,
         championship_id: &i32,
-    ) -> Option<Arc<Receiver<ChanelData>>> {
+    ) -> Option<Receiver<ChanelData>> {
         let channels = self.channels.read();
         let Some(channel) = channels.get(championship_id) else {
             return None;
         };
 
-        Some(channel.clone())
+        Some(channel.subscribe())
     }
 
     // TODO: Implement oneshot channel to stop the socket in the best way possible
@@ -147,7 +151,7 @@ impl F123Service {
             let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
-            let (tx, rx) = bounded::<ChanelData>(100);
+            let (tx, _) = channel::<ChanelData>(100);
             let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 
@@ -160,7 +164,7 @@ impl F123Service {
 
             {
                 let mut channels = channels.write();
-                channels.insert(*championship_id, Arc::new(rx));
+                channels.insert(*championship_id, Arc::new(tx));
             }
 
             firewall.open(*championship_id, port).await.unwrap();

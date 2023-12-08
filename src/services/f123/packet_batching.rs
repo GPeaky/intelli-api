@@ -3,10 +3,9 @@ use crate::{
     config::constants::BATCHING_INTERVAL,
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
-use async_channel::Sender;
 use log::error;
 use ntex::util::Bytes;
-use tokio::time::Instant;
+use tokio::{sync::broadcast::Sender, time::Instant};
 
 pub struct PacketBatching {
     buf: Vec<PacketHeader>,
@@ -33,19 +32,8 @@ impl PacketBatching {
 
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-            let batch_cloned = batch.clone();
-            let cache_update_fut = self.cache.set(&batch_cloned);
-            let channel_send_fut = self.tx.send(batch);
-
-            let (cache_res, channel_res) = tokio::join!(cache_update_fut, channel_send_fut);
-
-            if let Err(e) = cache_res {
-                error!("Error Updating Batching Cache: {:?}", e);
-            }
-
-            if let Err(e) = channel_res {
-                error!("Error sending batch data: {:?}", e);
-            }
+            self.cache.set(&batch).await.unwrap();
+            self.tx.send(batch).unwrap();
         } else {
             error!("Error converting and encoding data");
         }
@@ -61,18 +49,8 @@ impl PacketBatching {
         self.buf.push(packet);
 
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-            let cache_prune_fut = self.cache.prune();
-            let channel_send_fut = self.tx.send(batch);
-
-            let (cache_res, channel_res) = tokio::join!(cache_prune_fut, channel_send_fut);
-
-            if let Err(e) = cache_res {
-                error!("Error Pruning Batching Cache: {:?}", e);
-            }
-
-            if let Err(e) = channel_res {
-                error!("Error sending batch data: {:?}", e);
-            }
+            self.cache.prune().await.unwrap();
+            self.tx.send(batch).unwrap();
         } else {
             error!("Error converting and encoding data");
         }

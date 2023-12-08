@@ -3,7 +3,6 @@ use crate::{
     error::{AppResult, ChampionshipError, SocketError},
     states::AppState,
 };
-use async_channel::Receiver;
 use ntex::{
     chain,
     channel::oneshot,
@@ -14,7 +13,8 @@ use ntex::{
     ws::{self, Message},
     Service,
 };
-use std::{future::ready, io, sync::Arc};
+use std::{future::ready, io};
+use tokio::sync::broadcast::Receiver;
 
 #[inline(always)]
 pub async fn session_socket(
@@ -85,7 +85,7 @@ async fn web_socket(
 #[inline(always)]
 async fn send_data(
     sink: web::ws::WsSink,
-    rx: Arc<Receiver<Bytes>>,
+    mut rx: Receiver<Bytes>,
     mut close_rx: oneshot::Receiver<()>,
 ) {
     while let Either::Left(Ok(data)) = select(rx.recv(), &mut close_rx).await {
