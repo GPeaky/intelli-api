@@ -1,7 +1,7 @@
+use super::counter::get;
 use crate::{
     dtos::SocketStatus,
     error::{AppResult, ChampionshipError},
-    // handlers::championships::websocket_active_connections,
     states::AppState,
 };
 use ntex::web;
@@ -46,9 +46,11 @@ pub async fn socket_status(
         .is_championship_socket_active(&championship.id)
         .await;
 
-    // if socket_active {
-    // num_connections = websocket_active_connections(*championship_id).await;
-    // }
+    if socket_active {
+        if let Some(count) = get(*championship_id) {
+            num_connections = count;
+        };
+    }
 
     let socket_status = SocketStatus {
         active: socket_active,

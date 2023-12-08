@@ -1,3 +1,6 @@
+pub(super) mod counter;
+
+use self::counter::{decrement, increment};
 use crate::{
     entity::Championship,
     error::{AppResult, ChampionshipError, SocketError},
@@ -71,11 +74,13 @@ async fn web_socket(
         return Err(SocketError::NotFound.into());
     };
 
+    increment(championship.id);
     rt::spawn(send_data(sink, rx, close_rx));
 
     let service = fn_service(move |_| ready(Ok(None)));
 
     let on_shutdown = fn_shutdown(move || {
+        decrement(championship.id);
         let _ = tx.send(());
     });
 

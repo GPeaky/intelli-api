@@ -33,6 +33,7 @@ impl PacketBatching {
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
             self.cache.set(&batch).await.unwrap();
+
             if let Err(e) = self.tx.send(batch) {
                 error!("Error sending batch: {}", e);
             };
@@ -52,6 +53,7 @@ impl PacketBatching {
 
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
             self.cache.prune().await.unwrap();
+
             if let Err(e) = self.tx.send(batch) {
                 error!("Error sending batch: {}", e);
             };

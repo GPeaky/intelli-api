@@ -47,6 +47,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
+once_cell = { version = "1.19.0", features = ["parking_lot"] }
 
 
 [profile.release]
