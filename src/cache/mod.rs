@@ -11,6 +11,8 @@ use crate::{
 use async_trait::async_trait;
 pub(crate) use f123::*;
 use std::sync::Arc;
+
+#[derive(Clone)]
 pub struct RedisCache {
     pub user: UserCache,
     pub championship: ChampionshipCache,

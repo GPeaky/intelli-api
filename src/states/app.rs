@@ -29,8 +29,8 @@ pub struct AppState {
 impl AppState {
     pub async fn new(
         db_conn: &Arc<Database>,
-        firewall_service: Arc<FirewallService>,
-        cache: &Arc<RedisCache>,
+        firewall_service: FirewallService,
+        cache: &RedisCache,
     ) -> Self {
         Self {
             user_service: UserService::new(db_conn, cache),

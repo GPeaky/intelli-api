@@ -31,8 +31,8 @@ async fn main() {
     initialize_tracing_subscriber();
     let app_state = {
         let db = Arc::new(Database::default().await);
-        let redis_cache = Arc::new(RedisCache::new(&db));
-        let firewall_service = Arc::new(FirewallService::new());
+        let redis_cache = RedisCache::new(&db);
+        let firewall_service = FirewallService::new();
 
         AppState::new(&db, firewall_service, &redis_cache).await
     };

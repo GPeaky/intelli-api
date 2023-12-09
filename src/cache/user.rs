@@ -13,6 +13,7 @@ use std::sync::Arc;
 const ID: &str = "id";
 const EMAIL: &str = "email";
 
+#[derive(Clone)]
 pub struct UserCache {
     db: Arc<Database>,
 }

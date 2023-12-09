@@ -10,7 +10,7 @@ use std::{fs, sync::Arc};
 #[derive(Clone)]
 pub struct TokenService {
     header: Header,
-    cache: Arc<RedisCache>,
+    cache: RedisCache,
     validation: Validation,
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
@@ -18,7 +18,7 @@ pub struct TokenService {
 
 #[async_trait]
 pub trait TokenServiceTrait {
-    fn new(cache: &Arc<RedisCache>) -> Self;
+    fn new(cache: &RedisCache) -> Self;
     fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>>;
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()>;
     async fn save_email_token(&self, token: &str) -> AppResult<()>;
@@ -34,7 +34,7 @@ pub trait TokenServiceTrait {
 
 #[async_trait]
 impl TokenServiceTrait for TokenService {
-    fn new(cache: &Arc<RedisCache>) -> Self {
+    fn new(cache: &RedisCache) -> Self {
         Self {
             cache: cache.clone(),
             header: Header::new(jsonwebtoken::Algorithm::RS256),

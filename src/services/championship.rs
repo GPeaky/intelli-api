@@ -16,16 +16,15 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct ChampionshipService {
     db: Arc<Database>,
-    cache: Arc<RedisCache>,
+    cache: RedisCache,
     ports: Arc<RwLock<FxHashSet<i32>>>,
     user_repository: UserRepository,
     championship_repository: ChampionshipRepository,
 }
 
 impl ChampionshipService {
-    pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
         let championship_repository = ChampionshipRepository::new(db_conn, cache).await;
-
         let user_repository = UserRepository::new(db_conn, cache);
 
         let ports = Self::available_ports(&championship_repository)

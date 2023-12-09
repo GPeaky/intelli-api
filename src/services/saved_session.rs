@@ -5,14 +5,14 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct SavedSessionService {
     #[allow(unused)]
-    cache: Arc<RedisCache>,
+    cache: RedisCache,
     #[allow(unused)]
     db_conn: Arc<Database>,
     // saved_session_repo: SavedSessionRepository,
 }
 
 impl SavedSessionService {
-    pub fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
+    pub fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
         Self {
             cache: cache.clone(),
             db_conn: db_conn.clone(),

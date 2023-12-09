@@ -14,6 +14,7 @@ const ID: &str = "id";
 const NAME: &str = "name";
 const USER_ID: &str = "user_id";
 
+#[derive(Clone)]
 pub struct ChampionshipCache {
     db: Arc<Database>,
 }

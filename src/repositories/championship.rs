@@ -9,11 +9,11 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct ChampionshipRepository {
     database: Arc<Database>,
-    cache: Arc<RedisCache>,
+    cache: RedisCache,
 }
 
 impl ChampionshipRepository {
-    pub async fn new(db_conn: &Arc<Database>, cache: &Arc<RedisCache>) -> Self {
+    pub async fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
         Self {
             database: db_conn.clone(),
             cache: cache.clone(),
@@ -70,7 +70,6 @@ impl ChampionshipRepository {
         Ok(None)
     }
 
-    // TODO: Add cache for this function
     pub async fn exist_by_name(&self, name: &str) -> AppResult<()> {
         if self.cache.championship.get_by_name(name).await?.is_some() {
             Err(ChampionshipError::AlreadyExists)?;
@@ -82,9 +81,9 @@ impl ChampionshipRepository {
             let cached_statement = conn
                 .prepare_cached(
                     r#"
-                    SELECT id FROM championship
-                    WHERE name = $1
-                "#,
+                        SELECT * FROM championship
+                        WHERE name = $1
+                    "#,
                 )
                 .await?;
 
@@ -92,6 +91,8 @@ impl ChampionshipRepository {
         };
 
         if row.is_some() {
+            let championship = Championship::from_row(&row.unwrap())?;
+            self.cache.championship.set(&championship).await?;
             Err(ChampionshipError::AlreadyExists)?;
         }
 

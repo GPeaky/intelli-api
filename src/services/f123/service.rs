@@ -29,11 +29,11 @@ pub struct F123Service {
     db_conn: Arc<Database>,
     sockets: Sockets,
     channels: Channels,
-    firewall: Arc<FirewallService>,
+    firewall: FirewallService,
 }
 
 impl F123Service {
-    pub fn new(db_conn: &Arc<Database>, firewall_service: Arc<FirewallService>) -> Self {
+    pub fn new(db_conn: &Arc<Database>, firewall_service: FirewallService) -> Self {
         Self {
             db_conn: db_conn.clone(),
             firewall: firewall_service,

@@ -21,6 +21,7 @@ use std::net::IpAddr;
 //     firewall_type: FirewallType,
 // }
 
+#[derive(Clone)]
 pub struct FirewallService {
     // #[cfg(target_os = "linux")]
     // rules: RwLock<FxHashMap<i32, FirewallRule>>,

@@ -7,6 +7,7 @@ use core::panic;
 use deadpool_redis::redis::AsyncCommands;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct TokenCache {
     db: Arc<Database>,
 }
