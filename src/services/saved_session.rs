@@ -21,7 +21,6 @@ impl SavedSessionService {
     }
 
     #[allow(unused)]
-
     pub async fn create(&self) -> AppResult<()> {
         let id = {
             let mut rand = StdRng::from_entropy();
