@@ -72,6 +72,10 @@ impl ChampionshipRepository {
 
     // TODO: Add cache for this function
     pub async fn exist_by_name(&self, name: &str) -> AppResult<()> {
+        if self.cache.championship.get_by_name(name).await?.is_some() {
+            Err(ChampionshipError::AlreadyExists)?;
+        };
+
         let row = {
             let conn = self.database.pg.get().await?;
 

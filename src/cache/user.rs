@@ -81,7 +81,7 @@ impl EntityCache for UserCache {
 
         let mut conn = self.db.redis.get().await?;
 
-        let _ = redis::pipe()
+        redis::pipe()
             .atomic()
             .set_ex(
                 &format!("{REDIS_USER_PREFIX}:{ID}:{}", entity.id),
@@ -108,7 +108,7 @@ impl EntityCache for UserCache {
             .await?;
 
         if let Some(bytes) = bytes {
-            let archived = unsafe { rkyv::archived_root::<User>(&bytes[..]) };
+            let archived = unsafe { rkyv::archived_root::<User>(&bytes) };
 
             let Ok(user): Result<User, std::convert::Infallible> =
                 archived.deserialize(&mut Infallible)

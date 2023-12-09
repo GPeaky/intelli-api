@@ -18,7 +18,6 @@ pub enum Category {
     F2,
 }
 
-// TODO: Check if clone is necessary handlers/championships/socket/mod.rs
 #[derive(Debug, Serialize, Clone, Archive, RDeserialize, RSerialize)]
 #[archive(check_bytes)]
 pub struct Championship {
