@@ -13,20 +13,19 @@ use chrono::{Duration, Utc};
 use log::{error, info};
 use postgres_types::ToSql;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct UserService {
     #[allow(unused)]
     cache: RedisCache,
-    db_conn: Arc<Database>,
+    db_conn: Database,
     user_repo: UserRepository,
     token_service: TokenService,
 }
 
 #[async_trait]
 pub trait UserServiceTrait {
-    fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self;
+    fn new(db_conn: &Database, cache: &RedisCache) -> Self;
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
     async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()>;
     async fn delete(&self, id: &i32) -> AppResult<()>;
@@ -39,7 +38,7 @@ pub trait UserServiceTrait {
 
 #[async_trait]
 impl UserServiceTrait for UserService {
-    fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
+    fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         Self {
             cache: cache.clone(),
             db_conn: db_conn.clone(),

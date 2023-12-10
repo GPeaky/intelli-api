@@ -5,17 +5,16 @@ use crate::{
     error::{AppResult, UserError},
 };
 use async_trait::async_trait;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct UserRepository {
-    db_conn: Arc<Database>,
+    db_conn: Database,
     cache: RedisCache,
 }
 
 #[async_trait]
 pub trait UserRepositoryTrait {
-    fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self;
+    fn new(db_conn: &Database, cache: &RedisCache) -> Self;
     async fn find(&self, id: &i32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
     async fn status(&self, id: &i32) -> AppResult<Option<bool>>;
@@ -26,7 +25,7 @@ pub trait UserRepositoryTrait {
 
 #[async_trait]
 impl UserRepositoryTrait for UserRepository {
-    fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
+    fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         Self {
             cache: cache.clone(),
             db_conn: db_conn.clone(),

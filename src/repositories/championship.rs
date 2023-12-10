@@ -4,16 +4,15 @@ use crate::{
     entity::{Championship, FromRow},
     error::{AppError, AppResult, ChampionshipError},
 };
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ChampionshipRepository {
-    database: Arc<Database>,
+    database: Database,
     cache: RedisCache,
 }
 
 impl ChampionshipRepository {
-    pub async fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
+    pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         Self {
             database: db_conn.clone(),
             cache: cache.clone(),

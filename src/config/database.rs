@@ -4,6 +4,7 @@ use dotenvy::var;
 use log::info;
 use std::str::FromStr;
 
+#[derive(Clone)]
 pub struct Database {
     pub redis: deadpool_redis::Pool,
     pub pg: deadpool_postgres::Pool,

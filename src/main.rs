@@ -19,7 +19,6 @@ use ntex::{http, web};
 use ntex_cors::Cors;
 use services::FirewallService;
 use states::AppState;
-use std::sync::Arc;
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -30,7 +29,7 @@ async fn main() {
     dotenv().ok();
     initialize_tracing_subscriber();
     let app_state = {
-        let db = Arc::new(Database::default().await);
+        let db = Database::default().await;
         let redis_cache = RedisCache::new(&db);
         let firewall_service = FirewallService::new();
 

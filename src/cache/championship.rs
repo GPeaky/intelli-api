@@ -8,7 +8,6 @@ use async_trait::async_trait;
 use deadpool_redis::redis::{self, AsyncCommands};
 use log::error;
 use rkyv::{Deserialize, Infallible};
-use std::sync::Arc;
 
 const ID: &str = "id";
 const NAME: &str = "name";
@@ -16,11 +15,11 @@ const USER_ID: &str = "user_id";
 
 #[derive(Clone)]
 pub struct ChampionshipCache {
-    db: Arc<Database>,
+    db: Database,
 }
 
 impl ChampionshipCache {
-    pub fn new(db: &Arc<Database>) -> Self {
+    pub fn new(db: &Database) -> Self {
         Self { db: db.clone() }
     }
 

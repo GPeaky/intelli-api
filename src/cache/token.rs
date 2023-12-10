@@ -5,15 +5,14 @@ use crate::{
 };
 use core::panic;
 use deadpool_redis::redis::AsyncCommands;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenCache {
-    db: Arc<Database>,
+    db: Database,
 }
 
 impl TokenCache {
-    pub fn new(db: &Arc<Database>) -> Self {
+    pub fn new(db: &Database) -> Self {
         Self { db: db.clone() }
     }
 

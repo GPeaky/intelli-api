@@ -10,7 +10,6 @@ use crate::{
 };
 use async_trait::async_trait;
 pub(crate) use f123::*;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct RedisCache {
@@ -20,7 +19,7 @@ pub struct RedisCache {
 }
 
 impl RedisCache {
-    pub fn new(db: &Arc<Database>) -> Self {
+    pub fn new(db: &Database) -> Self {
         Self {
             user: UserCache::new(db),
             championship: ChampionshipCache::new(db),

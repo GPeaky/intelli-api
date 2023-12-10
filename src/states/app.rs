@@ -10,7 +10,6 @@ use crate::{
         TokenService, TokenServiceTrait, UserService, UserServiceTrait,
     },
 };
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -28,7 +27,7 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(
-        db_conn: &Arc<Database>,
+        db_conn: &Database,
         firewall_service: FirewallService,
         cache: &RedisCache,
     ) -> Self {

@@ -3,16 +3,15 @@ use crate::{
     error::AppResult,
 };
 use deadpool_redis::redis::AsyncCommands;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct F123Repository {
     #[allow(unused)]
-    database: Arc<Database>,
+    database: Database,
 }
 
 impl F123Repository {
-    pub fn new(db_conn: &Arc<Database>) -> Self {
+    pub fn new(db_conn: &Database) -> Self {
         Self {
             database: db_conn.clone(),
         }

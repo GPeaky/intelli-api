@@ -26,14 +26,14 @@ type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
-    db_conn: Arc<Database>,
+    db_conn: Database,
     sockets: Sockets,
     channels: Channels,
     firewall: FirewallService,
 }
 
 impl F123Service {
-    pub fn new(db_conn: &Arc<Database>, firewall_service: FirewallService) -> Self {
+    pub fn new(db_conn: &Database, firewall_service: FirewallService) -> Self {
         Self {
             db_conn: db_conn.clone(),
             firewall: firewall_service,

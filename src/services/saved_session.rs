@@ -1,18 +1,17 @@
 use crate::{cache::RedisCache, config::Database, error::AppResult};
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SavedSessionService {
     #[allow(unused)]
     cache: RedisCache,
     #[allow(unused)]
-    db_conn: Arc<Database>,
+    db_conn: Database,
     // saved_session_repo: SavedSessionRepository,
 }
 
 impl SavedSessionService {
-    pub fn new(db_conn: &Arc<Database>, cache: &RedisCache) -> Self {
+    pub fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         Self {
             cache: cache.clone(),
             db_conn: db_conn.clone(),
