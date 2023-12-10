@@ -36,16 +36,14 @@ impl ChampionshipCache {
         };
 
         if let Some(entities) = entities {
-            if !entities.is_empty() {
-                let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+            let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
 
-                let Ok(entities) = archived.deserialize(&mut Infallible) else {
-                    error!("Failed to deserialize championships from cache");
-                    Err(CacheError::Deserialize)?
-                };
+            let Ok(entities) = archived.deserialize(&mut Infallible) else {
+                error!("Failed to deserialize championships from cache");
+                Err(CacheError::Deserialize)?
+            };
 
-                return Ok(Some(entities));
-            }
+            return Ok(Some(entities));
         }
 
         Ok(None)
