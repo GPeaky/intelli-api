@@ -89,8 +89,8 @@ impl ChampionshipRepository {
             conn.query_opt(&cached_statement, &[&name]).await?
         };
 
-        if row.is_some() {
-            let championship = Championship::from_row(&row.unwrap())?;
+        if let Some(row) = row {
+            let championship = Championship::from_row(&row)?;
             self.cache.championship.set(&championship).await?;
             Err(ChampionshipError::AlreadyExists)?;
         }

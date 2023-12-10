@@ -1,4 +1,5 @@
 use super::{ChunkPacketHeader, PacketHeader};
+use log::error;
 use ntex::util::{Bytes, BytesMut};
 use prost::Message;
 
@@ -15,7 +16,15 @@ impl ToProtoMessageBatched {
         let data = Self::to_proto(data)?;
 
         let mut buf = BytesMut::with_capacity(6144);
-        data.encode(&mut buf).unwrap();
+
+        if let Err(e) = data.encode(&mut buf) {
+            buf.reserve(e.remaining());
+
+            if let Err(e) = data.encode(&mut buf) {
+                error!("Failed to encode protobuf message: {}", e);
+                return None;
+            }
+        };
 
         Some(buf.freeze())
     }
