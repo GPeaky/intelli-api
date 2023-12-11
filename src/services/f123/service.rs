@@ -22,7 +22,7 @@ use tokio::{
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
-type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<AppResult<()>>>>>>;
+type Sockets = Arc<RwLock<FxHashMap<i32, JoinHandle<AppResult<()>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -106,7 +106,7 @@ impl F123Service {
             .await;
 
         sockets.with_upgraded(|sockets| {
-            sockets.insert(*championship_id, Arc::new(socket));
+            sockets.insert(*championship_id, socket);
         });
 
         Ok(())

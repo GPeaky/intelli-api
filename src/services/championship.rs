@@ -224,7 +224,6 @@ impl ChampionshipService {
         Ok(())
     }
 
-    // TODO: Check if the user is related to the championship
     pub async fn remove_user(
         &self,
         id: &i32,
