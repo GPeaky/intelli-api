@@ -17,6 +17,7 @@ impl<S> Middleware<S> for Admin {
     }
 }
 
+// TODO: Fix this fucking shit and return errors
 impl<S, Err> Service<web::WebRequest<Err>> for AdminMiddleware<S>
 where
     S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,

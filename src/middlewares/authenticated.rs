@@ -27,6 +27,7 @@ pub struct AuthenticationMiddleware<S> {
     service: S,
 }
 
+// TODO: Fix this fucking shit and return errors
 impl<S, Err> Service<web::WebRequest<Err>> for AuthenticationMiddleware<S>
 where
     S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
@@ -74,9 +75,6 @@ where
             ctx.call(&self.service, req).await
         };
 
-        Box::pin(async move {
-            let res = fut.await?;
-            Ok(res)
-        })
+        Box::pin(fut)
     }
 }
