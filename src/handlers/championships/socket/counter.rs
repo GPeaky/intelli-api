@@ -20,6 +20,7 @@ pub fn increment(id: i32) {
 
 pub fn decrement(id: i32) {
     let counter = COUNTER.read();
+
     if let Some(counter) = counter.get(&id) {
         counter.fetch_sub(1, Ordering::SeqCst);
     }

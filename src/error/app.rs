@@ -1,4 +1,6 @@
-use super::{user::UserError, CacheError, ChampionshipError, CommonError, SocketError, TokenError};
+use super::{
+    user::UserError, CacheError, ChampionshipError, CommonError, F123Error, SocketError, TokenError,
+};
 use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
@@ -23,6 +25,8 @@ pub enum AppError {
     Cache(#[from] CacheError),
     #[error(transparent)]
     Socket(#[from] SocketError),
+    #[error(transparent)]
+    F123(#[from] F123Error),
     #[error(transparent)]
     PgError(#[from] PgError),
     #[error(transparent)]
@@ -52,6 +56,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Common(e) => e.error_response(r),
             AppError::Cache(e) => e.error_response(r),
             AppError::Socket(e) => e.error_response(r),
+            AppError::F123(e) => e.error_response(r),
             AppError::PgError(e) => {
                 error!("{e}");
 
@@ -135,6 +140,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Common(e) => e.status_code(),
             AppError::Cache(e) => e.status_code(),
             AppError::Socket(e) => e.status_code(),
+            AppError::F123(e) => e.status_code(),
             AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,

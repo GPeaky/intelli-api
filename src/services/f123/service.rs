@@ -2,7 +2,7 @@ use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
     dtos::{F123Data, PacketIds, SessionType},
-    error::{AppResult, SocketError},
+    error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
     FirewallService,
@@ -22,7 +22,7 @@ use tokio::{
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;
 type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
-type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<()>>>>>;
+type Sockets = Arc<RwLock<FxHashMap<i32, Arc<JoinHandle<AppResult<()>>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -75,6 +75,7 @@ impl F123Service {
         };
 
         if let Some(socket) = sockets.remove(&championship_id) {
+            // todo: Use oneshot channel to stop the socket in the best way possible
             socket.abort();
         } else {
             Err(SocketError::NotFound)?;
@@ -111,26 +112,27 @@ impl F123Service {
         Ok(())
     }
 
-    async fn external_close_socket(
+    async fn internal_close(
         channels: &Channels,
         sockets: &Sockets,
         championship_id: &i32,
         firewall: &FirewallService,
-    ) {
-        firewall.close(championship_id).await.unwrap();
-
+    ) -> AppResult<()> {
         let mut sockets = sockets.write();
         let mut channels = channels.write();
 
         sockets.remove(championship_id);
         channels.remove(championship_id);
+        firewall.close(championship_id).await?;
+
+        Ok(())
     }
 
     async fn start_listening_on_socket(
         &self,
         port: i32,
         championship_id: Arc<i32>,
-    ) -> JoinHandle<()> {
+    ) -> JoinHandle<AppResult<()>> {
         let db = self.db_conn.clone();
         let firewall = self.firewall.clone();
         let sockets = self.sockets.clone();
@@ -144,7 +146,7 @@ impl F123Service {
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
             let close_socket =
-                Self::external_close_socket(&channels, &sockets, &championship_id, &firewall);
+                Self::internal_close(&channels, &sockets, &championship_id, &firewall);
 
             // Session History Data
             let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
@@ -157,7 +159,7 @@ impl F123Service {
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
-                return;
+                return Err(F123Error::UdpSocket)?;
             };
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
@@ -167,7 +169,7 @@ impl F123Service {
                 channels.insert(*championship_id, Arc::new(tx));
             }
 
-            firewall.open(*championship_id, port).await.unwrap();
+            firewall.open(*championship_id, port).await?;
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
@@ -177,8 +179,7 @@ impl F123Service {
                         if !port_partial_open {
                             firewall
                                 .open_partially(*championship_id, address.ip())
-                                .await
-                                .unwrap();
+                                .await?;
 
                             port_partial_open = true;
                         }
@@ -189,9 +190,8 @@ impl F123Service {
                         };
 
                         if header.packet_format != 2023 {
-                            error!("Not supported client");
-                            close_socket.await;
-                            break;
+                            close_socket.await?;
+                            return Err(F123Error::UnsupportedPacketFormat)?;
                         };
 
                         let session_id = header.session_uid;
@@ -232,10 +232,10 @@ impl F123Service {
                             F123Data::Motion(motion_data) => {
                                 let packet = motion_data
                                     .convert(PacketType::CarMotion)
-                                    .expect("Error converting motion data to proto message");
+                                    .ok_or(F123Error::Encoding)?;
 
-                                packet_batching.push_and_check(packet).await;
                                 last_car_motion_update = now;
+                                packet_batching.push_and_check(packet).await?;
                             }
 
                             F123Data::Session(session_data) => {
@@ -246,8 +246,8 @@ impl F123Service {
                                         championship_id
                                     );
 
-                                    close_socket.await;
-                                    break;
+                                    close_socket.await?;
+                                    return Err(F123Error::NotOnlineSession)?;
                                 }
 
                                 let _ = session_type
@@ -256,19 +256,19 @@ impl F123Service {
 
                                 let packet = session_data
                                     .convert(PacketType::SessionData)
-                                    .expect("Error converting session data to proto message");
+                                    .ok_or(F123Error::Encoding)?;
 
-                                packet_batching.push_and_check(packet).await;
                                 last_session_update = now;
+                                packet_batching.push_and_check(packet).await?;
                             }
 
                             F123Data::Participants(participants_data) => {
                                 let packet = participants_data
                                     .convert(PacketType::Participants)
-                                    .expect("Error converting participants data to proto message");
+                                    .ok_or(F123Error::Encoding)?;
 
-                                packet_batching.push_and_check(packet).await;
                                 last_participants_update = now;
+                                packet_batching.push_and_check(packet).await?;
                             }
 
                             F123Data::Event(event_data) => {
@@ -276,7 +276,7 @@ impl F123Service {
                                     continue;
                                 };
 
-                                packet_batching.push_and_check(packet).await;
+                                packet_batching.push_and_check(packet).await?;
                             }
 
                             F123Data::SessionHistory(session_history) => {
@@ -304,12 +304,12 @@ impl F123Service {
 
                                     let packet = session_history
                                         .convert(PacketType::SessionHistoryData)
-                                        .expect("Error converting history data to proto message");
-
-                                    packet_batching.push_and_check(packet).await;
+                                        .ok_or(F123Error::Encoding)?;
 
                                     *last_update = now;
                                     *last_sectors = sectors;
+
+                                    packet_batching.push_and_check(packet).await?;
                                 }
                             }
 
@@ -317,7 +317,7 @@ impl F123Service {
                             F123Data::FinalClassification(classification_data) => {
                                 let packet = classification_data
                                     .convert(PacketType::FinalClassificationData)
-                                    .expect("Error converting final classification data to proto message");
+                                    .ok_or(F123Error::Encoding)?;
 
                                 // Only for testing purposes, in the future this should close the socket when the race is finished
                                 {
@@ -334,22 +334,22 @@ impl F123Service {
 
                                 // If session type is race save all session data in the database and close the socket
                                 // Todo: this should be called after saving all data in the database
-                                packet_batching.final_send(packet).await;
+                                packet_batching.final_send(packet).await?;
                             }
                         }
                     }
 
                     Ok(Err(e)) => {
-                        error!("Error receiving data from F123 socket: {}", e);
+                        error!("Error receiving data from udp socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-                        close_socket.await;
-                        break;
+                        close_socket.await?;
+                        return Err(F123Error::ReceivingData)?;
                     }
 
                     Err(_) => {
-                        info!("Socket  timeout for championship: {}", championship_id);
-                        close_socket.await;
-                        break;
+                        info!("Socket timeout for championship: {}", championship_id);
+                        close_socket.await?;
+                        return Ok(());
                     }
                 }
             }
