@@ -118,12 +118,13 @@ impl F123Service {
         championship_id: &i32,
         firewall: &FirewallService,
     ) -> AppResult<()> {
+        firewall.close(championship_id).await?;
+
         let mut sockets = sockets.write();
         let mut channels = channels.write();
 
         sockets.remove(championship_id);
         channels.remove(championship_id);
-        firewall.close(championship_id).await?;
 
         Ok(())
     }

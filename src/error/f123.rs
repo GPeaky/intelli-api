@@ -7,6 +7,7 @@ pub enum F123Error {
     UdpSocket,
     #[error("Unsupported Packet Format")]
     UnsupportedPacketFormat,
+    #[allow(unused)]
     #[error("Not Online Session")]
     NotOnlineSession,
     #[error("Receiving data from udp socket")]
