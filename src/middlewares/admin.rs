@@ -34,11 +34,11 @@ where
         ctx: ServiceCtx<'a, Self>,
     ) -> Self::Future<'_> {
         let Some(user) = req.extensions().get::<UserExtension>().cloned() else {
-            return Box::pin(async { Err(web::Error::from(UserError::Unauthorized))? });
+            return Box::pin(async { Err(UserError::Unauthorized)? });
         };
 
         if user.role != Role::Admin {
-            return Box::pin(async { Err(web::Error::from(UserError::Unauthorized))? });
+            return Box::pin(async { Err(UserError::Unauthorized)? });
         }
 
         Box::pin(ctx.call(&self.service, req))
