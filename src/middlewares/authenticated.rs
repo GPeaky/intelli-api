@@ -54,7 +54,7 @@ where
                 let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
 
                 if !header_str.starts_with(BEARER_PREFIX) {
-                    return Err(TokenError::InvalidToken.into());
+                    return Err(TokenError::InvalidToken)?;
                 }
 
                 header_str[BEARER_PREFIX.len()..].to_string()
