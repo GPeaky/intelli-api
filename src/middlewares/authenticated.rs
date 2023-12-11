@@ -47,13 +47,15 @@ where
         let header = req.headers().get("Authorization").cloned();
 
         let fut = async move {
-            let state = state.ok_or(CommonError::InternalServerError)?;
+            let state = state.ok_or(web::Error::from(CommonError::InternalServerError))?;
             let header = {
-                let header = header.ok_or(TokenError::MissingToken)?;
-                let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+                let header = header.ok_or(web::Error::from(TokenError::MissingToken))?;
+                let header_str = header
+                    .to_str()
+                    .map_err(|_| web::Error::from(TokenError::InvalidToken))?;
 
                 if !header_str.starts_with(BEARER_PREFIX) {
-                    return Err(TokenError::InvalidToken.into());
+                    return Err(web::Error::from(TokenError::InvalidToken));
                 }
 
                 header_str[BEARER_PREFIX.len()..].to_string()
@@ -64,7 +66,7 @@ where
                 .user_repository
                 .find(&id)
                 .await?
-                .ok_or(UserError::NotFound)?;
+                .ok_or(web::Error::from(UserError::NotFound))?;
 
             if !user.active {
                 return Err(web::Error::from(UserError::NotVerified));
