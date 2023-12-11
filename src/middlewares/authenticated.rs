@@ -74,6 +74,9 @@ where
             ctx.call(&self.service, req).await
         };
 
-        Box::pin(fut)
+        Box::pin(async move {
+            let res = fut.await?;
+            Ok(res)
+        })
     }
 }
