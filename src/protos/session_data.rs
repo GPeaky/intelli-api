@@ -48,6 +48,7 @@ impl ToProtoMessage for BPacketSessionData {
             marshall_zones: self
                 .marshal_zones
                 .iter()
+                .take(self.num_marshal_zones as usize)
                 .map(|marshal_zone| MarshalZone {
                     zone_start: marshal_zone.zone_start,
                     zone_flag: marshal_zone.zone_flag as i32,

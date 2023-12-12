@@ -21,12 +21,9 @@ impl ToProtoMessage for BPacketSessionHistoryData {
                 .take_while(|lap| lap.sector1_time_in_ms > 0)
                 .map(|lap| LapHistoryData {
                     lap_time_in_ms: lap.lap_time_in_ms,
-                    sector1_time_in_ms: lap.sector1_time_in_ms as u32,
-                    sector1_time_minutes: lap.sector1_time_minutes as u32,
-                    sector2_time_in_ms: lap.sector2_time_in_ms as u32,
-                    sector2_time_minutes: lap.sector2_time_minutes as u32,
-                    sector3_time_in_ms: lap.sector3_time_in_ms as u32,
-                    sector3_time_minutes: lap.sector3_time_minutes as u32,
+                    sector1_time: lap.sector1_time_in_ms as u32,
+                    sector2_time: lap.sector2_time_in_ms as u32,
+                    sector3_time: lap.sector3_time_in_ms as u32,
                     lap_valid_bit_flags: lap.lap_valid_bit_flags as u32,
                 })
                 .collect(),

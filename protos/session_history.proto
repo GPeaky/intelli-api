@@ -3,12 +3,9 @@ package protos.session_history;
 
 message LapHistoryData {
     uint32 lapTimeInMS = 1;       // Lap time in milliseconds
-    uint32 sector1TimeInMS = 2;   // Sector 1 time in milliseconds
-    uint32 sector1TimeMinutes = 3; // Sector 1 whole minute part
-    uint32 sector2TimeInMS = 4;   // Sector 2 time in milliseconds
-    uint32 sector2TimeMinutes = 5; // Sector 2 whole minute part
-    uint32 sector3TimeInMS = 6;   // Sector 3 time in milliseconds
-    uint32 sector3TimeMinutes = 7; // Sector 3 whole minute part
+    uint32 sector1Time = 2;   // Sector 1 time in milliseconds
+    uint32 sector2Time = 4;   // Sector 2 time in milliseconds
+    uint32 sector3Time = 6;   // Sector 3 time in milliseconds
     uint32 lapValidBitFlags = 8; // 0x01 bit set - lap valid, 0x02 bit set - sector 1 valid, 0x04 bit set - sector 2 valid, 0x08 bit set - sector 3 valid
 }
 
