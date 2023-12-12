@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Local};
 use serde::{Deserialize, Serialize};
 
 //* Token Type Enum
@@ -26,7 +26,10 @@ impl TokenType {
             _ => Duration::minutes(15),
         };
 
-        Utc::now().checked_add_signed(minutes).unwrap().timestamp() as usize
+        Local::now()
+            .checked_add_signed(minutes)
+            .unwrap()
+            .timestamp() as usize
     }
 
     pub fn base_key(&self) -> &str {

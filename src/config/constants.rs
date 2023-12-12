@@ -7,7 +7,7 @@ pub const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinf
 
 // Tokens
 pub const GENERIC_TOKEN_EXPIRATION: usize = 15 * 60;
-pub const REFRESH_TOKEN_EXPIRATION: usize = 15 * 60;
+pub const REFRESH_TOKEN_EXPIRATION: usize = 15 * 60 * 24 * 30;
 
 // Redis
 pub const REDIS_USER_PREFIX: &str = "user";
