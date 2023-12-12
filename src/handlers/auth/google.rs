@@ -41,15 +41,15 @@ pub async fn callback(
         }
     };
 
-    let access_token_task = state
+    let access_token_fut = state
         .token_service
         .generate_token(user.id, TokenType::Bearer);
 
-    let refresh_token_task = state
+    let refresh_token_fut = state
         .token_service
         .generate_refresh_token(&user.id, "google");
 
-    let (access_token, refresh_token) = tokio::try_join!(access_token_task, refresh_token_task)?;
+    let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
 
     let redirect_url = format!(
         "{GOOGLE_REDIRECT}?access_token={}&refresh_token={}",

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package protos.session_data;
 
-// Main message
+// TODO: Remove This and weatherForecastSamples and return a custom object with the rain percentage
 message PacketSessionData {
     uint32 weather = 1;
     int32 trackTemperature = 2;
@@ -14,44 +14,27 @@ message PacketSessionData {
     uint32 sessionTimeLeft = 9;
     uint32 sessionDuration = 10;
     uint32 pitSpeedLimit = 11;
-    uint32 gamePaused = 12;
-    uint32 isSpectating = 13;
-    uint32 spectatorCarIndex = 14;
-    uint32 sliProNativeSupport = 15;
-    uint32 numMarshalZones = 16;
-    repeated MarshalZone marshalZones = 17; // Lista de MarshalZone
-    uint32 safetyCarStatus = 18;
-    uint32 networkGame = 19;
-    uint32 numWeatherForecastSamples = 20;
-    repeated WeatherForecastSample weatherForecastSamples = 21; // Lista de WeatherForecastSample
-    uint32 forecastAccuracy = 22;
-    uint32 aiDifficulty = 23;
-    uint32 seasonLinkIdentifier = 24;
-    uint32 weekendLinkIdentifier = 25;
-    uint32 sessionLinkIdentifier = 26;
-    uint32 pitStopWindowIdealLap = 27;
-    uint32 pitStopWindowLatestLap = 28;
-    uint32 pitStopRejoinPosition = 29;
-    uint32 steeringAssist = 30;
-    uint32 brakingAssist = 31;
-    uint32 gearboxAssist = 32;
-    uint32 pitAssist = 33;
-    uint32 pitReleaseAssist = 34;
-    uint32 ERSAssist = 35;
-    uint32 DRSAssist = 36;
-    uint32 dynamicRacingLine = 37;
-    uint32 dynamicRacingLineType = 38;
-    uint32 gameMode = 39;
-    uint32 ruleSet = 40;
-    uint32 timeOfDay = 41;
-    uint32 sessionLength = 42;
-    uint32 speedUnitsLeadPlayer = 43;
-    uint32 temperatureUnitsLeadPlayer = 44;
-    uint32 speedUnitsSecondaryPlayer = 45;
-    uint32 temperatureUnitsSecondaryPlayer = 46;
-    uint32 numSafetyCarPeriods = 47;
-    uint32 numVirtualSafetyCarPeriods = 48;
-    uint32 numRedFlagPeriods = 49;
+    uint32 numMarshalZones = 12;
+    repeated MarshalZone marshalZones = 13; // Lista de MarshalZone
+    uint32 safetyCarStatus = 14;
+    uint32 networkGame = 15;
+    uint32 numWeatherForecastSamples = 16;
+    repeated WeatherForecastSample weatherForecastSamples = 17; // Lista de WeatherForecastSample
+    uint32 forecastAccuracy = 18;
+    uint32 aiDifficulty = 19;
+    uint32 seasonLinkIdentifier = 20;
+    uint32 weekendLinkIdentifier = 21;
+    uint32 sessionLinkIdentifier = 22;
+    uint32 pitStopWindowIdealLap = 23;
+    uint32 pitStopWindowLatestLap = 24;
+    uint32 pitStopRejoinPosition = 25;
+    uint32 gameMode = 26;
+    uint32 ruleSet = 27;
+    uint32 timeOfDay = 28;
+    uint32 sessionLength = 29;
+    uint32 numSafetyCarPeriods = 30;
+    uint32 numVirtualSafetyCarPeriods = 31;
+    uint32 numRedFlagPeriods = 32;
 }
 
 message MarshalZone {
