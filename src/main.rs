@@ -50,6 +50,7 @@ async fn main() {
                         http::header::AUTHORIZATION,
                         http::header::ACCEPT,
                         http::header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
+                        http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
                     ])
                     .allowed_header(http::header::CONTENT_TYPE)
                     .max_age(3600)
