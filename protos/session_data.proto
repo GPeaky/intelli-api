@@ -1,7 +1,6 @@
 syntax = "proto3";
 package protos.session_data;
 
-// TODO: Remove This and weatherForecastSamples and return a custom object with the rain percentage
 message PacketSessionData {
     uint32 weather = 1;
     int32 trackTemperature = 2;
@@ -15,41 +14,29 @@ message PacketSessionData {
     uint32 sessionDuration = 10;
     uint32 pitSpeedLimit = 11;
     uint32 numMarshalZones = 12;
-    repeated MarshalZone marshalZones = 13; // Lista de MarshalZone
+    repeated MarshalZone marshallZones = 13;
     uint32 safetyCarStatus = 14;
     uint32 networkGame = 15;
     uint32 numWeatherForecastSamples = 16;
-    repeated WeatherForecastSample weatherForecastSamples = 17; // Lista de WeatherForecastSample
-    uint32 forecastAccuracy = 18;
-    uint32 aiDifficulty = 19;
-    uint32 seasonLinkIdentifier = 20;
-    uint32 weekendLinkIdentifier = 21;
-    uint32 sessionLinkIdentifier = 22;
-    uint32 pitStopWindowIdealLap = 23;
-    uint32 pitStopWindowLatestLap = 24;
-    uint32 pitStopRejoinPosition = 25;
-    uint32 gameMode = 26;
-    uint32 ruleSet = 27;
-    uint32 timeOfDay = 28;
-    uint32 sessionLength = 29;
-    uint32 numSafetyCarPeriods = 30;
-    uint32 numVirtualSafetyCarPeriods = 31;
-    uint32 numRedFlagPeriods = 32;
+    uint32 forecastAccuracy = 17;
+    uint32 aiDifficulty = 18;
+    uint32 seasonLinkIdentifier = 19;
+    uint32 weekendLinkIdentifier = 20;
+    uint32 sessionLinkIdentifier = 21;
+    uint32 pitStopWindowIdealLap = 22;
+    uint32 pitStopWindowLatestLap = 23;
+    uint32 pitStopRejoinPosition = 24;
+    uint32 gameMode = 25;
+    uint32 ruleSet = 26;
+    uint32 timeOfDay = 27;
+    uint32 sessionLength = 28;
+    uint32 numSafetyCarPeriods = 29;
+    uint32 numVirtualSafetyCarPeriods = 30;
+    uint32 numRedFlagPeriods = 31;
+    uint32 rainPercentage = 32;
 }
 
 message MarshalZone {
     float zoneStart = 1; // Fraction (0..1) of way through the lap the marshal zone starts
     int32 zoneFlag = 2;   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
-}
-
-
-message WeatherForecastSample {
-    uint32 sessionType = 1; // 0 = unknown, 1 = P1, 2 = P2, etc.
-    uint32 timeOffset = 2;  // Time in minutes the forecast is for
-    uint32 weather = 3; // Weather - 0 = clear, 1 = light cloud, etc.
-    int32 trackTemperature = 4; // Track temp. in degrees Celsius
-    int32 trackTemperatureChange = 5; // Track temp. change – 0 = up, 1 = down, 2 = no change
-    int32 airTemperature = 6; // Air temp. in degrees Celsius
-    int32 airTemperatureChange = 7; // Air temp. change – 0 = up, 1 = down, 2 = no change
-    uint32 rainPercentage = 8; // Rain percentage (0-100)
 }
