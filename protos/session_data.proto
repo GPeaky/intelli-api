@@ -17,23 +17,19 @@ message PacketSessionData {
     repeated MarshalZone marshallZones = 13;
     uint32 safetyCarStatus = 14;
     uint32 networkGame = 15;
-    uint32 numWeatherForecastSamples = 16;
-    uint32 forecastAccuracy = 17;
-    uint32 aiDifficulty = 18;
-    uint32 seasonLinkIdentifier = 19;
-    uint32 weekendLinkIdentifier = 20;
-    uint32 sessionLinkIdentifier = 21;
-    uint32 pitStopWindowIdealLap = 22;
-    uint32 pitStopWindowLatestLap = 23;
-    uint32 pitStopRejoinPosition = 24;
-    uint32 gameMode = 25;
-    uint32 ruleSet = 26;
-    uint32 timeOfDay = 27;
-    uint32 sessionLength = 28;
-    uint32 numSafetyCarPeriods = 29;
-    uint32 numVirtualSafetyCarPeriods = 30;
-    uint32 numRedFlagPeriods = 31;
-    uint32 rainPercentage = 32;
+    uint32 forecastAccuracy = 16;
+    uint32 aiDifficulty = 17;
+    uint32 seasonLinkIdentifier = 18;
+    uint32 weekendLinkIdentifier = 19;
+    uint32 sessionLinkIdentifier = 20;
+    uint32 gameMode = 21;
+    uint32 ruleSet = 22;
+    uint32 timeOfDay = 23;
+    uint32 sessionLength = 24;
+    uint32 numSafetyCarPeriods = 25;
+    uint32 numVirtualSafetyCarPeriods = 26;
+    uint32 numRedFlagPeriods = 27;
+    uint32 rainPercentage = 28;
 }
 
 message MarshalZone {
