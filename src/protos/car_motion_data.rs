@@ -24,12 +24,7 @@ impl ToProtoMessage for BPacketMotionData {
                     world_right_dir_x: value.world_right_dir_x as i32,
                     world_right_dir_y: value.world_right_dir_y as i32,
                     world_right_dir_z: value.world_right_dir_z as i32,
-                    g_force_lateral: value.g_force_lateral,
-                    g_force_longitudinal: value.g_force_longitudinal,
                     yaw: value.yaw,
-                    pitch: value.pitch,
-                    roll: value.roll,
-                    g_force_vertical: value.g_force_vertical,
                 })
                 .collect(),
         })

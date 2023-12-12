@@ -10,6 +10,7 @@ message CarMotionData {
     float worldPositionX = 1;
     float worldPositionY = 2;
     float worldPositionZ = 3;
+    // TODO: Check if any of these are actually needed to draw the Car in the map
     float worldVelocityX = 4;
     float worldVelocityY = 5;
     float worldVelocityZ = 6;
@@ -19,10 +20,5 @@ message CarMotionData {
     int32 worldRightDirX = 10;
     int32 worldRightDirY = 11;
     int32 worldRightDirZ = 12;
-    float gForceLateral = 13;
-    float gForceLongitudinal = 14;
-    float gForceVertical = 15;
-    float yaw = 16;
-    float pitch = 17;
-    float roll = 18;
+    float yaw = 13;
 }
