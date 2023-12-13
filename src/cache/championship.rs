@@ -120,7 +120,7 @@ impl ChampionshipCache {
         pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id));
 
         let mut conn = self.db.redis.get().await?;
-        pipe.atomic().query_async(&mut conn).await?;
+        pipe.query_async(&mut conn).await?;
 
         Ok(())
     }
@@ -168,7 +168,6 @@ impl EntityCache for ChampionshipCache {
         let mut conn = self.db.redis.get().await?;
 
         redis::pipe()
-            .atomic()
             .set_ex(
                 &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", entity.id),
                 &bytes[..],

@@ -82,7 +82,6 @@ impl EntityCache for UserCache {
         let mut conn = self.db.redis.get().await?;
 
         redis::pipe()
-            .atomic()
             .set_ex(
                 &format!("{REDIS_USER_PREFIX}:{ID}:{}", entity.id),
                 &bytes[..],

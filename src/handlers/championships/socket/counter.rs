@@ -13,7 +13,7 @@ pub fn increment(id: i32) {
         counter.fetch_add(1, Ordering::SeqCst);
     } else {
         counter.with_upgraded(|counter| {
-            counter.insert(id, AtomicUsize::new(1));
+            counter.insert(id, AtomicUsize::new(1)); //
         })
     }
 }
