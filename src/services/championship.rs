@@ -174,9 +174,10 @@ impl ChampionshipService {
             let update_fut = conn.execute(&cached_statement, &params);
             let users_fut = self.championship_repository.users(id);
 
-            let (_, users) = tokio::try_join!(update_fut, users_fut)?;
+            let (update_championship, users) = tokio::join!(update_fut, users_fut);
 
-            users
+            update_championship?;
+            users?
         };
 
         // Todo: Check if this is working as expected
