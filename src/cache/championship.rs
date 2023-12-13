@@ -104,6 +104,31 @@ impl ChampionshipCache {
 
         Ok(())
     }
+
+    // Todo: Test the functionality of this method
+    #[inline(always)]
+    pub async fn delete_all(&self, id: &i32, users: Vec<i32>) -> AppResult<()> {
+        let mut pipe = redis::pipe();
+
+        for user_id in users {
+            pipe.del(&format!(
+                "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
+                user_id
+            ));
+        }
+
+        pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id));
+
+        let mut conn = self.db.redis.get().await?;
+        pipe.atomic().query_async(&mut conn).await?;
+
+        Ok(())
+    }
+
+    // #[inline(always)]
+    // pub async fn delete_all(&self, user_id: i32) -> {
+
+    // }
 }
 
 #[async_trait]

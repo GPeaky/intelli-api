@@ -33,7 +33,7 @@ pub async fn create_championship(
     {
         let championships_len = state
             .championship_repository
-            .user_champions_len(&user.id)
+            .championship_len(&user.id)
             .await?;
 
         match user.role {

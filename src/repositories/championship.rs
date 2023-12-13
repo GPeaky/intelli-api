@@ -2,7 +2,7 @@ use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     entity::{Championship, FromRow},
-    error::{AppError, AppResult, ChampionshipError},
+    error::{AppError, AppResult},
 };
 
 #[derive(Clone)]
@@ -69,9 +69,9 @@ impl ChampionshipRepository {
         Ok(None)
     }
 
-    pub async fn exist_by_name(&self, name: &str) -> AppResult<()> {
-        if self.cache.championship.get_by_name(name).await?.is_some() {
-            Err(ChampionshipError::AlreadyExists)?;
+    pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Championship>> {
+        if let Some(championship) = self.cache.championship.get_by_name(name).await? {
+            return Ok(Some(championship));
         };
 
         let row = {
@@ -92,10 +92,10 @@ impl ChampionshipRepository {
         if let Some(row) = row {
             let championship = Championship::from_row(&row)?;
             self.cache.championship.set(&championship).await?;
-            Err(ChampionshipError::AlreadyExists)?;
+            return Ok(Some(championship));
         }
 
-        Ok(())
+        Ok(None)
     }
 
     pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
@@ -133,8 +133,29 @@ impl ChampionshipRepository {
         Ok(championships)
     }
 
+    pub async fn users(&self, id: &i32) -> AppResult<Vec<i32>> {
+        let rows = {
+            let conn = self.database.pg.get().await?;
+
+            let cached_statement = conn
+                .prepare_cached(
+                    r#"
+                        SELECT user_id FROM user_championships
+                        WHERE championship_id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.query(&cached_statement, &[id]).await?
+        };
+
+        let users = rows.iter().map(|row| row.get("user_id")).collect();
+
+        Ok(users)
+    }
+
     // TODO: Add cache for this function
-    pub async fn user_champions_len(&self, user_id: &i32) -> AppResult<usize> {
+    pub async fn championship_len(&self, user_id: &i32) -> AppResult<usize> {
         let rows = {
             let conn = self.database.pg.get().await?;
 
