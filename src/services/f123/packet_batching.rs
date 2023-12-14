@@ -6,8 +6,10 @@ use crate::{
 };
 use log::warn;
 use ntex::util::Bytes;
+use prost::Message;
 use tokio::{sync::broadcast::Sender, time::Instant};
 
+// Packet Batching implementation
 pub struct PacketBatching {
     buf: Vec<PacketHeader>,
     tx: Sender<Bytes>,
@@ -33,6 +35,7 @@ impl PacketBatching {
     }
 
     // This method is used to send the last batch of data
+    //
     // Should be not used for other event that is not the end of the session
     #[inline(always)]
     pub async fn final_send(&mut self, packet: PacketHeader) -> AppResult<()> {
@@ -41,6 +44,7 @@ impl PacketBatching {
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
             self.cache.prune().await?;
 
+            // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
             if let Err(e) = self.tx.send(batch) {
                 warn!("Broadcast Channel: {}", e);
             };
@@ -64,6 +68,7 @@ impl PacketBatching {
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
             self.cache.set(&batch).await?;
 
+            // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
             if let Err(e) = self.tx.send(batch) {
                 warn!("Broadcast channel: {}", e);
             };
