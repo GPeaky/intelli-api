@@ -41,7 +41,8 @@ impl PacketBatching {
     pub async fn final_send(&mut self, packet: PacketHeader) -> AppResult<()> {
         self.buf.push(packet);
 
-        if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
+        let buf = self.buf.drain(..).collect::<Vec<_>>();
+        if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             self.cache.prune().await?;
 
             // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
@@ -53,8 +54,6 @@ impl PacketBatching {
         }
 
         self.last_batch_time = Instant::now();
-        self.buf.clear();
-
         Ok(())
     }
 
