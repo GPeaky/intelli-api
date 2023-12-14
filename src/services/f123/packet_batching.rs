@@ -6,7 +6,6 @@ use crate::{
 };
 use log::warn;
 use ntex::util::Bytes;
-use prost::Message;
 use tokio::{sync::broadcast::Sender, time::Instant};
 
 // Packet Batching implementation

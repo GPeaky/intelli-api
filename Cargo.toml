@@ -32,11 +32,12 @@ deadpool-postgres = "0.11"
 tokio = { version = "1", features = ["full"] }
 ntex = { version = "0.7", features = ["tokio"] }
 reqwest = { version = "0.11", features = ["json"] }
-zerocopy = { version = "0.7", features = ["derive"] }
 serde = { version = "1", features = ["derive", "rc"] }
+once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 rkyv = { version = "0.7", features = ["bytecheck", "validation"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+zerocopy = { version = "0.8.0-alpha.1", features = ["derive"] }
 postgres-types = { version = "0.2", features = ["derive", "with-chrono-0_4"] }
 parking_lot = { version = "0.12", features = [
     "arc_lock",
@@ -47,7 +48,6 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
-once_cell = { version = "1.19.0", features = ["parking_lot"] }
 
 
 [profile.release]
