@@ -45,7 +45,6 @@ pub(crate) async fn register(
             .send_mail((&*form).into(), "Verify Email", template);
 
     tokio::try_join!(save_email_future, send_email_future)?;
-
     Ok(web::HttpResponse::Ok())
 }
 
@@ -89,12 +88,12 @@ pub(crate) async fn login(
     let (access_token, refresh_token) =
         tokio::try_join!(access_token_future, refresh_token_future)?;
 
-    let auth_response = AuthResponse {
+    let auth_response = &AuthResponse {
         access_token,
         refresh_token,
     };
 
-    Ok(web::HttpResponse::Ok().json(&auth_response))
+    Ok(web::HttpResponse::Ok().json(auth_response))
 }
 
 #[inline(always)]
@@ -107,11 +106,11 @@ pub(crate) async fn refresh_token(
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
-    let refresh_response = RefreshResponse {
+    let refresh_response = &RefreshResponse {
         access_token: new_token,
     };
 
-    Ok(web::HttpResponse::Ok().json(&refresh_response))
+    Ok(web::HttpResponse::Ok().json(refresh_response))
 }
 
 #[inline(always)]
@@ -175,7 +174,6 @@ pub(crate) async fn forgot_password(
     );
 
     tokio::try_join!(save_reset_password, send_mail)?;
-
     Ok(web::HttpResponse::Ok())
 }
 

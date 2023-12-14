@@ -20,7 +20,6 @@ pub trait UserRepositoryTrait {
     async fn status(&self, id: &i32) -> AppResult<Option<bool>>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     fn validate_password(&self, password: &str, hash: &str) -> AppResult<bool>;
-    fn active_pools(&self) -> (usize, usize);
 }
 
 #[async_trait]
@@ -144,11 +143,6 @@ impl UserRepositoryTrait for UserRepository {
         }
 
         Ok(None)
-    }
-
-    // TODO: Remove this function from this trait
-    fn active_pools(&self) -> (usize, usize) {
-        self.db_conn.active_pools()
     }
 
     fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {

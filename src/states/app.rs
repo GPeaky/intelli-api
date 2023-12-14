@@ -3,7 +3,7 @@ use crate::{
     config::Database,
     repositories::{
         ChampionshipRepository, F123Repository, GoogleRepository, UserRepository,
-        UserRepositoryTrait,
+        UserRepositoryTrait, ServerRepository
     },
     services::{
         ChampionshipService, EmailService, F123Service, FirewallService, SavedSessionService,
@@ -23,6 +23,7 @@ pub struct AppState {
     pub f123_repository: F123Repository,
     pub saved_session_service: SavedSessionService,
     pub google_repository: GoogleRepository,
+    pub server_repository: ServerRepository,
 }
 
 impl AppState {
@@ -42,6 +43,7 @@ impl AppState {
             email_service: EmailService::new(),
             saved_session_service: SavedSessionService::new(db_conn, cache),
             google_repository: GoogleRepository::new(),
+            server_repository: ServerRepository::new(db_conn),
         }
     }
 }
