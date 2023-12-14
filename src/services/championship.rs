@@ -168,17 +168,13 @@ impl ChampionshipService {
             (query, params)
         };
 
-        let users = {
+        {
             let conn = self.db.pg.get().await?;
             let cached_statement = conn.prepare_cached(&query).await?;
-            let update_fut = conn.execute(&cached_statement, &params);
-            let users_fut = self.championship_repository.users(id);
+            conn.execute(&cached_statement, &params).await?;
+        }
 
-            let (_, users) = tokio::try_join!(update_fut, users_fut)?;
-
-            users
-        };
-
+        let users = self.championship_repository.users(id).await?;
         // Todo: Check if this is working as expected
         self.cache.championship.delete_all(id, users).await?;
 
