@@ -124,11 +124,6 @@ impl ChampionshipCache {
 
         Ok(())
     }
-
-    // #[inline(always)]
-    // pub async fn delete_all(&self, user_id: i32) -> {
-
-    // }
 }
 
 #[async_trait]

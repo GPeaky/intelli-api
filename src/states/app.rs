@@ -2,8 +2,8 @@ use crate::{
     cache::RedisCache,
     config::Database,
     repositories::{
-        ChampionshipRepository, F123Repository, GoogleRepository, UserRepository,
-        UserRepositoryTrait, ServerRepository
+        ChampionshipRepository, F123Repository, GoogleRepository, ServerRepository, UserRepository,
+        UserRepositoryTrait,
     },
     services::{
         ChampionshipService, EmailService, F123Service, FirewallService, SavedSessionService,

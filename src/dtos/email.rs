@@ -8,6 +8,10 @@ pub struct VerifyEmail<'a> {
 }
 
 #[derive(TemplateOnce)]
+#[template(path = "email_verified.stpl")]
+pub struct EmailVerified {}
+
+#[derive(TemplateOnce)]
 #[template(path = "reset_password.stpl")]
 pub struct ResetPassword<'a> {
     pub reset_password_link: &'a str,

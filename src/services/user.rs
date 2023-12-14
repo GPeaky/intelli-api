@@ -32,7 +32,7 @@ pub trait UserServiceTrait {
     async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
     async fn activate(&self, id: &i32) -> AppResult<()>;
-    async fn activate_with_token(&self, token: &str) -> AppResult<()>;
+    async fn activate_with_token(&self, token: &str) -> AppResult<i32>;
     async fn deactivate(&self, id: &i32) -> AppResult<()>;
 }
 
@@ -266,7 +266,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn activate_with_token(&self, token: &str) -> AppResult<()> {
+    async fn activate_with_token(&self, token: &str) -> AppResult<i32> {
         self.cache.token.get_token(token, &TokenType::Email).await?;
         let user_id = {
             let token_data = self.token_service.validate(token)?;
@@ -283,7 +283,7 @@ impl UserServiceTrait for UserService {
             .remove_token(token, &TokenType::Email)
             .await?;
 
-        Ok(())
+        Ok(user_id)
     }
 
     async fn activate(&self, id: &i32) -> AppResult<()> {
