@@ -167,7 +167,11 @@ pub fn convert_event_data_details(
         _ => None,
     };
 
-    details.map(|details| EventDataDetails {
-        details: Some(details),
-    })
+    if let Some(details) = details {
+        return Some(EventDataDetails {
+            details: Some(details),
+        });
+    }
+
+    None
 }
