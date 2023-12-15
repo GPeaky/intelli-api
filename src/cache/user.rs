@@ -48,7 +48,7 @@ impl UserCache {
 #[async_trait]
 impl EntityCache for UserCache {
     type Entity = User;
-    const EXPIRATION: usize = REDIS_CACHE_EXPIRATION;
+    const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
     #[inline(always)]
     async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
