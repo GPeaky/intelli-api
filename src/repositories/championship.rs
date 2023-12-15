@@ -154,7 +154,6 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
-    // TODO: Add cache for this function
     pub async fn championship_len(&self, user_id: &i32) -> AppResult<usize> {
         let rows = {
             let conn = self.database.pg.get().await?;

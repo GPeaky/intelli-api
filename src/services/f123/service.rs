@@ -65,7 +65,6 @@ impl F123Service {
         Some(channel.subscribe())
     }
 
-    // TODO: Implement oneshot channel to stop the socket in the best way possible
     pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
         let mut channels = self.channels.write();
         let mut sockets = self.sockets.write();
