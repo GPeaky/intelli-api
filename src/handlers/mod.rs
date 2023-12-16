@@ -1,6 +1,7 @@
 pub(crate) mod admin;
 pub(crate) mod auth;
 pub(crate) mod championships;
+pub(crate) mod intelli_app;
 pub(crate) mod user;
 
 use ntex::web;

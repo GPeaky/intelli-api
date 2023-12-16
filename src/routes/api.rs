@@ -9,6 +9,7 @@ use crate::{
             session_socket, socket_status, start_socket, stop_socket, update,
         },
         heartbeat,
+        intelli_app::latest_release,
         user::{update_user, user_data},
     },
     middlewares::Authentication,
@@ -39,6 +40,10 @@ pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
             .route("", web::put().to(update_user))
             .route("/data", web::get().to(user_data))
             .wrap(Authentication),
+    );
+
+    cfg.service(
+        web::scope("/intelli-app").route("/releases/latest", web::get().to(latest_release)),
     );
 
     cfg.service(
