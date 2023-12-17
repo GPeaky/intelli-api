@@ -1,5 +1,4 @@
 use crate::{cache::RedisCache, config::Database, error::AppResult};
-use rand::{rngs::StdRng, Rng, SeedableRng};
 
 #[derive(Clone)]
 pub struct SavedSessionService {
@@ -21,25 +20,19 @@ impl SavedSessionService {
 
     #[allow(unused)]
     pub async fn create(&self) -> AppResult<()> {
-        let id = {
-            let mut rand = StdRng::from_entropy();
-            rand.gen_range(600000000..700000000)
-        };
+        let id = fastrand::i32(600000000..700000000);
 
-        {
-            let conn = self.db_conn.pg.get().await?;
-
-            let cached_statement = conn
-                .prepare_cached(
-                    r#"
+        let conn = self.db_conn.pg.get().await?;
+        let cached_statement = conn
+            .prepare_cached(
+                r#"
                     INSERT INTO saved_session (id)
                     VALUES ($1)
                 "#,
-                )
-                .await?;
+            )
+            .await?;
 
-            conn.execute(&cached_statement, &[&id]).await?;
-        }
+        conn.execute(&cached_statement, &[&id]).await?;
 
         Ok(())
     }

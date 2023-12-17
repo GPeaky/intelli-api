@@ -12,7 +12,6 @@ use bcrypt::{hash, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use log::{error, info};
 use postgres_types::ToSql;
-use rand::{rngs::StdRng, Rng, SeedableRng};
 
 #[derive(Clone)]
 pub struct UserService {
@@ -55,11 +54,7 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = {
-            let mut rand = StdRng::from_entropy();
-            rand.gen_range(600000000..700000000)
-        };
-
+        let id = fastrand::i32(600000000..700000000);
         let conn = self.db_conn.pg.get().await?;
 
         match &register.provider {

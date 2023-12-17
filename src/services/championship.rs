@@ -9,7 +9,6 @@ use chrono::{Duration, Utc};
 use log::info;
 use parking_lot::RwLock;
 use postgres_types::ToSql;
-use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
 
@@ -42,10 +41,7 @@ impl ChampionshipService {
 
     pub async fn create(&self, payload: CreateChampionshipDto, user_id: &i32) -> AppResult<()> {
         let port = self.get_port().await?;
-        let id = {
-            let mut rand = StdRng::from_entropy();
-            rand.gen_range(600000000..700000000)
-        };
+        let id = fastrand::i32(600000000..700000000);
 
         if self
             .championship_repository
