@@ -30,9 +30,9 @@ env_logger = "0.10"
 async-trait = "0.1"
 deadpool-redis = "0.14"
 postgres-derive = "0.4"
-zerocopy = "0.8.0-alpha.1"
-deadpool-postgres = "0.12.0"
-zerocopy-derive = "0.8.0-alpha.1"
+zerocopy = "0.8.0-alpha"
+deadpool-postgres = "0.12"
+zerocopy-derive = "0.8.0-alpha"
 serde = { version = "1", features = ["rc"] }
 tokio = { version = "1", features = ["full"] }
 ntex = { version = "0.7", features = ["tokio"] }
