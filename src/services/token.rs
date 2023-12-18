@@ -55,6 +55,17 @@ impl TokenServiceTrait for TokenService {
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
     }
 
+    async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
+        self.cache
+            .token
+            .set_token(token, &TokenType::ResetPassword)
+            .await
+    }
+
+    async fn save_email_token(&self, token: &str) -> AppResult<()> {
+        self.cache.token.set_token(token, &TokenType::Email).await
+    }
+
     async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
         let token_claim = TokenClaim {
             sub,
@@ -66,15 +77,24 @@ impl TokenServiceTrait for TokenService {
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
     }
 
-    async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
+    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()> {
         self.cache
             .token
-            .set_token(token, &TokenType::ResetPassword)
+            .remove_refresh_token(user_id, fingerprint)
             .await
     }
 
-    async fn save_email_token(&self, token: &str) -> AppResult<()> {
-        self.cache.token.set_token(token, &TokenType::Email).await
+    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String> {
+        let token = self
+            .generate_token(*user_id, TokenType::RefreshBearer)
+            .await?;
+
+        self.cache
+            .token
+            .set_refresh_token(&token, fingerprint)
+            .await?;
+
+        Ok(token)
     }
 
     async fn refresh_access_token(
@@ -99,25 +119,5 @@ impl TokenServiceTrait for TokenService {
         }
 
         self.generate_token(id, TokenType::Bearer).await
-    }
-
-    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String> {
-        let token = self
-            .generate_token(*user_id, TokenType::RefreshBearer)
-            .await?;
-
-        self.cache
-            .token
-            .set_refresh_token(&token, fingerprint)
-            .await?;
-
-        Ok(token)
-    }
-
-    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()> {
-        self.cache
-            .token
-            .remove_refresh_token(user_id, fingerprint)
-            .await
     }
 }

@@ -11,6 +11,7 @@ use parking_lot::RwLock;
 use postgres_types::ToSql;
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
+use ntex::Service
 
 #[derive(Clone)]
 pub struct ChampionshipService {
@@ -207,17 +208,16 @@ impl ChampionshipService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
-        let add_user_future = conn.execute(&cached_statement, &bindings);
 
-        // Delete New User Championship Cache
+        let add_user_future = async {
+            let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
+            conn.execute(&cached_statement, &bindings).await?;
+            Ok(())
+        };
+
         let delete_user_cache_future = self.cache.championship.delete_by_user_id(&new_user_id);
 
-        let (add_user_res, delete_user_cache_res) =
-            tokio::join!(add_user_future, delete_user_cache_future);
-
-        add_user_res?;
-        delete_user_cache_res?;
+        tokio::try_join!(add_user_future, delete_user_cache_future);
 
         Ok(())
     }
@@ -256,16 +256,15 @@ impl ChampionshipService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
-        let remove_user_future = conn.execute(&cached_statement, &bindings);
-        // Delete Removed User Championship Cache
+        let remove_user_future = async {
+            let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
+            conn.execute(&cached_statement, &bindings).await?;
+            Ok(())
+        };
         let remove_user_cache_future = self.cache.championship.delete_by_user_id(remove_user_id);
 
-        let (remove_user, remove_user_cache) =
-            tokio::join!(remove_user_future, remove_user_cache_future);
 
-        remove_user?;
-        remove_user_cache?;
+        tokio::try_join!(remove_user_future, remove_user_cache_future);
 
         Ok(())
     }
@@ -289,14 +288,13 @@ impl ChampionshipService {
         let (cached, cached_2) = tokio::try_join!(cached_task, cached2_task)?;
 
         let users = self.championship_repository.users(id).await?;
-        let remove_championship_users_fut = conn.execute(&cached, &bindings);
+        let remove_championship_users_fut = async {
+            conn.execute(&cached, &bindings).await?;
+            Ok(())
+        };
         let delete_champ_cache_fut = self.cache.championship.delete_all(id, users);
 
-        let (remove_championship_users_fut, delete_champ_cache) =
-            tokio::join!(remove_championship_users_fut, delete_champ_cache_fut);
-
-        remove_championship_users_fut?;
-        delete_champ_cache?;
+        tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut);
 
         conn.execute(&cached_2, &bindings).await?;
         info!("Championship deleted with success: {id}");
