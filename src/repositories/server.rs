@@ -1,4 +1,5 @@
 use crate::config::Database;
+use crate::dtos::DatabasesStatus;
 
 #[derive(Clone)]
 pub struct ServerRepository {
@@ -12,7 +13,13 @@ impl ServerRepository {
         }
     }
 
-    pub fn active_pools(&self) -> (usize, usize) {
-        self.database.active_pools()
+    pub fn active_pools(&self) -> DatabasesStatus {
+        let redis_pool = self.database.redis.status();
+        let pg_pool = self.database.pg.status();
+
+        DatabasesStatus {
+            redis: redis_pool,
+            pg: pg_pool,
+        }
     }
 }

@@ -36,16 +36,4 @@ impl Database {
 
         Self { redis, pg }
     }
-
-    pub fn active_pools(&self) -> (usize, usize) {
-        let redis = self.redis.status();
-        let pg = self.pg.status();
-
-        info!(
-            "Active connections: Redis: {:#?}, Postgres: {:#?}",
-            redis, pg
-        );
-
-        (redis.size, pg.size)
-    }
 }

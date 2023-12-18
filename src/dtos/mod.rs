@@ -4,6 +4,7 @@ mod email;
 mod f123;
 mod token;
 mod user;
+mod server;
 
 pub(crate) use auth::*;
 pub(crate) use championship::*;
@@ -11,3 +12,4 @@ pub(crate) use email::*;
 pub(crate) use f123::*;
 pub(crate) use token::*;
 pub(crate) use user::*;
+pub(crate) use server::*;
