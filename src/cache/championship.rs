@@ -110,12 +110,12 @@ impl ChampionshipCache {
     pub async fn delete_all(&self, id: &i32, users: Vec<i32>) -> AppResult<()> {
         let mut pipe = redis::pipe();
 
-        for user_id in users {
+        users.iter().for_each(|user_id| {
             pipe.del(&format!(
                 "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
                 user_id
             ));
-        }
+        });
 
         pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id));
 
