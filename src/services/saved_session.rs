@@ -20,7 +20,7 @@ impl SavedSessionService {
 
     #[allow(unused)]
     pub async fn create(&self) -> AppResult<()> {
-        let id = fastrand::i32(600000000..700000000);
+        let id = fastrand::i32(800000000..900000000);
 
         let conn = self.db_conn.pg.get().await?;
         let cached_statement = conn
