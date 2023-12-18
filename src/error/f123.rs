@@ -19,12 +19,6 @@ pub enum F123Error {
 }
 
 impl web::error::WebResponseError for F123Error {
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
-    }
-
     fn status_code(&self) -> StatusCode {
         match self {
             F123Error::UdpSocket => StatusCode::INTERNAL_SERVER_ERROR,
@@ -34,5 +28,11 @@ impl web::error::WebResponseError for F123Error {
             F123Error::Encoding => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
         }
+    }
+
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

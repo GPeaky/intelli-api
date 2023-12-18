@@ -10,13 +10,13 @@ pub enum CacheError {
 }
 
 impl web::error::WebResponseError for CacheError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+
     fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
         web::HttpResponse::build(self.status_code())
             .set_header("content-type", "text/html; charset=utf-8")
             .body(self.to_string())
-    }
-
-    fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
     }
 }

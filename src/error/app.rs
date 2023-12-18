@@ -48,6 +48,28 @@ pub enum AppError {
 }
 
 impl web::error::WebResponseError for AppError {
+    #[inline(always)]
+    fn status_code(&self) -> StatusCode {
+        match self {
+            AppError::User(e) => e.status_code(),
+            AppError::Championship(e) => e.status_code(),
+            AppError::Token(e) => e.status_code(),
+            AppError::Common(e) => e.status_code(),
+            AppError::Cache(e) => e.status_code(),
+            AppError::Socket(e) => e.status_code(),
+            AppError::F123(e) => e.status_code(),
+            AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Sailfish(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Lettre(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
     fn error_response(&self, r: &web::HttpRequest) -> web::HttpResponse {
         match self {
             AppError::User(e) => e.error_response(r),
@@ -128,28 +150,6 @@ impl web::error::WebResponseError for AppError {
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Email Error")
             }
-        }
-    }
-
-    #[inline(always)]
-    fn status_code(&self) -> StatusCode {
-        match self {
-            AppError::User(e) => e.status_code(),
-            AppError::Championship(e) => e.status_code(),
-            AppError::Token(e) => e.status_code(),
-            AppError::Common(e) => e.status_code(),
-            AppError::Cache(e) => e.status_code(),
-            AppError::Socket(e) => e.status_code(),
-            AppError::F123(e) => e.status_code(),
-            AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Sailfish(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Lettre(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

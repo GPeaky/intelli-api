@@ -20,7 +20,7 @@ pub(crate) async fn register(
     form: web::types::Form<RegisterUserDto>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        return Err(CommonError::FormValidationFailed)?;
+        return Err(CommonError::ValidationFailed)?;
     }
 
     let user_id = state.user_service.create(&form).await?;
@@ -55,7 +55,7 @@ pub(crate) async fn login(
     form: web::types::Form<LoginUserDto>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        return Err(CommonError::FormValidationFailed)?;
+        return Err(CommonError::ValidationFailed)?;
     }
 
     let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
@@ -139,7 +139,7 @@ pub(crate) async fn forgot_password(
     form: web::types::Form<ForgotPasswordDto>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        return Err(CommonError::FormValidationFailed)?;
+        return Err(CommonError::ValidationFailed)?;
     }
 
     let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
@@ -184,7 +184,7 @@ pub async fn reset_password(
     form: web::types::Form<ResetPasswordDto>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        return Err(CommonError::FormValidationFailed)?;
+        return Err(CommonError::ValidationFailed)?;
     }
 
     let user_id = state

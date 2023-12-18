@@ -14,12 +14,6 @@ pub enum SocketError {
 }
 
 impl web::error::WebResponseError for SocketError {
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
-    }
-
     fn status_code(&self) -> StatusCode {
         match self {
             SocketError::NotFound => StatusCode::BAD_REQUEST,
@@ -27,5 +21,11 @@ impl web::error::WebResponseError for SocketError {
             SocketError::NotActive => StatusCode::NOT_FOUND,
             SocketError::FailedToSendMessage => StatusCode::INTERNAL_SERVER_ERROR,
         }
+    }
+
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

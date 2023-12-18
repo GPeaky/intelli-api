@@ -26,3 +26,9 @@ pub struct UserData {
     pub user: Arc<User>,
     pub championships: Vec<Championship>,
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct UserIdPath {
+    #[garde(range(min = 600000000, max = 699999999))]
+    pub id: i32,
+}

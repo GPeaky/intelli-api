@@ -1,3 +1,4 @@
+use crate::dtos::{ChampionshipIdPath, UserIdPath};
 use crate::{
     error::{AppResult, ChampionshipError},
     states::AppState,
@@ -7,9 +8,9 @@ use ntex::web;
 #[inline(always)]
 pub async fn user_championships(
     state: web::types::State<AppState>,
-    user_id: web::types::Path<i32>,
+    path: web::types::Path<UserIdPath>,
 ) -> AppResult<impl web::Responder> {
-    let championships = state.championship_repository.find_all(&user_id).await?;
+    let championships = state.championship_repository.find_all(&path.id).await?;
 
     Ok(web::HttpResponse::Ok().json(&championships))
 }
@@ -17,9 +18,9 @@ pub async fn user_championships(
 #[inline(always)]
 pub async fn delete_championship(
     state: web::types::State<AppState>,
-    id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    let Some(championship) = state.championship_repository.find(&id).await? else {
+    let Some(championship) = state.championship_repository.find(&path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 

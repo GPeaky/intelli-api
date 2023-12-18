@@ -32,12 +32,6 @@ pub enum UserError {
 }
 
 impl web::error::WebResponseError for UserError {
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
-    }
-
     fn status_code(&self) -> StatusCode {
         match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
@@ -54,5 +48,11 @@ impl web::error::WebResponseError for UserError {
             UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
             UserError::UpdateLimitExceeded => StatusCode::BAD_REQUEST,
         }
+    }
+
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

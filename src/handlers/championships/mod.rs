@@ -2,6 +2,7 @@ mod admin;
 mod socket;
 mod sockets;
 
+use crate::dtos::{ChampionshipAndUserIdPath, ChampionshipIdPath};
 use crate::{
     dtos::{AddUser, CreateChampionshipDto, UpdateChampionship},
     entity::{Role, UserExtension},
@@ -21,7 +22,7 @@ pub async fn create_championship(
     form: web::types::Form<CreateChampionshipDto>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        return Err(CommonError::FormValidationFailed)?;
+        return Err(CommonError::ValidationFailed)?;
     }
 
     let user = req
@@ -72,10 +73,10 @@ pub async fn update(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
     form: web::types::Form<UpdateChampionship>,
-    championship_id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    if form.validate(&()).is_err() {
-        Err(CommonError::FormValidationFailed)?
+    if form.validate(&()).is_err() || path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
     }
 
     let user_id = req
@@ -86,7 +87,7 @@ pub async fn update(
 
     state
         .championship_service
-        .update(&championship_id, &user_id, &form)
+        .update(&path.id, &user_id, &form)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -96,11 +97,11 @@ pub async fn update(
 pub async fn add_user(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
     form: web::types::Form<AddUser>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    if form.validate(&()).is_err() {
-        Err(CommonError::FormValidationFailed)?
+    if form.validate(&()).is_err() || path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
     }
 
     let user_id = req
@@ -111,7 +112,7 @@ pub async fn add_user(
 
     state
         .championship_service
-        .add_user(&championship_id, &user_id, &form.email)
+        .add_user(&path.id, &user_id, &form.email)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -121,8 +122,12 @@ pub async fn add_user(
 pub async fn remove_user(
     req: web::HttpRequest,
     state: web::types::State<AppState>,
-    ids: web::types::Path<(i32, i32)>,
+    path: web::types::Path<ChampionshipAndUserIdPath>,
 ) -> AppResult<impl web::Responder> {
+    if path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
     let user_id = req
         .extensions()
         .get::<UserExtension>()
@@ -131,7 +136,7 @@ pub async fn remove_user(
 
     state
         .championship_service
-        .remove_user(&ids.0, &user_id, &ids.1)
+        .remove_user(&path.id, &user_id, &path.user_id)
         .await?;
 
     Ok(web::HttpResponse::Ok())
@@ -140,9 +145,13 @@ pub async fn remove_user(
 #[inline(always)]
 pub async fn get_championship(
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+    if path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
+    let Some(championship) = state.championship_repository.find(&path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 

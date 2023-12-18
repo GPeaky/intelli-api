@@ -1,9 +1,12 @@
 use super::counter::get;
+use crate::dtos::ChampionshipIdPath;
+use crate::error::CommonError;
 use crate::{
     dtos::SocketStatus,
     error::{AppResult, ChampionshipError},
     states::AppState,
 };
+use garde::Validate;
 use ntex::web;
 use std::sync::Arc;
 
@@ -16,9 +19,13 @@ pub async fn active_sockets(state: web::types::State<AppState>) -> AppResult<imp
 #[inline(always)]
 pub async fn start_socket(
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+    if path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
+    let Some(championship) = state.championship_repository.find(&path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
@@ -33,9 +40,13 @@ pub async fn start_socket(
 #[inline(always)]
 pub async fn socket_status(
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    let Some(championship) = state.championship_repository.find(&championship_id).await? else {
+    if path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
+    let Some(championship) = state.championship_repository.find(&path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
@@ -47,7 +58,7 @@ pub async fn socket_status(
         .await;
 
     if socket_active {
-        if let Some(count) = get(*championship_id) {
+        if let Some(count) = get(path.id) {
             num_connections = count;
         };
     }
@@ -63,9 +74,13 @@ pub async fn socket_status(
 #[inline(always)]
 pub async fn stop_socket(
     state: web::types::State<AppState>,
-    championship_id: web::types::Path<i32>,
+    path: web::types::Path<ChampionshipIdPath>,
 ) -> AppResult<impl web::Responder> {
-    state.f123_service.stop_socket(*championship_id).await?;
+    if path.validate(&()).is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
+    state.f123_service.stop_socket(path.id).await?;
 
     Ok(web::HttpResponse::Ok())
 }

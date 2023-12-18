@@ -21,12 +21,6 @@ pub enum ChampionshipError {
 }
 
 impl web::error::WebResponseError for ChampionshipError {
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
-    }
-
     fn status_code(&self) -> StatusCode {
         match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
@@ -37,5 +31,11 @@ impl web::error::WebResponseError for ChampionshipError {
             ChampionshipError::CannotRemoveOwner => StatusCode::BAD_REQUEST,
             ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
         }
+    }
+
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

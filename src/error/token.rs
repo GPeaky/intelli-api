@@ -19,12 +19,6 @@ pub enum TokenError {
 }
 
 impl web::error::WebResponseError for TokenError {
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
-    }
-
     fn status_code(&self) -> StatusCode {
         match self {
             TokenError::InvalidToken => StatusCode::UNAUTHORIZED,
@@ -34,5 +28,11 @@ impl web::error::WebResponseError for TokenError {
             TokenError::TokenNotFound => StatusCode::NOT_FOUND,
             TokenError::InvalidTokenType => StatusCode::BAD_REQUEST,
         }
+    }
+
+    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
+        web::HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

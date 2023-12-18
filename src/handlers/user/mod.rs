@@ -37,7 +37,7 @@ pub(crate) async fn update_user(
     form: web::types::Form<UpdateUser>,
 ) -> AppResult<impl web::Responder> {
     if form.validate(&()).is_err() {
-        Err(CommonError::FormValidationFailed)?
+        Err(CommonError::ValidationFailed)?
     };
 
     let user = req

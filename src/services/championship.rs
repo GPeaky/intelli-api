@@ -41,7 +41,7 @@ impl ChampionshipService {
 
     pub async fn create(&self, payload: CreateChampionshipDto, user_id: &i32) -> AppResult<()> {
         let port = self.get_port().await?;
-        let id = fastrand::i32(700000000..800000000);
+        let id = fastrand::i32(700000000..799999999);
 
         if self
             .championship_repository

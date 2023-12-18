@@ -38,3 +38,17 @@ pub struct ChampionshipCacheData {
     pub participants_data: Vec<u8>,
     pub history_data: Option<Vec<Vec<u8>>>,
 }
+
+#[derive(Deserialize, Validate)]
+pub struct ChampionshipIdPath {
+    #[garde(range(min = 700000000, max = 799999999))]
+    pub id: i32,
+}
+
+#[derive(Deserialize, Validate)]
+pub struct ChampionshipAndUserIdPath {
+    #[garde(range(min = 700000000, max = 799999999))]
+    pub id: i32,
+    #[garde(range(min = 600000000, max = 699999999))]
+    pub user_id: i32,
+}

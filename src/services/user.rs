@@ -54,7 +54,7 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = fastrand::i32(600000000..700000000);
+        let id = fastrand::i32(600000000..699999999);
         let conn = self.db_conn.pg.get().await?;
 
         match &register.provider {
