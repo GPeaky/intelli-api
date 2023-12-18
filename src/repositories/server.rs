@@ -18,8 +18,8 @@ impl ServerRepository {
         let pg_pool = self.database.pg.status();
 
         DatabasesStatus {
-            redis: redis_pool,
-            pg: pg_pool,
+            redis: redis_pool.into(),
+            pg: pg_pool.into(),
         }
     }
 }
