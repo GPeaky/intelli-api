@@ -242,7 +242,7 @@ impl ChampionshipService {
             }
         }
 
-        let Some(_) = self.user_repository.find(remove_user_id).await? else {
+        if self.user_repository.find(remove_user_id).await?.is_none() {
             Err(UserError::NotFound)?
         };
 

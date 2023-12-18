@@ -153,7 +153,9 @@ impl F123Service {
             let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
 
             // Define channel
+            // Todo: Instead of having an external counter use `tx.receiver_count()` to get the active open connections
             let (tx, _) = channel::<ChanelData>(100);
+
             let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 

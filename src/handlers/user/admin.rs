@@ -25,7 +25,7 @@ pub async fn delete_user(
         .ok_or(CommonError::InternalServerError)?
         .id;
 
-    let Some(_) = state.user_repository.find(&path.id).await? else {
+    if state.user_repository.find(&path.id).await?.is_none() {
         Err(UserError::NotFound)?
     };
 

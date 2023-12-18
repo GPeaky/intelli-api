@@ -31,7 +31,7 @@ pub async fn create_championship(
         .cloned()
         .ok_or(CommonError::InternalServerError)?;
 
-    {
+
         let championships_len = state
             .championship_repository
             .championship_len(&user.id)
@@ -58,7 +58,7 @@ pub async fn create_championship(
 
             Role::Admin => {}
         }
-    }
+
 
     state
         .championship_service
