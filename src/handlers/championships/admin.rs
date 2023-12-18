@@ -1,11 +1,11 @@
-use garde::Validate;
 use crate::dtos::{ChampionshipIdPath, UserIdPath};
+use crate::error::CommonError;
 use crate::{
     error::{AppResult, ChampionshipError},
     states::AppState,
 };
+use garde::Validate;
 use ntex::web;
-use crate::error::CommonError;
 
 #[inline(always)]
 pub async fn user_championships(

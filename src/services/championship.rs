@@ -11,7 +11,6 @@ use parking_lot::RwLock;
 use postgres_types::ToSql;
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
-use ntex::Service
 
 #[derive(Clone)]
 pub struct ChampionshipService {
@@ -208,7 +207,6 @@ impl ChampionshipService {
             )
             .await?;
 
-
         let add_user_future = async {
             let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
             conn.execute(&cached_statement, &bindings).await?;
@@ -217,8 +215,7 @@ impl ChampionshipService {
 
         let delete_user_cache_future = self.cache.championship.delete_by_user_id(&new_user_id);
 
-        tokio::try_join!(add_user_future, delete_user_cache_future);
-
+        tokio::try_join!(add_user_future, delete_user_cache_future)?;
         Ok(())
     }
 
@@ -263,9 +260,7 @@ impl ChampionshipService {
         };
         let remove_user_cache_future = self.cache.championship.delete_by_user_id(remove_user_id);
 
-
-        tokio::try_join!(remove_user_future, remove_user_cache_future);
-
+        tokio::try_join!(remove_user_future, remove_user_cache_future)?;
         Ok(())
     }
 
@@ -294,8 +289,7 @@ impl ChampionshipService {
         };
         let delete_champ_cache_fut = self.cache.championship.delete_all(id, users);
 
-        tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut);
-
+        tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut)?;
         conn.execute(&cached_2, &bindings).await?;
         info!("Championship deleted with success: {id}");
 

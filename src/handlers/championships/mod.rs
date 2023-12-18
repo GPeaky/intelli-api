@@ -31,34 +31,32 @@ pub async fn create_championship(
         .cloned()
         .ok_or(CommonError::InternalServerError)?;
 
+    let championships_len = state
+        .championship_repository
+        .championship_len(&user.id)
+        .await?;
 
-        let championships_len = state
-            .championship_repository
-            .championship_len(&user.id)
-            .await?;
-
-        match user.role {
-            Role::Free => {
-                if championships_len >= 1 {
-                    Err(ChampionshipError::LimitReached)?
-                }
+    match user.role {
+        Role::Free => {
+            if championships_len >= 1 {
+                Err(ChampionshipError::LimitReached)?
             }
-
-            Role::Premium => {
-                if championships_len >= 3 {
-                    Err(ChampionshipError::LimitReached)?
-                }
-            }
-
-            Role::Business => {
-                if championships_len >= 14 {
-                    Err(ChampionshipError::LimitReached)?
-                }
-            }
-
-            Role::Admin => {}
         }
 
+        Role::Premium => {
+            if championships_len >= 3 {
+                Err(ChampionshipError::LimitReached)?
+            }
+        }
+
+        Role::Business => {
+            if championships_len >= 14 {
+                Err(ChampionshipError::LimitReached)?
+            }
+        }
+
+        Role::Admin => {}
+    }
 
     state
         .championship_service

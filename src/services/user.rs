@@ -162,8 +162,7 @@ impl UserServiceTrait for UserService {
             Ok(())
         };
 
-        tokio::try_join!(update_user_fut, delete_cache_fut);
-
+        tokio::try_join!(update_user_fut, delete_cache_fut)?;
         Ok(())
     }
 
@@ -195,7 +194,7 @@ impl UserServiceTrait for UserService {
         };
         let cache_del_fut = self.cache.user.delete(id);
 
-        tokio::try_join!(user_deletion_fut, cache_del_fut);
+        tokio::try_join!(user_deletion_fut, cache_del_fut)?;
         info!("User deleted with success: {}", id);
 
         Ok(())
@@ -229,7 +228,7 @@ impl UserServiceTrait for UserService {
         };
         let remove_cache_fut = self.cache.user.delete(id);
 
-        tokio::try_join!(update_user_fut, remove_cache_fut);
+        tokio::try_join!(update_user_fut, remove_cache_fut)?;
         info!("User password reseated with success: {}", id);
 
         Ok(())
@@ -280,7 +279,7 @@ impl UserServiceTrait for UserService {
         };
         let delete_cache_fut = self.cache.user.delete(id);
 
-        tokio::try_join!(activate_user_fut, delete_cache_fut);
+        tokio::try_join!(activate_user_fut, delete_cache_fut)?;
 
         info!("User activated with success: {}", id);
 
@@ -326,7 +325,7 @@ impl UserServiceTrait for UserService {
         };
         let delete_cache_fut = self.cache.user.delete(id);
 
-        tokio::try_join!(deactivate_user_fut, delete_cache_fut);
+        tokio::try_join!(deactivate_user_fut, delete_cache_fut)?;
 
         info!("User activated with success: {}", id);
 
