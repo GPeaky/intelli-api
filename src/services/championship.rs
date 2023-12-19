@@ -6,11 +6,11 @@ use crate::{
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
 };
 use chrono::{Duration, Utc};
-use log::info;
 use parking_lot::RwLock;
 use postgres_types::ToSql;
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
+use tracing::info;
 
 #[derive(Clone)]
 pub struct ChampionshipService {

@@ -7,7 +7,6 @@ use crate::{
     services::f123::packet_batching::PacketBatching,
     FirewallService,
 };
-use log::{error, info};
 use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
@@ -18,6 +17,7 @@ use tokio::{
     task::JoinHandle,
     time::timeout,
 };
+use tracing::{error, info};
 
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;

@@ -5,11 +5,11 @@ use crate::{
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
 use brotli2::write::BrotliEncoder;
-use log::warn;
 use ntex::util::Bytes;
 use std::io::Cursor;
 use std::io::Write;
 use tokio::{sync::broadcast::Sender, task, time::Instant};
+use tracing::warn;
 
 // Packet Batching implementation
 pub struct PacketBatching {

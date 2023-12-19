@@ -12,11 +12,11 @@ license = "MIT"
 prost-build = "0.12"
 
 [dependencies]
-log = "0.4"
 prost = "0.12"
 garde = "0.16"
 fastrand = "2"
 bcrypt = "0.15"
+tracing = "0.1"
 rustc-hash = "1"
 sailfish = "0.8"
 dotenvy = "0.15"
@@ -27,7 +27,6 @@ thiserror = "1.0"
 brotli2 = "0.3.2"
 serde_derive = "1"
 jsonwebtoken = "9"
-env_logger = "0.10"
 async-trait = "0.1"
 deadpool-redis = "0.14"
 postgres-derive = "0.4"
@@ -40,9 +39,14 @@ ntex = { version = "0.7", features = ["tokio"] }
 reqwest = { version = "0.11", features = ["json"] }
 rkyv = { version = "0.7", features = ["validation"] }
 once_cell = { version = "1", features = ["parking_lot"] }
+tracing-log = { version = "0.2.0", features = ["ahash"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
+tracing-subscriber = { version = "0.3", features = [
+    "parking_lot",
+    "env-filter",
+] }
 parking_lot = { version = "0.12", features = [
     "arc_lock",
     "hardware-lock-elision",

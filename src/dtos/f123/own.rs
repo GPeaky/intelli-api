@@ -1,5 +1,5 @@
 use super::game::*;
-use log::error;
+use tracing::error;
 use zerocopy::FromBytes;
 
 #[repr(C)]

@@ -1,5 +1,15 @@
+use tracing_log::LogTracer;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
 pub fn initialize_tracing_subscriber() {
-    std::env::set_var("RUST_LOG", "info");
-    std::env::set_var("RUST_BACKTRACE", "1");
-    env_logger::init();
+    let filter = EnvFilter::new("info,intelli=race");
+
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .with_env_filter(filter)
+        .compact()
+        .finish();
+
+    LogTracer::init().unwrap();
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 }

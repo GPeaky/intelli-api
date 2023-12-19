@@ -10,8 +10,8 @@ use crate::{
 use async_trait::async_trait;
 use bcrypt::{hash, DEFAULT_COST};
 use chrono::{Duration, Utc};
-use log::{error, info};
 use postgres_types::ToSql;
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct UserService {

@@ -4,9 +4,9 @@ use super::{
 use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
-use log::error;
 use ntex::{http::StatusCode, web, ws::error::HandshakeError};
 use thiserror::Error;
+use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
