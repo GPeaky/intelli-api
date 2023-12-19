@@ -101,13 +101,13 @@ pub(crate) async fn refresh_token(
     state: web::types::State<AppState>,
     query: web::types::Query<RefreshTokenQuery>,
 ) -> AppResult<impl web::Responder> {
-    let new_token = state
+    let access_token = state
         .token_service
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
     let refresh_response = &RefreshResponse {
-        access_token: new_token,
+        access_token,
     };
 
     Ok(web::HttpResponse::Ok().json(refresh_response))

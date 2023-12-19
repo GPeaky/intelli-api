@@ -59,17 +59,17 @@ impl UserServiceTrait for UserService {
 
         match &register.provider {
             Some(provider) if provider.eq(&Provider::Google) => {
-                let cached_statement = conn
+                let create_user_stmt = conn
                     .prepare_cached(
                         r#"
-                        INSERT INTO users (id, email, username, avatar, provider, active)
-                        VALUES ($1,$2,$3,$4,$5, true)
-                    "#,
+                            INSERT INTO users (id, email, username, avatar, provider, active)
+                            VALUES ($1,$2,$3,$4,$5, true)
+                        "#,
                     )
                     .await?;
 
                 conn.execute(
-                    &cached_statement,
+                    &create_user_stmt,
                     &[
                         &id,
                         &register.email,
@@ -84,17 +84,17 @@ impl UserServiceTrait for UserService {
             None => {
                 let hashed_password = hash(register.password.clone().unwrap(), DEFAULT_COST)?;
 
-                let cached_statement = conn
+                let create_google_user_stmt = conn
                     .prepare_cached(
                         r#"
-                        INSERT INTO users (id, email, username, password, avatar, active)
-                        VALUES ($1,$2,$3,$4,$5, false)
-                    "#,
+                            INSERT INTO users (id, email, username, password, avatar, active)
+                            VALUES ($1,$2,$3,$4,$5, false)
+                        "#,
                     )
                     .await?;
 
                 conn.execute(
-                    &cached_statement,
+                    &create_google_user_stmt,
                     &[
                         &id,
                         &register.email,
@@ -154,11 +154,11 @@ impl UserServiceTrait for UserService {
         };
 
         let conn = self.db_conn.pg.get().await?;
-        let cached_statement = conn.prepare_cached(&query).await?;
+        let update_user_stmt = conn.prepare_cached(&query).await?;
 
         let delete_cache_fut = self.cache.user.delete(&user.id);
         let update_user_fut = async {
-            conn.execute(&cached_statement, &params[..]).await?;
+            conn.execute(&update_user_stmt, &params[..]).await?;
             Ok(())
         };
 
@@ -169,27 +169,28 @@ impl UserServiceTrait for UserService {
     async fn delete(&self, id: &i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
 
-        let cached_task = conn.prepare_cached(
+        let delete_users_relations_stmt_fut = conn.prepare_cached(
             r#"
-                    DELETE FROM user_championships
-                    WHERE user_id = $1
-                "#,
+                DELETE FROM user_championships
+                WHERE user_id = $1
+            "#,
         );
 
-        let cached2_task = conn.prepare_cached(
+        let delete_user_stmt_fut = conn.prepare_cached(
             r#"
-                    DELETE FROM user
-                    WHERE id = $1
-                "#,
+                DELETE FROM user
+                WHERE id = $1
+            "#,
         );
 
-        let (cached, cached2) = tokio::try_join!(cached_task, cached2_task)?;
+        let (delete_users_relations_stmt, delete_user_stmt) =
+            tokio::try_join!(delete_users_relations_stmt_fut, delete_user_stmt_fut)?;
 
         let binding: [&(dyn ToSql + Sync); 1] = [id];
-        conn.execute(&cached, &binding).await?;
+        conn.execute(&delete_users_relations_stmt, &binding).await?;
 
         let user_deletion_fut = async {
-            conn.execute(&cached2, &binding).await?;
+            conn.execute(&delete_user_stmt, &binding).await?;
             Ok(())
         };
         let cache_del_fut = self.cache.user.delete(id);
@@ -210,20 +211,20 @@ impl UserServiceTrait for UserService {
         }
 
         let conn = self.db_conn.pg.get().await?;
-        let cached_statement = conn
+        let reset_password_stmt = conn
             .prepare_cached(
                 r#"
-                        UPDATE users
-                        SET password = $1
-                        WHERE id = $2
-                    "#,
+                    UPDATE users
+                    SET password = $1
+                    WHERE id = $2
+                "#,
             )
             .await?;
 
         let hashed_password = hash(password, DEFAULT_COST)?;
         let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, id];
         let update_user_fut = async {
-            conn.execute(&cached_statement, &bindings).await?;
+            conn.execute(&reset_password_stmt, &bindings).await?;
             Ok(())
         };
         let remove_cache_fut = self.cache.user.delete(id);
@@ -262,19 +263,19 @@ impl UserServiceTrait for UserService {
     async fn activate(&self, id: &i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
 
-        let cached_statement = conn
+        let activate_user_stmt = conn
             .prepare_cached(
                 r#"
-                        UPDATE users
-                        SET active = true
-                        WHERE id = $1
-                    "#,
+                    UPDATE users
+                    SET active = true
+                    WHERE id = $1
+                "#,
             )
             .await?;
 
         let bindings: [&(dyn ToSql + Sync); 1] = [id];
         let activate_user_fut = async {
-            conn.execute(&cached_statement, &bindings).await?;
+            conn.execute(&activate_user_stmt, &bindings).await?;
             Ok(())
         };
         let delete_cache_fut = self.cache.user.delete(id);
@@ -308,7 +309,7 @@ impl UserServiceTrait for UserService {
 
     async fn deactivate(&self, id: &i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
-        let cached_statement = conn
+        let deactivate_user_stmt = conn
             .prepare_cached(
                 r#"
                     UPDATE user
@@ -319,16 +320,14 @@ impl UserServiceTrait for UserService {
             .await?;
 
         let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let delete_cache_fut = self.cache.user.delete(id);
         let deactivate_user_fut = async {
-            conn.execute(&cached_statement, &bindings).await?;
+            conn.execute(&deactivate_user_stmt, &bindings).await?;
             Ok(())
         };
-        let delete_cache_fut = self.cache.user.delete(id);
 
         tokio::try_join!(deactivate_user_fut, delete_cache_fut)?;
-
         info!("User activated with success: {}", id);
-
         Ok(())
     }
 }

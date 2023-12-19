@@ -50,7 +50,6 @@ pub async fn socket_status(
         Err(ChampionshipError::NotFound)?
     };
 
-    #[allow(unused_mut)]
     let mut num_connections = 0;
     let socket_active = state
         .f123_service

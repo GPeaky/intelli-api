@@ -17,7 +17,6 @@ pub async fn user_championships(
     }
 
     let championships = state.championship_repository.find_all(&path.id).await?;
-
     Ok(web::HttpResponse::Ok().json(&championships))
 }
 
@@ -31,6 +30,5 @@ pub async fn delete_championship(
     };
 
     state.championship_service.delete(&championship.id).await?;
-
     Ok(web::HttpResponse::Ok())
 }

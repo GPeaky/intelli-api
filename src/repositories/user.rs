@@ -39,16 +39,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
+            let find_user_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT * FROM users
-                    WHERE id = $1
-                "#,
+                        SELECT * FROM users
+                        WHERE id = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[id]).await?
+            conn.query_opt(&find_user_stmt, &[id]).await?
         };
 
         if let Some(row) = row {
@@ -73,16 +73,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
+            let user_exists_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT EMAIL FROM users
-                    WHERE email = $1
-                "#,
+                        SELECT EMAIL FROM users
+                        WHERE email = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[&email]).await?
+            conn.query_opt(&user_exists_stmt, &[&email]).await?
         };
 
         Ok(row.is_some())
@@ -92,16 +92,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
+            let user_status_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT active FROM users
-                    WHERE id = $1
-                "#,
+                        SELECT active FROM users
+                        WHERE id = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[id]).await?
+            conn.query_opt(&user_status_stmt, &[id]).await?
         };
 
         if let Some(row) = row {
@@ -119,16 +119,16 @@ impl UserRepositoryTrait for UserRepository {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
-            let cached_statement = conn
+            let find_by_email_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT * FROM users
-                    WHERE email = $1
-                "#,
+                        SELECT * FROM users
+                        WHERE email = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[&email]).await?
+            conn.query_opt(&find_by_email_stmt, &[&email]).await?
         };
 
         if let Some(row) = row {

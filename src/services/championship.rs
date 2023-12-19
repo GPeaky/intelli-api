@@ -23,8 +23,8 @@ pub struct ChampionshipService {
 
 impl ChampionshipService {
     pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
-        let championship_repository = ChampionshipRepository::new(db_conn, cache).await;
         let user_repository = UserRepository::new(db_conn, cache);
+        let championship_repository = ChampionshipRepository::new(db_conn, cache).await;
 
         let ports = Self::available_ports(&championship_repository)
             .await
@@ -55,24 +55,27 @@ impl ChampionshipService {
         {
             let conn = self.db.pg.get().await?;
 
-            let cached_task = conn.prepare_cached(
+            let create_championship_stmt_fut = conn.prepare_cached(
                 r#"
                     INSERT INTO championship (id, port, name, category, season, owner_id)
                     VALUES ($1,$2,$3,$4,$5,$6)
                 "#,
             );
 
-            let cached2_task = conn.prepare_cached(
+            let relate_user_with_championship_stmt_fut = conn.prepare_cached(
                 r#"
                     INSERT INTO user_championships (user_id, championship_id)
                     VALUES ($1,$2)
                 "#,
             );
 
-            let (cached, cached2) = tokio::try_join!(cached_task, cached2_task)?;
+            let (create_championship_stmt, relate_user_with_championship_stmt) = tokio::try_join!(
+                create_championship_stmt_fut,
+                relate_user_with_championship_stmt_fut
+            )?;
 
             conn.execute(
-                &cached,
+                &create_championship_stmt,
                 &[
                     &id,
                     &port,
@@ -84,13 +87,14 @@ impl ChampionshipService {
             )
             .await?;
 
-            conn.execute(&cached2, &[user_id, &id]).await?;
+            conn.execute(&relate_user_with_championship_stmt, &[user_id, &id])
+                .await?;
         }
 
-        let remove_port_task = self.remove_port(port);
-        let delete_by_user_id_task = self.cache.championship.delete_by_user_id(user_id);
+        let remove_port_fut = self.remove_port(port);
+        let delete_by_user_id_fut = self.cache.championship.delete_by_user_id(user_id);
 
-        tokio::try_join!(remove_port_task, delete_by_user_id_task)?;
+        tokio::try_join!(remove_port_fut, delete_by_user_id_fut)?;
 
         Ok(())
     }
@@ -101,6 +105,7 @@ impl ChampionshipService {
         user_id: &i32,
         form: &UpdateChampionship,
     ) -> AppResult<()> {
+        // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
@@ -117,8 +122,8 @@ impl ChampionshipService {
 
         let (query, params) = {
             let mut counter = 1;
-            let mut query = String::from("UPDATE championship SET ");
             let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
+            let mut query = String::from("UPDATE championship SET ");
 
             if let Some(name) = &form.name {
                 if counter > 1 {
@@ -164,10 +169,11 @@ impl ChampionshipService {
             (query, params)
         };
 
+        // Scope to update championship
         {
             let conn = self.db.pg.get().await?;
-            let cached_statement = conn.prepare_cached(&query).await?;
-            conn.execute(&cached_statement, &params).await?;
+            let update_championship_stmt = conn.prepare_cached(&query).await?;
+            conn.execute(&update_championship_stmt, &params).await?;
         }
 
         let users = self.championship_repository.users(id).await?;
@@ -178,6 +184,7 @@ impl ChampionshipService {
     }
 
     pub async fn add_user(&self, id: &i32, user_id: &i32, bind_user_email: &str) -> AppResult<()> {
+        // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
@@ -198,7 +205,7 @@ impl ChampionshipService {
 
         let conn = self.db.pg.get().await?;
 
-        let cached_statement = conn
+        let add_user_stmt = conn
             .prepare_cached(
                 r#"
                     INSERT INTO user_championships (user_id, championship_id)
@@ -209,7 +216,7 @@ impl ChampionshipService {
 
         let add_user_future = async {
             let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
-            conn.execute(&cached_statement, &bindings).await?;
+            conn.execute(&add_user_stmt, &bindings).await?;
             Ok(())
         };
 
@@ -225,6 +232,7 @@ impl ChampionshipService {
         user_id: &i32,
         remove_user_id: &i32,
     ) -> AppResult<()> {
+        // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
@@ -245,7 +253,7 @@ impl ChampionshipService {
 
         let conn = self.db.pg.get().await?;
 
-        let cached_statement = conn
+        let remove_user_stmt = conn
             .prepare_cached(
                 r#"
                     DELETE FROM user_championships WHERE user_id = $1 AND championship_id = $2
@@ -255,7 +263,7 @@ impl ChampionshipService {
 
         let remove_user_future = async {
             let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
-            conn.execute(&cached_statement, &bindings).await?;
+            conn.execute(&remove_user_stmt, &bindings).await?;
             Ok(())
         };
         let remove_user_cache_future = self.cache.championship.delete_by_user_id(remove_user_id);
@@ -267,30 +275,34 @@ impl ChampionshipService {
     pub async fn delete(&self, id: &i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
-        let cached_task = conn.prepare_cached(
+        let delete_championship_relations_stmt_fut = conn.prepare_cached(
             r#"
-                    DELETE FROM user_championships WHERE championship_id = $1
-                "#,
+                DELETE FROM user_championships WHERE championship_id = $1
+            "#,
         );
 
-        let cached2_task = conn.prepare_cached(
+        let delete_championship_stmt_fut = conn.prepare_cached(
             r#"
-                    DELETE FROM championship WHERE id = $1
-                "#,
+                DELETE FROM championship WHERE id = $1
+            "#,
         );
 
         let bindings: [&(dyn ToSql + Sync); 1] = [id];
-        let (cached, cached_2) = tokio::try_join!(cached_task, cached2_task)?;
+        let (delete_championship_relations_stmt, delete_championship_stmt) = tokio::try_join!(
+            delete_championship_relations_stmt_fut,
+            delete_championship_stmt_fut
+        )?;
 
         let users = self.championship_repository.users(id).await?;
         let remove_championship_users_fut = async {
-            conn.execute(&cached, &bindings).await?;
+            conn.execute(&delete_championship_relations_stmt, &bindings)
+                .await?;
             Ok(())
         };
         let delete_champ_cache_fut = self.cache.championship.delete_all(id, users);
 
         tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut)?;
-        conn.execute(&cached_2, &bindings).await?;
+        conn.execute(&delete_championship_stmt, &bindings).await?;
         info!("Championship deleted with success: {id}");
 
         Ok(())

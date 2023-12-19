@@ -47,6 +47,5 @@ pub(crate) async fn update_user(
         .ok_or(CommonError::InternalServerError)?;
 
     state.user_service.update(&user, &form).await?;
-
     Ok(web::HttpResponse::Ok())
 }

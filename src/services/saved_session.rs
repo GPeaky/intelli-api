@@ -23,7 +23,7 @@ impl SavedSessionService {
         let id = fastrand::i32(800000000..900000000);
 
         let conn = self.db_conn.pg.get().await?;
-        let cached_statement = conn
+        let save_session_stmt = conn
             .prepare_cached(
                 r#"
                     INSERT INTO saved_session (id)
@@ -32,7 +32,7 @@ impl SavedSessionService {
             )
             .await?;
 
-        conn.execute(&cached_statement, &[&id]).await?;
+        conn.execute(&save_session_stmt, &[&id]).await?;
 
         Ok(())
     }

@@ -23,15 +23,15 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let ports_in_use_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT port FROM championship
-                "#,
+                        SELECT port FROM championship
+                    "#,
                 )
                 .await?;
 
-            conn.query(&cached_statement, &[]).await?
+            conn.query(&ports_in_use_stmt, &[]).await?
         };
 
         let ports_in_use = rows.iter().map(|row| row.get("port")).collect();
@@ -47,16 +47,16 @@ impl ChampionshipRepository {
         let row = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let find_championship_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT * FROM championship
-                    WHERE id = $1
-                "#,
+                        SELECT * FROM championship
+                        WHERE id = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[id]).await?
+            conn.query_opt(&find_championship_stmt, &[id]).await?
         };
 
         if let Some(row) = row {
@@ -77,7 +77,7 @@ impl ChampionshipRepository {
         let row = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let find_by_name_stmt = conn
                 .prepare_cached(
                     r#"
                         SELECT * FROM championship
@@ -86,7 +86,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query_opt(&cached_statement, &[&name]).await?
+            conn.query_opt(&find_by_name_stmt, &[&name]).await?
         };
 
         if let Some(row) = row {
@@ -106,7 +106,7 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let find_all_stmt = conn
                 .prepare_cached(
                     r#"
                         SELECT c.*
@@ -117,7 +117,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&cached_statement, &[user_id]).await?
+            conn.query(&find_all_stmt, &[user_id]).await?
         };
 
         let championships = rows
@@ -137,7 +137,7 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let championship_users_stmt = conn
                 .prepare_cached(
                     r#"
                         SELECT user_id FROM user_championships
@@ -146,7 +146,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&cached_statement, &[id]).await?
+            conn.query(&championship_users_stmt, &[id]).await?
         };
 
         let users = rows.iter().map(|row| row.get("user_id")).collect();
@@ -158,22 +158,22 @@ impl ChampionshipRepository {
         let rows = {
             let conn = self.database.pg.get().await?;
 
-            let cached_statement = conn
+            let championship_len_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT
-                        c.id
-                    FROM
-                        championship c
-                    JOIN
-                        user_championships uc ON c.id = uc.championship_id
-                    WHERE
-                        uc.user_id = $1
-                "#,
+                        SELECT
+                            c.id
+                        FROM
+                            championship c
+                        JOIN
+                            user_championships uc ON c.id = uc.championship_id
+                        WHERE
+                            uc.user_id = $1
+                    "#,
                 )
                 .await?;
 
-            conn.query(&cached_statement, &[user_id]).await?
+            conn.query(&championship_len_stmt, &[user_id]).await?
         };
 
         Ok(rows.len())
