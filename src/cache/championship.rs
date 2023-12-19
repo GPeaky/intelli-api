@@ -6,8 +6,8 @@ use crate::{
 };
 use async_trait::async_trait;
 use deadpool_redis::redis::{self, AsyncCommands};
-use tracing::error;
 use rkyv::{Deserialize, Infallible};
+use tracing::error;
 
 const ID: &str = "id";
 const NAME: &str = "name";
