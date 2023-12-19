@@ -15,9 +15,9 @@ prost-build = "0.12"
 prost = "0.12"
 garde = "0.16"
 fastrand = "2"
+ahash = "0.8"
 bcrypt = "0.15"
 tracing = "0.1"
-rustc-hash = "1"
 sailfish = "0.8"
 dotenvy = "0.15"
 mimalloc = "0.1"
@@ -56,6 +56,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
+
 
 [profile.release]
 debug = 0

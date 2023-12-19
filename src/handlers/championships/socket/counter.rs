@@ -1,10 +1,10 @@
+use ahash::AHashMap;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use rustc_hash::FxHashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-static COUNTER: Lazy<RwLock<FxHashMap<i32, AtomicUsize>>> =
-    Lazy::new(|| RwLock::new(FxHashMap::default()));
+static COUNTER: Lazy<RwLock<AHashMap<i32, AtomicUsize>>> =
+    Lazy::new(|| RwLock::new(AHashMap::default()));
 
 pub fn increment(id: i32) {
     let mut counter = COUNTER.try_upgradable_read().unwrap();

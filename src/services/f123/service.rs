@@ -9,7 +9,7 @@ use crate::{
 };
 use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
-use rustc_hash::FxHashMap;
+use ahash::AHashMap;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
@@ -21,8 +21,8 @@ use tracing::{error, info};
 
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;
-type Channels = Arc<RwLock<FxHashMap<i32, F123Channel>>>;
-type Sockets = Arc<RwLock<FxHashMap<i32, JoinHandle<AppResult<()>>>>>;
+type Channels = Arc<RwLock<AHashMap<i32, F123Channel>>>;
+type Sockets = Arc<RwLock<AHashMap<i32, JoinHandle<AppResult<()>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
@@ -37,8 +37,8 @@ impl F123Service {
         Self {
             db_conn: db_conn.clone(),
             firewall: firewall_service,
-            channels: Arc::new(RwLock::new(FxHashMap::default())),
-            sockets: Arc::new(RwLock::new(FxHashMap::default())),
+            channels: Arc::new(RwLock::new(AHashMap::default())),
+            sockets: Arc::new(RwLock::new(AHashMap::default())),
         }
     }
 
@@ -149,8 +149,8 @@ impl F123Service {
                 Self::internal_close(&channels, &sockets, &championship_id, &firewall);
 
             // Session History Data
-            let mut last_car_lap_update: FxHashMap<u8, Instant> = FxHashMap::default();
-            let mut car_lap_sector_data: FxHashMap<u8, (u16, u16, u16)> = FxHashMap::default();
+            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
+            let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::default();
 
             // Define channel
             // Todo: Instead of having an external counter use `tx.receiver_count()` to get the active open connections

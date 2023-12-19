@@ -5,10 +5,10 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
 };
+use ahash::AHashSet;
 use chrono::{Duration, Utc};
 use parking_lot::RwLock;
 use postgres_types::ToSql;
-use rustc_hash::FxHashSet;
 use std::sync::Arc;
 use tracing::info;
 
@@ -16,7 +16,7 @@ use tracing::info;
 pub struct ChampionshipService {
     db: Database,
     cache: RedisCache,
-    ports: Arc<RwLock<FxHashSet<i32>>>,
+    ports: Arc<RwLock<AHashSet<i32>>>,
     user_repository: UserRepository,
     championship_repository: ChampionshipRepository,
 }
@@ -310,8 +310,8 @@ impl ChampionshipService {
 
     async fn available_ports(
         championship_repository: &ChampionshipRepository,
-    ) -> AppResult<FxHashSet<i32>> {
-        let mut all_ports: FxHashSet<i32> = (20777..=20850).collect();
+    ) -> AppResult<AHashSet<i32>> {
+        let mut all_ports: AHashSet<i32> = (20777..=20850).collect();
         let ports_in_use = championship_repository.ports_in_use().await?;
 
         for port in ports_in_use {

@@ -2,7 +2,7 @@ use crate::error::AppResult;
 // #[cfg(target_os = "linux")]
 // use crate::error::SocketError;
 // #[cfg(target_os = "linux")]
-// use rustc_hash::FxHashMap;
+// use ahash::AHashMap;
 use std::net::IpAddr;
 // #[cfg(target_os = "linux")]
 // use tokio::{process::Command, sync::RwLock};
@@ -24,7 +24,7 @@ use std::net::IpAddr;
 #[derive(Clone)]
 pub struct FirewallService {
     // #[cfg(target_os = "linux")]
-    // rules: RwLock<FxHashMap<i32, FirewallRule>>,
+    // rules: RwLock<AHashSet<i32, FirewallRule>>,
 }
 
 #[allow(unused)]
@@ -32,7 +32,7 @@ impl FirewallService {
     pub fn new() -> Self {
         Self {
             // #[cfg(target_os = "linux")]
-            // rules: RwLock::new(FxHashMap::default()),
+            // rules: RwLock::new(AHashSet::default()),
         }
     }
 
