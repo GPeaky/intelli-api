@@ -4,9 +4,12 @@ use crate::{
     error::{AppResult, F123Error},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
+use brotli2::write::BrotliEncoder;
 use log::warn;
 use ntex::util::Bytes;
-use tokio::{sync::broadcast::Sender, time::Instant};
+use std::io::Cursor;
+use std::io::Write;
+use tokio::{sync::broadcast::Sender, task, time::Instant};
 
 // Packet Batching implementation
 pub struct PacketBatching {
@@ -43,9 +46,10 @@ impl PacketBatching {
         let buf = self.buf.drain(..).collect::<Vec<_>>();
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             self.cache.prune().await?;
+            let encoded_batch = Self::compress(batch).await.unwrap();
 
             // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
-            if let Err(e) = self.tx.send(batch) {
+            if let Err(e) = self.tx.send(encoded_batch) {
                 warn!("Broadcast Channel: {}", e);
             };
         } else {
@@ -64,10 +68,11 @@ impl PacketBatching {
 
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-            self.cache.set(&batch).await?;
+            let encoded_batch = Self::compress(batch).await.unwrap();
+            self.cache.set(&encoded_batch).await?;
 
             // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
-            if let Err(e) = self.tx.send(batch) {
+            if let Err(e) = self.tx.send(encoded_batch) {
                 warn!("Broadcast channel: {}", e);
             };
         } else {
@@ -77,5 +82,25 @@ impl PacketBatching {
         self.last_batch_time = Instant::now();
         self.buf.clear();
         Ok(())
+    }
+
+    // Testing brotli compression algorithm for batched data
+    // This method is used to compress the batched data
+    #[inline(always)]
+    async fn compress(data: Bytes) -> Result<Bytes, Box<dyn std::error::Error>> {
+        let compressed_data: Vec<u8> = task::spawn_blocking(move || {
+            let mut cursor = Cursor::new(Vec::with_capacity(3072));
+
+            {
+                let mut compressor = BrotliEncoder::new(&mut cursor, 5);
+                compressor.write_all(&data).unwrap();
+                compressor.flush().unwrap();
+            }
+
+            cursor.into_inner()
+        })
+        .await?;
+
+        Ok(Bytes::from(compressed_data))
     }
 }

@@ -241,16 +241,16 @@ impl F123Service {
                             }
 
                             F123Data::Session(session_data) => {
-                                #[cfg(not(debug_assertions))]
-                                if session_data.network_game != 1 {
-                                    error!(
-                                        "Not Online Game, closing socket for championship: {}",
-                                        championship_id
-                                    );
+                                // #[cfg(not(debug_assertions))]
+                                // if session_data.network_game != 1 {
+                                //     error!(
+                                //         "Not Online Game, closing socket for championship: {}",
+                                //         championship_id
+                                //     );
 
-                                    close_socket.await?;
-                                    return Err(F123Error::NotOnlineSession)?;
-                                }
+                                //     close_socket.await?;
+                                //     return Err(F123Error::NotOnlineSession)?;
+                                // }
 
                                 let _ = session_type
                                     .borrow_mut()

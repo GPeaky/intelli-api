@@ -106,9 +106,7 @@ pub(crate) async fn refresh_token(
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
-    let refresh_response = &RefreshResponse {
-        access_token,
-    };
+    let refresh_response = &RefreshResponse { access_token };
 
     Ok(web::HttpResponse::Ok().json(refresh_response))
 }
