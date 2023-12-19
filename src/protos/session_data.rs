@@ -37,9 +37,10 @@ impl ToProtoMessage for BPacketSessionData {
             rain_percentage: self
                 .weather_forecast_samples
                 .iter()
-                .map(|weather| weather.rain_percentage)
-                .sum::<u8>() as u32
-                / 56, // Number of Weather Forecast Examples
+                .take(self.num_weather_forecast_samples as usize)
+                .map(|weather| weather.rain_percentage as u16)
+                .sum::<u16>() as u32
+                / self.num_weather_forecast_samples as u32,
 
             marshall_zones: self
                 .marshal_zones
