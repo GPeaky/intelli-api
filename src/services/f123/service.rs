@@ -7,9 +7,9 @@ use crate::{
     services::f123::packet_batching::PacketBatching,
     FirewallService,
 };
+use ahash::AHashMap;
 use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
-use ahash::AHashMap;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
