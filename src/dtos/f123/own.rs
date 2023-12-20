@@ -2,6 +2,13 @@ use super::game::*;
 use tracing::error;
 use zerocopy::FromBytes;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct SectorsLaps {
+    pub sector1: u16,
+    pub sector2: u16,
+    pub sector3: u16,
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub enum PacketIds {

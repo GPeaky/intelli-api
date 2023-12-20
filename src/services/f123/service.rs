@@ -1,7 +1,7 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
-    dtos::{F123Data, PacketIds, SessionType},
+    dtos::{F123Data, PacketIds, SessionType, SectorsLaps},
     error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
@@ -150,7 +150,7 @@ impl F123Service {
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
-            let mut car_lap_sector_data: AHashMap<u8, (u16, u16, u16)> = AHashMap::default();
+            let mut car_lap_sector_data: AHashMap<u8, SectorsLaps> = AHashMap::default();
 
             // Define channel
             // Todo: Instead of having an external counter use `tx.receiver_count()` to get the active open connections
@@ -289,11 +289,11 @@ impl F123Service {
                                 if now.duration_since(*last_update) > HISTORY_INTERVAL {
                                     let lap = (session_history.num_laps as usize) - 1; // Lap is 0 indexed
 
-                                    let sectors = (
-                                        session_history.lap_history_data[lap].sector1_time_in_ms,
-                                        session_history.lap_history_data[lap].sector2_time_in_ms,
-                                        session_history.lap_history_data[lap].sector3_time_in_ms,
-                                    );
+                                    let sectors = SectorsLaps {
+                                        sector1: session_history.lap_history_data[lap].sector1_time_in_ms,
+                                        sector2: session_history.lap_history_data[lap].sector2_time_in_ms,
+                                        sector3: session_history.lap_history_data[lap].sector3_time_in_ms,
+                                    };
 
                                     let last_sectors = car_lap_sector_data
                                         .entry(session_history.car_idx)
