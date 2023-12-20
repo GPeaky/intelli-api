@@ -1,7 +1,7 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
-    dtos::{F123Data, PacketIds, SessionType, SectorsLaps},
+    dtos::{F123Data, PacketIds, SectorsLaps, SessionType},
     error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
@@ -290,9 +290,12 @@ impl F123Service {
                                     let lap = (session_history.num_laps as usize) - 1; // Lap is 0 indexed
 
                                     let sectors = SectorsLaps {
-                                        sector1: session_history.lap_history_data[lap].sector1_time_in_ms,
-                                        sector2: session_history.lap_history_data[lap].sector2_time_in_ms,
-                                        sector3: session_history.lap_history_data[lap].sector3_time_in_ms,
+                                        sector1: session_history.lap_history_data[lap]
+                                            .sector1_time_in_ms,
+                                        sector2: session_history.lap_history_data[lap]
+                                            .sector2_time_in_ms,
+                                        sector3: session_history.lap_history_data[lap]
+                                            .sector3_time_in_ms,
                                     };
 
                                     let last_sectors = car_lap_sector_data
