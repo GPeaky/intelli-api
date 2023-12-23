@@ -24,7 +24,6 @@ mimalloc = "0.1"
 serde_trim = "1"
 ntex-cors = "0.4"
 thiserror = "1.0"
-brotli2 = "0.3.2"
 serde_derive = "1"
 jsonwebtoken = "9"
 async-trait = "0.1"
@@ -56,6 +55,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
+zstd = "0.13.0"
 
 
 [profile.release]

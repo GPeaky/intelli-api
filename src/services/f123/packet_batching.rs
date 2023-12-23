@@ -4,11 +4,8 @@ use crate::{
     error::{AppResult, F123Error},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
-use brotli2::write::BrotliEncoder;
 use ntex::util::Bytes;
-use std::io::Cursor;
-use std::io::Write;
-use tokio::{sync::broadcast::Sender, task, time::Instant};
+use tokio::{sync::broadcast::Sender, time::Instant};
 use tracing::warn;
 
 // Packet Batching implementation
@@ -46,7 +43,7 @@ impl PacketBatching {
         let buf = self.buf.drain(..).collect::<Vec<_>>();
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             self.cache.prune().await?;
-            let encoded_batch = Self::compress(batch).await.unwrap();
+            let encoded_batch = Self::compress(&batch).await.unwrap();
 
             // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
             if let Err(e) = self.tx.send(encoded_batch) {
@@ -68,7 +65,7 @@ impl PacketBatching {
 
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(self.buf.clone()) {
-            let encoded_batch = Self::compress(batch).await.unwrap();
+            let encoded_batch = Self::compress(&batch).await.unwrap();
             self.cache.set(&encoded_batch).await?;
 
             // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
@@ -87,20 +84,9 @@ impl PacketBatching {
     // Testing brotli compression algorithm for batched data
     // This method is used to compress the batched data
     #[inline(always)]
-    async fn compress(data: Bytes) -> Result<Bytes, Box<dyn std::error::Error>> {
-        let compressed_data: Vec<u8> = task::spawn_blocking(move || {
-            let mut cursor = Cursor::new(Vec::with_capacity(3072));
-
-            {
-                let mut compressor = BrotliEncoder::new(&mut cursor, 5);
-                compressor.write_all(&data).unwrap();
-                compressor.flush().unwrap();
-            }
-
-            cursor.into_inner()
-        })
-        .await?;
-
+    async fn compress(data: &[u8]) -> Result<Bytes, Box<dyn std::error::Error>> {
+        // todo: Decide between level 3 or 9 for compression 280us(level3) vs 1ms(level9)
+        let compressed_data: Vec<u8> = zstd::stream::encode_all(data, 9).unwrap();
         Ok(Bytes::from(compressed_data))
     }
 }
