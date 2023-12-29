@@ -202,8 +202,13 @@ impl F123Service {
                         }
 
                         let now = Instant::now();
+                        let Ok(packet_id) = PacketIds::try_from(header.packet_id) else {
+                            error!("Error deserializing F123 packet id, for championship: {championship_id:?}");
+                            continue;
+                        };
+
                         // TODO: Try to implement this in a more elegant way
-                        match PacketIds::from(header.packet_id) {
+                        match packet_id {
                             PacketIds::Motion => {
                                 if now.duration_since(last_car_motion_update) < MOTION_INTERVAL {
                                     continue;
@@ -225,8 +230,7 @@ impl F123Service {
                             _ => {}
                         }
 
-                        let Some(packet) = F123Data::deserialize(header.packet_id.into(), buf)
-                        else {
+                        let Some(packet) = F123Data::deserialize(packet_id, buf) else {
                             continue;
                         };
 
@@ -252,9 +256,14 @@ impl F123Service {
                                     return Err(F123Error::NotOnlineSession)?;
                                 }
 
-                                let _ = session_type
-                                    .borrow_mut()
-                                    .insert(SessionType::from(session_data.session_type));
+                                let Ok(converted_session_type) =
+                                    SessionType::try_from(session_data.session_type)
+                                else {
+                                    error!("Error deserializing F123 session type, for championship: {championship_id:?}");
+                                    continue;
+                                };
+
+                                let _ = session_type.borrow_mut().insert(converted_session_type);
 
                                 let packet = session_data
                                     .convert(PacketType::SessionData)

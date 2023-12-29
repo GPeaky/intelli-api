@@ -5,6 +5,7 @@ use crate::{
     dtos::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
     protos::event_data::event_data_details::Details,
 };
+use tracing::warn;
 
 const EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
 
@@ -12,7 +13,10 @@ impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
-        let event_code = EventCode::from(&self.event_string_code);
+        let Ok(event_code) = EventCode::try_from(&self.event_string_code) else {
+            warn!("Unknown event code: {:?}", self.event_string_code);
+            return None;
+        };
 
         if EVENT_NOT_SEND.contains(&event_code) {
             return None;
