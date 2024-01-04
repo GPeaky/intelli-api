@@ -38,8 +38,8 @@ tokio = { version = "1", features = ["full"] }
 ntex = { version = "0.7", features = ["tokio"] }
 reqwest = { version = "0.11", features = ["json"] }
 rkyv = { version = "0.7", features = ["validation"] }
+tracing-log = { version = "0.2", features = ["ahash"] }
 once_cell = { version = "1", features = ["parking_lot"] }
-tracing-log = { version = "0.2.0", features = ["ahash"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
@@ -56,7 +56,6 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
-
 
 [profile.release]
 debug = 0
