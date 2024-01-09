@@ -48,9 +48,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
-      - name: Update Rust
-        run: rustup update
-
       - name: Install Miri
         run: |
           rustup toolchain install ${{ matrix.rust }} --component miri
