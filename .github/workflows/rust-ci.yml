@@ -10,8 +10,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        rust: [stable]
+        os: [ ubuntu-latest ]
+        rust: [ nightly ]
 
     steps:
       - name: Checkout sources
@@ -31,8 +31,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        rust: [nightly]
+        os: [ ubuntu-latest ]
+        rust: [ nightly ]
 
     steps:
       - uses: actions/checkout@v3
@@ -53,8 +53,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        rust: [stable]
+        os: [ ubuntu-latest ]
+        rust: [ stable ]
 
     steps:
       - name: Checkout sources
