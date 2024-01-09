@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        rust: [ 1.75 ]
+        rust: [ stable ]
 
     steps:
       - name: Checkout sources
