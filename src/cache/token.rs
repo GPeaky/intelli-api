@@ -1,10 +1,11 @@
+use deadpool_redis::redis::AsyncCommands;
+
+use crate::error::CommonError;
 use crate::{
     config::{constants::*, Database},
     dtos::TokenType,
     error::AppResult,
 };
-use core::panic;
-use deadpool_redis::redis::AsyncCommands;
 
 #[derive(Clone)]
 pub struct TokenCache {
@@ -19,7 +20,9 @@ impl TokenCache {
     #[inline(always)]
     pub async fn set_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
-            panic!("Refresh token must have a fingerprint");
+            Err(CommonError::InvalidUsedFeature(
+                "Refresh token can't be setted".to_string(),
+            ))?;
         }
 
         let mut conn = self.db.redis.get().await?;

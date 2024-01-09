@@ -1,3 +1,3 @@
-mod app;
-
 pub(crate) use app::*;
+
+mod app;

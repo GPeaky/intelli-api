@@ -7,8 +7,8 @@
 
 - [Build With](#build-with)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
 - [Usage](#usage)
 - [RoadMap](#roadmap)
 - [Contributing](#contributing)
@@ -35,7 +35,7 @@ The main Libraries/Frameworks/Language that i used to build this package
 - Redis Database
 
 ```sh
-    cargo run
+cargo run
 ```
 
 ### Installation
@@ -43,48 +43,49 @@ The main Libraries/Frameworks/Language that i used to build this package
 Installation Command
 
 ```sh
-    git clone https://github.com/GPeaky/intelli-api.git
+git clone https://github.com/GPeaky/intelli-api.git
 ```
 
 You ned a .env to run the project. This is an example of what that .env should have
 
 ```env
-    # Application
-    HOST=0.0.0.0:3000
-    REDIS_URL=
-    PASS_SALT=""
-    JWT_SECRET=""
-
-    # Scylla Database
-    SCYLLA_URI=
-    SCYLLA_USER=
-    SCYLLA_PASS=
-    SCYLLA_KEYSPACE=
-
-    # Email
-    EMAIL_HOST=
-    EMAIL_NAME=
-    EMAIL_PASS=
+HOST=
+REDIS_URL=
+DATABASE_URL=
+EMAIL_HOST=
+EMAIL_FROM=
+EMAIL_NAME=
+EMAIL_PASS=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+GOOGLE_GRANT_TYPE=
 ```
 
 ## Usage
 
-This project is created to provide a new solution to f1 leagues, to have real time data about their races sessions, Championship Manager, and everything about an F1 League. At the same time we want to give all for free
+This project is created to provide a new solution to f1 leagues, to have real time data about their races sessions,
+Championship Manager, and everything about an F1 League. At the same time we want to give all for free
 
 [Documentation](https://gerardjoven2020.gitbook.io/intelli-api/)
 
 ## RoadMap
 
-See the [open issues](https://github.com/GPeaky/intelli-api/issues) for list of proposed features and fix errors (and known issues).
+See the [open issues](https://github.com/GPeaky/intelli-api/issues) for list of proposed features and fix errors (and
+known issues).
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any
+contributions you make are **greatly appreciated**.
 
-- If you have suggestions for adding or removing projects, feel free to [open an issue](https://github.com/GPeaky/intelli-api/issues/new) to discuss it, or directly create a pull request after you edit the _README.md_ file with necessary changes.
+- If you have suggestions for adding or removing projects, feel free
+  to [open an issue](https://github.com/GPeaky/intelli-api/issues/new) to discuss it, or directly create a pull request
+  after you edit the _README.md_ file with necessary changes.
 - Please make sure you check your spelling and grammar.
 - Create individual PR for each suggestion.
-- Please also read through the [Code Of Conduct](https://github.com/GPeaky/intelli-api/blob/main/CODE_OF_CONDUCT.md) before posting your first idea as well.
+- Please also read through the [Code Of Conduct](https://github.com/GPeaky/intelli-api/blob/main/CODE_OF_CONDUCT.md)
+  before posting your first idea as well.
 
 ### Creating A Pull Request
 
@@ -96,7 +97,8 @@ Contributions are what make the open source community such an amazing place to b
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](https://github.com/GPeaky/intelli-api/blob/main/LICENSE.md) for more information.
+Distributed under the MIT License. See [LICENSE](https://github.com/GPeaky/intelli-api/blob/main/LICENSE.md) for more
+information.
 
 ## Authors
 

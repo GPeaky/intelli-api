@@ -1,5 +1,6 @@
-use crate::{config::constants::*, error::AppResult};
 use deadpool_redis::{redis::AsyncCommands, Connection};
+
+use crate::{config::constants::*, error::AppResult};
 
 // const EVENTS: &str = "events";
 

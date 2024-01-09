@@ -1,11 +1,13 @@
-include!(concat!(env!("OUT_DIR"), "/protos.event_data.rs"));
+use tracing::warn;
 
-use super::ToProtoMessage;
 use crate::{
     dtos::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
     protos::event_data::event_data_details::Details,
 };
-use tracing::warn;
+
+use super::ToProtoMessage;
+
+include!(concat!(env!("OUT_DIR"), "/protos.event_data.rs"));
 
 const EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
 

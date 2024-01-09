@@ -245,7 +245,7 @@ impl UserServiceTrait for UserService {
 
         let user_id = {
             let token_data = self.token_service.validate(token)?;
-            if token_data.claims.token_type.ne(&TokenType::ResetPassword) {
+            if token_data.claims.token_type != TokenType::ResetPassword {
                 error!("Token type is not ResetPassword");
                 Err(TokenError::InvalidToken)?
             }

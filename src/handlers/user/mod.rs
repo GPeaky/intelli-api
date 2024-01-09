@@ -1,3 +1,8 @@
+use garde::Validate;
+use ntex::web::{types, HttpRequest, HttpResponse, Responder};
+
+pub(crate) use admin::*;
+
 use crate::{
     dtos::{UpdateUser, UserData},
     entity::UserExtension,
@@ -5,17 +10,14 @@ use crate::{
     services::UserServiceTrait,
     states::AppState,
 };
-pub(crate) use admin::*;
-use garde::Validate;
-use ntex::web;
 
 mod admin;
 
 #[inline(always)]
 pub(crate) async fn user_data(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: types::State<AppState>,
+) -> AppResult<impl Responder> {
     let user = req
         .extensions()
         .get::<UserExtension>()
@@ -24,7 +26,7 @@ pub(crate) async fn user_data(
 
     let championships = state.championship_repository.find_all(&user.id).await?;
 
-    Ok(web::HttpResponse::Ok().json(&UserData {
+    Ok(HttpResponse::Ok().json(&UserData {
         user,
         championships,
     }))
@@ -32,10 +34,10 @@ pub(crate) async fn user_data(
 
 #[inline(always)]
 pub(crate) async fn update_user(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    form: web::types::Form<UpdateUser>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: types::State<AppState>,
+    form: types::Form<UpdateUser>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     };
@@ -47,5 +49,5 @@ pub(crate) async fn update_user(
         .ok_or(CommonError::InternalServerError)?;
 
     state.user_service.update(&user, &form).await?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }

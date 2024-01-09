@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
-use ntex::service::{Middleware, Service, ServiceCtx};
-use ntex::web::{Error, WebRequest, WebResponse};
+use ntex::{
+    service::{Middleware, Service, ServiceCtx},
+    web::{Error, WebRequest, WebResponse},
+};
 
-use crate::error::{TokenError, UserError};
-use crate::repositories::UserRepositoryTrait;
-use crate::services::TokenServiceTrait;
-use crate::{error::CommonError, states::AppState};
+use crate::{
+    error::{CommonError, TokenError, UserError},
+    repositories::UserRepositoryTrait,
+    services::TokenServiceTrait,
+    states::AppState,
+};
 
 const BEARER_PREFIX: &str = "Bearer ";
 

@@ -1,8 +1,10 @@
-include!(concat!(env!("OUT_DIR"), "/protos.participants.rs"));
+use std::ffi::CStr;
+
+use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
 
 use super::ToProtoMessage;
-use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
-use std::ffi::CStr;
+
+include!(concat!(env!("OUT_DIR"), "/protos.participants.rs"));
 
 impl ToProtoMessage for BPacketParticipantsData {
     type ProtoType = PacketParticipantsData;

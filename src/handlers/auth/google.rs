@@ -1,5 +1,9 @@
+use ntex::web::{
+    types::{Query, State},
+    HttpResponse, Responder,
+};
+
 use crate::{
-    config::constants::*,
     dtos::GoogleCallbackQuery,
     dtos::TokenType,
     entity::Provider,
@@ -8,12 +12,11 @@ use crate::{
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
 };
-use ntex::web;
 
 pub async fn callback(
-    state: web::types::State<AppState>,
-    query: web::types::Query<GoogleCallbackQuery>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    query: Query<GoogleCallbackQuery>,
+) -> AppResult<impl Responder> {
     let google_user = state.google_repository.account_info(&query.code).await?;
 
     let user = state
@@ -56,7 +59,7 @@ pub async fn callback(
         access_token, refresh_token
     );
 
-    Ok(web::HttpResponse::Found()
+    Ok(HttpResponse::Found()
         .set_header("Location", redirect_url)
         .body("Redirecting..."))
 }

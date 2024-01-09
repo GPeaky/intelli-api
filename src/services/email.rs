@@ -1,11 +1,13 @@
-use crate::{dtos::EmailUser, error::AppResult};
+use std::str::FromStr;
+
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use sailfish::TemplateOnce;
-use std::str::FromStr;
+
+use crate::{dtos::EmailUser, error::AppResult};
 
 #[derive(Clone)]
 pub struct EmailService {

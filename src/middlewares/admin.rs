@@ -1,5 +1,7 @@
-use ntex::web::{Error, WebRequest, WebResponse};
-use ntex::{web, Middleware, Service, ServiceCtx};
+use ntex::{
+    web::{Error, WebRequest, WebResponse},
+    Middleware, Service, ServiceCtx,
+};
 
 use crate::{
     entity::{Role, UserExtension},
@@ -21,7 +23,7 @@ pub struct AdminMiddleware<S> {
 }
 
 // TODO: Fix this fucking shit and return errors
-impl<S, Err> Service<web::WebRequest<Err>> for AdminMiddleware<S>
+impl<S, Err> Service<WebRequest<Err>> for AdminMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {

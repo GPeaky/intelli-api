@@ -1,9 +1,10 @@
+use dotenvy::var;
+
 use crate::{
     config::constants::*,
     dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
     error::AppResult,
 };
-use dotenvy::var;
 
 #[derive(Clone)]
 pub struct GoogleRepository {

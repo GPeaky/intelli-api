@@ -1,4 +1,7 @@
-use ntex::{http::StatusCode, web};
+use ntex::{
+    http::StatusCode,
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
+};
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -18,7 +21,7 @@ pub enum TokenError {
     InvalidTokenType,
 }
 
-impl web::error::WebResponseError for TokenError {
+impl WebResponseError for TokenError {
     fn status_code(&self) -> StatusCode {
         match self {
             TokenError::InvalidToken => StatusCode::UNAUTHORIZED,
@@ -30,8 +33,8 @@ impl web::error::WebResponseError for TokenError {
         }
     }
 
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
             .set_header("content-type", "text/html; charset=utf-8")
             .body(self.to_string())
     }

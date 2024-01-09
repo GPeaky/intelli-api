@@ -1,7 +1,8 @@
-use crate::entity::Category;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
+
+use crate::entity::Category;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateChampionshipDto {

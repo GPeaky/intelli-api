@@ -1,3 +1,5 @@
+use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
+
 use crate::{
     handlers::{
         auth::{
@@ -14,56 +16,50 @@ use crate::{
     },
     middlewares::Authentication,
 };
-use ntex::web;
 
 #[inline(always)]
-pub(crate) fn api_routes(cfg: &mut web::ServiceConfig) {
+pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
     cfg.service(
-        web::scope("/auth")
-            .route("/google/callback", web::get().to(callback))
-            .route("/register", web::post().to(register))
-            .route("/login", web::post().to(login))
-            .route("/refresh", web::get().to(refresh_token))
-            .route("/verify/email", web::get().to(verify_email))
-            .route("/forgot-password", web::post().to(forgot_password))
-            .route("/reset-password", web::post().to(reset_password)),
+        scope("/auth")
+            .route("/google/callback", get().to(callback))
+            .route("/register", post().to(register))
+            .route("/login", post().to(login))
+            .route("/refresh", get().to(refresh_token))
+            .route("/verify/email", get().to(verify_email))
+            .route("/forgot-password", post().to(forgot_password))
+            .route("/reset-password", post().to(reset_password)),
     );
 
     cfg.service(
-        web::resource("/logout")
-            .route(web::get().to(logout))
+        resource("/logout")
+            .route(get().to(logout))
             .wrap(Authentication),
     );
 
     cfg.service(
-        web::scope("/user")
-            .route("", web::put().to(update_user))
-            .route("/data", web::get().to(user_data))
+        scope("/user")
+            .route("", put().to(update_user))
+            .route("/data", get().to(user_data))
             .wrap(Authentication),
     );
 
-    cfg.service(
-        web::scope("/intelli-app").route("/releases/latest", web::get().to(latest_release)),
-    );
+    cfg.service(scope("/intelli-app").route("/releases/latest", get().to(latest_release)));
 
     cfg.service(
-        web::scope("/championships")
-            .route("", web::post().to(create_championship))
-            .route("/all", web::get().to(all_championships))
-            .route("/{id}", web::get().to(get_championship))
-            .route("/{id}", web::put().to(update))
-            .route("/{id}/user/add", web::put().to(add_user))
-            .route("/{id}/user/{user_id}", web::delete().to(remove_user))
-            .route("/{id}/socket/start", web::get().to(start_socket))
-            .route("/{id}/socket/status", web::get().to(socket_status))
-            .route("/{id}/socket/stop", web::get().to(stop_socket))
+        scope("/championships")
+            .route("", post().to(create_championship))
+            .route("/all", get().to(all_championships))
+            .route("/{id}", get().to(get_championship))
+            .route("/{id}", put().to(update))
+            .route("/{id}/user/add", put().to(add_user))
+            .route("/{id}/user/{user_id}", delete().to(remove_user))
+            .route("/{id}/socket/start", get().to(start_socket))
+            .route("/{id}/socket/status", get().to(socket_status))
+            .route("/{id}/socket/stop", get().to(stop_socket))
             .wrap(Authentication),
     );
 
-    cfg.route("/heartbeat", web::get().to(heartbeat));
+    cfg.route("/heartbeat", get().to(heartbeat));
 
-    cfg.route(
-        "/web_socket/championship/{id}",
-        web::get().to(session_socket),
-    );
+    cfg.route("/web_socket/championship/{id}", get().to(session_socket));
 }

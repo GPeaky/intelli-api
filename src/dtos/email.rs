@@ -1,5 +1,6 @@
-use super::RegisterUserDto;
 use sailfish::TemplateOnce;
+
+use super::RegisterUserDto;
 
 #[derive(TemplateOnce)]
 #[template(path = "verify_email.stpl")]

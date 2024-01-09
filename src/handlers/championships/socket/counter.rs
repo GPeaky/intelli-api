@@ -1,7 +1,8 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use ahash::AHashMap;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 static COUNTER: Lazy<RwLock<AHashMap<i32, AtomicUsize>>> =
     Lazy::new(|| RwLock::new(AHashMap::default()));

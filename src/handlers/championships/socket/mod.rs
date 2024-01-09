@@ -1,12 +1,5 @@
-pub(super) mod counter;
+use std::{future::ready, io};
 
-use self::counter::{decrement, increment};
-use crate::dtos::ChampionshipIdPath;
-use crate::error::CommonError;
-use crate::{
-    error::{AppResult, ChampionshipError, SocketError},
-    states::AppState,
-};
 use garde::Validate;
 use ntex::{
     chain,
@@ -14,19 +7,32 @@ use ntex::{
     fn_service, rt,
     service::{fn_factory_with_config, fn_shutdown, map_config},
     util::{select, Bytes, Either},
-    web,
+    web::{
+        self,
+        types::{Path, State},
+        HttpRequest, HttpResponse, Responder,
+    },
     ws::{self, Message},
     Service,
 };
-use std::{future::ready, io};
 use tokio::sync::broadcast::Receiver;
+
+use crate::{
+    dtos::ChampionshipIdPath,
+    error::{AppResult, ChampionshipError, CommonError, SocketError},
+    states::AppState,
+};
+
+use self::counter::{decrement, increment};
+
+pub(super) mod counter;
 
 #[inline(always)]
 pub async fn session_socket(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    path: web::types::Path<ChampionshipIdPath>,
-) -> AppResult<web::HttpResponse> {
+    req: HttpRequest,
+    state: State<AppState>,
+    path: Path<ChampionshipIdPath>,
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -55,7 +61,7 @@ pub async fn session_socket(
 
 #[inline(always)]
 async fn web_socket(
-    (sink, state, championship_id): (web::ws::WsSink, web::types::State<AppState>, i32),
+    (sink, state, championship_id): (ws::WsSink, State<AppState>, i32),
 ) -> AppResult<impl Service<ws::Frame, Response = Option<Message>, Error = io::Error>> {
     let (tx, close_rx) = oneshot::channel();
 
@@ -94,11 +100,7 @@ async fn web_socket(
 }
 
 #[inline(always)]
-async fn send_data(
-    sink: web::ws::WsSink,
-    mut rx: Receiver<Bytes>,
-    mut close_rx: oneshot::Receiver<()>,
-) {
+async fn send_data(sink: ws::WsSink, mut rx: Receiver<Bytes>, mut close_rx: oneshot::Receiver<()>) {
     while let Either::Left(Ok(data)) = select(rx.recv(), &mut close_rx).await {
         if sink.send(Message::Binary(data)).await.is_err() {
             break;

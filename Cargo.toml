@@ -41,8 +41,8 @@ reqwest = { version = "0.11", features = ["json"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
-tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",

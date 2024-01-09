@@ -1,3 +1,5 @@
+use ntex::web::{delete, get, post, scope, ServiceConfig};
+
 use crate::{
     handlers::{
         admin::pool_status,
@@ -6,24 +8,23 @@ use crate::{
     },
     middlewares::{Admin, Authentication},
 };
-use ntex::web;
 
-pub(crate) fn admin_routes(cfg: &mut web::ServiceConfig) {
+pub(crate) fn admin_routes(cfg: &mut ServiceConfig) {
     cfg.service(
-        web::scope("/admin")
+        scope("/admin")
             .service(
-                web::scope("/users")
-                    .route("/{id}", web::delete().to(delete_user))
-                    .route("/{id}/enable", web::post().to(enable_user))
-                    .route("/{id}/disable", web::post().to(disable_user)),
+                scope("/users")
+                    .route("/{id}", delete().to(delete_user))
+                    .route("/{id}/enable", post().to(enable_user))
+                    .route("/{id}/disable", post().to(disable_user)),
             )
             .service(
-                web::scope("/championships")
-                    .route("/{id}", web::get().to(user_championships)) // id = user_id
-                    .route("/{id}", web::delete().to(delete_championship)),
+                scope("/championships")
+                    .route("/{id}", get().to(user_championships)) // id = user_id
+                    .route("/{id}", delete().to(delete_championship)),
             )
-            .service(web::scope("/sockets").route("/sockets", web::get().to(active_sockets)))
-            .route("/pools", web::get().to(pool_status))
+            .service(scope("/sockets").route("/sockets", get().to(active_sockets)))
+            .route("/pools", get().to(pool_status))
             .wrap(Admin)
             .wrap(Authentication),
     );

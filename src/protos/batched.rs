@@ -1,6 +1,7 @@
-use super::{ChunkPacketHeader, PacketHeader};
 use ntex::util::{Bytes, BytesMut};
 use prost::Message;
+
+use super::{ChunkPacketHeader, PacketHeader};
 
 pub struct ToProtoMessageBatched {}
 

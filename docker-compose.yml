@@ -1,8 +1,8 @@
 version: "3.8"
 
 volumes:
-  keydb-data: {}
-  postgresql-data: {}
+  keydb-data: { }
+  postgresql-data: { }
 
 services:
   api:
@@ -31,7 +31,7 @@ services:
       - ./postgresql.conf:/etc/postgresql/postgresql.conf
 
     ports:
-      - 5432:5432
+      - "5432:5432"
 
 
   keydb:
@@ -44,4 +44,4 @@ services:
       - ./keydb.conf:/etc/keydb/keydb.conf
 
     ports:
-      - 127.0.0.1:6379:6379
+      - "127.0.0.1:6379:6379"

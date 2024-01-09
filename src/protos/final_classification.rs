@@ -1,7 +1,8 @@
-include!(concat!(env!("OUT_DIR"), "/protos.final_classification.rs"));
+use crate::dtos::PacketFinalClassificationData as BFinalClassificationData;
 
 use super::ToProtoMessage;
-use crate::dtos::PacketFinalClassificationData as BFinalClassificationData;
+
+include!(concat!(env!("OUT_DIR"), "/protos.final_classification.rs"));
 
 impl ToProtoMessage for BFinalClassificationData {
     type ProtoType = PacketFinalClassificationData;

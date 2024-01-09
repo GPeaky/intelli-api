@@ -1,20 +1,24 @@
-use crate::dtos::UserIdPath;
+use garde::Validate;
+use ntex::web::{
+    types::{Path, State},
+    HttpRequest, HttpResponse, Responder,
+};
+
 use crate::{
+    dtos::UserIdPath,
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
     states::AppState,
 };
-use garde::Validate;
-use ntex::web;
 
 #[inline(always)]
 pub async fn delete_user(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    path: web::types::Path<UserIdPath>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: State<AppState>,
+    path: Path<UserIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -34,15 +38,15 @@ pub async fn delete_user(
     }
 
     state.user_service.delete(&path.id).await?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn disable_user(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    path: web::types::Path<UserIdPath>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: State<AppState>,
+    path: Path<UserIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -66,15 +70,15 @@ pub async fn disable_user(
     }
 
     state.user_service.deactivate(&path.id).await?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn enable_user(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    path: web::types::Path<UserIdPath>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: State<AppState>,
+    path: Path<UserIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -98,5 +102,5 @@ pub async fn enable_user(
     }
 
     state.user_service.activate(&path.id).await?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }

@@ -1,12 +1,17 @@
-use super::{
-    user::UserError, CacheError, ChampionshipError, CommonError, F123Error, SocketError, TokenError,
-};
 use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
-use ntex::{http::StatusCode, web, ws::error::HandshakeError};
+use ntex::{
+    http::StatusCode,
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
+    ws::error::HandshakeError,
+};
 use thiserror::Error;
 use tracing::error;
+
+use super::{
+    user::UserError, CacheError, ChampionshipError, CommonError, F123Error, SocketError, TokenError,
+};
 
 pub type AppResult<T> = Result<T, AppError>;
 
@@ -47,7 +52,7 @@ pub enum AppError {
     Lettre(#[from] lettre::transport::smtp::Error),
 }
 
-impl web::error::WebResponseError for AppError {
+impl WebResponseError for AppError {
     #[inline(always)]
     fn status_code(&self) -> StatusCode {
         match self {
@@ -70,7 +75,7 @@ impl web::error::WebResponseError for AppError {
         }
     }
 
-    fn error_response(&self, r: &web::HttpRequest) -> web::HttpResponse {
+    fn error_response(&self, r: &HttpRequest) -> HttpResponse {
         match self {
             AppError::User(e) => e.error_response(r),
             AppError::Championship(e) => e.error_response(r),
@@ -82,7 +87,7 @@ impl web::error::WebResponseError for AppError {
             AppError::PgError(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Database error")
             }
@@ -90,7 +95,7 @@ impl web::error::WebResponseError for AppError {
             AppError::PgPool(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Pool error")
             }
@@ -98,7 +103,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Bcrypt(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Encryption error")
             }
@@ -106,7 +111,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Redis(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Cache error")
             }
@@ -114,7 +119,7 @@ impl web::error::WebResponseError for AppError {
             AppError::RedisPool(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Cache pool error")
             }
@@ -122,7 +127,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Handshake(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Handshake error")
             }
@@ -130,7 +135,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Reqwest(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Reqwest error")
             }
@@ -138,7 +143,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Sailfish(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Email Render Error")
             }
@@ -146,7 +151,7 @@ impl web::error::WebResponseError for AppError {
             AppError::Lettre(e) => {
                 error!("{e}");
 
-                web::HttpResponse::build(self.status_code())
+                HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Email Error")
             }

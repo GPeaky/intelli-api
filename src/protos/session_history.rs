@@ -1,7 +1,8 @@
-include!(concat!(env!("OUT_DIR"), "/protos.session_history.rs"));
+use crate::dtos::PacketSessionHistoryData as BPacketSessionHistoryData;
 
 use super::ToProtoMessage;
-use crate::dtos::PacketSessionHistoryData as BPacketSessionHistoryData;
+
+include!(concat!(env!("OUT_DIR"), "/protos.session_history.rs"));
 
 impl ToProtoMessage for BPacketSessionHistoryData {
     type ProtoType = PacketSessionHistoryData;

@@ -1,4 +1,7 @@
-use ntex::{http::StatusCode, web};
+use ntex::{
+    http::StatusCode,
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -9,13 +12,13 @@ pub enum CacheError {
     Serialize,
 }
 
-impl web::error::WebResponseError for CacheError {
+impl WebResponseError for CacheError {
     fn status_code(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
     }
 
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
             .set_header("content-type", "text/html; charset=utf-8")
             .body(self.to_string())
     }

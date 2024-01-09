@@ -1,3 +1,10 @@
+use chrono::{Duration, Utc};
+use garde::Validate;
+use ntex::web::{
+    types::{Form, Query, State},
+    HttpRequest, HttpResponse, Responder,
+};
+
 use crate::{
     dtos::{
         AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
@@ -10,15 +17,12 @@ use crate::{
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
 };
-use chrono::{Duration, Utc};
-use garde::Validate;
-use ntex::web;
 
 #[inline(always)]
 pub(crate) async fn register(
-    state: web::types::State<AppState>,
-    form: web::types::Form<RegisterUserDto>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    form: Form<RegisterUserDto>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -45,15 +49,15 @@ pub(crate) async fn register(
             .send_mail((&*form).into(), "Verify Email", template);
 
     tokio::try_join!(save_email_future, send_email_future)?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub(crate) async fn login(
-    state: web::types::State<AppState>,
-    query: web::types::Query<FingerprintQuery>,
-    form: web::types::Form<LoginUserDto>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    query: Query<FingerprintQuery>,
+    form: Form<LoginUserDto>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -93,14 +97,14 @@ pub(crate) async fn login(
         refresh_token,
     };
 
-    Ok(web::HttpResponse::Ok().json(auth_response))
+    Ok(HttpResponse::Ok().json(auth_response))
 }
 
 #[inline(always)]
 pub(crate) async fn refresh_token(
-    state: web::types::State<AppState>,
-    query: web::types::Query<RefreshTokenQuery>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    query: Query<RefreshTokenQuery>,
+) -> AppResult<impl Responder> {
     let access_token = state
         .token_service
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
@@ -108,15 +112,15 @@ pub(crate) async fn refresh_token(
 
     let refresh_response = &RefreshResponse { access_token };
 
-    Ok(web::HttpResponse::Ok().json(refresh_response))
+    Ok(HttpResponse::Ok().json(refresh_response))
 }
 
 #[inline(always)]
 pub(crate) async fn logout(
-    req: web::HttpRequest,
-    state: web::types::State<AppState>,
-    query: web::types::Query<FingerprintQuery>,
-) -> AppResult<impl web::Responder> {
+    req: HttpRequest,
+    state: State<AppState>,
+    query: Query<FingerprintQuery>,
+) -> AppResult<impl Responder> {
     let user_id = req
         .extensions()
         .get::<UserExtension>()
@@ -128,14 +132,14 @@ pub(crate) async fn logout(
         .remove_refresh_token(&user_id, &query.fingerprint)
         .await?;
 
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub(crate) async fn forgot_password(
-    state: web::types::State<AppState>,
-    form: web::types::Form<ForgotPasswordDto>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    form: Form<ForgotPasswordDto>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -172,15 +176,15 @@ pub(crate) async fn forgot_password(
     );
 
     tokio::try_join!(save_reset_password, send_mail)?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
 
 #[inline(always)]
 pub async fn reset_password(
-    query: web::types::Query<ResetPasswordQuery>,
-    state: web::types::State<AppState>,
-    form: web::types::Form<ResetPasswordDto>,
-) -> AppResult<impl web::Responder> {
+    query: Query<ResetPasswordQuery>,
+    state: State<AppState>,
+    form: Form<ResetPasswordDto>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -208,5 +212,5 @@ pub async fn reset_password(
         )
         .await?;
 
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }

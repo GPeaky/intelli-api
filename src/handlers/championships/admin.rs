@@ -1,34 +1,37 @@
-use crate::dtos::{ChampionshipIdPath, UserIdPath};
-use crate::error::CommonError;
+use garde::Validate;
+use ntex::web::{
+    types::{Path, State},
+    HttpResponse, Responder,
+};
+
 use crate::{
-    error::{AppResult, ChampionshipError},
+    dtos::{ChampionshipIdPath, UserIdPath},
+    error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
 };
-use garde::Validate;
-use ntex::web;
 
 #[inline(always)]
 pub async fn user_championships(
-    state: web::types::State<AppState>,
-    path: web::types::Path<UserIdPath>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    path: Path<UserIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
     let championships = state.championship_repository.find_all(&path.id).await?;
-    Ok(web::HttpResponse::Ok().json(&championships))
+    Ok(HttpResponse::Ok().json(&championships))
 }
 
 #[inline(always)]
 pub async fn delete_championship(
-    state: web::types::State<AppState>,
-    path: web::types::Path<ChampionshipIdPath>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    path: Path<ChampionshipIdPath>,
+) -> AppResult<impl Responder> {
     let Some(championship) = state.championship_repository.find(&path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     state.championship_service.delete(&championship.id).await?;
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }

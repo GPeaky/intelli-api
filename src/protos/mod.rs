@@ -1,3 +1,7 @@
+use prost::Message;
+
+use crate::protos::packet_header::PacketType;
+
 include!(concat!(env!("OUT_DIR"), "/protos.packet_header.rs"));
 
 pub(crate) mod batched;
@@ -7,9 +11,6 @@ pub(crate) mod final_classification;
 pub(crate) mod participants;
 pub(crate) mod session_data;
 pub(crate) mod session_history;
-
-use crate::protos::packet_header::PacketType;
-use prost::Message;
 
 pub trait ToProtoMessage {
     type ProtoType: Message;

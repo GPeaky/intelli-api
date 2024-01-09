@@ -1,10 +1,11 @@
+use async_trait::async_trait;
+
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     entity::{FromRow, User},
     error::{AppResult, UserError},
 };
-use async_trait::async_trait;
 
 #[derive(Clone)]
 pub struct UserRepository {

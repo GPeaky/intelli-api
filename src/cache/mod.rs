@@ -1,15 +1,18 @@
-mod championship;
-mod f123;
-mod token;
-mod user;
+use async_trait::async_trait;
 
-use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
+pub(crate) use f123::*;
+
 use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
     error::AppResult,
 };
-use async_trait::async_trait;
-pub(crate) use f123::*;
+
+use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
+
+mod championship;
+mod f123;
+mod token;
+mod user;
 
 #[derive(Clone)]
 pub struct RedisCache {

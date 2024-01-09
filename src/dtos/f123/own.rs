@@ -1,6 +1,7 @@
-use super::game::*;
 use tracing::error;
 use zerocopy::FromBytes;
+
+use super::game::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SectorsLaps {

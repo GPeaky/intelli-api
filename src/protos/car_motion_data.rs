@@ -1,7 +1,8 @@
-include!(concat!(env!("OUT_DIR"), "/protos.car_motion_data.rs"));
+use crate::dtos::PacketMotionData as BPacketMotionData;
 
 use super::ToProtoMessage;
-use crate::dtos::PacketMotionData as BPacketMotionData;
+
+include!(concat!(env!("OUT_DIR"), "/protos.car_motion_data.rs"));
 
 impl ToProtoMessage for BPacketMotionData {
     type ProtoType = PacketMotionData;

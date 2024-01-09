@@ -1,8 +1,10 @@
-use crate::entity::{Championship, User};
+use std::sync::Arc;
+
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
-use std::sync::Arc;
+
+use crate::entity::{Championship, User};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateUser {

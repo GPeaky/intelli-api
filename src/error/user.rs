@@ -1,4 +1,7 @@
-use ntex::{http::StatusCode, web};
+use ntex::{
+    http::StatusCode,
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -31,7 +34,7 @@ pub enum UserError {
     UpdateLimitExceeded,
 }
 
-impl web::error::WebResponseError for UserError {
+impl WebResponseError for UserError {
     fn status_code(&self) -> StatusCode {
         match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
@@ -50,8 +53,8 @@ impl web::error::WebResponseError for UserError {
         }
     }
 
-    fn error_response(&self, _: &web::HttpRequest) -> web::HttpResponse {
-        web::HttpResponse::build(self.status_code())
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
             .set_header("content-type", "text/html; charset=utf-8")
             .body(self.to_string())
     }

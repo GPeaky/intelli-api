@@ -1,26 +1,30 @@
-use super::counter::get;
-use crate::dtos::ChampionshipIdPath;
-use crate::error::CommonError;
-use crate::{
-    dtos::SocketStatus,
-    error::{AppResult, ChampionshipError},
-    states::AppState,
-};
-use garde::Validate;
-use ntex::web;
 use std::sync::Arc;
 
+use garde::Validate;
+use ntex::web::{
+    types::{Path, State},
+    HttpResponse, Responder,
+};
+
+use crate::{
+    dtos::{ChampionshipIdPath, SocketStatus},
+    error::{AppResult, ChampionshipError, CommonError},
+    states::AppState,
+};
+
+use super::counter::get;
+
 #[inline(always)]
-pub async fn active_sockets(state: web::types::State<AppState>) -> AppResult<impl web::Responder> {
+pub async fn active_sockets(state: State<AppState>) -> AppResult<impl Responder> {
     let sockets = state.f123_service.get_active_socket_ids().await;
-    Ok(web::HttpResponse::Ok().json(&sockets))
+    Ok(HttpResponse::Ok().json(&sockets))
 }
 
 #[inline(always)]
 pub async fn start_socket(
-    state: web::types::State<AppState>,
-    path: web::types::Path<ChampionshipIdPath>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    path: Path<ChampionshipIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -34,14 +38,14 @@ pub async fn start_socket(
         .setup_championship_listening_socket(championship.port, Arc::new(championship.id))
         .await?;
 
-    Ok(web::HttpResponse::Created())
+    Ok(HttpResponse::Created())
 }
 
 #[inline(always)]
 pub async fn socket_status(
-    state: web::types::State<AppState>,
-    path: web::types::Path<ChampionshipIdPath>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    path: Path<ChampionshipIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -67,19 +71,19 @@ pub async fn socket_status(
         connections: num_connections,
     };
 
-    Ok(web::HttpResponse::Ok().json(&socket_status))
+    Ok(HttpResponse::Ok().json(&socket_status))
 }
 
 #[inline(always)]
 pub async fn stop_socket(
-    state: web::types::State<AppState>,
-    path: web::types::Path<ChampionshipIdPath>,
-) -> AppResult<impl web::Responder> {
+    state: State<AppState>,
+    path: Path<ChampionshipIdPath>,
+) -> AppResult<impl Responder> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
     state.f123_service.stop_socket(path.id).await?;
 
-    Ok(web::HttpResponse::Ok())
+    Ok(HttpResponse::Ok())
 }
