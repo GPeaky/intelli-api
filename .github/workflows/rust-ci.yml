@@ -22,6 +22,9 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
+      - name: Update Rust
+        run: rustup update
+
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
 
@@ -44,6 +47,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
+
+      - name: Update Rust
+        run: rustup update
 
       - name: Install Miri
         run: |
@@ -73,6 +79,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
+
+      - name: Update Rust
+        run: rustup update
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
