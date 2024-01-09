@@ -1,13 +1,15 @@
-use super::EntityCache;
+use async_trait::async_trait;
+use deadpool_redis::redis::{self, AsyncCommands};
+use rkyv::{Deserialize, Infallible};
+use tracing::error;
+
 use crate::{
     config::{constants::*, Database},
     entity::Championship,
     error::{AppResult, CacheError},
 };
-use async_trait::async_trait;
-use deadpool_redis::redis::{self, AsyncCommands};
-use rkyv::{Deserialize, Infallible};
-use tracing::error;
+
+use super::EntityCache;
 
 const ID: &str = "id";
 const NAME: &str = "name";

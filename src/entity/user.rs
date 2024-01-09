@@ -1,11 +1,14 @@
-use super::FromRow;
-use crate::error::AppResult;
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+
+use crate::error::AppResult;
+
+use super::FromRow;
 
 pub type UserExtension = Arc<User>;
 
@@ -13,7 +16,6 @@ pub type UserExtension = Arc<User>;
     Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql,
 )]
 #[postgres(name = "provider")]
-#[archive(check_bytes)]
 pub enum Provider {
     #[postgres(name = "Local")]
     Local,
@@ -23,7 +25,6 @@ pub enum Provider {
 
 #[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql)]
 #[postgres(name = "role")]
-#[archive(check_bytes)]
 pub enum Role {
     #[postgres(name = "Free")]
     Free,
@@ -36,7 +37,6 @@ pub enum Role {
 }
 
 #[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
-#[archive(check_bytes)]
 pub struct User {
     pub id: i32,
     pub email: String,

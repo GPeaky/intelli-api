@@ -1,16 +1,15 @@
-use super::FromRow;
-use crate::error::AppResult;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-    Debug, Archive, Clone, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql,
-)]
+use crate::error::AppResult;
+
+use super::FromRow;
+
+#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "category")]
-#[archive(check_bytes)]
 pub enum Category {
     #[postgres(name = "F1")]
     F1,
@@ -18,8 +17,7 @@ pub enum Category {
     F2,
 }
 
-#[derive(Debug, Serialize, Clone, Archive, RDeserialize, RSerialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
 pub struct Championship {
     pub id: i32,
     pub port: i32,

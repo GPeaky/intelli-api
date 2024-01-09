@@ -1,15 +1,12 @@
-use crate::{
-    error::{CommonError, TokenError, UserError},
-    repositories::UserRepositoryTrait,
-    services::TokenServiceTrait,
-    states::AppState,
-};
-use ntex::{
-    service::{Middleware, Service, ServiceCtx},
-    util::BoxFuture,
-    web,
-};
 use std::sync::Arc;
+
+use ntex::service::{Middleware, Service, ServiceCtx};
+use ntex::web::{Error, WebRequest, WebResponse};
+
+use crate::error::{TokenError, UserError};
+use crate::repositories::UserRepositoryTrait;
+use crate::services::TokenServiceTrait;
+use crate::{error::CommonError, states::AppState};
 
 const BEARER_PREFIX: &str = "Bearer ";
 
@@ -28,53 +25,48 @@ pub struct AuthenticationMiddleware<S> {
 }
 
 // TODO: Fix this fucking shit and return errors
-impl<S, Err> Service<web::WebRequest<Err>> for AuthenticationMiddleware<S>
+impl<S, Err> Service<WebRequest<Err>> for AuthenticationMiddleware<S>
 where
-    S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
-    Err: web::ErrorRenderer,
+    S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {
-    type Response = web::WebResponse;
-    type Error = web::Error;
-    type Future<'f> = BoxFuture<'f, Result<Self::Response, Self::Error>> where Self: 'f;
+    type Response = WebResponse;
+    type Error = Error;
 
     ntex::forward_poll_ready!(service);
+    ntex::forward_poll_shutdown!(service);
 
-    fn call<'a>(
-        &'a self,
-        req: web::WebRequest<Err>,
-        ctx: ServiceCtx<'a, Self>,
-    ) -> Self::Future<'_> {
-        let state = req.app_state::<AppState>().cloned();
-        let header = req.headers().get("Authorization").cloned();
-
-        let fut = async move {
-            let state = state.ok_or(CommonError::InternalServerError)?;
-            let header = {
-                let header = header.ok_or(TokenError::MissingToken)?;
-                let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
-
-                if !header_str.starts_with(BEARER_PREFIX) {
-                    return Err(TokenError::InvalidToken)?;
-                }
-
-                header_str[BEARER_PREFIX.len()..].to_string()
-            };
-
-            let id = state.token_service.validate(&header)?.claims.sub;
-            let user = state
-                .user_repository
-                .find(&id)
-                .await?
-                .ok_or(UserError::NotFound)?;
-
-            if !user.active {
-                return Err(web::Error::from(UserError::NotVerified));
-            }
-
-            req.extensions_mut().insert(Arc::new(user));
-            ctx.call(&self.service, req).await
+    async fn call(
+        &self,
+        req: WebRequest<Err>,
+        ctx: ServiceCtx<'_, Self>,
+    ) -> Result<Self::Response, Self::Error> {
+        let Some(state) = req.app_state::<AppState>() else {
+            Err(CommonError::InternalServerError)?
         };
 
-        Box::pin(fut)
+        let Some(header) = req.headers().get("Authorization") else {
+            Err(TokenError::MissingToken)?
+        };
+
+        let header = {
+            let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+
+            if !header_str.starts_with(BEARER_PREFIX) {
+                return Err(TokenError::InvalidToken)?;
+            }
+
+            header_str[BEARER_PREFIX.len()..].to_string()
+        };
+
+        let id = state.token_service.validate(&header)?.claims.sub;
+        let user = state
+            .user_repository
+            .find(&id)
+            .await?
+            .ok_or(UserError::NotFound)?;
+
+        req.extensions_mut().insert(Arc::new(user));
+        let res = ctx.call(&self.service, req).await?;
+        Ok(res)
     }
 }

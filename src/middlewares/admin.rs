@@ -1,13 +1,12 @@
+use ntex::web::{Error, WebRequest, WebResponse};
+use ntex::{web, Middleware, Service, ServiceCtx};
+
 use crate::{
     entity::{Role, UserExtension},
     error::UserError,
 };
-use ntex::{util::BoxFuture, web, Middleware, Service, ServiceCtx};
 
 pub struct Admin;
-pub struct AdminMiddleware<S> {
-    service: S,
-}
 
 impl<S> Middleware<S> for Admin {
     type Service = AdminMiddleware<S>;
@@ -17,31 +16,35 @@ impl<S> Middleware<S> for Admin {
     }
 }
 
+pub struct AdminMiddleware<S> {
+    service: S,
+}
+
 // TODO: Fix this fucking shit and return errors
 impl<S, Err> Service<web::WebRequest<Err>> for AdminMiddleware<S>
 where
-    S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
-    Err: web::ErrorRenderer,
+    S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {
-    type Response = web::WebResponse;
-    type Error = web::Error;
-    type Future<'f> = BoxFuture<'f, Result<Self::Response, Self::Error>> where Self: 'f;
+    type Response = WebResponse;
+    type Error = Error;
 
     ntex::forward_poll_ready!(service);
+    ntex::forward_poll_shutdown!(service);
 
-    fn call<'a>(
-        &'a self,
-        req: web::WebRequest<Err>,
-        ctx: ServiceCtx<'a, Self>,
-    ) -> Self::Future<'_> {
+    async fn call(
+        &self,
+        req: WebRequest<Err>,
+        ctx: ServiceCtx<'_, Self>,
+    ) -> Result<Self::Response, Self::Error> {
         let Some(user) = req.extensions().get::<UserExtension>().cloned() else {
-            return Box::pin(async { Err(UserError::Unauthorized)? });
+            return Err(UserError::Unauthorized)?;
         };
 
         if user.role != Role::Admin {
-            return Box::pin(async { Err(UserError::Unauthorized)? });
+            return Err(UserError::Unauthorized)?;
         }
 
-        Box::pin(ctx.call(&self.service, req))
+        let res = ctx.call(&self.service, req).await?;
+        Ok(res)
     }
 }
