@@ -11,11 +11,16 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        rust: [ nightly ]
+        rust: [ 1.75 ]
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
@@ -28,18 +33,22 @@ jobs:
   miri:
     name: Miri
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        rust: [ nightly ]
+        rust: [ 1.75 ]
 
     steps:
       - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+
       - name: Install Miri
         run: |
-          rustup toolchain install nightly --component miri
-          rustup override set nightly
+          rustup toolchain install ${{ matrix.rust }} --component miri
+          rustup override set ${{ matrix.rust }}
           cargo miri setup
 
       - name: Install Protoc
@@ -54,11 +63,16 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        rust: [ stable ]
+        rust: [ 1.75 ]
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
