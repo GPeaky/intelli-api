@@ -4,8 +4,8 @@ use ntex::web::{
 };
 
 use crate::{
-    dtos::GoogleCallbackQuery,
-    dtos::TokenType,
+    config::constants::*,
+    dtos::{GoogleCallbackQuery, TokenType},
     entity::Provider,
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,

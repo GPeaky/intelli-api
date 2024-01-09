@@ -10,7 +10,7 @@ use ntex::{
     web::{
         self,
         types::{Path, State},
-        HttpRequest, HttpResponse, Responder,
+        HttpRequest, HttpResponse,
     },
     ws::{self, Message},
     Service,

@@ -1,6 +1,9 @@
 use deadpool_redis::redis::AsyncCommands;
 
-use crate::{config::Database, error::AppResult};
+use crate::{
+    config::{constants::*, Database},
+    error::AppResult,
+};
 
 #[derive(Clone)]
 pub struct F123Repository {
