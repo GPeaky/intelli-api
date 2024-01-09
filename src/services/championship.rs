@@ -1,3 +1,11 @@
+use std::sync::Arc;
+
+use ahash::AHashSet;
+use chrono::{Duration, Utc};
+use parking_lot::RwLock;
+use postgres_types::ToSql;
+use tracing::info;
+
 use crate::{
     cache::RedisCache,
     config::Database,
@@ -5,12 +13,6 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
 };
-use ahash::AHashSet;
-use chrono::{Duration, Utc};
-use parking_lot::RwLock;
-use postgres_types::ToSql;
-use std::sync::Arc;
-use tracing::info;
 
 #[derive(Clone)]
 pub struct ChampionshipService {
@@ -214,15 +216,14 @@ impl ChampionshipService {
             )
             .await?;
 
-        let add_user_future = async {
+        let add_user_fut = async {
             let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
             conn.execute(&add_user_stmt, &bindings).await?;
             Ok(())
         };
 
-        let delete_user_cache_future = self.cache.championship.delete_by_user_id(&new_user_id);
-
-        tokio::try_join!(add_user_future, delete_user_cache_future)?;
+        let delete_user_cache_fut = self.cache.championship.delete_by_user_id(&new_user_id);
+        tokio::try_join!(add_user_fut, delete_user_cache_fut)?;
         Ok(())
     }
 
@@ -261,14 +262,14 @@ impl ChampionshipService {
             )
             .await?;
 
-        let remove_user_future = async {
+        let remove_user_fut = async {
             let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
             conn.execute(&remove_user_stmt, &bindings).await?;
             Ok(())
         };
-        let remove_user_cache_future = self.cache.championship.delete_by_user_id(remove_user_id);
+        let remove_user_cache_fut = self.cache.championship.delete_by_user_id(remove_user_id);
 
-        tokio::try_join!(remove_user_future, remove_user_cache_future)?;
+        tokio::try_join!(remove_user_fut, remove_user_cache_fut)?;
         Ok(())
     }
 

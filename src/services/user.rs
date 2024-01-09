@@ -1,4 +1,9 @@
-use super::{TokenService, TokenServiceTrait};
+use async_trait::async_trait;
+use bcrypt::{hash, DEFAULT_COST};
+use chrono::{Duration, Utc};
+use postgres_types::ToSql;
+use tracing::{error, info};
+
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
@@ -7,11 +12,8 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
 };
-use async_trait::async_trait;
-use bcrypt::{hash, DEFAULT_COST};
-use chrono::{Duration, Utc};
-use postgres_types::ToSql;
-use tracing::{error, info};
+
+use super::{TokenService, TokenServiceTrait};
 
 #[derive(Clone)]
 pub struct UserService {
@@ -178,7 +180,7 @@ impl UserServiceTrait for UserService {
 
         let delete_user_stmt_fut = conn.prepare_cached(
             r#"
-                DELETE FROM user
+                DELETE FROM users
                 WHERE id = $1
             "#,
         );
@@ -312,7 +314,7 @@ impl UserServiceTrait for UserService {
         let deactivate_user_stmt = conn
             .prepare_cached(
                 r#"
-                    UPDATE user
+                    UPDATE users
                     SET active = false
                     WHERE id = $1
                 "#,
