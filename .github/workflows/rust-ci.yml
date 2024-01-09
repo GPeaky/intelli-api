@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        rust: [ stable ]
+        rust: [ nightly ]
 
     steps:
       - uses: actions/checkout@v3
@@ -50,9 +50,9 @@ jobs:
 
       - name: Install Miri
         run: |
-          rustup toolchain install ${{ matrix.rust }} --component miri
-          rustup override set ${{ matrix.rust }}
-          cargo miri setup
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup 
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
