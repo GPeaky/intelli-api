@@ -4,7 +4,7 @@ use crate::{
     error::{AppResult, F123Error},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
 };
-use bytes::Bytes;
+use ntex::util::Bytes;
 use tokio::{sync::broadcast::Sender, time::Instant};
 use tracing::warn;
 

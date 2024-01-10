@@ -1,10 +1,8 @@
-use axum::{
+use ntex::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use thiserror::Error;
-
-use crate::response::AppErrorResponse;
 
 #[derive(Debug, Error)]
 pub enum UserError {
@@ -36,9 +34,9 @@ pub enum UserError {
     UpdateLimitExceeded,
 }
 
-impl IntoResponse for UserError {
-    fn into_response(self) -> Response {
-        let code = match self {
+impl WebResponseError for UserError {
+    fn status_code(&self) -> StatusCode {
+        match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
             UserError::NotFound => StatusCode::NOT_FOUND,
             UserError::InvalidCredentials => StatusCode::UNAUTHORIZED,
@@ -52,8 +50,12 @@ impl IntoResponse for UserError {
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
             UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
             UserError::UpdateLimitExceeded => StatusCode::BAD_REQUEST,
-        };
+        }
+    }
 
-        AppErrorResponse::send(code, Some(self.to_string()))
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

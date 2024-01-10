@@ -1,14 +1,14 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
+    structs::{F123Data, PacketIds, SectorsLaps, SessionType},
     error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
-    structs::{F123Data, PacketIds, SectorsLaps, SessionType},
     FirewallService,
 };
 use ahash::AHashMap;
-use bytes::Bytes;
+use ntex::{rt, util::Bytes};
 use parking_lot::RwLock;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
@@ -138,7 +138,7 @@ impl F123Service {
         let sockets = self.sockets.clone();
         let channels = self.channels.clone();
 
-        tokio::spawn(async move {
+        rt::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();

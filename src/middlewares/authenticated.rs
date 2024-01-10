@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use axum::{
-    body::Body,
-    extract::{Request, State},
-    middleware::Next,
-    response::Response,
+use ntex::{
+    service::{Middleware, Service, ServiceCtx},
+    web::{Error, WebRequest, WebResponse},
 };
 
 use crate::{
-    error::{AppResult, TokenError},
+    error::{CommonError, TokenError, UserError},
     repositories::UserRepositoryTrait,
     services::TokenServiceTrait,
     states::AppState,
@@ -16,29 +14,63 @@ use crate::{
 
 const BEARER_PREFIX: &str = "Bearer ";
 
-pub async fn auth_handler(
-    state: State<AppState>,
-    mut req: Request<Body>,
-    next: Next,
-) -> AppResult<Response> {
-    let token = req
-        .headers()
-        .get("Authorization")
-        .ok_or(TokenError::MissingToken)?;
+pub struct Authentication;
 
-    let token = token.to_str().map_err(|_| TokenError::InvalidToken)?;
+impl<S> Middleware<S> for Authentication {
+    type Service = AuthenticationMiddleware<S>;
 
-    if !token.starts_with(BEARER_PREFIX) {
-        Err(TokenError::InvalidToken)?
+    fn create(&self, service: S) -> Self::Service {
+        AuthenticationMiddleware { service }
     }
+}
 
-    let token = token.trim_start_matches(BEARER_PREFIX);
-    let token = state.token_service.validate(token)?;
+pub struct AuthenticationMiddleware<S> {
+    service: S,
+}
 
-    let Some(user) = state.user_repository.find(&token.claims.sub).await? else {
-        Err(TokenError::InvalidToken)?
-    };
+// TODO: Fix this fucking shit and return errors
+impl<S, Err> Service<WebRequest<Err>> for AuthenticationMiddleware<S>
+where
+    S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
+{
+    type Response = WebResponse;
+    type Error = Error;
 
-    req.extensions_mut().insert(Arc::from(user));
-    Ok(next.run(req).await)
+    ntex::forward_poll_ready!(service);
+    ntex::forward_poll_shutdown!(service);
+
+    async fn call(
+        &self,
+        req: WebRequest<Err>,
+        ctx: ServiceCtx<'_, Self>,
+    ) -> Result<Self::Response, Self::Error> {
+        let Some(state) = req.app_state::<AppState>() else {
+            Err(CommonError::InternalServerError)?
+        };
+
+        let Some(header) = req.headers().get("Authorization") else {
+            Err(TokenError::MissingToken)?
+        };
+
+        let header = {
+            let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+
+            if !header_str.starts_with(BEARER_PREFIX) {
+                return Err(TokenError::InvalidToken)?;
+            }
+
+            header_str[BEARER_PREFIX.len()..].to_string()
+        };
+
+        let id = state.token_service.validate(&header)?.claims.sub;
+        let user = state
+            .user_repository
+            .find(&id)
+            .await?
+            .ok_or(UserError::NotFound)?;
+
+        req.extensions_mut().insert(Arc::new(user));
+        let res = ctx.call(&self.service, req).await?;
+        Ok(res)
+    }
 }

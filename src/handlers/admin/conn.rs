@@ -1,10 +1,10 @@
-use axum::{extract::State, Json};
+use ntex::web::{types::State, HttpResponse, Responder};
 
-use crate::{error::AppResult, states::AppState, structs::DatabasesStatus};
+use crate::{error::AppResult, states::AppState};
 
 #[inline(always)]
-pub async fn pool_status(state: State<AppState>) -> AppResult<Json<DatabasesStatus>> {
-    let active_pools = state.server_repository.active_pools();
+pub async fn pool_status(state: State<AppState>) -> AppResult<impl Responder> {
+    let active_pools = &state.server_repository.active_pools();
 
-    Ok(Json(active_pools))
+    Ok(HttpResponse::Ok().json(active_pools))
 }

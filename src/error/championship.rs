@@ -1,10 +1,8 @@
-use axum::{
+use ntex::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use thiserror::Error;
-
-use crate::response::AppErrorResponse;
 
 #[allow(unused)]
 #[derive(Debug, Error)]
@@ -25,9 +23,9 @@ pub enum ChampionshipError {
     IntervalNotReached,
 }
 
-impl IntoResponse for ChampionshipError {
-    fn into_response(self) -> Response {
-        let code = match self {
+impl WebResponseError for ChampionshipError {
+    fn status_code(&self) -> StatusCode {
+        match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
             ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,
             ChampionshipError::NotFound => StatusCode::NOT_FOUND,
@@ -35,8 +33,12 @@ impl IntoResponse for ChampionshipError {
             ChampionshipError::NotOwner => StatusCode::UNAUTHORIZED,
             ChampionshipError::CannotRemoveOwner => StatusCode::BAD_REQUEST,
             ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
-        };
+        }
+    }
 
-        AppErrorResponse::send(code, Some(self.to_string()))
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

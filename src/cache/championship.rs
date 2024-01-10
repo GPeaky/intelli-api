@@ -213,27 +213,27 @@ impl EntityCache for ChampionshipCache {
 mod tests {
     use crate::error::AppResult;
 
-    #[tokio::test]
+    #[ntex::test]
     async fn test_get() -> AppResult<()> {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ntex::test]
     async fn test_set() -> AppResult<()> {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ntex::test]
     async fn test_get_all() -> AppResult<()> {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ntex::test]
     async fn test_set_all() -> AppResult<()> {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ntex::test]
     async fn test_delete() -> AppResult<()> {
         Ok(())
     }

@@ -1,10 +1,8 @@
-use axum::{
+use ntex::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use thiserror::Error;
-
-use crate::response::AppErrorResponse;
 
 #[derive(Debug, Error)]
 pub enum SocketError {
@@ -18,15 +16,19 @@ pub enum SocketError {
     FailedToSendMessage,
 }
 
-impl IntoResponse for SocketError {
-    fn into_response(self) -> Response {
-        let code = match self {
+impl WebResponseError for SocketError {
+    fn status_code(&self) -> StatusCode {
+        match self {
             SocketError::NotFound => StatusCode::BAD_REQUEST,
             SocketError::AlreadyExists => StatusCode::CONFLICT,
             SocketError::NotActive => StatusCode::NOT_FOUND,
             SocketError::FailedToSendMessage => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+        }
+    }
 
-        AppErrorResponse::send(code, Some(self.to_string()))
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

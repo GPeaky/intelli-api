@@ -1,48 +1,53 @@
-use axum::{
-    extract::{Extension, Form, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
 use garde::Validate;
+use ntex::web::{types, HttpRequest, HttpResponse, Responder};
 
 pub(crate) use admin::*;
 
 use crate::{
+    structs::{UpdateUser, UserData},
     entity::UserExtension,
     error::{AppResult, CommonError},
     services::UserServiceTrait,
     states::AppState,
-    structs::{UpdateUser, UserData},
 };
 
 mod admin;
 
 #[inline(always)]
 pub(crate) async fn user_data(
-    state: State<AppState>,
-    Extension(user): Extension<UserExtension>,
-) -> AppResult<Json<UserData>> {
+    req: HttpRequest,
+    state: types::State<AppState>,
+) -> AppResult<impl Responder> {
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
+
     let championships = state.championship_repository.find_all(&user.id).await?;
 
-    let user_data = UserData {
+    Ok(HttpResponse::Ok().json(&UserData {
         user,
         championships,
-    };
-
-    Ok(Json(user_data))
+    }))
 }
 
 #[inline(always)]
 pub(crate) async fn update_user(
-    state: State<AppState>,
-    Extension(user): Extension<UserExtension>,
-    form: Form<UpdateUser>,
-) -> AppResult<Response> {
+    req: HttpRequest,
+    state: types::State<AppState>,
+    form: types::Form<UpdateUser>,
+) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     };
 
+    let user = req
+        .extensions()
+        .get::<UserExtension>()
+        .cloned()
+        .ok_or(CommonError::InternalServerError)?;
+
     state.user_service.update(&user, &form).await?;
-    Ok(StatusCode::OK.into_response())
+    Ok(HttpResponse::Ok())
 }

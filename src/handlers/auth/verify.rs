@@ -1,22 +1,21 @@
-use axum::{
-    extract::{Query, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
+use ntex::web::{
+    types::{Query, State},
+    HttpResponse, Responder,
 };
 
 use crate::{
+    structs::{EmailUser, EmailVerified, VerifyEmailParams},
     error::AppResult,
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
     states::AppState,
-    structs::{EmailUser, EmailVerified, VerifyEmailParams},
 };
 
 #[inline(always)]
 pub async fn verify_email(
     state: State<AppState>,
     query: Query<VerifyEmailParams>,
-) -> AppResult<Response> {
+) -> AppResult<impl Responder> {
     let user_id = state.user_service.activate_with_token(&query.token).await?;
     let user = state.user_repository.find(&user_id).await?.unwrap();
 
@@ -31,5 +30,5 @@ pub async fn verify_email(
         .send_mail(email_user, "Email Verified", template)
         .await?;
 
-    Ok(StatusCode::CREATED.into_response())
+    Ok(HttpResponse::Created())
 }

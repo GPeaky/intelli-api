@@ -1,10 +1,8 @@
-use axum::{
+use ntex::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use thiserror::Error;
-
-use crate::response::AppErrorResponse;
 
 #[allow(dead_code)]
 #[derive(Error, Debug)]
@@ -23,17 +21,21 @@ pub enum TokenError {
     InvalidTokenType,
 }
 
-impl IntoResponse for TokenError {
-    fn into_response(self) -> Response {
-        let code = match self {
+impl WebResponseError for TokenError {
+    fn status_code(&self) -> StatusCode {
+        match self {
             TokenError::InvalidToken => StatusCode::UNAUTHORIZED,
             TokenError::TokenExpired => StatusCode::BAD_REQUEST,
             TokenError::MissingToken => StatusCode::BAD_REQUEST,
             TokenError::TokenCreationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             TokenError::TokenNotFound => StatusCode::NOT_FOUND,
             TokenError::InvalidTokenType => StatusCode::BAD_REQUEST,
-        };
+        }
+    }
 
-        AppErrorResponse::send(code, Some(self.to_string()))
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }

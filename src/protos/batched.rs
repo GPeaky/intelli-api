@@ -1,4 +1,4 @@
-use bytes::{Bytes, BytesMut};
+use ntex::util::{Bytes, BytesMut};
 use prost::Message;
 
 use super::{ChunkPacketHeader, PacketHeader};

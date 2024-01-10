@@ -1,10 +1,8 @@
-use axum::{
+use ntex::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use thiserror::Error;
-
-use crate::response::AppErrorResponse;
 
 #[derive(Debug, Error)]
 pub enum F123Error {
@@ -23,17 +21,21 @@ pub enum F123Error {
     BatchedEncoding,
 }
 
-impl IntoResponse for F123Error {
-    fn into_response(self) -> Response {
-        let code = match self {
+impl WebResponseError for F123Error {
+    fn status_code(&self) -> StatusCode {
+        match self {
             F123Error::UdpSocket => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::UnsupportedPacketFormat => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::NotOnlineSession => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::ReceivingData => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::Encoding => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+        }
+    }
 
-        AppErrorResponse::send(code, Some(self.to_string()))
+    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .set_header("content-type", "text/html; charset=utf-8")
+            .body(self.to_string())
     }
 }
