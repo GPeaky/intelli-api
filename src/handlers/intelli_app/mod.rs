@@ -1,8 +1,8 @@
-use ntex::web::{HttpResponse, Responder};
+use axum::Json;
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct Release {
+pub struct Release {
     version: String,
     url: String,
     signature: String,
@@ -10,7 +10,7 @@ struct Release {
 }
 
 // TODO: Return the latest release from GitHub of the Intelli App
-pub async fn latest_release() -> impl Responder {
+pub async fn latest_release() -> Json<Release> {
     let latest_release = Release {
         version: "0.1.0".to_string(),
         url: "".to_string(),
@@ -18,5 +18,5 @@ pub async fn latest_release() -> impl Responder {
         pub_date: "".to_string(),
     };
 
-    HttpResponse::Ok().json(&latest_release)
+    Json(latest_release)
 }

@@ -1,8 +1,10 @@
-use ntex::{
+use axum::{
     http::StatusCode,
-    web::{error::WebResponseError, HttpRequest, HttpResponse},
+    response::{IntoResponse, Response},
 };
 use thiserror::Error;
+
+use crate::response::AppErrorResponse;
 
 #[derive(Debug, Error)]
 pub enum CacheError {
@@ -12,14 +14,8 @@ pub enum CacheError {
     Serialize,
 }
 
-impl WebResponseError for CacheError {
-    fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
-
-    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
-        HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
+impl IntoResponse for CacheError {
+    fn into_response(self) -> Response {
+        AppErrorResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None)
     }
 }

@@ -1,42 +1,38 @@
-use garde::Validate;
-use ntex::web::{
-    types::{Form, Path, State},
-    HttpRequest, HttpResponse, Responder,
+use axum::{
+    extract::{Extension, Form, Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
 };
+use garde::Validate;
 
 pub(crate) use admin::*;
-pub(crate) use socket::*;
+// pub(crate) use socket::*;
 pub(crate) use sockets::*;
 
 use crate::{
+    entity::{Championship, Role, UserExtension},
+    error::{AppResult, ChampionshipError, CommonError},
+    states::AppState,
     structs::{
         AddUser, ChampionshipAndUserIdPath, ChampionshipIdPath, CreateChampionshipDto,
         UpdateChampionship,
     },
-    entity::{Role, UserExtension},
-    error::{AppResult, ChampionshipError, CommonError},
-    states::AppState,
 };
 
 mod admin;
-mod socket;
+// mod socket;
 mod sockets;
 
 #[inline(always)]
 pub async fn create_championship(
-    req: HttpRequest,
     state: State<AppState>,
-    form: Form<CreateChampionshipDto>,
-) -> AppResult<impl Responder> {
+    user: Extension<UserExtension>,
+    Form(form): Form<CreateChampionshipDto>,
+) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
-
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
 
     let championships_len = state
         .championship_repository
@@ -65,93 +61,72 @@ pub async fn create_championship(
         Role::Admin => {}
     }
 
-    state
-        .championship_service
-        .create(form.into_inner(), &user.id)
-        .await?;
+    state.championship_service.create(form, &user.id).await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
 pub async fn update(
-    req: HttpRequest,
     state: State<AppState>,
+    user: Extension<UserExtension>,
     form: Form<UpdateChampionship>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if form.validate(&()).is_err() || path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
     state
         .championship_service
-        .update(&path.id, &user_id, &form)
+        .update(&path.id, &user.id, &form)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
 pub async fn add_user(
-    req: HttpRequest,
     state: State<AppState>,
+    user: Extension<UserExtension>,
     form: Form<AddUser>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if form.validate(&()).is_err() || path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
     state
         .championship_service
-        .add_user(&path.id, &user_id, &form.email)
+        .add_user(&path.id, &user.id, &form.email)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
 pub async fn remove_user(
-    req: HttpRequest,
     state: State<AppState>,
+    user: Extension<UserExtension>,
     path: Path<ChampionshipAndUserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
     state
         .championship_service
-        .remove_user(&path.id, &user_id, &path.user_id)
+        .remove_user(&path.id, &user.id, &path.user_id)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
 pub async fn get_championship(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Json<Championship>> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -160,21 +135,15 @@ pub async fn get_championship(
         Err(ChampionshipError::NotFound)?
     };
 
-    Ok(HttpResponse::Ok().json(&championship))
+    Ok(Json(championship))
 }
 
 #[inline(always)]
 pub async fn all_championships(
-    req: HttpRequest,
     state: State<AppState>,
-) -> AppResult<impl Responder> {
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
+    user: Extension<UserExtension>,
+) -> AppResult<Json<Vec<Championship>>> {
+    let championships = state.championship_repository.find_all(&user.id).await?;
 
-    let championships = state.championship_repository.find_all(&user_id).await?;
-
-    Ok(HttpResponse::Ok().json(&championships))
+    Ok(Json(championships))
 }

@@ -130,22 +130,22 @@ impl EntityCache for UserCache {
 mod tests {
     use crate::error::AppResult;
 
-    #[ntex::test]
+    #[tokio::test]
     async fn test_get_by_email() -> AppResult<()> {
         Ok(())
     }
 
-    #[ntex::test]
+    #[tokio::test]
     async fn test_get() -> AppResult<()> {
         Ok(())
     }
 
-    #[ntex::test]
+    #[tokio::test]
     async fn test_set() -> AppResult<()> {
         Ok(())
     }
 
-    #[ntex::test]
+    #[tokio::test]
     async fn test_delete() -> AppResult<()> {
         Ok(())
     }

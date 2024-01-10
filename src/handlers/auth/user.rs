@@ -1,28 +1,30 @@
+use axum::{
+    extract::{Extension, Form, Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use chrono::{Duration, Utc};
 use garde::Validate;
-use ntex::web::{
-    types::{Form, Query, State},
-    HttpRequest, HttpResponse, Responder,
-};
 
 use crate::{
-    structs::{
-        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
-        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
-        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
-    },
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
+    structs::{
+        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
+        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
+        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
+    },
 };
 
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
     form: Form<RegisterUserDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -49,7 +51,7 @@ pub(crate) async fn register(
             .send_mail((&*form).into(), "Verify Email", template);
 
     tokio::try_join!(save_email_future, send_email_future)?;
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
@@ -57,7 +59,7 @@ pub(crate) async fn login(
     state: State<AppState>,
     query: Query<FingerprintQuery>,
     form: Form<LoginUserDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Json<AuthResponse>> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -92,54 +94,47 @@ pub(crate) async fn login(
     let (access_token, refresh_token) =
         tokio::try_join!(access_token_future, refresh_token_future)?;
 
-    let auth_response = &AuthResponse {
+    let auth_response = AuthResponse {
         access_token,
         refresh_token,
     };
 
-    Ok(HttpResponse::Ok().json(auth_response))
+    Ok(Json(auth_response))
 }
 
 #[inline(always)]
 pub(crate) async fn refresh_token(
     state: State<AppState>,
     query: Query<RefreshTokenQuery>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Json<RefreshResponse>> {
     let access_token = state
         .token_service
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
-    let refresh_response = &RefreshResponse { access_token };
-
-    Ok(HttpResponse::Ok().json(refresh_response))
+    let refresh_response = RefreshResponse { access_token };
+    Ok(Json(refresh_response))
 }
 
 #[inline(always)]
 pub(crate) async fn logout(
-    req: HttpRequest,
     state: State<AppState>,
+    user: Extension<UserExtension>,
     query: Query<FingerprintQuery>,
-) -> AppResult<impl Responder> {
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
+) -> AppResult<Response> {
     state
         .token_service
-        .remove_refresh_token(&user_id, &query.fingerprint)
+        .remove_refresh_token(&user.id, &query.fingerprint)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
     form: Form<ForgotPasswordDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -176,7 +171,7 @@ pub(crate) async fn forgot_password(
     );
 
     tokio::try_join!(save_reset_password, send_mail)?;
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[inline(always)]
@@ -184,7 +179,7 @@ pub async fn reset_password(
     query: Query<ResetPasswordQuery>,
     state: State<AppState>,
     form: Form<ResetPasswordDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -212,5 +207,5 @@ pub async fn reset_password(
         )
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(StatusCode::OK.into_response())
 }

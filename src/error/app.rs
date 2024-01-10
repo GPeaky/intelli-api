@@ -1,13 +1,14 @@
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
-use ntex::{
-    http::StatusCode,
-    web::{error::WebResponseError, HttpRequest, HttpResponse},
-    ws::error::HandshakeError,
-};
 use thiserror::Error;
 use tracing::error;
+
+use crate::response::AppErrorResponse;
 
 use super::{
     user::UserError, CacheError, ChampionshipError, CommonError, F123Error, SocketError, TokenError,
@@ -43,8 +44,6 @@ pub enum AppError {
     #[error(transparent)]
     RedisPool(#[from] RedisPoolError),
     #[error(transparent)]
-    Handshake(#[from] HandshakeError),
-    #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]
     Sailfish(#[from] sailfish::RenderError),
@@ -52,109 +51,177 @@ pub enum AppError {
     Lettre(#[from] lettre::transport::smtp::Error),
 }
 
-impl WebResponseError for AppError {
-    #[inline(always)]
-    fn status_code(&self) -> StatusCode {
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
         match self {
-            AppError::User(e) => e.status_code(),
-            AppError::Championship(e) => e.status_code(),
-            AppError::Token(e) => e.status_code(),
-            AppError::Common(e) => e.status_code(),
-            AppError::Cache(e) => e.status_code(),
-            AppError::Socket(e) => e.status_code(),
-            AppError::F123(e) => e.status_code(),
-            AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Sailfish(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Lettre(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-
-    fn error_response(&self, r: &HttpRequest) -> HttpResponse {
-        match self {
-            AppError::User(e) => e.error_response(r),
-            AppError::Championship(e) => e.error_response(r),
-            AppError::Token(e) => e.error_response(r),
-            AppError::Common(e) => e.error_response(r),
-            AppError::Cache(e) => e.error_response(r),
-            AppError::Socket(e) => e.error_response(r),
-            AppError::F123(e) => e.error_response(r),
+            AppError::User(e) => e.into_response(),
+            AppError::Championship(e) => e.into_response(),
+            AppError::Token(e) => e.into_response(),
+            AppError::Common(e) => e.into_response(),
+            AppError::Cache(e) => e.into_response(),
+            AppError::Socket(e) => e.into_response(),
+            AppError::F123(e) => e.into_response(),
             AppError::PgError(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Database error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Pg Error".to_string()),
+                )
             }
 
             AppError::PgPool(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Pool error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Pool Error".to_string()),
+                )
             }
 
             AppError::Bcrypt(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Encryption error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Bcrypt Error".to_string()),
+                )
             }
 
             AppError::Redis(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Cache error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Redis Error".to_string()),
+                )
             }
 
             AppError::RedisPool(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Cache pool error")
-            }
-
-            AppError::Handshake(e) => {
-                error!("{e}");
-
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Handshake error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Cache Pool Error".to_string()),
+                )
             }
 
             AppError::Reqwest(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Reqwest error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Reqwest Error".to_string()),
+                )
             }
 
             AppError::Sailfish(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Email Render Error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Email Render Error".to_string()),
+                )
             }
 
             AppError::Lettre(e) => {
                 error!("{e}");
 
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Email Error")
+                AppErrorResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Email Error".to_string()),
+                )
             }
         }
     }
 }
+
+// impl WebResponseError for AppError {
+//     #[inline(always)]
+//     fn status_code(&self) -> StatusCode {
+//
+//     }
+
+//     fn error_response(&self, r: &HttpRequest) -> HttpResponse {
+//         match self {
+//             AppError::User(e) => e.into_response(),
+//             AppError::Championship(e) => e.error_response(r),
+//             AppError::Token(e) => e.error_response(r),
+//             AppError::Common(e) => e.error_response(r),
+//             AppError::Cache(e) => e.error_response(r),
+//             AppError::Socket(e) => e.error_response(r),
+//             AppError::F123(e) => e.error_response(r),
+//             AppError::PgError(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Database error")
+//             }
+
+//             AppError::PgPool(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Pool error")
+//             }
+
+//             AppError::Bcrypt(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Encryption error")
+//             }
+
+//             AppError::Redis(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Cache error")
+//             }
+
+//             AppError::RedisPool(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Cache pool error")
+//             }
+
+//             AppError::Handshake(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Handshake error")
+//             }
+
+//             AppError::Reqwest(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Reqwest error")
+//             }
+
+//             AppError::Sailfish(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Email Render Error")
+//             }
+
+//             AppError::Lettre(e) => {
+//                 error!("{e}");
+
+//                 HttpResponse::build(self.status_code())
+//                     .set_header("content-type", "text/html; charset=utf-8")
+//                     .body("Email Error")
+//             }
+//         }
+//     }
+// }

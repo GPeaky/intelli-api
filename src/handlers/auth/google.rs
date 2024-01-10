@@ -1,22 +1,22 @@
-use ntex::web::{
-    types::{Query, State},
-    HttpResponse, Responder,
+use axum::{
+    extract::{Query, State},
+    response::Response,
 };
 
 use crate::{
     config::constants::*,
-    structs::{GoogleCallbackQuery, TokenType},
     entity::Provider,
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
+    structs::{GoogleCallbackQuery, TokenType},
 };
 
 pub async fn callback(
     state: State<AppState>,
     query: Query<GoogleCallbackQuery>,
-) -> AppResult<impl Responder> {
+) -> AppResult<Response> {
     let google_user = state.google_repository.account_info(&query.code).await?;
 
     let user = state
@@ -59,7 +59,11 @@ pub async fn callback(
         access_token, refresh_token
     );
 
-    Ok(HttpResponse::Found()
-        .set_header("Location", redirect_url)
-        .body("Redirecting..."))
+    let resp = Response::builder()
+        .header("Location", redirect_url)
+        .status(302)
+        .body("Redirecting...".into())
+        .unwrap();
+
+    Ok(resp)
 }

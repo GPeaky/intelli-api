@@ -1,8 +1,10 @@
-use ntex::{
+use axum::{
     http::StatusCode,
-    web::{error::WebResponseError, HttpRequest, HttpResponse},
+    response::{IntoResponse, Response},
 };
 use thiserror::Error;
+
+use crate::response::AppErrorResponse;
 
 #[derive(Debug, Error)]
 pub enum CommonError {
@@ -18,20 +20,16 @@ pub enum CommonError {
     InvalidUsedFeature(String),
 }
 
-impl WebResponseError for CommonError {
-    fn status_code(&self) -> StatusCode {
-        match self {
+impl IntoResponse for CommonError {
+    fn into_response(self) -> Response {
+        let code = match self {
             CommonError::ValidationFailed => StatusCode::BAD_REQUEST,
             CommonError::NotPortsAvailable => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
             CommonError::InvalidUsedFeature(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
+        };
 
-    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
-        HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
+        AppErrorResponse::send(code, Some(self.to_string()))
     }
 }

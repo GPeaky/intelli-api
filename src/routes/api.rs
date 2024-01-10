@@ -1,4 +1,8 @@
-use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
+use axum::{
+    middleware,
+    routing::{delete, get, post, put},
+    Router,
+};
 
 use crate::{
     handlers::{
@@ -7,59 +11,57 @@ use crate::{
             verify_email,
         },
         championships::{
-            add_user, all_championships, create_championship, get_championship, remove_user,
-            session_socket, socket_status, start_socket, stop_socket, update,
+            all_championships, create_championship, remove_user, socket_status, start_socket,
+            stop_socket,
         },
         heartbeat,
         intelli_app::latest_release,
         user::{update_user, user_data},
     },
-    middlewares::Authentication,
+    middlewares::auth_handler,
+    states::AppState,
 };
 
 #[inline(always)]
-pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
-    cfg.service(
-        scope("/auth")
-            .route("/google/callback", get().to(callback))
-            .route("/register", post().to(register))
-            .route("/login", post().to(login))
-            .route("/refresh", get().to(refresh_token))
-            .route("/verify/email", get().to(verify_email))
-            .route("/forgot-password", post().to(forgot_password))
-            .route("/reset-password", post().to(reset_password)),
-    );
+pub(crate) fn api_routes(app_state: AppState) -> Router<AppState> {
+    let auth_middleware = middleware::from_fn_with_state(app_state.clone(), auth_handler);
 
-    cfg.service(
-        resource("/logout")
-            .route(get().to(logout))
-            .wrap(Authentication),
-    );
+    let auth_router = Router::new()
+        .route("/google/callback", get(callback))
+        .route("/register", post(register))
+        .route("/login", post(login))
+        .route("/logout", get(logout).route_layer(auth_middleware.clone()))
+        .route("/refresh", get(refresh_token))
+        .route("/verify/email", get(verify_email))
+        .route("/forgot-password", post(forgot_password))
+        .route("/reset-password", post(reset_password));
 
-    cfg.service(
-        scope("/user")
-            .route("", put().to(update_user))
-            .route("/data", get().to(user_data))
-            .wrap(Authentication),
-    );
+    let user_router = Router::new()
+        .route("/", put(update_user))
+        .route("/data", get(user_data))
+        .route_layer(auth_middleware.clone());
 
-    cfg.service(scope("/intelli-app").route("/releases/latest", get().to(latest_release)));
+    let app_router = Router::new().route("/releases/latest", get(latest_release));
 
-    cfg.service(
-        scope("/championships")
-            .route("", post().to(create_championship))
-            .route("/all", get().to(all_championships))
-            .route("/{id}", get().to(get_championship))
-            .route("/{id}", put().to(update))
-            .route("/{id}/user/add", put().to(add_user))
-            .route("/{id}/user/{user_id}", delete().to(remove_user))
-            .route("/{id}/socket/start", get().to(start_socket))
-            .route("/{id}/socket/status", get().to(socket_status))
-            .route("/{id}/socket/stop", get().to(stop_socket))
-            .wrap(Authentication),
-    );
+    let websocket_router = Router::new()
+        // .route("/championship/:id/socket", get(session_socket))
+        // .route("/championship/:id/start", get(start_socket))
+        .route("/championship/:id/status", get(socket_status))
+        .route("/championship/:id/stop", get(stop_socket));
 
-    cfg.route("/heartbeat", get().to(heartbeat));
+    let championship_router = Router::new()
+        .route("/", post(create_championship))
+        .route("/all", get(all_championships))
+        .route("/:id", put(update_user))
+        .route("/:id/user/add", put(update_user))
+        .route("/:id/user/:user_id", delete(remove_user))
+        .nest("/web_socket", websocket_router)
+        .route_layer(auth_middleware.clone());
 
-    cfg.route("/web_socket/championship/{id}", get().to(session_socket));
+    Router::new()
+        .route("/heartbeat", get(heartbeat))
+        .nest("/auth", auth_router)
+        .nest("/user", user_router)
+        .nest("/championships", championship_router)
+        .nest("/intelli-app", app_router)
 }
