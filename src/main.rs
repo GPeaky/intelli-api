@@ -1,6 +1,6 @@
 mod cache;
 mod config;
-mod dtos;
+mod structs;
 mod entity;
 mod error;
 mod handlers;

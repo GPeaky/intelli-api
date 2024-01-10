@@ -4,7 +4,7 @@ use ntex::web::{
 };
 
 use crate::{
-    dtos::{EmailUser, EmailVerified, VerifyEmailParams},
+    structs::{EmailUser, EmailVerified, VerifyEmailParams},
     error::AppResult,
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,

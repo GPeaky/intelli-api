@@ -9,7 +9,7 @@ use tracing::info;
 use crate::{
     cache::RedisCache,
     config::Database,
-    dtos::{CreateChampionshipDto, UpdateChampionship},
+    structs::{CreateChampionshipDto, UpdateChampionship},
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
 };

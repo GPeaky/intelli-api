@@ -1,7 +1,7 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
-    dtos::{F123Data, PacketIds, SectorsLaps, SessionType},
+    structs::{F123Data, PacketIds, SectorsLaps, SessionType},
     error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,

@@ -1,7 +1,7 @@
 use tracing::warn;
 
 use crate::{
-    dtos::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
+    structs::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
     protos::event_data::event_data_details::Details,
 };
 

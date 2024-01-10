@@ -7,7 +7,7 @@ use lettre::{
 };
 use sailfish::TemplateOnce;
 
-use crate::{dtos::EmailUser, error::AppResult};
+use crate::{structs::EmailUser, error::AppResult};
 
 #[derive(Clone)]
 pub struct EmailService {

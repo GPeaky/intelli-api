@@ -3,7 +3,7 @@ use deadpool_redis::redis::AsyncCommands;
 use crate::error::CommonError;
 use crate::{
     config::{constants::*, Database},
-    dtos::TokenType,
+    structs::TokenType,
     error::AppResult,
 };
 

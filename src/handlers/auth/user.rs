@@ -6,7 +6,7 @@ use ntex::web::{
 };
 
 use crate::{
-    dtos::{
+    structs::{
         AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
         PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
         ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,

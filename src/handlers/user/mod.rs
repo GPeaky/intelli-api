@@ -4,7 +4,7 @@ use ntex::web::{types, HttpRequest, HttpResponse, Responder};
 pub(crate) use admin::*;
 
 use crate::{
-    dtos::{UpdateUser, UserData},
+    structs::{UpdateUser, UserData},
     entity::UserExtension,
     error::{AppResult, CommonError},
     services::UserServiceTrait,

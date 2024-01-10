@@ -7,7 +7,7 @@ use tracing::{error, info};
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    dtos::{RegisterUserDto, TokenType, UpdateUser},
+    structs::{RegisterUserDto, TokenType, UpdateUser},
     entity::{Provider, UserExtension},
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},

@@ -1,4 +1,4 @@
-use crate::dtos::PacketFinalClassificationData as BFinalClassificationData;
+use crate::structs::PacketFinalClassificationData as BFinalClassificationData;
 
 use super::ToProtoMessage;
 

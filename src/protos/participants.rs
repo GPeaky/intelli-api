@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use crate::dtos::PacketParticipantsData as BPacketParticipantsData;
+use crate::structs::PacketParticipantsData as BPacketParticipantsData;
 
 use super::ToProtoMessage;
 

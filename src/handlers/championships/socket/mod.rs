@@ -18,7 +18,7 @@ use ntex::{
 use tokio::sync::broadcast::Receiver;
 
 use crate::{
-    dtos::ChampionshipIdPath,
+    structs::ChampionshipIdPath,
     error::{AppResult, ChampionshipError, CommonError, SocketError},
     states::AppState,
 };

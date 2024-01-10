@@ -7,7 +7,7 @@ use ntex::web::{
 };
 
 use crate::{
-    dtos::{ChampionshipIdPath, SocketStatus},
+    structs::{ChampionshipIdPath, SocketStatus},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
 };

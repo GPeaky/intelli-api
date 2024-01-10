@@ -2,7 +2,7 @@ use dotenvy::var;
 
 use crate::{
     config::constants::*,
-    dtos::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
+    structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
     error::AppResult,
 };
 

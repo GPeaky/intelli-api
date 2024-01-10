@@ -5,7 +5,7 @@ use ntex::web::{
 
 use crate::{
     config::constants::*,
-    dtos::{GoogleCallbackQuery, TokenType},
+    structs::{GoogleCallbackQuery, TokenType},
     entity::Provider,
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,

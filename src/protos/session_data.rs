@@ -1,4 +1,4 @@
-use crate::dtos::PacketSessionData as BPacketSessionData;
+use crate::structs::PacketSessionData as BPacketSessionData;
 
 use super::ToProtoMessage;
 

@@ -1,5 +1,5 @@
 use crate::config::Database;
-use crate::dtos::DatabasesStatus;
+use crate::structs::DatabasesStatus;
 
 #[derive(Clone)]
 pub struct ServerRepository {

@@ -1,4 +1,4 @@
-use crate::dtos::PacketMotionData as BPacketMotionData;
+use crate::structs::PacketMotionData as BPacketMotionData;
 
 use super::ToProtoMessage;
 

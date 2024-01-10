@@ -5,7 +5,7 @@ use ntex::web::{
 };
 
 use crate::{
-    dtos::UserIdPath,
+    structs::UserIdPath,
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
