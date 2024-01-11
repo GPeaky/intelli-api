@@ -7,9 +7,9 @@ use ntex::web::{
 };
 
 use crate::{
-    structs::{ChampionshipIdPath, SocketStatus},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
+    structs::{ChampionshipIdPath, SocketStatus},
 };
 
 use super::counter::get;

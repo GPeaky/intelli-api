@@ -4,11 +4,11 @@ use ntex::web::{
 };
 
 use crate::{
-    structs::{EmailUser, EmailVerified, VerifyEmailParams},
     error::AppResult,
     repositories::UserRepositoryTrait,
     services::UserServiceTrait,
     states::AppState,
+    structs::{EmailUser, EmailVerified, VerifyEmailParams},
 };
 
 #[inline(always)]

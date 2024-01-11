@@ -1,6 +1,5 @@
 mod cache;
 mod config;
-mod structs;
 mod entity;
 mod error;
 mod handlers;
@@ -10,6 +9,7 @@ mod repositories;
 mod routes;
 mod services;
 mod states;
+mod structs;
 mod utils;
 
 use cache::RedisCache;

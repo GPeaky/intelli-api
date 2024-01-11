@@ -5,8 +5,8 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 
 use crate::{
     cache::RedisCache,
-    structs::{TokenClaim, TokenType},
     error::{AppResult, TokenError},
+    structs::{TokenClaim, TokenType},
 };
 
 #[derive(Clone)]

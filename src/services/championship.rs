@@ -9,9 +9,9 @@ use tracing::info;
 use crate::{
     cache::RedisCache,
     config::Database,
-    structs::{CreateChampionshipDto, UpdateChampionship},
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
+    structs::{CreateChampionshipDto, UpdateChampionship},
 };
 
 #[derive(Clone)]

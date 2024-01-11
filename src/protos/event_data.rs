@@ -1,8 +1,10 @@
 use tracing::warn;
 
 use crate::{
-    structs::{EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData},
     protos::event_data::event_data_details::Details,
+    structs::{
+        EventCode, EventDataDetails as BEventDataDetails, PacketEventData as BPacketEventData,
+    },
 };
 
 use super::ToProtoMessage;

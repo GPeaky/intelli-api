@@ -5,12 +5,12 @@ use ntex::web::{
 
 use crate::{
     config::constants::*,
-    structs::{GoogleCallbackQuery, TokenType},
     entity::Provider,
     error::{AppResult, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
+    structs::{GoogleCallbackQuery, TokenType},
 };
 
 pub async fn callback(

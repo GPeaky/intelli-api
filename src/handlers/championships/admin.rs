@@ -5,9 +5,9 @@ use ntex::web::{
 };
 
 use crate::{
-    structs::{ChampionshipIdPath, UserIdPath},
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
+    structs::{ChampionshipIdPath, UserIdPath},
 };
 
 #[inline(always)]

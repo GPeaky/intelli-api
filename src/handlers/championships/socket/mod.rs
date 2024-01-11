@@ -18,9 +18,9 @@ use ntex::{
 use tokio::sync::broadcast::Receiver;
 
 use crate::{
-    structs::ChampionshipIdPath,
     error::{AppResult, ChampionshipError, CommonError, SocketError},
     states::AppState,
+    structs::ChampionshipIdPath,
 };
 
 use self::counter::{decrement, increment};

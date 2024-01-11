@@ -9,13 +9,13 @@ pub(crate) use socket::*;
 pub(crate) use sockets::*;
 
 use crate::{
+    entity::{Role, UserExtension},
+    error::{AppResult, ChampionshipError, CommonError},
+    states::AppState,
     structs::{
         AddUser, ChampionshipAndUserIdPath, ChampionshipIdPath, CreateChampionshipDto,
         UpdateChampionship,
     },
-    entity::{Role, UserExtension},
-    error::{AppResult, ChampionshipError, CommonError},
-    states::AppState,
 };
 
 mod admin;

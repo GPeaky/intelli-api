@@ -2,8 +2,8 @@ use dotenvy::var;
 
 use crate::{
     config::constants::*,
-    structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
     error::AppResult,
+    structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
 };
 
 #[derive(Clone)]

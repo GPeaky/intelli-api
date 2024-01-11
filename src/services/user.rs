@@ -7,10 +7,10 @@ use tracing::{error, info};
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    structs::{RegisterUserDto, TokenType, UpdateUser},
     entity::{Provider, UserExtension},
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
+    structs::{RegisterUserDto, TokenType, UpdateUser},
 };
 
 use super::{TokenService, TokenServiceTrait};

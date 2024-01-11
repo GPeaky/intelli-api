@@ -3,8 +3,8 @@ use deadpool_redis::redis::AsyncCommands;
 use crate::error::CommonError;
 use crate::{
     config::{constants::*, Database},
-    structs::TokenType,
     error::AppResult,
+    structs::TokenType,
 };
 
 #[derive(Clone)]

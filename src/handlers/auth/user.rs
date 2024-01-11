@@ -6,16 +6,16 @@ use ntex::web::{
 };
 
 use crate::{
-    structs::{
-        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
-        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
-        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
-    },
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
     services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
+    structs::{
+        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
+        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
+        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
+    },
 };
 
 #[inline(always)]
@@ -43,10 +43,9 @@ pub(crate) async fn register(
 
     let save_email_fut = state.token_service.save_email_token(&token);
 
-    let send_email_fut =
-        state
-            .email_service
-            .send_mail((&*form).into(), "Verify Email", template);
+    let send_email_fut = state
+        .email_service
+        .send_mail((&*form).into(), "Verify Email", template);
 
     tokio::try_join!(save_email_fut, send_email_fut)?;
     Ok(HttpResponse::Ok())
@@ -56,7 +55,7 @@ pub(crate) async fn register(
 pub(crate) async fn login(
     state: State<AppState>,
     query: Query<FingerprintQuery>,
-    form: Form<LoginUserDto<'_>>,
+    form: Form<LoginUserDto>,
 ) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -89,8 +88,7 @@ pub(crate) async fn login(
         .token_service
         .generate_refresh_token(&user.id, &query.fingerprint);
 
-    let (access_token, refresh_token) =
-        tokio::try_join!(access_token_fut, refresh_token_fut)?;
+    let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
 
     let auth_response = &AuthResponse {
         access_token,
