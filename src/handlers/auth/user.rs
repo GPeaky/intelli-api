@@ -41,14 +41,14 @@ pub(crate) async fn register(
         ),
     };
 
-    let save_email_future = state.token_service.save_email_token(&token);
+    let save_email_fut = state.token_service.save_email_token(&token);
 
-    let send_email_future =
+    let send_email_fut =
         state
             .email_service
             .send_mail((&*form).into(), "Verify Email", template);
 
-    tokio::try_join!(save_email_future, send_email_future)?;
+    tokio::try_join!(save_email_fut, send_email_fut)?;
     Ok(HttpResponse::Ok())
 }
 
@@ -56,7 +56,7 @@ pub(crate) async fn register(
 pub(crate) async fn login(
     state: State<AppState>,
     query: Query<FingerprintQuery>,
-    form: Form<LoginUserDto>,
+    form: Form<LoginUserDto<'_>>,
 ) -> AppResult<impl Responder> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -81,16 +81,16 @@ pub(crate) async fn login(
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token_future = state
+    let access_token_fut = state
         .token_service
         .generate_token(user.id, TokenType::Bearer);
 
-    let refresh_token_future = state
+    let refresh_token_fut = state
         .token_service
         .generate_refresh_token(&user.id, &query.fingerprint);
 
     let (access_token, refresh_token) =
-        tokio::try_join!(access_token_future, refresh_token_future)?;
+        tokio::try_join!(access_token_fut, refresh_token_fut)?;
 
     let auth_response = &AuthResponse {
         access_token,
