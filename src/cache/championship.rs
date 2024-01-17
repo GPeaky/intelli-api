@@ -26,7 +26,7 @@ impl ChampionshipCache {
     }
 
     #[allow(unused)]
-    pub async fn get_all(&self, user_id: &i32) -> AppResult<Option<Vec<Championship>>> {
+    pub async fn get_all(&self, user_id: i32) -> AppResult<Option<Vec<Championship>>> {
         let entities: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
 
@@ -76,7 +76,7 @@ impl ChampionshipCache {
     }
 
     #[allow(unused)]
-    pub async fn set_all(&self, user_id: &i32, championships: &Vec<Championship>) -> AppResult<()> {
+    pub async fn set_all(&self, user_id: i32, championships: &Vec<Championship>) -> AppResult<()> {
         let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
             error!("Failed to serialize championships to cache");
             Err(CacheError::Serialize)?
@@ -95,7 +95,7 @@ impl ChampionshipCache {
     }
 
     #[inline(always)]
-    pub async fn delete_by_user_id(&self, user_id: &i32) -> AppResult<()> {
+    pub async fn delete_by_user_id(&self, user_id: i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
         conn.del(&format!(
@@ -109,7 +109,7 @@ impl ChampionshipCache {
 
     // Todo: Test the functionality of this method
     #[inline(always)]
-    pub async fn delete_all(&self, id: &i32, users: Vec<i32>) -> AppResult<()> {
+    pub async fn delete_all(&self, id: i32, users: Vec<i32>) -> AppResult<()> {
         let mut pipe = redis::pipe();
 
         users.iter().for_each(|user_id| {
@@ -134,7 +134,7 @@ impl EntityCache for ChampionshipCache {
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
     #[inline(always)]
-    async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
+    async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
             conn.get(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{id}"))
@@ -181,7 +181,7 @@ impl EntityCache for ChampionshipCache {
         Ok(())
     }
 
-    async fn delete(&self, id: &i32) -> AppResult<()> {
+    async fn delete(&self, id: i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
         let bytes: Option<Vec<u8>> = conn

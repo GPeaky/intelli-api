@@ -30,12 +30,12 @@ pub trait UserServiceTrait {
     fn new(db_conn: &Database, cache: &RedisCache) -> Self;
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
     async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()>;
-    async fn delete(&self, id: &i32) -> AppResult<()>;
-    async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()>;
+    async fn delete(&self, id: i32) -> AppResult<()>;
+    async fn reset_password(&self, id: i32, password: &str) -> AppResult<()>;
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
-    async fn activate(&self, id: &i32) -> AppResult<()>;
+    async fn activate(&self, id: i32) -> AppResult<()>;
     async fn activate_with_token(&self, token: &str) -> AppResult<i32>;
-    async fn deactivate(&self, id: &i32) -> AppResult<()>;
+    async fn deactivate(&self, id: i32) -> AppResult<()>;
 }
 
 #[async_trait]
@@ -149,7 +149,7 @@ impl UserServiceTrait for UserService {
         let conn = self.db_conn.pg.get().await?;
         let update_user_stmt = conn.prepare_cached(&query).await?;
 
-        let delete_cache_fut = self.cache.user.delete(&user.id);
+        let delete_cache_fut = self.cache.user.delete(user.id);
         let update_user_fut = async {
             conn.execute(&update_user_stmt, &params[..]).await?;
             Ok(())
@@ -159,7 +159,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn delete(&self, id: &i32) -> AppResult<()> {
+    async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
 
         let delete_users_relations_stmt_fut = conn.prepare_cached(
@@ -179,7 +179,7 @@ impl UserServiceTrait for UserService {
         let (delete_users_relations_stmt, delete_user_stmt) =
             tokio::try_join!(delete_users_relations_stmt_fut, delete_user_stmt_fut)?;
 
-        let binding: [&(dyn ToSql + Sync); 1] = [id];
+        let binding: [&(dyn ToSql + Sync); 1] = [&id];
         conn.execute(&delete_users_relations_stmt, &binding).await?;
 
         let user_deletion_fut = async {
@@ -194,7 +194,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
-    async fn reset_password(&self, id: &i32, password: &str) -> AppResult<()> {
+    async fn reset_password(&self, id: i32, password: &str) -> AppResult<()> {
         let Some(user) = self.user_repo.find(id).await? else {
             Err(UserError::NotFound)?
         };
@@ -215,7 +215,7 @@ impl UserServiceTrait for UserService {
             .await?;
 
         let hashed_password = hash(password, DEFAULT_COST)?;
-        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, id];
+        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
         let update_user_fut = async {
             conn.execute(&reset_password_stmt, &bindings).await?;
             Ok(())
@@ -244,7 +244,7 @@ impl UserServiceTrait for UserService {
             token_data.claims.sub
         };
 
-        self.reset_password(&user_id, password).await?;
+        self.reset_password(user_id, password).await?;
         self.cache
             .token
             .remove_token(token, &TokenType::ResetPassword)
@@ -253,7 +253,7 @@ impl UserServiceTrait for UserService {
         Ok(user_id)
     }
 
-    async fn activate(&self, id: &i32) -> AppResult<()> {
+    async fn activate(&self, id: i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
 
         let activate_user_stmt = conn
@@ -266,7 +266,7 @@ impl UserServiceTrait for UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
         let activate_user_fut = async {
             conn.execute(&activate_user_stmt, &bindings).await?;
             Ok(())
@@ -291,7 +291,7 @@ impl UserServiceTrait for UserService {
             token_data.claims.sub
         };
 
-        self.activate(&user_id).await?;
+        self.activate(user_id).await?;
         self.cache
             .token
             .remove_token(token, &TokenType::Email)
@@ -300,7 +300,7 @@ impl UserServiceTrait for UserService {
         Ok(user_id)
     }
 
-    async fn deactivate(&self, id: &i32) -> AppResult<()> {
+    async fn deactivate(&self, id: i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
         let deactivate_user_stmt = conn
             .prepare_cached(
@@ -312,7 +312,7 @@ impl UserServiceTrait for UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
         let delete_cache_fut = self.cache.user.delete(id);
         let deactivate_user_fut = async {
             conn.execute(&deactivate_user_stmt, &bindings).await?;

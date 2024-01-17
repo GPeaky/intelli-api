@@ -24,7 +24,7 @@ pub(crate) async fn user_data(
         .cloned()
         .ok_or(CommonError::InternalServerError)?;
 
-    let championships = state.championship_repository.find_all(&user.id).await?;
+    let championships = state.championship_repository.find_all(user.id).await?;
 
     Ok(HttpResponse::Ok().json(&UserData {
         user,

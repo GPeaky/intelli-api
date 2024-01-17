@@ -16,9 +16,9 @@ pub struct UserRepository {
 #[async_trait]
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Database, cache: &RedisCache) -> Self;
-    async fn find(&self, id: &i32) -> AppResult<Option<User>>;
+    async fn find(&self, id: i32) -> AppResult<Option<User>>;
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
-    async fn status(&self, id: &i32) -> AppResult<Option<bool>>;
+    async fn status(&self, id: i32) -> AppResult<Option<bool>>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     fn validate_password(&self, password: &str, hash: &str) -> AppResult<bool>;
 }
@@ -32,7 +32,7 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn find(&self, id: &i32) -> AppResult<Option<User>> {
+    async fn find(&self, id: i32) -> AppResult<Option<User>> {
         if let Some(user) = self.cache.user.get(id).await? {
             return Ok(Some(user));
         };
@@ -49,7 +49,7 @@ impl UserRepositoryTrait for UserRepository {
                 )
                 .await?;
 
-            conn.query_opt(&find_user_stmt, &[id]).await?
+            conn.query_opt(&find_user_stmt, &[&id]).await?
         };
 
         if let Some(row) = row {
@@ -89,7 +89,7 @@ impl UserRepositoryTrait for UserRepository {
         Ok(row.is_some())
     }
 
-    async fn status(&self, id: &i32) -> AppResult<Option<bool>> {
+    async fn status(&self, id: i32) -> AppResult<Option<bool>> {
         let row = {
             let conn = self.db_conn.pg.get().await?;
 
@@ -102,7 +102,7 @@ impl UserRepositoryTrait for UserRepository {
                 )
                 .await?;
 
-            conn.query_opt(&user_status_stmt, &[id]).await?
+            conn.query_opt(&user_status_stmt, &[&id]).await?
         };
 
         if let Some(row) = row {

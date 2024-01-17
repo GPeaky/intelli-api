@@ -17,7 +17,7 @@ pub async fn verify_email(
     query: Query<VerifyEmailParams>,
 ) -> AppResult<impl Responder> {
     let user_id = state.user_service.activate_with_token(&query.token).await?;
-    let user = state.user_repository.find(&user_id).await?.unwrap();
+    let user = state.user_repository.find(user_id).await?.unwrap();
 
     let template = EmailVerified {};
     let email_user = EmailUser {

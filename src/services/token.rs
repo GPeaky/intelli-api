@@ -25,8 +25,8 @@ pub trait TokenServiceTrait {
     async fn save_reset_password_token(&self, token: &str) -> AppResult<()>;
     async fn save_email_token(&self, token: &str) -> AppResult<()>;
     async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String>;
-    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()>;
-    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String>;
+    async fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<()>;
+    async fn generate_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String>;
     async fn refresh_access_token(
         &self,
         refresh_token: &str,
@@ -79,16 +79,16 @@ impl TokenServiceTrait for TokenService {
             .map_err(|e| TokenError::TokenCreationError(e.to_string()).into())
     }
 
-    async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()> {
+    async fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<()> {
         self.cache
             .token
             .remove_refresh_token(user_id, fingerprint)
             .await
     }
 
-    async fn generate_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String> {
+    async fn generate_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
         let token = self
-            .generate_token(*user_id, TokenType::RefreshBearer)
+            .generate_token(user_id, TokenType::RefreshBearer)
             .await?;
 
         self.cache
@@ -114,7 +114,7 @@ impl TokenServiceTrait for TokenService {
             token.claims.sub
         };
 
-        let db_token = self.cache.token.get_refresh_token(&id, fingerprint).await?;
+        let db_token = self.cache.token.get_refresh_token(id, fingerprint).await?;
 
         if db_token != refresh_token {
             Err(TokenError::InvalidToken)?

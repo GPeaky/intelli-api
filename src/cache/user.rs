@@ -53,7 +53,7 @@ impl EntityCache for UserCache {
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
     #[inline(always)]
-    async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>> {
+    async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
             conn.get(&format!("{REDIS_USER_PREFIX}:{ID}:{}", id))
@@ -101,7 +101,7 @@ impl EntityCache for UserCache {
     }
 
     #[inline(always)]
-    async fn delete(&self, id: &i32) -> AppResult<()> {
+    async fn delete(&self, id: i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
         let bytes: Option<Vec<u8>> = conn

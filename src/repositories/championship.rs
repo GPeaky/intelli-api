@@ -39,7 +39,7 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
-    pub async fn find(&self, id: &i32) -> AppResult<Option<Championship>> {
+    pub async fn find(&self, id: i32) -> AppResult<Option<Championship>> {
         if let Some(championship) = self.cache.championship.get(id).await? {
             return Ok(Some(championship));
         };
@@ -56,7 +56,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query_opt(&find_championship_stmt, &[id]).await?
+            conn.query_opt(&find_championship_stmt, &[&id]).await?
         };
 
         if let Some(row) = row {
@@ -98,7 +98,7 @@ impl ChampionshipRepository {
         Ok(None)
     }
 
-    pub async fn find_all(&self, user_id: &i32) -> AppResult<Vec<Championship>> {
+    pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Championship>> {
         if let Some(championships) = self.cache.championship.get_all(user_id).await? {
             return Ok(championships);
         };
@@ -117,7 +117,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&find_all_stmt, &[user_id]).await?
+            conn.query(&find_all_stmt, &[&user_id]).await?
         };
 
         let championships = rows
@@ -133,7 +133,7 @@ impl ChampionshipRepository {
         Ok(championships)
     }
 
-    pub async fn users(&self, id: &i32) -> AppResult<Vec<i32>> {
+    pub async fn users(&self, id: i32) -> AppResult<Vec<i32>> {
         let rows = {
             let conn = self.database.pg.get().await?;
 
@@ -146,7 +146,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&championship_users_stmt, &[id]).await?
+            conn.query(&championship_users_stmt, &[&id]).await?
         };
 
         let users = rows.iter().map(|row| row.get("user_id")).collect();
@@ -154,7 +154,7 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
-    pub async fn championship_len(&self, user_id: &i32) -> AppResult<usize> {
+    pub async fn championship_len(&self, user_id: i32) -> AppResult<usize> {
         let rows = {
             let conn = self.database.pg.get().await?;
 
@@ -173,7 +173,7 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&championship_len_stmt, &[user_id]).await?
+            conn.query(&championship_len_stmt, &[&user_id]).await?
         };
 
         Ok(rows.len())

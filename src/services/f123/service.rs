@@ -47,18 +47,18 @@ impl F123Service {
         sockets.keys().copied().collect()
     }
 
-    pub async fn is_championship_socket_active(&self, id: &i32) -> bool {
+    pub async fn is_championship_socket_active(&self, id: i32) -> bool {
         let sockets = self.sockets.read();
-        sockets.contains_key(id)
+        sockets.contains_key(&id)
     }
 
     #[allow(unused)]
     pub async fn subscribe_to_championship_events(
         &self,
-        championship_id: &i32,
+        championship_id: i32,
     ) -> Option<Receiver<ChanelData>> {
         let channels = self.channels.read();
-        let Some(channel) = channels.get(championship_id) else {
+        let Some(channel) = channels.get(&championship_id) else {
             return None;
         };
 
@@ -87,7 +87,7 @@ impl F123Service {
     pub async fn setup_championship_listening_socket(
         &self,
         port: i32,
-        championship_id: Arc<i32>,
+        championship_id: i32,
     ) -> AppResult<()> {
         let mut sockets = self.sockets.upgradable_read();
 
@@ -100,12 +100,10 @@ impl F123Service {
             }
         }
 
-        let socket = self
-            .start_listening_on_socket(port, championship_id.clone())
-            .await;
+        let socket = self.start_listening_on_socket(port, championship_id).await;
 
         sockets.with_upgraded(|sockets| {
-            sockets.insert(*championship_id, socket);
+            sockets.insert(championship_id, socket);
         });
 
         Ok(())
@@ -114,7 +112,7 @@ impl F123Service {
     async fn internal_close(
         channels: &Channels,
         sockets: &Sockets,
-        championship_id: &i32,
+        championship_id: i32,
         firewall: &FirewallService,
     ) -> AppResult<()> {
         firewall.close(championship_id).await?;
@@ -122,8 +120,8 @@ impl F123Service {
         let mut sockets = sockets.write();
         let mut channels = channels.write();
 
-        sockets.remove(championship_id);
-        channels.remove(championship_id);
+        sockets.remove(&championship_id);
+        channels.remove(&championship_id);
 
         Ok(())
     }
@@ -131,7 +129,7 @@ impl F123Service {
     async fn start_listening_on_socket(
         &self,
         port: i32,
-        championship_id: Arc<i32>,
+        championship_id: i32,
     ) -> JoinHandle<AppResult<()>> {
         let db = self.db_conn.clone();
         let firewall = self.firewall.clone();
@@ -146,7 +144,7 @@ impl F123Service {
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
             let close_socket =
-                Self::internal_close(&channels, &sockets, &championship_id, &firewall);
+                Self::internal_close(&channels, &sockets, championship_id, &firewall);
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
@@ -156,7 +154,7 @@ impl F123Service {
             // Todo: Instead of having an external counter use `tx.receiver_count()` to get the active open connections
             let (tx, _) = channel::<ChanelData>(100);
 
-            let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), *championship_id);
+            let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
@@ -168,10 +166,10 @@ impl F123Service {
 
             {
                 let mut channels = channels.write();
-                channels.insert(*championship_id, Arc::new(tx));
+                channels.insert(championship_id, Arc::new(tx));
             }
 
-            firewall.open(*championship_id, port).await?;
+            firewall.open(championship_id, port).await?;
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
@@ -180,7 +178,7 @@ impl F123Service {
 
                         if !port_partial_open {
                             firewall
-                                .open_partially(*championship_id, address.ip())
+                                .open_partially(championship_id, address.ip())
                                 .await?;
 
                             port_partial_open = true;

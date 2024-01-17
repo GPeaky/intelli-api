@@ -62,7 +62,7 @@ impl TokenCache {
     }
 
     #[inline(always)]
-    pub async fn get_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<String> {
+    pub async fn get_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
         let mut conn = self.db.redis.get().await?;
 
         let token = conn
@@ -88,7 +88,7 @@ impl TokenCache {
     }
 
     #[inline(always)]
-    pub async fn remove_refresh_token(&self, user_id: &i32, fingerprint: &str) -> AppResult<()> {
+    pub async fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
         conn.del(&format!(

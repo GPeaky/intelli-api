@@ -42,7 +42,7 @@ impl ChampionshipService {
         }
     }
 
-    pub async fn create(&self, payload: CreateChampionshipDto, user_id: &i32) -> AppResult<()> {
+    pub async fn create(&self, payload: CreateChampionshipDto, user_id: i32) -> AppResult<()> {
         let port = self.get_port().await?;
         let id = fastrand::i32(700000000..799999999);
 
@@ -85,12 +85,12 @@ impl ChampionshipService {
                     &payload.name,
                     &payload.category,
                     &payload.season,
-                    user_id,
+                    &user_id,
                 ],
             )
             .await?;
 
-            conn.execute(&relate_user_with_championship_stmt, &[user_id, &id])
+            conn.execute(&relate_user_with_championship_stmt, &[&user_id, &id])
                 .await?;
         }
 
@@ -102,12 +102,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn update(
-        &self,
-        id: &i32,
-        user_id: &i32,
-        form: &UpdateChampionship,
-    ) -> AppResult<()> {
+    pub async fn update(&self, id: i32, user_id: i32, form: &UpdateChampionship) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
@@ -118,7 +113,7 @@ impl ChampionshipService {
                 Err(ChampionshipError::IntervalNotReached)?
             };
 
-            if championship.owner_id != *user_id {
+            if championship.owner_id != user_id {
                 Err(ChampionshipError::NotOwner)?
             }
         }
@@ -148,11 +143,11 @@ impl ChampionshipService {
             }
 
             write(&mut query, &mut counter, "WHERE id");
-            params.push(id);
+            params.push(&id);
 
             // Check if owner_id is the same as user_id
             write(&mut query, &mut counter, "AND owner_id");
-            params.push(user_id);
+            params.push(&user_id);
 
             (query, params)
         };
@@ -171,14 +166,14 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn add_user(&self, id: &i32, user_id: &i32, bind_user_email: &str) -> AppResult<()> {
+    pub async fn add_user(&self, id: i32, user_id: i32, bind_user_email: &str) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
             };
 
-            if championship.owner_id != *user_id {
+            if championship.owner_id != user_id {
                 Err(ChampionshipError::NotOwner)?
             }
         }
@@ -203,33 +198,28 @@ impl ChampionshipService {
             .await?;
 
         let add_user_fut = async {
-            let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, id];
+            let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, &id];
             conn.execute(&add_user_stmt, &bindings).await?;
             Ok(())
         };
 
-        let delete_user_cache_fut = self.cache.championship.delete_by_user_id(&new_user_id);
+        let delete_user_cache_fut = self.cache.championship.delete_by_user_id(new_user_id);
         tokio::try_join!(add_user_fut, delete_user_cache_fut)?;
         Ok(())
     }
 
-    pub async fn remove_user(
-        &self,
-        id: &i32,
-        user_id: &i32,
-        remove_user_id: &i32,
-    ) -> AppResult<()> {
+    pub async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repository.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
             };
 
-            if championship.owner_id != *user_id {
+            if championship.owner_id != user_id {
                 Err(ChampionshipError::NotOwner)?
             }
 
-            if championship.owner_id == *remove_user_id {
+            if championship.owner_id == remove_user_id {
                 Err(ChampionshipError::CannotRemoveOwner)?
             }
         }
@@ -249,7 +239,7 @@ impl ChampionshipService {
             .await?;
 
         let remove_user_fut = async {
-            let bindings: [&(dyn ToSql + Sync); 2] = [remove_user_id, id];
+            let bindings: [&(dyn ToSql + Sync); 2] = [&remove_user_id, &id];
             conn.execute(&remove_user_stmt, &bindings).await?;
             Ok(())
         };
@@ -259,7 +249,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    pub async fn delete(&self, id: &i32) -> AppResult<()> {
+    pub async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
         let delete_championship_relations_stmt_fut = conn.prepare_cached(
@@ -274,7 +264,7 @@ impl ChampionshipService {
             "#,
         );
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [id];
+        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
         let (delete_championship_relations_stmt, delete_championship_stmt) = tokio::try_join!(
             delete_championship_relations_stmt_fut,
             delete_championship_stmt_fut

@@ -19,18 +19,18 @@ pub fn increment(id: i32) {
     }
 }
 
-pub fn decrement(id: i32) {
+pub fn decrement(id: &i32) {
     let counter = COUNTER.read();
 
-    if let Some(counter) = counter.get(&id) {
+    if let Some(counter) = counter.get(id) {
         counter.fetch_sub(1, Ordering::SeqCst);
     }
 }
 
-pub fn get(id: i32) -> Option<usize> {
+pub fn get(id: &i32) -> Option<usize> {
     let counter = COUNTER.read();
 
     counter
-        .get(&id)
+        .get(id)
         .map(|counter| counter.load(Ordering::SeqCst))
 }

@@ -36,7 +36,7 @@ impl FirewallService {
         }
     }
 
-    async fn rule_exists(&self, id: &i32) -> bool {
+    async fn rule_exists(&self, id: i32) -> bool {
         // #[cfg(target_os = "linux")]
         // {
         //     let rules = self.rules.read().await;
@@ -141,7 +141,7 @@ impl FirewallService {
         Ok(())
     }
 
-    pub async fn close(&self, id: &i32) -> AppResult<()> {
+    pub async fn close(&self, id: i32) -> AppResult<()> {
         // #[cfg(target_os = "linux")]
         // {
         //     let (port, firewall_type, address);

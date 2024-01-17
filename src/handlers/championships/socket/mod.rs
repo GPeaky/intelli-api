@@ -37,13 +37,13 @@ pub async fn session_socket(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(&path.id).await? else {
+    let Some(championship) = state.championship_repository.find(path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     let socket_active = state
         .f123_service
-        .is_championship_socket_active(&championship.id)
+        .is_championship_socket_active(championship.id)
         .await;
 
     if !socket_active {
@@ -68,7 +68,7 @@ async fn web_socket(
     {
         let cache = state
             .f123_repository
-            .get_cache_data(&championship_id)
+            .get_cache_data(championship_id)
             .await?;
 
         if let Some(data) = cache {
@@ -80,7 +80,7 @@ async fn web_socket(
 
     let Some(rx) = state
         .f123_service
-        .subscribe_to_championship_events(&championship_id)
+        .subscribe_to_championship_events(championship_id)
         .await
     else {
         return Err(SocketError::NotFound.into());
@@ -92,7 +92,7 @@ async fn web_socket(
     let service = fn_service(move |_| ready(Ok(None)));
 
     let on_shutdown = fn_shutdown(move || {
-        decrement(championship_id);
+        decrement(&championship_id);
         let _ = tx.send(());
     });
 

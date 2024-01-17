@@ -19,7 +19,7 @@ impl F123Repository {
     }
 
     // Todo: implement mini cache in memory for last data cached (Interval 3 seconds)
-    pub async fn get_cache_data(&self, id: &i32) -> AppResult<Option<Vec<u8>>> {
+    pub async fn get_cache_data(&self, id: i32) -> AppResult<Option<Vec<u8>>> {
         let mut conn = self.database.redis.get().await?;
         let data: Option<Vec<u8>> = conn.get(&format!("{REDIS_F123_PREFIX}:{id}:cache")).await?;
 

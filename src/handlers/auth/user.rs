@@ -86,7 +86,7 @@ pub(crate) async fn login(
 
     let refresh_token_fut = state
         .token_service
-        .generate_refresh_token(&user.id, &query.fingerprint);
+        .generate_refresh_token(user.id, &query.fingerprint);
 
     let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
 
@@ -127,7 +127,7 @@ pub(crate) async fn logout(
 
     state
         .token_service
-        .remove_refresh_token(&user_id, &query.fingerprint)
+        .remove_refresh_token(user_id, &query.fingerprint)
         .await?;
 
     Ok(HttpResponse::Ok())
@@ -192,7 +192,7 @@ pub async fn reset_password(
         .reset_password_with_token(&query.token, &form.password)
         .await?;
 
-    let Some(user) = state.user_repository.find(&user_id).await? else {
+    let Some(user) = state.user_repository.find(user_id).await? else {
         Err(UserError::NotFound)?
     };
 

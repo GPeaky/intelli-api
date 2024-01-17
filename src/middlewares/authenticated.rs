@@ -65,7 +65,7 @@ where
         let id = state.token_service.validate(&header)?.claims.sub;
         let user = state
             .user_repository
-            .find(&id)
+            .find(id)
             .await?
             .ok_or(UserError::NotFound)?;
 

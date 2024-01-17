@@ -36,7 +36,7 @@ pub async fn callback(
         None => {
             let id = state.user_service.create(&google_user.into()).await?;
 
-            if let Some(user) = state.user_repository.find(&id).await? {
+            if let Some(user) = state.user_repository.find(id).await? {
                 user
             } else {
                 Err(UserError::NotFound)?
@@ -50,7 +50,7 @@ pub async fn callback(
 
     let refresh_token_fut = state
         .token_service
-        .generate_refresh_token(&user.id, "google");
+        .generate_refresh_token(user.id, "google");
 
     let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
 

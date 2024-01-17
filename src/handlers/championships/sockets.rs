@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use garde::Validate;
 use ntex::web::{
     types::{Path, State},
@@ -29,13 +27,13 @@ pub async fn start_socket(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(&path.id).await? else {
+    let Some(championship) = state.championship_repository.find(path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     state
         .f123_service
-        .setup_championship_listening_socket(championship.port, Arc::new(championship.id))
+        .setup_championship_listening_socket(championship.port, championship.id)
         .await?;
 
     Ok(HttpResponse::Created())
@@ -50,18 +48,18 @@ pub async fn socket_status(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(&path.id).await? else {
+    let Some(championship) = state.championship_repository.find(path.id).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     let mut num_connections = 0;
     let socket_active = state
         .f123_service
-        .is_championship_socket_active(&championship.id)
+        .is_championship_socket_active(championship.id)
         .await;
 
     if socket_active {
-        if let Some(count) = get(path.id) {
+        if let Some(count) = get(&path.id) {
             num_connections = count;
         };
     }

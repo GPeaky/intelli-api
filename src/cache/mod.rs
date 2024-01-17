@@ -37,7 +37,7 @@ pub trait EntityCache {
     type Entity;
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
-    async fn get(&self, id: &i32) -> AppResult<Option<Self::Entity>>;
+    async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>>;
     async fn set(&self, entity: &Self::Entity) -> AppResult<()>;
-    async fn delete(&self, id: &i32) -> AppResult<()>;
+    async fn delete(&self, id: i32) -> AppResult<()>;
 }
