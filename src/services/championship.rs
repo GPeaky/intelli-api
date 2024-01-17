@@ -12,6 +12,7 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
     structs::{CreateChampionshipDto, UpdateChampionship},
+    utils::write,
 };
 
 #[derive(Clone)]
@@ -123,49 +124,34 @@ impl ChampionshipService {
         }
 
         let (query, params) = {
-            let mut counter = 1;
-            let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
+            let mut counter = 1u8;
+            let mut params: Vec<&(dyn ToSql + Sync)> = Vec::with_capacity(5);
             let mut query = String::from("UPDATE championship SET ");
 
             if let Some(name) = &form.name {
-                if counter > 1 {
-                    query.push(',');
-                }
-
-                query.push_str(&format!(" name = ${}", counter));
+                write(&mut query, &mut counter, "name");
                 params.push(name);
-                counter += 1;
             }
 
             if let Some(category) = &form.category {
-                if counter > 1 {
-                    query.push(',');
-                }
-
-                query.push_str(&format!(" category = ${}", counter));
+                write(&mut query, &mut counter, "category");
                 params.push(category);
-                counter += 1;
             }
 
             if let Some(season) = &form.season {
-                if counter > 1 {
-                    query.push(',');
-                }
-
-                query.push_str(&format!(" season = ${}", counter));
+                write(&mut query, &mut counter, "season");
                 params.push(season);
-                counter += 1;
             }
 
             if counter == 1 {
                 Err(CommonError::NotValidUpdate)?
             }
 
-            query.push_str(&format!(" WHERE id = ${}", counter));
+            write(&mut query, &mut counter, "WHERE id");
             params.push(id);
 
             // Check if owner_id is the same as user_id
-            query.push_str(&format!(" AND owner_id = ${}", counter + 1));
+            write(&mut query, &mut counter, "AND owner_id");
             params.push(user_id);
 
             (query, params)

@@ -11,6 +11,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
     structs::{RegisterUserDto, TokenType, UpdateUser},
+    utils::write,
 };
 
 use super::{TokenService, TokenServiceTrait};
@@ -121,35 +122,25 @@ impl UserServiceTrait for UserService {
         }
 
         let (query, params) = {
-            let mut counter = 1;
+            let mut counter = 1u8;
             let mut query = String::from("UPDATE users SET");
-            let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
+            let mut params: Vec<&(dyn ToSql + Sync)> = Vec::with_capacity(3);
 
             if let Some(username) = &form.username {
-                if counter > 1 {
-                    query.push(',');
-                }
-
-                query.push_str(&format!(" username = ${counter}"));
+                write(&mut query, &mut counter, "username");
                 params.push(username);
-                counter += 1;
             }
 
             if let Some(avatar) = &form.avatar {
-                if counter > 1 {
-                    query.push(',');
-                }
-
-                query.push_str(&format!(" avatar = ${counter}"));
+                write(&mut query, &mut counter, "avatar");
                 params.push(avatar);
-                counter += 1;
             }
 
             if counter == 1 {
                 Err(UserError::InvalidUpdate)?
             }
 
-            query.push_str(&format!(" WHERE id = ${}", counter));
+            write(&mut query, &mut counter, "WHERE id");
             params.push(&user.id);
 
             (query, params)
