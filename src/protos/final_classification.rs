@@ -12,7 +12,7 @@ impl ToProtoMessage for BFinalClassificationData {
             num_cars: self.num_cars as u32,
             classification_data: self
                 .classification_data
-                .iter()
+                .into_iter()
                 .map(|data| FinalClassificationData {
                     position: data.position as u32,
                     num_laps: data.num_laps as u32,
@@ -25,12 +25,20 @@ impl ToProtoMessage for BFinalClassificationData {
                     penalties_time: data.penalties_time as u32,
                     num_penalties: data.num_penalties as u32,
                     num_tyre_stints: data.num_tyre_stints as u32,
-                    tyre_stints_actual: data.tyre_stints_actual.iter().map(|&x| x as u32).collect(),
-                    tyre_stints_visual: data.tyre_stints_visual.iter().map(|&x| x as u32).collect(),
+                    tyre_stints_actual: data
+                        .tyre_stints_actual
+                        .into_iter()
+                        .map(|x| x as u32)
+                        .collect(),
+                    tyre_stints_visual: data
+                        .tyre_stints_visual
+                        .into_iter()
+                        .map(|x| x as u32)
+                        .collect(),
                     tyre_stints_end_laps: data
                         .tyre_stints_end_laps
-                        .iter()
-                        .map(|&x| x as u32)
+                        .into_iter()
+                        .map(|x| x as u32)
                         .collect(),
                 })
                 .collect(),

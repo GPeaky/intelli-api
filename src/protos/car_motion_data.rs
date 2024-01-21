@@ -11,7 +11,7 @@ impl ToProtoMessage for BPacketMotionData {
         Some(PacketMotionData {
             car_motion_data: self
                 .car_motion_data
-                .iter()
+                .into_iter()
                 .map(|value| CarMotionData {
                     world_position_x: value.world_position_x,
                     world_position_y: value.world_position_y,

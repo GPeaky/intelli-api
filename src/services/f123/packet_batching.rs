@@ -39,8 +39,8 @@ impl PacketBatching {
     #[inline(always)]
     pub async fn final_send(&mut self, packet: PacketHeader) -> AppResult<()> {
         self.buf.push(packet);
-
         let buf = self.buf.drain(..).collect::<Vec<_>>();
+
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             self.cache.prune().await?;
             let encoded_batch = Self::compress(&batch).await.unwrap();
@@ -85,7 +85,6 @@ impl PacketBatching {
     // This method is used to compress the batched data
     #[inline(always)]
     async fn compress(data: &[u8]) -> Result<Bytes, Box<dyn std::error::Error>> {
-        // todo: Decide between level 3 or 9 for compression 280us(level3) vs 1ms(level9)
         let compressed_data: Vec<u8> = zstd::stream::encode_all(data, 9).unwrap();
         Ok(Bytes::from(compressed_data))
     }

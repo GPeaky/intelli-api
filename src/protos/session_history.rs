@@ -18,7 +18,7 @@ impl ToProtoMessage for BPacketSessionHistoryData {
             best_sector3_lap_num: self.best_sector3_lap_num as u32,
             lap_history_data: self
                 .lap_history_data
-                .iter()
+                .into_iter()
                 .take_while(|lap| lap.sector1_time_in_ms > 0)
                 .map(|lap| LapHistoryData {
                     lap_time_in_ms: lap.lap_time_in_ms,
@@ -31,7 +31,7 @@ impl ToProtoMessage for BPacketSessionHistoryData {
 
             tyre_stints_history_data: self
                 .tyre_stints_history_data
-                .iter()
+                .into_iter()
                 .take_while(|stint| stint.tyre_actual_compound > 0)
                 .map(|stint| TyreStintHistoryData {
                     end_lap: stint.end_lap as u32,

@@ -37,8 +37,8 @@ impl F123Service {
         Self {
             db_conn: db_conn.clone(),
             firewall: firewall_service,
-            channels: Arc::new(RwLock::new(AHashMap::default())),
-            sockets: Arc::new(RwLock::new(AHashMap::default())),
+            channels: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
+            sockets: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
         }
     }
 
