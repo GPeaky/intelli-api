@@ -22,6 +22,7 @@ RUN RUSTFLAGS="-C link-arg=-fuse-ld=mold -C target-cpu=native" cargo build --rel
 # Etapa final
 FROM fedora:latest
 
+COPY --from=builder /usr/src/intelli/certs /usr/local/bin/certs
 COPY --from=builder /usr/src/intelli/target/release/intelli /usr/local/bin/intelli
 
 CMD ["intelli"]
