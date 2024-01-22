@@ -159,6 +159,7 @@ impl UserServiceTrait for UserService {
         Ok(())
     }
 
+    // Todo: Create a column "deleted" in users table and update it instead of delete
     async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db_conn.pg.get().await?;
 
