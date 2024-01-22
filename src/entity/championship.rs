@@ -9,7 +9,7 @@ use crate::error::AppResult;
 use super::FromRow;
 
 #[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
-#[postgres(name = "category")]
+#[postgres(name = "championship_category")]
 pub enum Category {
     #[postgres(name = "F1")]
     F1,

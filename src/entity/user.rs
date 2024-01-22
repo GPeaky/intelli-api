@@ -15,7 +15,7 @@ pub type UserExtension = Arc<User>;
 #[derive(
     Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql,
 )]
-#[postgres(name = "provider")]
+#[postgres(name = "user_provider")]
 pub enum Provider {
     #[postgres(name = "Local")]
     Local,
@@ -24,7 +24,7 @@ pub enum Provider {
 }
 
 #[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql)]
-#[postgres(name = "role")]
+#[postgres(name = "user_role")]
 pub enum Role {
     #[postgres(name = "Free")]
     Free,

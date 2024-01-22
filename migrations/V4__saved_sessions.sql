@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE saved_sessions(
     id INTEGER NOT NULL PRIMARY KEY,
     events BYTEA NOT NULL,

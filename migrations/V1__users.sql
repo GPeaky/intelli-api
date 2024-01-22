@@ -1,8 +1,7 @@
 -- Add migration script here
+CREATE TYPE user_provider AS ENUM ('Local', 'Google');
 
-CREATE TYPE provider AS ENUM ('Local', 'Google');
-
-CREATE TYPE role AS ENUM ('Free', 'Premium', 'Business', 'Admin');
+CREATE TYPE user_role AS ENUM ('Free', 'Premium', 'Business', 'Admin');
 
 CREATE TABLE
     users (
@@ -11,8 +10,8 @@ CREATE TABLE
         username VARCHAR(50) NOT NULL,
         password VARCHAR(255),
         avatar VARCHAR(100) NOT NULL,
-        provider provider NOT NULL DEFAULT 'Local',
-        role role NOT NULL DEFAULT 'Free',
+        provider user_provider NOT NULL DEFAULT 'Local',
+        role user_role NOT NULL DEFAULT 'Free',
         active BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

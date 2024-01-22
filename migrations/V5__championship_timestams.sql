@@ -9,4 +9,4 @@ END;
 CREATE TRIGGER trigger_update_timestamp_championship
 BEFORE UPDATE ON championship
 FOR EACH ROW
-EXECUTE FUNCTION update_timestamp_championships();
+EXECUTE FUNCTION update_timestamp_championship(); -- Corrected function name

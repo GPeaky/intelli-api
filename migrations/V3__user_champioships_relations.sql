@@ -1,7 +1,3 @@
--- Add migration script here
-
--- intelli.user_championships definition
-
 CREATE TABLE
     user_championships (
         user_id INTEGER NOT NULL,
@@ -10,3 +6,7 @@ CREATE TABLE
         FOREIGN KEY (user_id) REFERENCES "users" (id),
         FOREIGN KEY (championship_id) REFERENCES championship (id)
     );
+
+CREATE INDEX ON "championship" ("id");
+CREATE UNIQUE INDEX ON "championship" ("name");
+CREATE INDEX ON "users" ("id");
