@@ -1,4 +1,5 @@
-FROM fedora:latest
+# Etapa de construcción
+FROM fedora:latest as builder
 
 WORKDIR /usr/src/intelli
 COPY . .
@@ -16,8 +17,11 @@ RUN rustup update nightly && \
     rustup default nightly
 
 RUN cargo fetch
-
 RUN RUSTFLAGS="-C link-arg=-fuse-ld=mold -C target-cpu=native" cargo build --release
-RUN ["cp", "./target/release/intelli", "/usr/local/bin/intelli"]
+
+# Etapa final
+FROM fedora:latest
+
+COPY --from=builder /usr/src/intelli/target/release/intelli /usr/local/bin/intelli
 
 CMD ["intelli"]
