@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TYPE user_provider AS ENUM ('Local', 'Google');
 
 CREATE TYPE user_role AS ENUM ('Free', 'Premium', 'Business', 'Admin');

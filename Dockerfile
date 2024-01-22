@@ -1,10 +1,11 @@
 FROM fedora:latest
+
 WORKDIR /usr/src/intelli
 COPY . .
 
 RUN dnf -y update && \
-    dnf -y install openssl-devel ca-certificates pkgconfig protobuf-compiler mold && \
-    dnf clean all 
+    dnf -y install openssl-devel ca-certificates pkgconfig protobuf-compiler mold git && \
+    dnf clean all
 
 RUN dnf -y groupinstall "Development Tools" && \
     dnf clean all

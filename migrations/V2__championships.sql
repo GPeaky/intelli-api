@@ -1,5 +1,3 @@
--- Add migration script here
-
 CREATE TYPE championship_category AS ENUM ('F1', 'F2');
 
 CREATE TABLE

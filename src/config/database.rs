@@ -3,12 +3,10 @@ use std::{ops::DerefMut, str::FromStr};
 use deadpool_postgres::tokio_postgres::{Config, NoTls};
 use deadpool_redis::{Config as RedisConfig, PoolConfig, Runtime};
 use dotenvy::var;
+use refinery::embed_migrations;
 use tracing::info;
 
-mod embedded {
-    use refinery::embed_migrations;
-    embed_migrations!("migrations");
-}
+embed_migrations!("migrations");
 
 #[derive(Clone)]
 pub struct Database {
@@ -38,11 +36,7 @@ impl Database {
         {
             let mut conn = pg.get().await.unwrap();
             let client = conn.deref_mut().deref_mut();
-
-            embedded::migrations::runner()
-                .run_async(client)
-                .await
-                .unwrap();
+            migrations::runner().run_async(client).await.unwrap();
         }
 
         let redis = {
