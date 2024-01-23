@@ -3,7 +3,7 @@ WORKDIR /usr/src/intelli
 COPY . .
 
 RUN dnf -y update && \
-    dnf -y install openssl-devel ca-certificates pkgconfig protobuf-compiler mold git && \
+    dnf -y install openssl-devel ca-certificates pkgconfig protobuf-compiler mold mimalloc && \
     dnf clean all
 
 RUN dnf -y groupinstall "Development Tools" && \
