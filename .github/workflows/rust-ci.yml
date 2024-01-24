@@ -26,9 +26,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
-      - name: Update Rust
-        run: rustup update
-
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
 
@@ -57,7 +54,7 @@ jobs:
           cargo miri setup
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@master
 
       - name: Test with Miri
         run: cargo miri test
@@ -79,9 +76,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: clippy, rustfmt
-
-      - name: Update Rust
-        run: rustup update
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
