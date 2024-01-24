@@ -46,7 +46,7 @@ Installation Command
 git clone https://github.com/GPeaky/intelli-api.git
 ```
 
-You ned a .env to run the project. This is an example of what that .env should have
+You need a .env to run the project. This is an example of what that .env should have
 
 ```env
 HOST=
