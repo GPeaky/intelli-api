@@ -47,7 +47,7 @@ pub(crate) async fn register(
         .email_service
         .send_mail((&*form).into(), "Verify Email", template)?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Created())
 }
 
 #[inline(always)]

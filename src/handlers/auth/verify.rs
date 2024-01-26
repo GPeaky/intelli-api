@@ -29,5 +29,5 @@ pub async fn verify_email(
         .email_service
         .send_mail(email_user, "Email Verified", template)?;
 
-    Ok(HttpResponse::Created())
+    Ok(HttpResponse::Ok())
 }
