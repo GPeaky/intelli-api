@@ -70,7 +70,7 @@ pub async fn create_championship(
         .create(form.into_inner(), user.id)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Created())
 }
 
 #[inline(always)]
