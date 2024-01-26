@@ -59,7 +59,7 @@ pub struct RegisterUserDto {
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
     #[serde(default, deserialize_with = "option_string_trim")]
-    #[garde(length(min = 8, max = 20))]
+    #[garde(length(min = 8, max = 40))]
     pub password: Option<String>,
     #[garde(inner(length(min = 10, max = 100)))]
     pub avatar: Option<String>,
@@ -84,7 +84,7 @@ pub struct LoginUserDto {
     #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
-    #[garde(length(min = 8, max = 20))]
+    #[garde(length(min = 8, max = 40))]
     #[serde(deserialize_with = "string_trim")]
     pub password: String,
 }
@@ -98,7 +98,7 @@ pub struct ForgotPasswordDto {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct ResetPasswordDto {
-    #[garde(length(min = 8, max = 20))]
+    #[garde(length(min = 8, max = 40))]
     #[serde(deserialize_with = "string_trim")]
     pub password: String,
 }
