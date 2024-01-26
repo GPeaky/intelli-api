@@ -295,7 +295,7 @@ impl ChampionshipService {
             all_ports.remove(&port);
         }
 
-        info!("Available ports: {:?}", all_ports);
+        info!("Available ports: {:?}", all_ports.len());
         Ok(all_ports)
     }
 
