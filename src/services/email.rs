@@ -19,7 +19,7 @@ impl EmailService {
     pub fn new() -> Self {
         let (tx, rx) = loole::bounded(50);
 
-        let from_mailbox = Mailbox::new(
+        let mailbox = Mailbox::new(
             Some("Intelli Telemetry".to_owned()),
             Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
         );
@@ -44,10 +44,10 @@ impl EmailService {
             }
         });
 
-        Self(tx, from_mailbox)
+        Self(tx, mailbox)
     }
 
-    pub async fn send_mail<'a, T: TemplateOnce>(
+    pub fn send_mail<'a, T: TemplateOnce>(
         &self,
         user: EmailUser<'a>,
         subject: &'a str,

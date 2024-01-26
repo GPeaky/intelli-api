@@ -41,13 +41,12 @@ pub(crate) async fn register(
         ),
     };
 
-    let save_email_fut = state.token_service.save_email_token(&token);
+    state.token_service.save_email_token(&token).await?;
 
-    let send_email_fut = state
+    state
         .email_service
-        .send_mail((&*form).into(), "Verify Email", template);
+        .send_mail((&*form).into(), "Verify Email", template)?;
 
-    tokio::try_join!(save_email_fut, send_email_fut)?;
     Ok(HttpResponse::Ok())
 }
 
@@ -162,18 +161,20 @@ pub(crate) async fn forgot_password(
         ),
     };
 
-    let save_reset_password = state.token_service.save_reset_password_token(&token);
+    state
+        .token_service
+        .save_reset_password_token(&token)
+        .await?;
 
-    let send_mail = state.email_service.send_mail(
+    state.email_service.send_mail(
         EmailUser {
             username: &user.username,
             email: &user.email,
         },
         "Reset Password",
         template,
-    );
+    )?;
 
-    tokio::try_join!(save_reset_password, send_mail)?;
     Ok(HttpResponse::Ok())
 }
 
@@ -198,17 +199,14 @@ pub async fn reset_password(
 
     let template = PasswordChanged {};
 
-    state
-        .email_service
-        .send_mail(
-            EmailUser {
-                username: &user.username,
-                email: &user.email,
-            },
-            "Password Changed",
-            template,
-        )
-        .await?;
+    state.email_service.send_mail(
+        EmailUser {
+            username: &user.username,
+            email: &user.email,
+        },
+        "Password Changed",
+        template,
+    )?;
 
     Ok(HttpResponse::Ok())
 }
