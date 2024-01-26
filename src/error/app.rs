@@ -1,6 +1,7 @@
 use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
+use lettre::Message;
 use ntex::{
     http::StatusCode,
     web::{error::WebResponseError, HttpRequest, HttpResponse},
@@ -50,6 +51,8 @@ pub enum AppError {
     Sailfish(#[from] sailfish::RenderError),
     #[error(transparent)]
     Lettre(#[from] lettre::transport::smtp::Error),
+    #[error(transparent)]
+    MessageSender(#[from] loole::SendError<Message>),
 }
 
 impl WebResponseError for AppError {
@@ -72,6 +75,7 @@ impl WebResponseError for AppError {
             AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Sailfish(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Lettre(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::MessageSender(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -149,6 +153,13 @@ impl WebResponseError for AppError {
             }
 
             AppError::Lettre(e) => {
+                error!("{e}");
+
+                HttpResponse::build(self.status_code())
+                    .set_header("content-type", "text/html; charset=utf-8")
+                    .body("Email Error")
+            }
+            AppError::MessageSender(e) => {
                 error!("{e}");
 
                 HttpResponse::build(self.status_code())

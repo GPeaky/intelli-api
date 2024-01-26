@@ -5,34 +5,46 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
+use loole::Sender;
 use sailfish::TemplateOnce;
+use tracing::error;
 
 use crate::{error::AppResult, structs::EmailUser};
 
 #[derive(Clone)]
-pub struct EmailService {
-    from_mailbox: Mailbox,
-    mailer: AsyncSmtpTransport<Tokio1Executor>,
-}
+pub struct EmailService(Sender<Message>, Mailbox);
 
+// Todo: Implement a pool of receivers to send emails in case of a single receiver can't handle the load
 impl EmailService {
     pub fn new() -> Self {
-        Self {
-            from_mailbox: Mailbox::new(
-                Some("Intelli Telemetry".to_owned()),
-                Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
-            ),
-            mailer: AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
-                dotenvy::var("EMAIL_HOST").unwrap().as_str(),
-            )
-            .unwrap()
-            .port(2525)
-            .credentials(Credentials::new(
-                dotenvy::var("EMAIL_NAME").unwrap(),
-                dotenvy::var("EMAIL_PASS").unwrap(),
-            ))
-            .build(),
-        }
+        let (tx, rx) = loole::bounded(50);
+
+        let from_mailbox = Mailbox::new(
+            Some("Intelli Telemetry".to_owned()),
+            Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
+        );
+
+        tokio::spawn(async move {
+            let mailer: AsyncSmtpTransport<Tokio1Executor> =
+                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
+                    dotenvy::var("EMAIL_HOST").unwrap().as_str(),
+                )
+                .unwrap()
+                .port(2525)
+                .credentials(Credentials::new(
+                    dotenvy::var("EMAIL_NAME").unwrap(),
+                    dotenvy::var("EMAIL_PASS").unwrap(),
+                ))
+                .build();
+
+            while let Ok(message) = rx.recv_async().await {
+                if let Err(e) = mailer.send(message).await {
+                    error!("Error sending email: {}", e);
+                }
+            }
+        });
+
+        Self(tx, from_mailbox)
     }
 
     pub async fn send_mail<'a, T: TemplateOnce>(
@@ -42,7 +54,7 @@ impl EmailService {
         body: T,
     ) -> AppResult<()> {
         let message = Message::builder()
-            .from(self.from_mailbox.to_owned())
+            .from(self.1.to_owned())
             .to(Mailbox::new(
                 Some(user.username.to_string()),
                 Address::from_str(user.email).unwrap(),
@@ -52,7 +64,8 @@ impl EmailService {
             .body(body.render_once()?)
             .expect("Message builder error");
 
-        self.mailer.send(message).await?;
+        self.0.send(message)?;
+
         Ok(())
     }
 }
