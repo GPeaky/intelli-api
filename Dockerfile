@@ -10,17 +10,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /usr/src/intelli
 
-COPY Cargo.toml Cargo.lock ./
-
-COPY /migrations /usr/src/intelli/migrations
-COPY /certs /usr/src/intelli/certs
-
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
 COPY . .
+
 RUN RUSTFLAGS="-C link-arg=-fuse-ld=mold -C target-cpu=native" cargo build --release
 
 FROM fedora:latest
