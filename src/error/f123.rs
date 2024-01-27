@@ -19,6 +19,8 @@ pub enum F123Error {
     Encoding,
     #[error("Error to encode batched data")]
     BatchedEncoding,
+    #[error("Error to compress batched data")]
+    Compressing,
 }
 
 impl WebResponseError for F123Error {
@@ -30,6 +32,7 @@ impl WebResponseError for F123Error {
             F123Error::ReceivingData => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::Encoding => StatusCode::INTERNAL_SERVER_ERROR,
             F123Error::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
+            F123Error::Compressing => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 

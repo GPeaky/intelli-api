@@ -239,7 +239,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_car_motion_update = now;
-                                packet_batching.push_and_check(packet).await?;
+                                packet_batching.push(packet);
                             }
 
                             F123Data::Session(session_data) => {
@@ -268,7 +268,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_session_update = now;
-                                packet_batching.push_and_check(packet).await?;
+                                packet_batching.push(packet);
                             }
 
                             F123Data::Participants(participants_data) => {
@@ -277,7 +277,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_participants_update = now;
-                                packet_batching.push_and_check(packet).await?;
+                                packet_batching.push(packet);
                             }
 
                             F123Data::Event(event_data) => {
@@ -285,7 +285,7 @@ impl F123Service {
                                     continue;
                                 };
 
-                                packet_batching.push_and_check(packet).await?;
+                                packet_batching.push(packet);
                             }
 
                             F123Data::SessionHistory(session_history) => {
@@ -321,7 +321,7 @@ impl F123Service {
                                     *last_update = now;
                                     *last_sectors = sectors;
 
-                                    packet_batching.push_and_check(packet).await?;
+                                    packet_batching.push(packet);
                                 }
                             }
 
@@ -346,7 +346,7 @@ impl F123Service {
 
                                 // If session type is race save all session data in the database and close the socket
                                 // Todo: this should be called after saving all data in the database
-                                packet_batching.final_send(packet).await?;
+                                packet_batching.push(packet);
                             }
                         }
                     }
