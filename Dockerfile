@@ -12,7 +12,8 @@ WORKDIR /usr/src/intelli
 
 COPY . .
 
-RUN RUSTFLAGS="-C link-arg=-fuse-ld=mold -C target-cpu=native" cargo build --release
+RUN cargo update && \
+    RUSTFLAGS="-C link-arg=-fuse-ld=mold -C target-cpu=native" cargo build --release
 
 FROM fedora:latest
 
