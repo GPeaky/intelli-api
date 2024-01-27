@@ -77,7 +77,10 @@ impl PacketBatching {
             let encoded_batch = Self::compress(&batch)?;
             cache.set(&encoded_batch).await?;
 
-            // Todo: Check the subscribers count and only send if is at least 1 receiver `self.tx.receiver_count()`
+            if tx.receiver_count() == 0 {
+                return Ok(());
+            }
+
             if let Err(e) = tx.send(encoded_batch) {
                 warn!("Broadcast channel: {}", e);
             };
