@@ -56,6 +56,7 @@ impl PacketBatching {
         self.buf.lock().push(packet);
     }
 
+    #[inline(always)]
     async fn send_data(
         buf: &Arc<Mutex<Vec<PacketHeader>>>,
         tx: &Sender<Bytes>,
