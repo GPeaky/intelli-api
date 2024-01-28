@@ -8,6 +8,15 @@ pub enum OptionalMessage<'a> {
     Number(u8),
 }
 
+#[derive(Debug)]
+pub struct F123CachedData {
+    pub motion: Vec<u8>,
+    pub session: Vec<u8>,
+    pub participants: Vec<u8>,
+    pub session_history: Vec<Vec<u8>>,
+    pub events: Vec<Vec<Vec<u8>>>,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SectorsLaps {
     pub sector1: u16,

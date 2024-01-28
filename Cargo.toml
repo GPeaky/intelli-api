@@ -6,7 +6,6 @@ readme = "README.md"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
 repository = "https://github.com/GPeaky/intelli-api"
-license = "MIT"
 
 [build-dependencies]
 prost-build = "0.12"
@@ -17,7 +16,6 @@ zstd = "0.13"
 ahash = "0.8"
 loole = "0.3"
 prost = "0.12"
-garde = "0.17"
 fastrand = "2"
 bcrypt = "0.15"
 tracing = "0.1"
@@ -42,6 +40,7 @@ reqwest = { version = "0.11", features = ["json"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
+garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }

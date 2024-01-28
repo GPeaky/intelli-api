@@ -71,11 +71,11 @@ async fn web_socket(
             .get_cache_data(championship_id)
             .await?;
 
-        if let Some(data) = cache {
-            if sink.send(Message::Binary(Bytes::from(data))).await.is_err() {
-                return Err(SocketError::FailedToSendMessage.into());
-            };
-        }
+        // if let Some(data) = cache {
+        //     if sink.send(Message::Binary(Bytes::from(data))).await.is_err() {
+        //         return Err(SocketError::FailedToSendMessage.into());
+        //     };
+        // }
     }
 
     let Some(rx) = state

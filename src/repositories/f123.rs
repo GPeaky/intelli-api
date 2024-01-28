@@ -4,7 +4,8 @@ use tracing::info;
 
 use crate::{
     config::{constants::*, Database},
-    error::{AppResult, CommonError},
+    error::AppResult,
+    structs::F123CachedData,
 };
 
 #[derive(Clone)]
@@ -22,10 +23,11 @@ impl F123Repository {
 
     // Todo: finish this integration and try to optimize it :) 2ms is too much
     // Todo: implement mini cache in memory for last data cached (Interval 3 seconds)
-    pub async fn get_cache_data(&self, id: i32) -> AppResult<Option<Vec<u8>>> {
-        let time = Instant::now();
+    pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
+        // let time = Instant::now();
         let mut conn = self.database.redis.get().await?;
 
+        // Todo: create a struct for this data
         let (motion, session, participants, events_keys, session_history_key): (
             Vec<u8>,
             Vec<u8>,
@@ -53,9 +55,22 @@ impl F123Repository {
 
         let events: Vec<Vec<Vec<u8>>> = pipe.query_async(&mut conn).await.unwrap();
 
-        info!("Time taken to get data from redis: {:?}", time.elapsed());
+        let cached_data = F123CachedData {
+            motion,
+            session,
+            participants,
+            events,
+            session_history,
+        };
 
-        Err(CommonError::InternalServerError)?
+        // info!(
+        //     "F123Repository::get_cache_data took {}ms",
+        //     time.elapsed().as_millis()
+        // );
+
+        info!("F123Repository::get_cache_data {:?}", cached_data);
+
+        Ok(cached_data)
     }
 
     #[allow(unused)]
