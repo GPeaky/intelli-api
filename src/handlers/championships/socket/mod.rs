@@ -66,7 +66,8 @@ async fn web_socket(
     let (tx, close_rx) = oneshot::channel();
 
     {
-        let cache = state
+        // todo: Use this cache data to send to the client
+        let _cache = state
             .f123_repository
             .get_cache_data(championship_id)
             .await?;

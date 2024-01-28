@@ -1,5 +1,5 @@
 use deadpool_redis::redis::{self, AsyncCommands};
-use tokio::time::Instant;
+// use tokio::time::Instant;
 use tracing::info;
 
 use crate::{
@@ -28,6 +28,7 @@ impl F123Repository {
         let mut conn = self.database.redis.get().await?;
 
         // Todo: create a struct for this data
+        #[allow(clippy::type_complexity)]
         let (motion, session, participants, events_keys, session_history_key): (
             Vec<u8>,
             Vec<u8>,
