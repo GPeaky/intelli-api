@@ -15,6 +15,9 @@ services:
       - keydb
       - postgresql
 
+    volumes:
+      - intelli-cache:/usr/src/intelli/target
+
     env_file:
       - .env
 
@@ -41,7 +44,6 @@ services:
     restart: unless-stopped
 
     volumes:
-      - intelli-cache:/usr/src/intelli/target
       - keydb-data:/data
       - ./keydb.conf:/etc/keydb/keydb.conf
 
