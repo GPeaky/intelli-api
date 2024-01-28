@@ -1,12 +1,11 @@
 name: Deployment
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Rust CI"]
+    branches: [main]
+    types:
+      - completed
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,6 +13,9 @@ concurrency:
 
 jobs:
   build_and_deploy:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.ref == 'refs/heads/main'
     runs-on: self-hosted
     environment: intelli
 
