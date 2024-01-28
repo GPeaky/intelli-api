@@ -3,6 +3,11 @@ use zerocopy::FromBytes;
 
 use super::game::*;
 
+pub enum OptionalMessage<'a> {
+    Text(&'a str),
+    Number(u8),
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SectorsLaps {
     pub sector1: u16,

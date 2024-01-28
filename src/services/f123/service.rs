@@ -4,7 +4,7 @@ use crate::{
     error::{AppResult, F123Error, SocketError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
-    structs::{F123Data, PacketIds, SectorsLaps, SessionType},
+    structs::{F123Data, OptionalMessage, PacketIds, SectorsLaps, SessionType},
     FirewallService,
 };
 use ahash::AHashMap;
@@ -239,7 +239,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_car_motion_update = now;
-                                packet_batching.push(packet);
+                                packet_batching.push(packet, None).await?;
                             }
 
                             F123Data::Session(session_data) => {
@@ -268,7 +268,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_session_update = now;
-                                packet_batching.push(packet);
+                                packet_batching.push(packet, None).await?;
                             }
 
                             F123Data::Participants(participants_data) => {
@@ -277,15 +277,22 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_participants_update = now;
-                                packet_batching.push(packet);
+                                packet_batching.push(packet, None).await?;
                             }
 
                             F123Data::Event(event_data) => {
+                                // event_data.event_string_code
                                 let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
                                 };
 
-                                packet_batching.push(packet);
+                                let string_code = unsafe {
+                                    std::str::from_utf8_unchecked(&event_data.event_string_code)
+                                };
+
+                                packet_batching
+                                    .push(packet, Some(OptionalMessage::Text(string_code)))
+                                    .await?;
                             }
 
                             F123Data::SessionHistory(session_history) => {
@@ -321,7 +328,12 @@ impl F123Service {
                                     *last_update = now;
                                     *last_sectors = sectors;
 
-                                    packet_batching.push(packet);
+                                    packet_batching
+                                        .push(
+                                            packet,
+                                            Some(OptionalMessage::Number(session_history.car_idx)),
+                                        )
+                                        .await?;
                                 }
                             }
 
@@ -346,7 +358,7 @@ impl F123Service {
 
                                 // If session type is race save all session data in the database and close the socket
                                 // Todo: this should be called after saving all data in the database
-                                packet_batching.push(packet);
+                                packet_batching.push(packet, None).await?;
                             }
                         }
                     }

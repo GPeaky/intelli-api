@@ -19,10 +19,11 @@ impl F123InsiderCache {
         }
     }
 
-    pub async fn set(&mut self, data: &[u8]) -> AppResult<()> {
+    #[inline(always)]
+    pub async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
-                &format!("{REDIS_F123_PREFIX}:{}:cache", &self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:motion", self.championship_id),
                 data,
                 REDIS_F123_PERSISTENCE,
             )
@@ -31,28 +32,69 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    pub async fn prune(&mut self) -> AppResult<()> {
+    #[inline(always)]
+    pub async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
-            .del(&format!(
-                "{REDIS_F123_PREFIX}:{}:cache",
-                &self.championship_id
-            ))
+            .set_ex(
+                &format!("{REDIS_F123_PREFIX}:{}:session", self.championship_id),
+                data,
+                REDIS_F123_PERSISTENCE,
+            )
             .await?;
 
         Ok(())
     }
 
-    // #[inline(always)]
-    // pub async fn push_event_data(&mut self, data: &[u8], string_code: &str) -> AppResult<()> {
+    #[inline(always)]
+    pub async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
+        self.redis
+            .set_ex(
+                &format!("{REDIS_F123_PREFIX}:{}:participants", self.championship_id),
+                data,
+                REDIS_F123_PERSISTENCE,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn push_event_data(&mut self, data: &[u8], string_code: &str) -> AppResult<()> {
+        self.redis
+            .rpush(
+                &format!(
+                    "{REDIS_F123_PREFIX}:{}:events:{}",
+                    &self.championship_id, string_code
+                ),
+                data,
+            )
+            .await?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    pub async fn set_session_history(&mut self, data: &[u8], car_idx: u8) -> AppResult<()> {
+        self.redis
+            .set_ex(
+                &format!(
+                    "{REDIS_F123_PREFIX}:{}:session_history:{}",
+                    self.championship_id, car_idx
+                ),
+                data,
+                REDIS_F123_PERSISTENCE,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    // pub async fn prune(&mut self) -> AppResult<()> {
     //     self.redis
-    //         .rpush(
-    //             &format!(
-    //                 "{REDIS_F123_PREFIX}:{}:{EVENTS}:{string_code}",
-    //                 &self.championship_id
-    //             ),
-    //             data,
-    //         )
+    //         .del(&format!(
+    //             "{REDIS_F123_PREFIX}:{}:cache",
+    //             &self.championship_id
+    //         ))
     //         .await?;
+
     //     Ok(())
     // }
 }
