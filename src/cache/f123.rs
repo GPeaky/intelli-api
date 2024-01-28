@@ -1,4 +1,7 @@
-use deadpool_redis::{redis::AsyncCommands, Connection};
+use deadpool_redis::{
+    redis::{self, AsyncCommands},
+    Connection,
+};
 
 use crate::{config::constants::*, error::AppResult};
 
@@ -10,6 +13,7 @@ pub struct F123InsiderCache {
 }
 
 #[allow(unused)]
+// Todo: Implement constants for redis keys to avoid hardcoding
 // TODO: Implement cache with new batching method || Save events data in database (Postgres)
 impl F123InsiderCache {
     pub fn new(redis: Connection, championship_id: i32) -> Self {
@@ -87,14 +91,41 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    // pub async fn prune(&mut self) -> AppResult<()> {
-    //     self.redis
-    //         .del(&format!(
-    //             "{REDIS_F123_PREFIX}:{}:cache",
-    //             &self.championship_id
-    //         ))
-    //         .await?;
+    #[inline(always)]
+    pub async fn prune(&mut self) -> AppResult<()> {
+        let mut pipe = redis::pipe();
 
-    //     Ok(())
-    // }
+        pipe.del(&format!(
+            "{REDIS_F123_PREFIX}:{}:motion",
+            &self.championship_id
+        ))
+        .del(&format!(
+            "{REDIS_F123_PREFIX}:{}:session",
+            &self.championship_id
+        ))
+        .del(&format!(
+            "{REDIS_F123_PREFIX}:{}:participants",
+            &self.championship_id
+        ));
+
+        pipe.query_async(&mut self.redis).await?;
+
+        let patters = vec![
+            format!("{REDIS_F123_PREFIX}:{}:events:*", &self.championship_id),
+            format!(
+                "{REDIS_F123_PREFIX}:{}:session_history:*",
+                &self.championship_id
+            ),
+        ];
+
+        for pattern in patters {
+            let keys: Vec<String> = self.redis.keys(pattern).await?;
+
+            if !keys.is_empty() {
+                self.redis.del(keys).await?;
+            }
+        }
+
+        Ok(())
+    }
 }

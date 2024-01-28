@@ -160,7 +160,10 @@ impl PacketBatching {
             }
 
             PacketType::FinalClassificationData => {
-                info!("Final classification data")
+                info!("Final classification data");
+
+                self.cache.prune().await?;
+
                 // if let Err(e) = self
                 //     .cache
                 //     .set_final_classification_data(&encoded_package)
