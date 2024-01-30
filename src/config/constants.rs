@@ -1,9 +1,14 @@
+use chrono::Duration as ChronoDuration;
+use once_cell::sync::Lazy;
 use std::time::Duration;
 
 // Google auth
 pub const GOOGLE_REDIRECT: &str = "https://intellitelemetry.live/auth/google/callback";
 pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 pub const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+// Min Updates Interval
+pub static PASSWORD_UPDATE_INTERVAL: Lazy<ChronoDuration> = Lazy::new(|| ChronoDuration::hours(1));
 
 // Tokens
 pub const GENERIC_TOKEN_EXPIRATION: u64 = 15 * 60;

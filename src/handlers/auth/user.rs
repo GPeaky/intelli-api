@@ -1,12 +1,12 @@
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use garde::Validate;
 use ntex::web::{
     types::{Form, Query, State},
     HttpRequest, HttpResponse, Responder,
 };
-use once_cell::sync::Lazy;
 
 use crate::{
+    config::constants::PASSWORD_UPDATE_INTERVAL,
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
     repositories::UserRepositoryTrait,
@@ -145,7 +145,7 @@ pub(crate) async fn forgot_password(
     };
 
     // Todo: Duration::hours(1) should be a constant and Utc::now() should be saved in a variable for a cache of 1 minute
-    if Utc::now().signed_duration_since(user.updated_at) > Duration::hours(1) {
+    if Utc::now().signed_duration_since(user.updated_at) > *PASSWORD_UPDATE_INTERVAL {
         return Err(UserError::UpdateLimitExceeded)?;
     }
 

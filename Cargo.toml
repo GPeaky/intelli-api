@@ -28,6 +28,7 @@ thiserror = "1.0"
 serde_derive = "1"
 jsonwebtoken = "9"
 async-trait = "0.1"
+parking_lot = "0.12"
 deadpool-redis = "0.14"
 postgres-derive = "0.4"
 zerocopy = "0.8.0-alpha"
@@ -47,10 +48,6 @@ tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
-] }
-parking_lot = { version = "0.12", features = [
-    "arc_lock",
-    "hardware-lock-elision",
 ] }
 lettre = { version = "0.11", default-features = false, features = [
     "tokio1-rustls-tls",
