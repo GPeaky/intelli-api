@@ -4,6 +4,7 @@ use ntex::web::{
     types::{Form, Query, State},
     HttpRequest, HttpResponse, Responder,
 };
+use once_cell::sync::Lazy;
 
 use crate::{
     entity::{Provider, UserExtension},
@@ -34,14 +35,14 @@ pub(crate) async fn register(
         .generate_token(user_id, TokenType::Email)
         .await?;
 
+    state.token_service.save_email_token(&token).await?;
+
     let template = VerifyEmail {
         verification_link: &format!(
             "https://intellitelemetry.live/auth/verify-email?token={}",
             token
         ),
     };
-
-    state.token_service.save_email_token(&token).await?;
 
     state
         .email_service
@@ -66,9 +67,7 @@ pub(crate) async fn login(
 
     if !user.active {
         return Err(UserError::NotVerified)?;
-    }
-
-    if user.provider != Provider::Local {
+    } else if user.provider != Provider::Local {
         return Err(UserError::GoogleLogin)?;
     }
 
@@ -145,6 +144,7 @@ pub(crate) async fn forgot_password(
         return Err(UserError::NotFound)?;
     };
 
+    // Todo: Duration::hours(1) should be a constant and Utc::now() should be saved in a variable for a cache of 1 minute
     if Utc::now().signed_duration_since(user.updated_at) > Duration::hours(1) {
         return Err(UserError::UpdateLimitExceeded)?;
     }
