@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use std::{sync::Arc, thread, time::Duration};
 
-
 #[allow(unused)]
 pub struct CachedTime {
     time: Arc<RwLock<DateTime<Utc>>>,
