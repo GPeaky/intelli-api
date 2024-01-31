@@ -8,7 +8,7 @@ RUN dnf -y update && \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --profile minimal
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-WORKDIR /usr/src/intelli
+WORKDIR /usr/src/intelli-api
 
 COPY . .
 
@@ -17,9 +17,9 @@ RUN cargo update && \
 
 FROM fedora:latest
 
-COPY --from=builder /usr/src/intelli/target/release/intelli /usr/local/bin/intelli
+COPY --from=builder /usr/src/intelli/target/release/intelli-api /usr/local/bin/intelli-api
 
 COPY /migrations /migrations
 COPY /certs /certs
 
-CMD ["intelli"]
+CMD ["intelli-api"]
