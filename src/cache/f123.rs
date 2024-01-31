@@ -23,7 +23,6 @@ impl F123InsiderCache {
         }
     }
 
-    #[inline(always)]
     pub async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
@@ -36,7 +35,6 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
@@ -49,7 +47,6 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
@@ -75,7 +72,6 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn set_session_history(&mut self, data: &[u8], car_idx: u8) -> AppResult<()> {
         self.redis
             .set_ex(
@@ -91,7 +87,6 @@ impl F123InsiderCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn prune(&mut self) -> AppResult<()> {
         let mut pipe = redis::pipe();
 

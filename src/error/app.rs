@@ -56,7 +56,6 @@ pub enum AppError {
 }
 
 impl WebResponseError for AppError {
-    #[inline(always)]
     fn status_code(&self) -> StatusCode {
         match self {
             AppError::User(e) => e.status_code(),

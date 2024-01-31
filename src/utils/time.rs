@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
-use std::{sync::Arc, thread, time::Duration};
+use std::{sync::Arc, time::Duration};
+use tokio::time::sleep;
 
 #[allow(unused)]
 pub struct CachedTime {
@@ -16,10 +17,12 @@ impl CachedTime {
 
         let instance = Self { time };
 
-        thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(60));
-            let mut time = time_clone.write();
-            *time = Utc::now();
+        tokio::spawn(async move {
+            loop {
+                sleep(Duration::from_secs(60)).await;
+                let mut time = time_clone.write();
+                *time = Utc::now();
+            }
         });
 
         instance

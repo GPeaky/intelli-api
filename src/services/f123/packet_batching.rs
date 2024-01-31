@@ -56,7 +56,11 @@ impl PacketBatching {
     }
 
     #[inline(always)]
-    pub async fn push(
+    pub async fn push(&mut self, packet: PacketHeader) -> AppResult<()> {
+        self.push_with_optional_parameter(packet, None).await
+    }
+
+    pub async fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
         second_param: Option<OptionalMessage<'_>>,
@@ -71,7 +75,6 @@ impl PacketBatching {
         Ok(())
     }
 
-    #[inline(always)]
     async fn send_data(buf: &Arc<Mutex<Vec<PacketHeader>>>, tx: &Sender<Bytes>) -> AppResult<()> {
         let buf = {
             let mut buf = buf.lock();

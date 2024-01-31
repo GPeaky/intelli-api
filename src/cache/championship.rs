@@ -94,7 +94,6 @@ impl ChampionshipCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn delete_by_user_id(&self, user_id: i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
@@ -108,7 +107,6 @@ impl ChampionshipCache {
     }
 
     // Todo: Test the functionality of this method
-    #[inline(always)]
     pub async fn delete_all(&self, id: i32, users: Vec<i32>) -> AppResult<()> {
         let mut pipe = redis::pipe();
 
@@ -133,7 +131,6 @@ impl EntityCache for ChampionshipCache {
     type Entity = Championship;
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
-    #[inline(always)]
     async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
@@ -155,7 +152,6 @@ impl EntityCache for ChampionshipCache {
         Ok(None)
     }
 
-    #[inline(always)]
     async fn set(&self, entity: &Self::Entity) -> AppResult<()> {
         let Ok(bytes) = rkyv::to_bytes::<_, 72>(entity) else {
             error!("Failed to serialize championship to cache");

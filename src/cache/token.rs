@@ -17,7 +17,6 @@ impl TokenCache {
         Self { db: db.clone() }
     }
 
-    #[inline(always)]
     pub async fn set_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
             Err(CommonError::InvalidUsedFeature(
@@ -37,7 +36,6 @@ impl TokenCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn get_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
@@ -47,7 +45,6 @@ impl TokenCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn set_refresh_token(&self, token: &str, fingerprint: &str) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
@@ -61,7 +58,7 @@ impl TokenCache {
         Ok(())
     }
 
-    #[inline(always)]
+
     pub async fn get_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
         let mut conn = self.db.redis.get().await?;
 
@@ -77,7 +74,6 @@ impl TokenCache {
         Ok(token)
     }
 
-    #[inline(always)]
     pub async fn remove_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 
@@ -87,7 +83,6 @@ impl TokenCache {
         Ok(())
     }
 
-    #[inline(always)]
     pub async fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 

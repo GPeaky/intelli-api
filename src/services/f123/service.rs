@@ -239,7 +239,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_car_motion_update = now;
-                                packet_batching.push(packet, None).await?;
+                                packet_batching.push(packet).await?;
                             }
 
                             F123Data::Session(session_data) => {
@@ -268,7 +268,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_session_update = now;
-                                packet_batching.push(packet, None).await?;
+                                packet_batching.push(packet).await?;
                             }
 
                             F123Data::Participants(participants_data) => {
@@ -277,7 +277,7 @@ impl F123Service {
                                     .ok_or(F123Error::Encoding)?;
 
                                 last_participants_update = now;
-                                packet_batching.push(packet, None).await?;
+                                packet_batching.push(packet).await?;
                             }
 
                             F123Data::Event(event_data) => {
@@ -291,7 +291,10 @@ impl F123Service {
                                 };
 
                                 packet_batching
-                                    .push(packet, Some(OptionalMessage::Text(string_code)))
+                                    .push_with_optional_parameter(
+                                        packet,
+                                        Some(OptionalMessage::Text(string_code)),
+                                    )
                                     .await?;
                             }
 
@@ -329,7 +332,7 @@ impl F123Service {
                                     *last_sectors = sectors;
 
                                     packet_batching
-                                        .push(
+                                        .push_with_optional_parameter(
                                             packet,
                                             Some(OptionalMessage::Number(session_history.car_idx)),
                                         )
@@ -358,7 +361,7 @@ impl F123Service {
 
                                 // If session type is race save all session data in the database and close the socket
                                 // Todo: this should be called after saving all data in the database
-                                packet_batching.push(packet, None).await?;
+                                packet_batching.push(packet).await?;
                             }
                         }
                     }

@@ -24,7 +24,6 @@ impl UserCache {
         Self { db: db.clone() }
     }
 
-    #[inline(always)]
     pub async fn get_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
@@ -52,7 +51,6 @@ impl EntityCache for UserCache {
     type Entity = User;
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
-    #[inline(always)]
     async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
@@ -74,7 +72,6 @@ impl EntityCache for UserCache {
         Ok(None)
     }
 
-    #[inline(always)]
     async fn set(&self, entity: &Self::Entity) -> AppResult<()> {
         let Ok(bytes) = rkyv::to_bytes::<_, 128>(entity) else {
             error!("Failed to serialize user to cache");
@@ -100,7 +97,6 @@ impl EntityCache for UserCache {
         Ok(())
     }
 
-    #[inline(always)]
     async fn delete(&self, id: i32) -> AppResult<()> {
         let mut conn = self.db.redis.get().await?;
 

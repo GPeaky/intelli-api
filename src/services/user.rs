@@ -285,7 +285,7 @@ impl UserServiceTrait for UserService {
         self.cache.token.get_token(token, &TokenType::Email).await?;
         let user_id = {
             let token_data = self.token_service.validate(token)?;
-            if token_data.claims.token_type.ne(&TokenType::Email) {
+            if token_data.claims.token_type != TokenType::Email {
                 Err(TokenError::InvalidToken)?
             }
 
