@@ -58,7 +58,6 @@ impl TokenCache {
         Ok(())
     }
 
-
     pub async fn get_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
         let mut conn = self.db.redis.get().await?;
 
