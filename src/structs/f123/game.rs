@@ -49,6 +49,38 @@ pub struct PacketParticipantsData {
 }
 
 #[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+pub struct TyreStintHistoryData {
+    pub end_lap: u8,              // Lap the tyre usage ends on (255 of current tyre)
+    pub tyre_actual_compound: u8, // Actual tyres used by this driver
+    pub tyre_visual_compound: u8, // Visual tyres used by this driver
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+pub struct PacketCarStatusData {
+    pub header: PacketHeader,                 // Header
+    pub car_status_data: [CarStatusData; 22], // 22
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+pub struct PacketCarDamageData {
+    pub header: PacketHeader,                 // Header
+    pub car_damage_data: [CarDamageData; 22], // 22
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+pub struct PacketCarTelemetryData {
+    pub header: PacketHeader,                       // Header
+    pub car_telemetry_data: [CarTelemetryData; 22], // 22
+    pub mfd_panel_index: u8,                        // Index of MFD panel open - 255 = MFD closed
+    pub mfd_panel_index_secondary_player: u8, // Index of MFD panel open for secondary player - 255 = MFD closed
+    pub suggested_gear: i8, // Suggested gear for the player (1-8) 0 if no gear suggested
+}
+
+#[repr(C, packed)]
 #[derive(Debug, FromBytes, FromZeros, NoCell, KnownLayout)]
 pub struct PacketSessionHistoryData {
     pub header: PacketHeader,
@@ -314,8 +346,78 @@ pub struct LapHistoryData {
 
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
-pub struct TyreStintHistoryData {
-    pub end_lap: u8,              // Lap the tyre usage ends on (255 of current tyre)
-    pub tyre_actual_compound: u8, // Actual tyres used by this driver
-    pub tyre_visual_compound: u8, // Visual tyres used by this driver
+pub struct CarTelemetryData {
+    pub speed: u16,                         // Speed of car in km/h
+    pub throttle: f32,                      // 0.0 - 1.0
+    pub steer: f32,                         // -1.0 - 1.0
+    pub brake: f32,                         // 0.0 - 1.0
+    pub clutch: u8,                         // 0 - 100
+    pub gear: i8,                           // (1-8, N=0, R=-1)
+    pub engine_rpm: u16,                    // Engine RPM
+    pub drs: u8,                            // 0 = off, 1 = on
+    pub rev_lights_percent: u8,             // Rev lights indicator (percentage)
+    pub rev_lights_bit_value: u16, // Rev lights (bit 0 = lights on the wheel, bit 1 = lights on the dash, bit 2 = lights on the display)
+    pub brakes_temperature: [u16; 4], // Brakes temperature (celsius)
+    pub tyres_surface_temperature: [u8; 4], // Tyres surface temperature (celsius)
+    pub tyres_inner_temperature: [u8; 4], // Tyres inner temperature (celsius)
+    pub engine_temperature: u16,   // Engine temperature (celsius)
+    pub tyres_pressure: [f32; 4],  // Tyres pressure (PSI)
+    pub surface_type: [u8; 4],     // Driving surface, see appendices
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+pub struct CarStatusData {
+    pub traction_control: u8, // Traction control - 0 = off, 1 = medium, 2 = full
+    pub anti_lock_brakes: u8, // 0 (off) - 1 (on)
+    pub fuel_mix: u8,         // Fuel mix - 0 = lean, 1 = standard, 2 = rich, 3 = max
+    pub front_brake_bias: u8, // Front brake bias (percentage)
+    pub pit_limiter_status: u8, // Pit limiter status - 0 = off, 1 = on
+    pub fuel_in_tank: f32,    // Current fuel mass
+    pub fuel_capacity: f32,   // Fuel capacity
+    pub fuel_remaining_laps: f32, // Fuel remaining in terms of laps (value on MFD)
+    pub max_rpm: u16,         // Cars max RPM, point of rev limiter
+    pub idle_rpm: u16,        // Cars idle RPM
+    pub max_gears: u8,        // Maximum number of gears
+    pub drs_allowed: u8,      // 0 = not allowed, 1 = allowed
+    pub drs_activation_distance: u16, // 0 = DRS not available, non-zero - DRS will be available in [X] metres
+    pub actual_tyre_compound: u8,     // Tyre compound actual
+    pub visual_tyre_compound: u8, // Tyre compound visual (can be different from actual compound)
+    pub tyres_age_laps: u8,       // Age in laps of the current set of tyres
+    pub vehicle_fia_flags: i8,    // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
+    pub engine_power_ice: f32,    // Engine power output of ICE (W)
+    pub engine_power_mguk: f32,   // Engine power output of MGU-K (W)
+    pub ers_store_energy: f32,    // ERS energy store in Joules
+    pub ers_deploy_mode: u8, // ERS deployment mode, 0 = none, 1 = medium, 2 = hotlap, 3 = overtake
+    pub ers_harvested_this_lap_mguk: f32, // ERS energy harvested this lap by MGU-K
+    pub ers_harvested_this_lap_mguh: f32, // ERS energy harvested this lap by MGU-H
+    pub ers_deployed_this_lap: f32, // ERS energy deployed this lap
+    pub network_paused: u8,  // Whether the car is paused in a network game
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy, FromBytes, FromZeros, NoCell, KnownLayout)]
+#[repr(C)]
+pub struct CarDamageData {
+    pub tyres_wear: [f32; 4],        // Tyre wear (percentage)
+    pub tyres_damage: [u8; 4],       // Tyre damage (percentage)
+    pub brakes_damage: [u8; 4],      // Brakes damage (percentage)
+    pub front_left_wing_damage: u8,  // Front left wing damage (percentage)
+    pub front_right_wing_damage: u8, // Front right wing damage (percentage)
+    pub rear_wing_damage: u8,        // Rear wing damage (percentage)
+    pub floor_damage: u8,            // Floor damage (percentage)
+    pub diffuser_damage: u8,         // Diffuser damage (percentage)
+    pub sidepod_damage: u8,          // Sidepod damage (percentage)
+    pub drs_fault: u8,               // Indicator for DRS fault, 0 = OK, 1 = fault
+    pub ers_fault: u8,               // Indicator for ERS fault, 0 = OK, 1 = fault
+    pub gear_box_damage: u8,         // Gear box damage (percentage)
+    pub engine_damage: u8,           // Engine damage (percentage)
+    pub engine_mguh_wear: u8,        // Engine wear MGU-H (percentage)
+    pub engine_es_wear: u8,          // Engine wear ES (percentage)
+    pub engine_ce_wear: u8,          // Engine wear CE (percentage)
+    pub engine_ice_wear: u8,         // Engine wear ICE (percentage)
+    pub engine_mguk_wear: u8,        // Engine wear MGU-K (percentage)
+    pub engine_tc_wear: u8,          // Engine wear TC (percentage)
+    pub engine_blown: u8,            // Engine blown, 0 = OK, 1 = fault
+    pub engine_seized: u8,           // Engine seized, 0 = OK, 1 = fault
 }

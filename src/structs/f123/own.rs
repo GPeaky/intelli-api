@@ -1,5 +1,5 @@
 use tracing::error;
-use zerocopy::FromBytes;
+use zerocopy::{FromBytes, NoCell};
 
 use super::game::*;
 
@@ -452,79 +452,69 @@ pub enum F123Data<'a> {
     Participants(&'a PacketParticipantsData),
     FinalClassification(&'a PacketFinalClassificationData),
     SessionHistory(&'a PacketSessionHistoryData),
+    CarDamage(&'a PacketCarDamageData),
+    CarStatus(&'a PacketCarStatusData),
+    CarTelemetry(&'a PacketCarTelemetryData),
 }
 
 impl<'a> F123Data<'a> {
-    pub fn deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
+    pub fn try_deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
         match packet_id {
             PacketIds::Motion => {
-                let Some(packet): Option<&PacketMotionData> = FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize motion packet");
-                    return None;
-                };
-
-                Some(F123Data::Motion(packet))
+                Self::try_deserialize_packet::<PacketMotionData>(data).map(F123Data::Motion)
             }
 
             PacketIds::Session => {
-                let Some(packet): Option<&PacketSessionData> = FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize session");
-                    return None;
-                };
-
-                Some(F123Data::Session(packet))
+                Self::try_deserialize_packet::<PacketSessionData>(data).map(F123Data::Session)
             }
 
-            PacketIds::Participants => {
-                let Some(packet): Option<&PacketParticipantsData> =
-                    FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize participants");
-                    return None;
-                };
-
-                Some(F123Data::Participants(packet))
-            }
+            PacketIds::Participants => Self::try_deserialize_packet::<PacketParticipantsData>(data)
+                .map(F123Data::Participants),
 
             PacketIds::FinalClassification => {
-                let Some(packet): Option<&PacketFinalClassificationData> =
-                    FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize final classification");
-                    return None;
-                };
-
-                Some(F123Data::FinalClassification(packet))
+                Self::try_deserialize_packet::<PacketFinalClassificationData>(data)
+                    .map(F123Data::FinalClassification)
             }
 
             PacketIds::SessionHistory => {
-                let Some(packet): Option<&PacketSessionHistoryData> =
-                    FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize session history");
-                    return None;
-                };
-
-                Some(F123Data::SessionHistory(packet))
+                Self::try_deserialize_packet::<PacketSessionHistoryData>(data)
+                    .map(F123Data::SessionHistory)
             }
 
             PacketIds::Event => {
-                let Some(packet): Option<&PacketEventData> = FromBytes::ref_from_prefix(data)
-                else {
-                    error!("Failed to deserialize event");
-                    return None;
-                };
-
-                Some(F123Data::Event(packet))
+                Self::try_deserialize_packet::<PacketEventData>(data).map(F123Data::Event)
             }
+
+            PacketIds::CarDamage => {
+                Self::try_deserialize_packet::<PacketCarDamageData>(data).map(F123Data::CarDamage)
+            }
+
+            PacketIds::CarStatus => {
+                Self::try_deserialize_packet::<PacketCarStatusData>(data).map(F123Data::CarStatus)
+            }
+
+            PacketIds::CarTelemetry => Self::try_deserialize_packet::<PacketCarTelemetryData>(data)
+                .map(F123Data::CarTelemetry),
 
             _ => None,
         }
     }
 
-    pub fn deserialize_header(data: &'a [u8]) -> Option<&'a PacketHeader> {
+    pub fn try_deserialize_header(data: &'a [u8]) -> Option<&'a PacketHeader> {
         FromBytes::ref_from_prefix(data)
+    }
+
+    #[inline(always)]
+    fn try_deserialize_packet<T>(bytes: &[u8]) -> Option<&T>
+    where
+        T: FromBytes + NoCell,
+    {
+        match T::ref_from_prefix(bytes) {
+            Some(packet) => Some(packet),
+            None => {
+                error!("Failed to deserialize packet");
+                None
+            }
+        }
     }
 }

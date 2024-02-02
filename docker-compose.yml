@@ -16,7 +16,7 @@ services:
       - postgresql
 
     volumes:
-      - intelli-cache:/usr/src/intelli/target
+      - intelli-cache:/usr/src/intelli-api/target
 
     env_file:
       - .env

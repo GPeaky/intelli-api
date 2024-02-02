@@ -184,7 +184,7 @@ impl F123Service {
                             port_partial_open = true;
                         }
 
-                        let Some(header) = F123Data::deserialize_header(buf) else {
+                        let Some(header) = F123Data::try_deserialize_header(buf) else {
                             error!("Error deserializing F123 header, for championship: {championship_id:?}");
                             continue;
                         };
@@ -228,7 +228,7 @@ impl F123Service {
                             _ => {}
                         }
 
-                        let Some(packet) = F123Data::deserialize(packet_id, buf) else {
+                        let Some(packet) = F123Data::try_deserialize(packet_id, buf) else {
                             continue;
                         };
 
@@ -338,6 +338,18 @@ impl F123Service {
                                         )
                                         .await?;
                                 }
+                            }
+
+                            F123Data::CarDamage(car_damage_data) => {
+                                info!("Car Damage: {:?}", car_damage_data);
+                            }
+
+                            F123Data::CarTelemetry(car_telemetry) => {
+                                info!("Car Telemetry: {:?}", car_telemetry);
+                            }
+
+                            F123Data::CarStatus(car_status) => {
+                                info!("Car Status: {:?}", car_status);
                             }
 
                             //TODO Collect All data from redis and save it to the mariadb database

@@ -17,7 +17,7 @@ RUN cargo update && \
 
 FROM fedora:latest
 
-COPY --from=builder /usr/src/intelli/target/release/intelli-api /usr/local/bin/intelli-api
+COPY --from=builder /usr/src/intelli-api/target/release/intelli-api /usr/local/bin/intelli-api
 
 COPY /migrations /migrations
 COPY /certs /certs
