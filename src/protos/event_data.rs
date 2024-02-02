@@ -33,6 +33,7 @@ impl ToProtoMessage for BPacketEventData {
     }
 }
 
+#[inline(always)]
 pub fn convert_event_data_details(
     event_code: &EventCode,
     event_data_details: &BEventDataDetails,
