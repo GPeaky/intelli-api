@@ -20,10 +20,7 @@ pub trait ToProtoMessage {
     where
         Self: Sized,
     {
-        let Some(proto_data) = self.to_proto() else {
-            return None;
-        };
-
+        let proto_data = self.to_proto()?;
         let proto_data: Vec<u8> = proto_data.encode_to_vec();
 
         Some(PacketHeader {

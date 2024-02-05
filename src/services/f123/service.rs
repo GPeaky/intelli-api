@@ -58,9 +58,7 @@ impl F123Service {
         championship_id: i32,
     ) -> Option<Receiver<ChanelData>> {
         let channels = self.channels.read();
-        let Some(channel) = channels.get(&championship_id) else {
-            return None;
-        };
+        let channel = channels.get(&championship_id)?;
 
         Some(channel.subscribe())
     }
