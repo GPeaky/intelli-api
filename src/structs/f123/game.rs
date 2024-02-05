@@ -24,7 +24,7 @@ pub struct PacketMotionData {
     pub car_motion_data: [CarMotionData; 22], // Data for all cars on track
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(FromBytes, FromZeros, NoCell, KnownLayout)]
 pub struct PacketEventData {
     pub header: PacketHeader,            // Header
