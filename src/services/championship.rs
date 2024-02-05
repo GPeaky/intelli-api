@@ -15,16 +15,38 @@ use crate::{
     utils::write,
 };
 
+/// Manages championship-related operations, including creation, update, and user management.
+///
+/// This service integrates database and cache operations to handle championships efficiently.
+/// It supports creating new championships, updating existing ones, adding or removing users,
+/// and deleting championships, all while managing port assignments for each championship.
 #[derive(Clone)]
 pub struct ChampionshipService {
+    /// Database connection for persistent storage of championship data.
     db: Database,
+    /// Redis cache for temporarily storing championship-related data.
     cache: RedisCache,
+    /// A shared, thread-safe set of available ports for championships.
     ports: Arc<RwLock<AHashSet<i32>>>,
+    /// Repository for user-specific database operations.
     user_repository: UserRepository,
+    /// Repository for championship-specific database operations.
     championship_repository: ChampionshipRepository,
 }
 
+//TODO: Create a common trait for the entities and implement the common methods there
 impl ChampionshipService {
+    /// Creates a new instance of `ChampionshipService`.
+    ///
+    /// Initializes the service with database and cache connections, and prepares the set
+    /// of available ports for use by new championships.
+    ///
+    /// # Arguments
+    /// - `db_conn`: A reference to the database connection.
+    /// - `cache`: A reference to the Redis cache.
+    ///
+    /// # Returns
+    /// A new `ChampionshipService` instance.
     pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         let user_repository = UserRepository::new(db_conn, cache);
         let championship_repository = ChampionshipRepository::new(db_conn, cache);
@@ -42,6 +64,17 @@ impl ChampionshipService {
         }
     }
 
+    /// Creates a new championship with the specified details.
+    ///
+    /// Allocates a port for the new championship, ensures the championship name is unique,
+    /// and stores the championship data in the database.
+    ///
+    /// # Arguments
+    /// - `payload`: The details of the new championship to create.
+    /// - `user_id`: The ID of the user creating the championship.
+    ///
+    /// # Returns
+    /// An empty result indicating success or an error if the operation fails.
     pub async fn create(&self, payload: CreateChampionshipDto, user_id: i32) -> AppResult<()> {
         let port = self.get_port().await?;
         let id = fastrand::i32(700000000..799999999);
@@ -102,6 +135,17 @@ impl ChampionshipService {
         Ok(())
     }
 
+    /// Updates an existing championship with the given details.
+    ///
+    /// Validates user ownership and update interval before applying changes to the championship.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the championship to update.
+    /// - `user_id`: The ID of the user requesting the update.
+    /// - `form`: The new details to apply to the championship.
+    ///
+    /// # Returns
+    /// An empty result indicating success or an error if the operation fails.
     pub async fn update(&self, id: i32, user_id: i32, form: &UpdateChampionship) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
@@ -166,6 +210,17 @@ impl ChampionshipService {
         Ok(())
     }
 
+    /// Adds a user to a championship, allowing them to participate or manage it.
+    ///
+    /// Validates championship existence and user ownership before adding the specified user.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the championship.
+    /// - `user_id`: The ID of the user performing the operation.
+    /// - `bind_user_email`: The email of the user to add to the championship.
+    ///
+    /// # Returns
+    /// An empty result indicating success or an error if the operation fails.
     pub async fn add_user(&self, id: i32, user_id: i32, bind_user_email: &str) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
@@ -208,6 +263,17 @@ impl ChampionshipService {
         Ok(())
     }
 
+    /// Removes a user from a championship.
+    ///
+    /// Validates championship existence, user ownership, and that the user to remove is not the owner.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the championship.
+    /// - `user_id`: The ID of the user performing the operation.
+    /// - `remove_user_id`: The ID of the user to remove from the championship.
+    ///
+    /// # Returns
+    /// An empty result indicating success or an error if the operation fails.
     pub async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
@@ -249,6 +315,15 @@ impl ChampionshipService {
         Ok(())
     }
 
+    /// Deletes a championship and all related user associations.
+    ///
+    /// Validates championship existence before deleting it from the database and cache.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the championship to delete.
+    ///
+    /// # Returns
+    /// An empty result indicating success or an error if the operation fails.
     pub async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 

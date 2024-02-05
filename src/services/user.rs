@@ -16,25 +16,109 @@ use crate::{
 
 use super::{TokenService, TokenServiceTrait};
 
+/// A service for managing user accounts.
+///
+/// This service provides functionality to create, update, delete, and manage the state of user
+/// accounts. It integrates database operations with caching for improved performance and
+/// efficiency, leveraging both a direct database connection and a Redis cache.
 #[derive(Clone)]
 pub struct UserService {
-    #[allow(unused)]
+    /// Redis cache for temporarily storing user data.
     cache: RedisCache,
+    /// Database connection for persistent storage.
     db_conn: Database,
+    /// Repository for user-specific database operations.
     user_repo: UserRepository,
+    /// Service for managing authentication tokens.
     token_service: TokenService,
 }
 
+// TODO: Remove the `UserServiceTrait` and `UserService` and use the `UserService` directly. With the possibilty of using a `EntityService` trait for common methods for all entities.
 #[async_trait]
 pub trait UserServiceTrait {
+    /// Constructs a new instance of the user service.
+    ///
+    /// # Arguments
+    /// - `db_conn`: A reference to the database connection.
+    /// - `cache`: A reference to the Redis cache.
+    ///
+    /// # Returns
+    /// A new `UserService` instance.
     fn new(db_conn: &Database, cache: &RedisCache) -> Self;
+
+    /// Creates a new user account.
+    ///
+    /// # Arguments
+    /// - `register`: Data transfer object containing user registration details.
+    ///
+    /// # Returns
+    /// The ID of the newly created user if successful.
     async fn create(&self, register: &RegisterUserDto) -> AppResult<i32>;
+
+    /// Updates an existing user account.
+    ///
+    /// # Arguments
+    /// - `user`: Current state of the user to be updated.
+    /// - `form`: Data transfer object containing updated user details.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
     async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()>;
+
+    /// Deletes a user account by ID.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user to delete.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
     async fn delete(&self, id: i32) -> AppResult<()>;
+
+    /// Resets the password for a user account.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user whose password is to be reset.
+    /// - `password`: The new password.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
     async fn reset_password(&self, id: i32, password: &str) -> AppResult<()>;
+
+    /// Resets the password for a user account using a token.
+    ///
+    /// # Arguments
+    /// - `token`: A token validating the reset request.
+    /// - `password`: The new password.
+    ///
+    /// # Returns
+    /// The ID of the user whose password was reset if successful.
     async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32>;
+
+    /// Activates a user account.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user to activate.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
     async fn activate(&self, id: i32) -> AppResult<()>;
+
+    /// Activates a user account using a token.
+    ///
+    /// # Arguments
+    /// - `token`: A token validating the activation request.
+    ///
+    /// # Returns
+    /// The ID of the user activated if successful.
     async fn activate_with_token(&self, token: &str) -> AppResult<i32>;
+
+    /// Deactivates a user account.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user to deactivate.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
     async fn deactivate(&self, id: i32) -> AppResult<()>;
 }
 
