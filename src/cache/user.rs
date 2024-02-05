@@ -14,16 +14,44 @@ use super::EntityCache;
 const ID: &str = "id";
 const EMAIL: &str = "email";
 
+/// `UserCache` is a caching structure for storing and retrieving user data using Redis.
+/// It provides methods to interact with a Redis cache to retrieve user information by email.
+///
 #[derive(Clone)]
 pub struct UserCache {
     db: Database,
 }
 
 impl UserCache {
+    /// Creates a new `UserCache` instance with the provided `Database` reference.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - A reference to the database used for caching.
+    ///
+    /// # Returns
+    ///
+    /// A new `UserCache` instance.
     pub fn new(db: &Database) -> Self {
         Self { db: db.clone() }
     }
 
+    /// Retrieves a user by their email address from the Redis cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `email` - The email address of the user to retrieve.
+    ///
+    /// # Returns
+    ///
+    /// An `AppResult` containing an `Option<User>`. If a user with the provided email
+    /// exists in the cache, it returns `Some(user)`. If not found, it returns `None`.
+    ///
+    /// # Errors
+    ///
+    /// If there is an error while interacting with the Redis cache or deserializing
+    /// the user data, this function returns an `AppError` indicating the issue.
+    ///
     pub async fn get_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let bytes: Option<Vec<u8>> = {
             let mut conn = self.db.redis.get().await?;
