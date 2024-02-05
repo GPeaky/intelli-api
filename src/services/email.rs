@@ -11,11 +11,31 @@ use tracing::error;
 
 use crate::{error::AppResult, structs::EmailUser};
 
+/// A service for sending emails asynchronously.
+///
+/// This struct encapsulates the functionality to send emails using an asynchronous SMTP transport.
+/// It leverages a bounded channel for message queuing and delivery, ensuring that email sending
+/// operations do not block the main execution thread. The service is designed to handle
+/// potentially high volumes of email sending tasks with resilience.
 #[derive(Clone)]
 pub struct EmailService(Sender<Message>, Mailbox);
 
 // Todo: Implement a pool of receivers to send emails in case of a single receiver can't handle the load
 impl EmailService {
+    /// Constructs a new `EmailService`.
+    ///
+    /// Initializes the email service with a bounded sender-receiver pair and a default mailbox.
+    /// The sender part of the channel is used to enqueue emails for sending, while a separate
+    /// Tokio task is spawned to handle sending these emails asynchronously using an SMTP relay.
+    ///
+    /// The SMTP transport configuration, including the relay host, port, and credentials, are
+    /// read from environment variables.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let email_service = EmailService::new();
+    /// ```
     pub fn new() -> Self {
         let (tx, rx) = loole::bounded(50);
 
@@ -47,6 +67,31 @@ impl EmailService {
         Self(tx, mailbox)
     }
 
+    /// Sends an email to a specified recipient.
+    ///
+    /// Constructs an email message using the provided user information, subject, and body,
+    /// then enqueues this message for sending. The body of the email is generated from a template.
+    ///
+    /// # Parameters
+    /// - `user`: The recipient of the email. Contains username and email address.
+    /// - `subject`: The subject line of the email.
+    /// - `body`: The body of the email. This parameter is expected to be a type that implements
+    /// the `TemplateOnce` trait, allowing for dynamic content generation.
+    ///
+    /// # Returns
+    /// An `AppResult<()>` indicating the outcome of the operation. On success, it returns `Ok(())`.
+    /// On failure, it returns an error encapsulating the issue encountered during execution.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let result = email_service.send_mail(user, "Welcome!", template);
+    /// if result.is_ok() {
+    ///     println!("Email sent successfully");
+    /// } else {
+    ///     println!("Failed to send email");
+    /// }
+    /// ```
     pub fn send_mail<'a, T: TemplateOnce>(
         &self,
         user: EmailUser<'a>,
