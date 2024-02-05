@@ -70,7 +70,7 @@ pub trait EntityCache {
     ///
     /// # Returns
     ///
-    /// A result containing an option with the entity if found, or an none if not.
+    /// A result containing an option with the entity if found, or a none if not.
     async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>>;
 
     /// Stores an entity in the cache.
