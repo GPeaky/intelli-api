@@ -14,7 +14,7 @@ impl ToProtoMessage for BPacketParticipantsData {
             num_active_cars: self.num_active_cars as u32,
             participants: self
                 .participants
-                .into_iter()
+                .iter()
                 .map(|value| {
                     let c_str = CStr::from_bytes_until_nul(&value.name).unwrap();
 

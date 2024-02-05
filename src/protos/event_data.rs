@@ -11,7 +11,11 @@ use super::ToProtoMessage;
 
 include!(concat!(env!("OUT_DIR"), "/protos.event_data.rs"));
 
-const EVENT_NOT_SEND: [EventCode; 2] = [EventCode::ButtonStatus, EventCode::TeamMateInPits];
+const EVENT_NOT_SEND: [EventCode; 3] = [
+    EventCode::ButtonStatus,
+    EventCode::TeamMateInPits,
+    EventCode::Flashback,
+];
 
 impl ToProtoMessage for BPacketEventData {
     type ProtoType = PacketEventData;

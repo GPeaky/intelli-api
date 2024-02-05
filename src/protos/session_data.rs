@@ -37,7 +37,7 @@ impl ToProtoMessage for BPacketSessionData {
             num_red_flag_periods: self.num_red_flag_periods as u32,
             rain_percentage: self
                 .weather_forecast_samples
-                .into_iter()
+                .iter()
                 .take(self.num_weather_forecast_samples as usize)
                 .map(|weather| weather.rain_percentage as u16)
                 .sum::<u16>() as u32
@@ -45,7 +45,7 @@ impl ToProtoMessage for BPacketSessionData {
 
             marshall_zones: self
                 .marshal_zones
-                .into_iter()
+                .iter()
                 .take(self.num_marshal_zones as usize)
                 .map(|marshal_zone| MarshalZone {
                     zone_start: marshal_zone.zone_start,

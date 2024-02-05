@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use tokio_postgres::Row;
 
 use crate::{
     cache::{EntityCache, RedisCache},
@@ -11,6 +12,24 @@ use crate::{
 pub struct UserRepository {
     db_conn: Database,
     cache: RedisCache,
+}
+
+impl UserRepository {
+    #[inline]
+    async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
+        if let Some(row) = row {
+            let user = User::from_row(&row)?;
+
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
+            self.cache.user.set(&user).await?;
+            return Ok(Some(user));
+        }
+
+        Ok(None)
+    }
 }
 
 #[async_trait]
@@ -52,18 +71,7 @@ impl UserRepositoryTrait for UserRepository {
             conn.query_opt(&find_user_stmt, &[&id]).await?
         };
 
-        if let Some(row) = row {
-            let user = User::from_row(&row)?;
-
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
-            self.cache.user.set(&user).await?;
-            return Ok(Some(user));
-        }
-
-        Ok(None)
+        self.convert_to_user(row).await
     }
 
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
@@ -132,18 +140,7 @@ impl UserRepositoryTrait for UserRepository {
             conn.query_opt(&find_by_email_stmt, &[&email]).await?
         };
 
-        if let Some(row) = row {
-            let user = User::from_row(&row)?;
-
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
-            self.cache.user.set(&user).await?;
-            return Ok(Some(user));
-        }
-
-        Ok(None)
+        self.convert_to_user(row).await
     }
 
     fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {

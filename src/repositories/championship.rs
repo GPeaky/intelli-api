@@ -1,3 +1,5 @@
+use tokio_postgres::Row;
+
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
@@ -59,14 +61,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_championship_stmt, &[&id]).await?
         };
 
-        if let Some(row) = row {
-            let championship = Championship::from_row(&row)?;
-
-            self.cache.championship.set(&championship).await?;
-            return Ok(Some(championship));
-        }
-
-        Ok(None)
+        self.convert_to_championship(row).await
     }
 
     pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Championship>> {
@@ -89,13 +84,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_by_name_stmt, &[&name]).await?
         };
 
-        if let Some(row) = row {
-            let championship = Championship::from_row(&row)?;
-            self.cache.championship.set(&championship).await?;
-            return Ok(Some(championship));
-        }
-
-        Ok(None)
+        self.convert_to_championship(row).await
     }
 
     pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Championship>> {
@@ -177,5 +166,16 @@ impl ChampionshipRepository {
         };
 
         Ok(rows.len())
+    }
+
+    #[inline]
+    async fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Championship>> {
+        if let Some(row) = row {
+            let championship = Championship::from_row(&row)?;
+            self.cache.championship.set(&championship).await?;
+            return Ok(Some(championship));
+        }
+
+        Ok(None)
     }
 }
