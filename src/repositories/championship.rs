@@ -7,20 +7,42 @@ use crate::{
     error::{AppError, AppResult},
 };
 
+/// A repository for managing championship data, with support for caching.
+///
+/// This struct provides an interface to interact with championship data stored in both a
+/// database and a cache layer. It abstracts away the details of querying and caching, offering
+/// methods to retrieve and manage championship information efficiently.
 #[derive(Clone)]
 pub struct ChampionshipRepository {
+    /// The database connection used for querying championship data.
     database: Database,
+    /// The cache layer used for storing and retrieving cached championship data.
     cache: RedisCache,
 }
 
 impl ChampionshipRepository {
-    pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
+    /// Creates a new instance of `ChampionshipRepository`.
+    ///
+    /// # Arguments
+    ///
+    /// * `db_conn` - A reference to the database connection.
+    /// * `cache` - A reference to the cache layer.
+    ///
+    /// # Returns
+    ///
+    /// A new `ChampionshipRepository` instance.
+    pub fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         Self {
             database: db_conn.clone(),
             cache: cache.clone(),
         }
     }
 
+    /// Retrieves a list of ports currently in use by championships.
+    ///
+    /// # Returns
+    ///
+    /// A vector of integers representing the ports in use.
     pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
         let rows = {
             let conn = self.database.pg.get().await?;
@@ -41,6 +63,15 @@ impl ChampionshipRepository {
         Ok(ports_in_use)
     }
 
+    /// Finds a championship by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship to find.
+    ///
+    /// # Returns
+    ///
+    /// An optional `Championship` instance if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<Championship>> {
         if let Some(championship) = self.cache.championship.get(id).await? {
             return Ok(Some(championship));
@@ -64,6 +95,15 @@ impl ChampionshipRepository {
         self.convert_to_championship(row).await
     }
 
+    /// Finds a championship by its name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the championship to find.
+    ///
+    /// # Returns
+    ///
+    /// An optional `Championship` instance if found.
     pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Championship>> {
         if let Some(championship) = self.cache.championship.get_by_name(name).await? {
             return Ok(Some(championship));
@@ -87,6 +127,15 @@ impl ChampionshipRepository {
         self.convert_to_championship(row).await
     }
 
+    /// Retrieves all championships associated with a user ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - The ID of the user.
+    ///
+    /// # Returns
+    ///
+    /// A vector of `Championship` instances associated with the user.
     pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Championship>> {
         if let Some(championships) = self.cache.championship.get_all(user_id).await? {
             return Ok(championships);
@@ -122,6 +171,15 @@ impl ChampionshipRepository {
         Ok(championships)
     }
 
+    /// Retrieves a list of user IDs associated with a championship ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship.
+    ///
+    /// # Returns
+    ///
+    /// A vector of integers representing the user IDs.
     pub async fn users(&self, id: i32) -> AppResult<Vec<i32>> {
         let rows = {
             let conn = self.database.pg.get().await?;
@@ -143,6 +201,15 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
+    /// Counts the number of championships associated with a user ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - The ID of the user.
+    ///
+    /// # Returns
+    ///
+    /// The number of championships associated with the user.
     pub async fn championship_len(&self, user_id: i32) -> AppResult<usize> {
         let rows = {
             let conn = self.database.pg.get().await?;
@@ -168,6 +235,15 @@ impl ChampionshipRepository {
         Ok(rows.len())
     }
 
+    /// Converts a database row to a `Championship` instance and caches it.
+    ///
+    /// # Arguments
+    ///
+    /// * `row` - An optional row from the database.
+    ///
+    /// # Returns
+    ///
+    /// An optional `Championship` instance if the row is present.
     #[inline]
     async fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Championship>> {
         if let Some(row) = row {

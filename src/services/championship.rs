@@ -27,7 +27,7 @@ pub struct ChampionshipService {
 impl ChampionshipService {
     pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         let user_repository = UserRepository::new(db_conn, cache);
-        let championship_repository = ChampionshipRepository::new(db_conn, cache).await;
+        let championship_repository = ChampionshipRepository::new(db_conn, cache);
 
         let ports = Self::available_ports(&championship_repository)
             .await

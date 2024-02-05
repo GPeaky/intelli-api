@@ -6,6 +6,11 @@ use crate::{
     structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
 };
 
+/// Manages interactions with Google's OAuth2 API and user information endpoints.
+///
+/// This struct is responsible for handling OAuth2 authentication and retrieval of user
+/// information from Google. It encapsulates the necessary details like client ID, client
+/// secret, redirect URI, grant type, and an HTTP client for making requests.
 #[derive(Clone)]
 pub struct GoogleRepository {
     client_id: String,
@@ -15,8 +20,14 @@ pub struct GoogleRepository {
     reqwest_client: reqwest::Client,
 }
 
-// FIX: this isn't  working, probably something changed in google api
 impl GoogleRepository {
+    /// Constructs a new `GoogleRepository` with environment-specific credentials and an HTTP client.
+    ///
+    /// The necessary authentication details (client ID, client secret, redirect URI, grant type)
+    /// are loaded from environment variables. An HTTP client for making requests is also initialized.
+    ///
+    /// # Panics
+    /// Panics if any of the required environment variables are missing.
     pub fn new() -> Self {
         Self {
             client_id: var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID secret not found"),
@@ -28,6 +39,19 @@ impl GoogleRepository {
         }
     }
 
+    /// Retrieves Google account information for a user given a callback code.
+    ///
+    /// This method exchanges a callback code for an access token using Google's OAuth2 API,
+    /// then uses the access token to fetch the user's account information.
+    ///
+    /// # Arguments
+    /// - `callback_code`: The callback code received from Google after user authorization.
+    ///
+    /// # Returns
+    /// An `AppResult<GoogleUserInfo>` containing the user's Google account information if successful.
+    ///
+    /// # Errors
+    /// Returns an error if the request to Google's API fails or if the response cannot be parsed.
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
         let access_token = {
             let token_request = GoogleTokenRequest {

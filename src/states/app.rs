@@ -39,7 +39,7 @@ impl AppState {
             user_repository: UserRepository::new(db_conn, cache),
             token_service: TokenService::new(cache),
             championship_service: ChampionshipService::new(db_conn, cache).await,
-            championship_repository: ChampionshipRepository::new(db_conn, cache).await,
+            championship_repository: ChampionshipRepository::new(db_conn, cache),
             email_service: EmailService::new(),
             saved_session_service: SavedSessionService::new(db_conn, cache),
             google_repository: GoogleRepository::new(),

@@ -8,6 +8,11 @@ use crate::{
     error::{AppResult, UserError},
 };
 
+/// A repository for managing user data within a database and cache.
+///
+/// This struct provides an interface to interact with user records, offering capabilities
+/// to find, verify, and manage user information. It integrates both a database connection
+/// and a caching layer to optimize data retrieval and reduce database load.
 #[derive(Clone)]
 pub struct UserRepository {
     db_conn: Database,
@@ -15,6 +20,19 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
+    /// Converts a database row into a `User` object.
+    ///
+    /// This private method attempts to convert a database row into a `User` struct.
+    /// If the row exists and the user is active, it caches the user information
+    /// and returns the user. If the user is not active, it returns an error.
+    ///
+    /// # Arguments
+    /// - `row`: An optional database row that may contain user data.
+    ///
+    /// # Returns
+    /// - `Ok(Some(User))` if the user is found and active.
+    /// - `Ok(None)` if the row is `None`.
+    /// - `Err(UserError::NotVerified)` if the user is not active.
     #[inline]
     async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
         if let Some(row) = row {
@@ -34,11 +52,60 @@ impl UserRepository {
 
 #[async_trait]
 pub trait UserRepositoryTrait {
+    /// Creates a new `UserRepository` instance.
+    ///
+    /// # Arguments
+    /// - `db_conn`: A reference to a `Database` connection.
+    /// - `cache`: A reference to a `RedisCache`.
+    ///
+    /// # Returns
+    /// A new instance of `UserRepository`.
     fn new(db_conn: &Database, cache: &RedisCache) -> Self;
+
+    /// Finds a user by ID.
+    ///
+    /// # Arguments
+    /// - `id`: The user's ID.
+    ///
+    /// # Returns
+    /// An `AppResult` containing the user if found, or `None`.
     async fn find(&self, id: i32) -> AppResult<Option<User>>;
+
+    /// Checks if a user exists by their email.
+    ///
+    /// # Arguments
+    /// - `email`: The email address to check.
+    ///
+    /// # Returns
+    /// `true` if the user exists, otherwise `false`.
     async fn user_exists(&self, email: &str) -> AppResult<bool>;
+
+    /// Retrieves the active status of a user.
+    ///
+    /// # Arguments
+    /// - `id`: The user's ID.
+    ///
+    /// # Returns
+    /// An optional boolean indicating the user's active status, or `None` if not found.
     async fn status(&self, id: i32) -> AppResult<Option<bool>>;
+
+    /// Finds a user by their email address.
+    ///
+    /// # Arguments
+    /// - `email`: The email address of the user.
+    ///
+    /// # Returns
+    /// An `AppResult` containing the user if found, or `None`.
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
+
+    /// Validates a user's password against a stored hash.
+    ///
+    /// # Arguments
+    /// - `password`: The password to validate.
+    /// - `hash`: The hash to validate against.
+    ///
+    /// # Returns
+    /// `true` if the password matches the hash, otherwise `false`.
     fn validate_password(&self, password: &str, hash: &str) -> AppResult<bool>;
 }
 
