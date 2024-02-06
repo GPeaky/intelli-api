@@ -1,12 +1,9 @@
+use crate::config::constants::*;
 use deadpool_redis::redis::{self, AsyncCommands};
 // use tokio::time::Instant;
 use tracing::info;
 
-use crate::{
-    config::Database,
-    error::AppResult,
-    structs::F123CachedData,
-};
+use crate::{config::Database, error::AppResult, structs::F123CachedData};
 
 #[derive(Clone)]
 pub struct F123Repository {
