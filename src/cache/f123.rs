@@ -21,7 +21,7 @@ pub struct F123InsiderCache {
 }
 
 #[allow(unused)]
-// Todo: Implement constants for redis keys to avoid hardcoding
+// Todo: Implement constants for redis keys to avoid hard coding
 // TODO: Implement cache with new batching method || Save events data in database (Postgres)
 impl F123InsiderCache {
     /// Creates a new `F123InsiderCache` instance with the provided Redis connection and championship ID.

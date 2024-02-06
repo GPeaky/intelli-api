@@ -38,7 +38,7 @@ use tracing::{info, warn};
 ///
 /// # Functionality
 ///
-/// This struct's primary function is to optimize packet processing by reducing the number
+/// These structs primary function is to optimize packet processing by reducing the number
 /// of individual packets that need to be handled. By batching packets together and caching
 /// them simultaneously, it enables efficient packet management and processing, particularly
 /// in high-throughput scenarios.
@@ -72,7 +72,7 @@ impl PacketBatching {
     /// ```ignore
     /// let (tx, rx) = tokio::sync::mpsc::channel(100);
     /// let cache = F123InsiderCache::new(); // Assuming F123InsiderCache::new is defined
-    /// let packet_batcher = PacketBatching::new(tx, cache);
+    /// let packet_batches = PacketBatching::new(tx, cache);
     /// ```
     ///
     /// # Note

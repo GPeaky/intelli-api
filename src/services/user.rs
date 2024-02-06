@@ -33,7 +33,7 @@ pub struct UserService {
     token_service: TokenService,
 }
 
-// TODO: Remove the `UserServiceTrait` and `UserService` and use the `UserService` directly. With the possibilty of using a `EntityService` trait for common methods for all entities.
+// TODO: Remove the `UserServiceTrait` and `UserService` and use the `UserService` directly. With the possibility of using a `EntityService` trait for common methods for all entities.
 #[async_trait]
 pub trait UserServiceTrait {
     /// Constructs a new instance of the user service.

@@ -27,7 +27,7 @@ impl GoogleRepository {
     /// are loaded from environment variables. An HTTP client for making requests is also initialized.
     ///
     /// # Panics
-    /// Panics if any of the required environment variables are missing.
+    /// if any of the required environment variables are missing.
     pub fn new() -> Self {
         Self {
             client_id: var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID secret not found"),

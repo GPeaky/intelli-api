@@ -3,7 +3,7 @@ use deadpool_redis::redis::{self, AsyncCommands};
 use tracing::info;
 
 use crate::{
-    config::{constants::*, Database},
+    config::Database,
     error::AppResult,
     structs::F123CachedData,
 };

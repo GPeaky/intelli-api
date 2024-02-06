@@ -142,7 +142,7 @@ impl UserRepositoryTrait for UserRepository {
     }
 
     async fn user_exists(&self, email: &str) -> AppResult<bool> {
-        if (self.find_by_email(email).await?).is_some() {
+        if self.find_by_email(email).await?.is_some() {
             return Ok(true);
         };
 
