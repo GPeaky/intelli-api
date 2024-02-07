@@ -9,8 +9,6 @@ mod championship;
 mod saved_sessions;
 mod user;
 
-pub trait FromRow {
-    fn from_row(row: &Row) -> AppResult<Self>
-    where
-        Self: Sized;
+pub trait FromRow: Sized {
+    fn from_row(row: &Row) -> AppResult<Self>;
 }

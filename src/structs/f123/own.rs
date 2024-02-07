@@ -505,10 +505,7 @@ impl<'a> F123Data<'a> {
     }
 
     #[inline(always)]
-    fn try_deserialize_packet<T>(bytes: &[u8]) -> Option<&T>
-    where
-        T: FromBytes + NoCell,
-    {
+    fn try_deserialize_packet<T: FromBytes + NoCell>(bytes: &[u8]) -> Option<&T> {
         match T::ref_from_prefix(bytes) {
             Some(packet) => Some(packet),
             None => {

@@ -22,7 +22,7 @@ pub(crate) mod session_history;
 /// and implement the `to_proto` method to perform the conversion. Additionally, a utility
 /// method `convert` is provided to wrap the converted protobuf message into a `PacketHeader`,
 /// preparing it for transmission by encapsulating the message with necessary metadata.
-pub trait ToProtoMessage {
+pub trait ToProtoMessage: Sized {
     /// The protobuf message type associated with this Rust type.
     type ProtoType: Message;
 
@@ -69,10 +69,7 @@ pub trait ToProtoMessage {
     ///     // Handle conversion or serialization failure.
     /// }
     /// ```
-    fn convert(&self, packet_type: PacketType) -> Option<PacketHeader>
-    where
-        Self: Sized,
-    {
+    fn convert(&self, packet_type: PacketType) -> Option<PacketHeader> {
         let proto_data = self.to_proto()?;
         let proto_data: Vec<u8> = proto_data.encode_to_vec();
 
