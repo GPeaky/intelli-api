@@ -17,6 +17,10 @@ RUN cargo update && \
 
 FROM fedora:latest
 
+RUN dnf -y update && \
+    dnf -y install openssl ca-certificates && \
+    dnf clean all
+
 COPY --from=builder /usr/src/intelli-api/target/release/intelli-api /usr/local/bin/intelli-api
 
 COPY /migrations /migrations
