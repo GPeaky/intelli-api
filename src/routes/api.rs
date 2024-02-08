@@ -11,7 +11,6 @@ use crate::{
             service_status, session_socket, start_service, stop_service, update,
         },
         heartbeat,
-        intelli_app::latest_release,
         user::{update_user, user_data},
     },
     middlewares::Authentication,
@@ -42,8 +41,6 @@ pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
             .route("/data", get().to(user_data))
             .wrap(Authentication),
     );
-
-    cfg.service(scope("/intelli-app").route("/releases/latest", get().to(latest_release)));
 
     cfg.service(
         scope("/championships")
