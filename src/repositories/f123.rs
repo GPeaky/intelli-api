@@ -20,6 +20,7 @@ impl F123Repository {
 
     // Todo: finish this integration and try to optimize it :) 2ms is too much
     // Todo: implement mini cache in memory for last data cached (Interval 3 seconds)
+    #[allow(unused)]
     pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
         // let time = Instant::now();
         let mut conn = self.database.redis.get().await?;
