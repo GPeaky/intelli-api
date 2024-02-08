@@ -81,16 +81,16 @@ impl PacketBatching {
     /// Ensure to send a shutdown signal through the `shutdown` channel when the `PacketBatching`
     /// instance is no longer needed to properly clean up resources.
     pub fn new(tx: Sender<Bytes>, cache: F123InsiderCache) -> Self {
-        let (stx, srx) = oneshot::channel::<()>();
+        let (otx, orx) = oneshot::channel::<()>();
         let buf = Arc::from(Mutex::from(Vec::with_capacity(2048)));
 
         let instance = Self {
             buf: buf.clone(),
-            shutdown: Some(stx),
+            shutdown: Some(otx),
             cache,
         };
 
-        let mut srx = Cell::from(srx);
+        let mut orx = Cell::from(orx);
         let mut interval_timer = interval(BATCHING_INTERVAL);
         tokio::spawn(async move {
             loop {
@@ -101,7 +101,7 @@ impl PacketBatching {
                         }
                     }
 
-                    _ = srx.get_mut() => {
+                    _ = orx.get_mut() => {
                         info!("Packet batching: shutdown");
                         break;
                     }
@@ -410,8 +410,8 @@ impl PacketBatching {
 
 impl Drop for PacketBatching {
     fn drop(&mut self) {
-        if let Some(tx) = self.shutdown.take() {
-            let _ = tx.send(());
+        if let Some(shutdown) = self.shutdown.take() {
+            let _ = shutdown.send(());
         }
     }
 }
