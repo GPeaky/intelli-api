@@ -1,7 +1,7 @@
 use crate::{
     cache::F123InsiderCache,
     config::{constants::*, Database},
-    error::{AppResult, F123Error, SocketError},
+    error::{AppResult, F123ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
     structs::{F123Data, OptionalMessage, PacketIds, SectorsLaps, SessionType},
@@ -22,86 +22,80 @@ use tracing::{error, info};
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;
 type Channels = Arc<RwLock<AHashMap<i32, F123Channel>>>;
-type Sockets = Arc<RwLock<AHashMap<i32, JoinHandle<AppResult<()>>>>>;
+type Services = Arc<RwLock<AHashMap<i32, JoinHandle<AppResult<()>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db_conn: Database,
-    sockets: Sockets,
+    services: Services,
     channels: Channels,
     firewall: FirewallService,
 }
 
+// TODO: Remove socket errors and implement F123ServiceError
 impl F123Service {
     pub fn new(db_conn: &Database, firewall_service: FirewallService) -> Self {
         Self {
             db_conn: db_conn.clone(),
             firewall: firewall_service,
             channels: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
-            sockets: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
+            services: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
         }
     }
 
-    pub async fn get_active_socket_ids(&self) -> Vec<i32> {
-        let sockets = self.sockets.read();
-        sockets.keys().copied().collect()
+    pub async fn active_services(&self) -> Vec<i32> {
+        let services = self.services.read();
+        services.keys().copied().collect()
     }
 
-    pub async fn is_championship_socket_active(&self, id: i32) -> bool {
-        let sockets = self.sockets.read();
-        sockets.contains_key(&id)
+    pub async fn service_active(&self, id: i32) -> bool {
+        let services = self.services.read();
+        services.contains_key(&id)
     }
 
     #[allow(unused)]
-    pub async fn subscribe_to_championship_events(
-        &self,
-        championship_id: i32,
-    ) -> Option<Receiver<ChanelData>> {
+    pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<ChanelData>> {
         let channels = self.channels.read();
         let channel = channels.get(&championship_id)?;
 
         Some(channel.subscribe())
     }
 
-    pub async fn stop_socket(&self, championship_id: i32) -> AppResult<()> {
+    pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
         let mut channels = self.channels.write();
-        let mut sockets = self.sockets.write();
+        let mut services = self.services.write();
 
         if channels.remove(&championship_id).is_none() {
-            Err(SocketError::NotFound)?;
+            Err(F123ServiceError::NotFound)?;
         };
 
-        if let Some(socket) = sockets.remove(&championship_id) {
+        if let Some(services) = services.remove(&championship_id) {
             // todo: Use oneshot channel to stop the socket in the best way possible
-            socket.abort();
+            services.abort();
         } else {
-            Err(SocketError::NotFound)?;
+            Err(F123ServiceError::NotFound)?;
         };
 
-        info!("Socket stopped for championship: {}", championship_id);
+        info!("Service stopped for championship: {}", championship_id);
         Ok(())
     }
 
-    pub async fn setup_championship_listening_socket(
-        &self,
-        port: i32,
-        championship_id: i32,
-    ) -> AppResult<()> {
-        let mut sockets = self.sockets.upgradable_read();
+    pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
+        let mut services = self.services.upgradable_read();
 
         {
             let channels = self.channels.read();
 
-            if sockets.contains_key(&championship_id) || channels.contains_key(&championship_id) {
-                error!("Trying to create a new socket or channel for an existing championship: {championship_id:?}");
-                return Err(SocketError::AlreadyExists.into());
+            if services.contains_key(&championship_id) || channels.contains_key(&championship_id) {
+                error!("Trying to create a new service or channel for an existing championship: {championship_id:?}");
+                return Err(F123ServiceError::AlreadyExists)?;
             }
         }
 
-        let socket = self.start_listening_on_socket(port, championship_id).await;
+        let service = self.create_service_thread(port, championship_id).await;
 
-        sockets.with_upgraded(|sockets| {
-            sockets.insert(championship_id, socket);
+        services.with_upgraded(|services| {
+            services.insert(championship_id, service);
         });
 
         Ok(())
@@ -109,29 +103,29 @@ impl F123Service {
 
     async fn internal_close(
         channels: &Channels,
-        sockets: &Sockets,
+        services: &Services,
         championship_id: i32,
         firewall: &FirewallService,
     ) -> AppResult<()> {
         firewall.close(championship_id).await?;
 
-        let mut sockets = sockets.write();
+        let mut services = services.write();
         let mut channels = channels.write();
 
-        sockets.remove(&championship_id);
+        services.remove(&championship_id);
         channels.remove(&championship_id);
 
         Ok(())
     }
 
-    async fn start_listening_on_socket(
+    async fn create_service_thread(
         &self,
         port: i32,
         championship_id: i32,
     ) -> JoinHandle<AppResult<()>> {
         let db = self.db_conn.clone();
         let firewall = self.firewall.clone();
-        let sockets = self.sockets.clone();
+        let services = self.services.clone();
         let channels = self.channels.clone();
 
         rt::spawn(async move {
@@ -141,8 +135,8 @@ impl F123Service {
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
-            let close_socket =
-                Self::internal_close(&channels, &sockets, championship_id, &firewall);
+            let close_service =
+                Self::internal_close(&channels, &services, championship_id, &firewall);
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
@@ -157,7 +151,7 @@ impl F123Service {
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket for championship: {championship_id:?}");
-                return Err(F123Error::UdpSocket)?;
+                return Err(F123ServiceError::UdpSocket)?;
             };
 
             info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
@@ -188,8 +182,8 @@ impl F123Service {
                         };
 
                         if header.packet_format != 2023 {
-                            close_socket.await?;
-                            return Err(F123Error::UnsupportedPacketFormat)?;
+                            close_service.await?;
+                            return Err(F123ServiceError::UnsupportedPacketFormat)?;
                         };
 
                         let session_id = header.session_uid;
@@ -234,7 +228,7 @@ impl F123Service {
                             F123Data::Motion(motion_data) => {
                                 let packet = motion_data
                                     .convert(PacketType::CarMotion)
-                                    .ok_or(F123Error::Encoding)?;
+                                    .ok_or(F123ServiceError::Encoding)?;
 
                                 last_car_motion_update = now;
                                 packet_batching.push(packet).await?;
@@ -244,12 +238,12 @@ impl F123Service {
                                 #[cfg(not(debug_assertions))]
                                 if session_data.network_game != 1 {
                                     error!(
-                                        "Not Online Game, closing socket for championship: {}",
+                                        "Not Online Game, closing service for championship: {}",
                                         championship_id
                                     );
 
-                                    close_socket.await?;
-                                    return Err(F123Error::NotOnlineSession)?;
+                                    close_service.await?;
+                                    return Err(F123ServiceError::NotOnlineSession)?;
                                 }
 
                                 let Ok(converted_session_type) =
@@ -263,7 +257,7 @@ impl F123Service {
 
                                 let packet = session_data
                                     .convert(PacketType::SessionData)
-                                    .ok_or(F123Error::Encoding)?;
+                                    .ok_or(F123ServiceError::Encoding)?;
 
                                 last_session_update = now;
                                 packet_batching.push(packet).await?;
@@ -272,7 +266,7 @@ impl F123Service {
                             F123Data::Participants(participants_data) => {
                                 let packet = participants_data
                                     .convert(PacketType::Participants)
-                                    .ok_or(F123Error::Encoding)?;
+                                    .ok_or(F123ServiceError::Encoding)?;
 
                                 last_participants_update = now;
                                 packet_batching.push(packet).await?;
@@ -324,7 +318,7 @@ impl F123Service {
 
                                     let packet = session_history
                                         .convert(PacketType::SessionHistoryData)
-                                        .ok_or(F123Error::Encoding)?;
+                                        .ok_or(F123ServiceError::Encoding)?;
 
                                     *last_update = now;
                                     *last_sectors = sectors;
@@ -354,9 +348,9 @@ impl F123Service {
                             F123Data::FinalClassification(classification_data) => {
                                 let packet = classification_data
                                     .convert(PacketType::FinalClassificationData)
-                                    .ok_or(F123Error::Encoding)?;
+                                    .ok_or(F123ServiceError::Encoding)?;
 
-                                // Only for testing purposes, in the future this should close the socket when the race is finished
+                                // Only for testing purposes, in the future this should close the service when the race is finished
                                 {
                                     let session_type = session_type.borrow();
 
@@ -369,7 +363,7 @@ impl F123Service {
                                     }
                                 }
 
-                                // If session type is race save all session data in the database and close the socket
+                                // If session type is race save all session data in the database and close the service
                                 // Todo: this should be called after saving all data in the database
                                 packet_batching.push(packet).await?;
                             }
@@ -379,13 +373,13 @@ impl F123Service {
                     Ok(Err(e)) => {
                         error!("Error receiving data from udp socket: {}", e);
                         info!("Stopping socket for championship: {}", championship_id);
-                        close_socket.await?;
-                        return Err(F123Error::ReceivingData)?;
+                        close_service.await?;
+                        return Err(F123ServiceError::ReceivingData)?;
                     }
 
                     Err(_) => {
-                        info!("Socket timeout for championship: {}", championship_id);
-                        close_socket.await?;
+                        info!("Service timeout for championship: {}", championship_id);
+                        close_service.await?;
                         return Ok(());
                     }
                 }

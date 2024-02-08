@@ -18,7 +18,7 @@ use ntex::{
 use tokio::sync::broadcast::Receiver;
 
 use crate::{
-    error::{AppResult, ChampionshipError, CommonError, SocketError},
+    error::{AppResult, ChampionshipError, CommonError, F123ServiceError},
     states::AppState,
     structs::ChampionshipIdPath,
 };
@@ -41,13 +41,8 @@ pub async fn session_socket(
         Err(ChampionshipError::NotFound)?
     };
 
-    let socket_active = state
-        .f123_service
-        .is_championship_socket_active(championship.id)
-        .await;
-
-    if !socket_active {
-        Err(SocketError::NotActive)?
+    if !state.f123_service.service_active(championship.id).await {
+        Err(F123ServiceError::NotActive)?
     }
 
     web::ws::start(
@@ -79,12 +74,8 @@ async fn web_socket(
         // }
     }
 
-    let Some(rx) = state
-        .f123_service
-        .subscribe_to_championship_events(championship_id)
-        .await
-    else {
-        return Err(SocketError::NotFound.into());
+    let Some(rx) = state.f123_service.subscribe(championship_id).await else {
+        return Err(F123ServiceError::NotFound.into());
     };
 
     increment(championship_id);

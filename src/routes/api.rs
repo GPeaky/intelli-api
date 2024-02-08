@@ -8,7 +8,7 @@ use crate::{
         },
         championships::{
             add_user, all_championships, create_championship, get_championship, remove_user,
-            session_socket, socket_status, start_socket, stop_socket, update,
+            service_status, session_socket, start_service, stop_service, update,
         },
         heartbeat,
         intelli_app::latest_release,
@@ -53,9 +53,9 @@ pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
             .route("/{id}", put().to(update))
             .route("/{id}/user/add", put().to(add_user))
             .route("/{id}/user/{user_id}", delete().to(remove_user))
-            .route("/{id}/socket/start", get().to(start_socket))
-            .route("/{id}/socket/status", get().to(socket_status))
-            .route("/{id}/socket/stop", get().to(stop_socket))
+            .route("/{id}/service/start", get().to(start_service))
+            .route("/{id}/service/status", get().to(service_status))
+            .route("/{id}/service/stop", get().to(stop_service))
             .wrap(Authentication),
     );
 

@@ -11,7 +11,7 @@ use thiserror::Error;
 use tracing::error;
 
 use super::{
-    user::UserError, CacheError, ChampionshipError, CommonError, F123Error, SocketError, TokenError,
+    user::UserError, CacheError, ChampionshipError, CommonError, F123ServiceError, TokenError,
 };
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -30,9 +30,7 @@ pub enum AppError {
     #[error(transparent)]
     Cache(#[from] CacheError),
     #[error(transparent)]
-    Socket(#[from] SocketError),
-    #[error(transparent)]
-    F123(#[from] F123Error),
+    F123(#[from] F123ServiceError),
     #[error(transparent)]
     PgError(#[from] PgError),
     #[error(transparent)]
@@ -63,7 +61,6 @@ impl WebResponseError for AppError {
             AppError::Token(e) => e.status_code(),
             AppError::Common(e) => e.status_code(),
             AppError::Cache(e) => e.status_code(),
-            AppError::Socket(e) => e.status_code(),
             AppError::F123(e) => e.status_code(),
             AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -85,7 +82,6 @@ impl WebResponseError for AppError {
             AppError::Token(e) => e.error_response(r),
             AppError::Common(e) => e.error_response(r),
             AppError::Cache(e) => e.error_response(r),
-            AppError::Socket(e) => e.error_response(r),
             AppError::F123(e) => e.error_response(r),
             AppError::PgError(e) => {
                 error!("{e}");

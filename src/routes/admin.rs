@@ -3,7 +3,7 @@ use ntex::web::{delete, get, post, scope, ServiceConfig};
 use crate::{
     handlers::{
         admin::pool_status,
-        championships::{active_sockets, delete_championship, user_championships},
+        championships::{active_services, delete_championship, user_championships},
         user::{delete_user, disable_user, enable_user},
     },
     middlewares::{Admin, Authentication},
@@ -23,7 +23,7 @@ pub(crate) fn admin_routes(cfg: &mut ServiceConfig) {
                     .route("/{id}", get().to(user_championships)) // id = user_id
                     .route("/{id}", delete().to(delete_championship)),
             )
-            .service(scope("/sockets").route("/sockets", get().to(active_sockets)))
+            .service(scope("/services").route("/services", get().to(active_services)))
             .route("/pools", get().to(pool_status))
             .wrap(Admin)
             .wrap(Authentication),

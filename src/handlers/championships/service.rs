@@ -7,19 +7,19 @@ use ntex::web::{
 use crate::{
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
-    structs::{ChampionshipIdPath, SocketStatus},
+    structs::{ChampionshipIdPath, ServiceStatus},
 };
 
 use super::counter::get;
 
 #[inline(always)]
-pub async fn active_sockets(state: State<AppState>) -> AppResult<impl Responder> {
-    let sockets = state.f123_service.get_active_socket_ids().await;
-    Ok(HttpResponse::Ok().json(&sockets))
+pub async fn active_services(state: State<AppState>) -> AppResult<impl Responder> {
+    let services = state.f123_service.active_services().await;
+    Ok(HttpResponse::Ok().json(&services))
 }
 
 #[inline(always)]
-pub async fn start_socket(
+pub async fn start_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<impl Responder> {
@@ -33,14 +33,14 @@ pub async fn start_socket(
 
     state
         .f123_service
-        .setup_championship_listening_socket(championship.port, championship.id)
+        .start_service(championship.port, championship.id)
         .await?;
 
     Ok(HttpResponse::Created())
 }
 
 #[inline(always)]
-pub async fn socket_status(
+pub async fn service_status(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<impl Responder> {
@@ -53,27 +53,24 @@ pub async fn socket_status(
     };
 
     let mut num_connections = 0;
-    let socket_active = state
-        .f123_service
-        .is_championship_socket_active(championship.id)
-        .await;
+    let service_active = state.f123_service.service_active(championship.id).await;
 
-    if socket_active {
+    if service_active {
         if let Some(count) = get(&path.id) {
             num_connections = count;
         };
     }
 
-    let socket_status = SocketStatus {
-        active: socket_active,
+    let service_status = ServiceStatus {
+        active: service_active,
         connections: num_connections,
     };
 
-    Ok(HttpResponse::Ok().json(&socket_status))
+    Ok(HttpResponse::Ok().json(&service_status))
 }
 
 #[inline(always)]
-pub async fn stop_socket(
+pub async fn stop_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<impl Responder> {
@@ -81,7 +78,7 @@ pub async fn stop_socket(
         Err(CommonError::ValidationFailed)?
     }
 
-    state.f123_service.stop_socket(path.id).await?;
+    state.f123_service.stop_service(path.id).await?;
 
     Ok(HttpResponse::Ok())
 }

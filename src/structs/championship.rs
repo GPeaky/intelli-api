@@ -27,7 +27,7 @@ pub struct UpdateChampionship {
 }
 
 #[derive(Debug, Serialize)]
-pub struct SocketStatus {
+pub struct ServiceStatus {
     pub active: bool,
     pub connections: usize,
 }

@@ -3,7 +3,7 @@ use std::{cell::Cell, sync::Arc};
 use crate::{
     cache::F123InsiderCache,
     config::constants::BATCHING_INTERVAL,
-    error::{AppResult, F123Error},
+    error::{AppResult, F123ServiceError},
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
 };
@@ -249,7 +249,7 @@ impl PacketBatching {
                 warn!("Broadcast channel: {}", e);
             };
         } else {
-            Err(F123Error::BatchedEncoding)?
+            Err(F123ServiceError::BatchedEncoding)?
         }
 
         Ok(())
@@ -372,7 +372,7 @@ impl PacketBatching {
     ///
     /// This function takes a slice of bytes `data` as input and returns an `AppResult<Bytes>`
     /// containing the compressed data. In case of an error during compression, the error is logged,
-    /// and `F123Error::Compressing` is returned.
+    /// and `F123ServiceError::Compressing` is returned.
     ///
     /// # Examples
     ///
@@ -384,7 +384,7 @@ impl PacketBatching {
     ///
     /// # Errors
     ///
-    /// If compression fails, this function returns an `Err` with `F123Error::Compressing`.
+    /// If compression fails, this function returns an `Err` with `F123ServiceError::Compressing`.
     ///
     /// # Parameters
     ///
@@ -399,7 +399,7 @@ impl PacketBatching {
             Ok(compressed_data) => Ok(Bytes::from(compressed_data)),
             Err(e) => {
                 warn!("Zstd compression: {}", e);
-                Err(F123Error::Compressing)?
+                Err(F123ServiceError::Compressing)?
             }
         }
     }

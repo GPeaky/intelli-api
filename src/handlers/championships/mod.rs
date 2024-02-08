@@ -5,8 +5,8 @@ use ntex::web::{
 };
 
 pub(crate) use admin::*;
+pub(crate) use service::*;
 pub(crate) use socket::*;
-pub(crate) use sockets::*;
 
 use crate::{
     entity::{Role, UserExtension},
@@ -19,8 +19,8 @@ use crate::{
 };
 
 mod admin;
+mod service;
 mod socket;
-mod sockets;
 
 #[inline(always)]
 pub async fn create_championship(
