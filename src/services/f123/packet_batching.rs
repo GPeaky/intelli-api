@@ -177,7 +177,7 @@ impl PacketBatching {
         second_param: Option<OptionalMessage<'_>>,
     ) -> AppResult<()> {
         let encoded_package = packet.encode_to_vec();
-        let packet_type = PacketType::try_from(packet.r#type).unwrap();
+        let packet_type = packet.r#type();
 
         self.save_cache(packet_type, &encoded_package, second_param)
             .await?;
