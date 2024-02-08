@@ -21,7 +21,7 @@ use crate::{
 
 mod admin;
 mod service;
-mod socket;
+// mod socket;
 mod stream;
 
 #[inline(always)]
