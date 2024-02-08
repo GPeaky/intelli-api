@@ -332,15 +332,15 @@ impl F123Service {
                                 }
                             }
 
-                            F123Data::CarDamage(car_damage_data) => {
+                            F123Data::CarDamage(_car_damage_data) => {
                                 // info!("Car Damage: {:?}", car_damage_data);
                             }
 
-                            F123Data::CarTelemetry(car_telemetry) => {
+                            F123Data::CarTelemetry(_car_telemetry) => {
                                 // info!("Car Telemetry: {:?}", car_telemetry);
                             }
 
-                            F123Data::CarStatus(car_status) => {
+                            F123Data::CarStatus(_car_status) => {
                                 // info!("Car Status: {:?}", car_status);
                             }
 
