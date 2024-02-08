@@ -9,7 +9,6 @@ use crate::{
 };
 use ntex::util::Bytes;
 use parking_lot::Mutex;
-use prost::Message;
 use tokio::{
     sync::{broadcast::Sender, oneshot},
     time::interval,
@@ -176,10 +175,9 @@ impl PacketBatching {
         packet: PacketHeader,
         second_param: Option<OptionalMessage<'_>>,
     ) -> AppResult<()> {
-        let encoded_package = packet.encode_to_vec();
         let packet_type = packet.r#type();
 
-        self.save_cache(packet_type, &encoded_package, second_param)
+        self.save_cache(packet_type, &packet.payload, second_param)
             .await?;
 
         self.buf.lock().push(packet);
@@ -242,7 +240,6 @@ impl PacketBatching {
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             let encoded_batch = Self::compress(&batch)?;
-            // cache.set(&encoded_batch).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());
