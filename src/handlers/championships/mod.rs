@@ -6,7 +6,8 @@ use ntex::web::{
 
 pub(crate) use admin::*;
 pub(crate) use service::*;
-pub(crate) use socket::*;
+pub(crate) use stream::*;
+// pub(crate) use socket::*;
 
 use crate::{
     entity::{Role, UserExtension},
@@ -21,6 +22,7 @@ use crate::{
 mod admin;
 mod service;
 mod socket;
+mod stream;
 
 #[inline(always)]
 pub async fn create_championship(
@@ -92,7 +94,7 @@ pub async fn update(
 
     state
         .championship_service
-        .update(path.id, user_id, &form)
+        .update(path.0, user_id, &form)
         .await?;
 
     Ok(HttpResponse::Ok())
@@ -117,7 +119,7 @@ pub async fn add_user(
 
     state
         .championship_service
-        .add_user(path.id, user_id, &form.email)
+        .add_user(path.0, user_id, &form.email)
         .await?;
 
     Ok(HttpResponse::Ok())
@@ -156,7 +158,7 @@ pub async fn get_championship(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(path.id).await? else {
+    let Some(championship) = state.championship_repository.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 

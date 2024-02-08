@@ -29,15 +29,15 @@ pub async fn delete_user(
         .ok_or(CommonError::InternalServerError)?
         .id;
 
-    if state.user_repository.find(path.id).await?.is_none() {
+    if state.user_repository.find(path.0).await?.is_none() {
         Err(UserError::NotFound)?
     };
 
-    if path.id == user_id {
+    if path.0 == user_id {
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.delete(path.id).await?;
+    state.user_service.delete(path.0).await?;
     Ok(HttpResponse::Ok())
 }
 
@@ -51,7 +51,7 @@ pub async fn disable_user(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(path_user_active) = state.user_repository.status(path.id).await? else {
+    let Some(path_user_active) = state.user_repository.status(path.0).await? else {
         Err(UserError::NotFound)?
     };
 
@@ -65,11 +65,11 @@ pub async fn disable_user(
         .ok_or(CommonError::InternalServerError)?
         .id;
 
-    if path.id == user_id {
+    if path.0 == user_id {
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.deactivate(path.id).await?;
+    state.user_service.deactivate(path.0).await?;
     Ok(HttpResponse::Ok())
 }
 
@@ -83,7 +83,7 @@ pub async fn enable_user(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(path_user_active) = state.user_repository.status(path.id).await? else {
+    let Some(path_user_active) = state.user_repository.status(path.0).await? else {
         Err(UserError::NotFound)?
     };
 
@@ -97,10 +97,10 @@ pub async fn enable_user(
         .ok_or(CommonError::InternalServerError)?
         .id;
 
-    if path.id == user_id {
+    if path.0 == user_id {
         Err(UserError::AutoDelete)?
     }
 
-    state.user_service.activate(path.id).await?;
+    state.user_service.activate(path.0).await?;
     Ok(HttpResponse::Ok())
 }

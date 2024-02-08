@@ -39,6 +39,7 @@ ntex = { version = "1", features = ["tokio"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 garde = { version = "0.18", features = ["derive", "email"] }

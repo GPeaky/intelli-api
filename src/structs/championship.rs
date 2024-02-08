@@ -41,10 +41,7 @@ pub struct ChampionshipCacheData {
 }
 
 #[derive(Deserialize, Validate)]
-pub struct ChampionshipIdPath {
-    #[garde(range(min = 700000000, max = 799999999))]
-    pub id: i32,
-}
+pub struct ChampionshipIdPath(#[garde(range(min = 700000000, max = 799999999))] pub i32);
 
 #[derive(Deserialize, Validate)]
 pub struct ChampionshipAndUserIdPath {

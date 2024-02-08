@@ -37,7 +37,7 @@ pub async fn session_socket(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(path.id).await? else {
+    let Some(championship) = state.championship_repository.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
@@ -48,7 +48,7 @@ pub async fn session_socket(
     web::ws::start(
         req,
         map_config(fn_factory_with_config(web_socket), move |cfg| {
-            (cfg, state.clone(), path.id)
+            (cfg, state.clone(), path.0)
         }),
     )
     .await

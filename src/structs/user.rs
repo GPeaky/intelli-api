@@ -30,7 +30,4 @@ pub struct UserData {
 }
 
 #[derive(Debug, Deserialize, Validate)]
-pub struct UserIdPath {
-    #[garde(range(min = 600000000, max = 699999999))]
-    pub id: i32,
-}
+pub struct UserIdPath(#[garde(range(min = 600000000, max = 699999999))] pub i32);
