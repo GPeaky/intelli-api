@@ -333,15 +333,15 @@ impl F123Service {
                             }
 
                             F123Data::CarDamage(car_damage_data) => {
-                                info!("Car Damage: {:?}", car_damage_data);
+                                // info!("Car Damage: {:?}", car_damage_data);
                             }
 
                             F123Data::CarTelemetry(car_telemetry) => {
-                                info!("Car Telemetry: {:?}", car_telemetry);
+                                // info!("Car Telemetry: {:?}", car_telemetry);
                             }
 
                             F123Data::CarStatus(car_status) => {
-                                info!("Car Status: {:?}", car_status);
+                                // info!("Car Status: {:?}", car_status);
                             }
 
                             //TODO Collect All data from redis and save it to the mariadb database
