@@ -27,6 +27,9 @@ jobs:
       DB_PASS: ${{ secrets.DB_PASS }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Set up .env file
         run: |
           echo "HOST=\"${{ vars.HOST }}\"" > .env
