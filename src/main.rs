@@ -17,6 +17,7 @@ use config::{initialize_tracing_subscriber, Database};
 use dotenvy::{dotenv, var};
 use ntex::{http, web};
 use ntex_cors::Cors;
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use services::FirewallService;
 use states::AppState;
 
@@ -25,7 +26,7 @@ use states::AppState;
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[ntex::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     dotenv().ok();
     initialize_tracing_subscriber();
     let app_state = {
@@ -35,6 +36,16 @@ async fn main() {
 
         AppState::new(&db, firewall_service, &redis_cache).await
     };
+
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+
+    builder
+        .set_private_key_file("certs/key.pem", SslFiletype::PEM)
+        .unwrap();
+
+    builder
+        .set_certificate_chain_file("certs/cert.pem")
+        .unwrap();
 
     web::server(move || {
         web::App::new()
@@ -56,9 +67,7 @@ async fn main() {
                     .finish(),
             )
     })
-    .bind(var("HOST").unwrap())
-    .unwrap()
+    .bind_openssl(var("HOST").unwrap(), builder)?
     .run()
     .await
-    .unwrap();
 }

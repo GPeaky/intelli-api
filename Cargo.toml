@@ -35,15 +35,16 @@ zerocopy = "0.8.0-alpha"
 deadpool-postgres = "0.12"
 zerocopy-derive = "0.8.0-alpha"
 serde = { version = "1", features = ["rc"] }
-ntex = { version = "1", features = ["tokio"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
+ntex = { version = "1", features = ["tokio", "openssl"] }
 once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
+openssl = { version = "0.10.63", features = ["v110", "vendored"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 tracing-subscriber = { version = "0.3", features = [
