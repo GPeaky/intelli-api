@@ -59,10 +59,10 @@ where
                 return Err(TokenError::InvalidToken)?;
             }
 
-            header_str[BEARER_PREFIX.len()..].to_string()
+            &header_str[BEARER_PREFIX.len()..]
         };
 
-        let id = state.token_service.validate(&header)?.claims.sub;
+        let id = state.token_service.validate(header)?.claims.sub;
         let user = state
             .user_repository
             .find(id)
