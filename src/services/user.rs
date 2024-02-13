@@ -145,7 +145,7 @@ impl UserServiceTrait for UserService {
         let conn = self.db_conn.pg.get().await?;
 
         match &register.provider {
-            Some(provider) if provider.eq(&Provider::Google) => {
+            Some(provider) if provider == &Provider::Google => {
                 let create_user_stmt = conn
                     .prepare_cached(
                         r#"

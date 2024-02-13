@@ -185,7 +185,7 @@ impl TokenServiceTrait for TokenService {
         let id = {
             let token = self.validate(refresh_token)?;
 
-            if token.claims.token_type.ne(&TokenType::RefreshBearer) {
+            if token.claims.token_type != TokenType::RefreshBearer {
                 Err(TokenError::InvalidTokenType)?
             }
 
