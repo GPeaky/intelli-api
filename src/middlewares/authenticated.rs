@@ -28,7 +28,6 @@ pub struct AuthenticationMiddleware<S> {
     service: S,
 }
 
-// TODO: Fix this fucking shit and return errors
 impl<S, Err> Service<WebRequest<Err>> for AuthenticationMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,

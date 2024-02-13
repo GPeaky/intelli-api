@@ -22,7 +22,6 @@ pub struct AdminMiddleware<S> {
     service: S,
 }
 
-// TODO: Fix this fucking shit and return errors
 impl<S, Err> Service<WebRequest<Err>> for AdminMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
