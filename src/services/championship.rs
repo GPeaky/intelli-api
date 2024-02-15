@@ -12,7 +12,7 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
     structs::{CreateChampionshipDto, UpdateChampionship},
-    utils::write,
+    utils::{write, IdsGenerator},
 };
 
 /// Manages championship-related operations, including creation, update, and user management.
@@ -32,6 +32,8 @@ pub struct ChampionshipService {
     user_repository: UserRepository,
     /// Repository for championship-specific database operations.
     championship_repository: ChampionshipRepository,
+    /// Id generator for championship ids
+    ids_generator: IdsGenerator,
 }
 
 //TODO: Create a common trait for the entities and implement the common methods there
@@ -61,6 +63,7 @@ impl ChampionshipService {
             user_repository,
             championship_repository,
             ports: Arc::new(RwLock::new(ports)),
+            ids_generator: IdsGenerator::new(700000000..799999999, None),
         }
     }
 
@@ -77,7 +80,7 @@ impl ChampionshipService {
     /// An empty result indicating success or an error if the operation fails.
     pub async fn create(&self, payload: CreateChampionshipDto, user_id: i32) -> AppResult<()> {
         let port = self.get_port().await?;
-        let id = fastrand::i32(700000000..799999999);
+        let id = self.ids_generator.gen_id();
 
         if self
             .championship_repository

@@ -11,7 +11,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::{UserRepository, UserRepositoryTrait},
     structs::{RegisterUserDto, TokenType, UpdateUser},
-    utils::write,
+    utils::{write, IdsGenerator},
 };
 
 use super::{TokenService, TokenServiceTrait};
@@ -31,6 +31,8 @@ pub struct UserService {
     user_repo: UserRepository,
     /// Service for managing authentication tokens.
     token_service: TokenService,
+    /// Service for generating unique IDs.
+    ids_generator: IdsGenerator,
 }
 
 // TODO: Remove the `UserServiceTrait` and `UserService` and use the `UserService` directly. With the possibility of using a `EntityService` trait for common methods for all entities.
@@ -130,6 +132,7 @@ impl UserServiceTrait for UserService {
             db_conn: db_conn.clone(),
             user_repo: UserRepository::new(db_conn, cache),
             token_service: TokenService::new(cache),
+            ids_generator: IdsGenerator::new(600000000..699999999, None),
         }
     }
 
@@ -141,7 +144,7 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = fastrand::i32(600000000..699999999);
+        let id = self.ids_generator.gen_id();
         let conn = self.db_conn.pg.get().await?;
 
         match &register.provider {
