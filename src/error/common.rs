@@ -8,8 +8,6 @@ use thiserror::Error;
 pub enum CommonError {
     #[error("Form validation failed")]
     ValidationFailed,
-    #[error("Not Ports Available")]
-    NotPortsAvailable,
     #[error("Internal Server Error")]
     InternalServerError,
     #[error("Not valid Update")]
@@ -22,7 +20,6 @@ impl WebResponseError for CommonError {
     fn status_code(&self) -> StatusCode {
         match self {
             CommonError::ValidationFailed => StatusCode::BAD_REQUEST,
-            CommonError::NotPortsAvailable => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
             CommonError::InvalidUsedFeature(_) => StatusCode::INTERNAL_SERVER_ERROR,
