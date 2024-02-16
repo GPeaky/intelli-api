@@ -501,7 +501,7 @@ impl<'a> F123Data<'a> {
     }
 
     pub fn try_deserialize_header(data: &'a [u8]) -> Option<&'a PacketHeader> {
-        FromBytes::ref_from_prefix(data)
+        Self::try_deserialize_packet::<PacketHeader>(data)
     }
 
     #[inline(always)]
