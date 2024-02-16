@@ -1,8 +1,4 @@
-use std::sync::Arc;
-
-use ahash::AHashSet;
 use chrono::{Duration, Utc};
-use parking_lot::RwLock;
 use postgres_types::ToSql;
 use tracing::info;
 
@@ -12,7 +8,7 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
     structs::{CreateChampionshipDto, UpdateChampionship},
-    utils::{write, IdsGenerator},
+    utils::{write, IdsGenerator, MachinePorts},
 };
 
 /// Manages championship-related operations, including creation, update, and user management.
@@ -27,7 +23,7 @@ pub struct ChampionshipService {
     /// Redis cache for temporarily storing championship-related data.
     cache: RedisCache,
     /// A shared, thread-safe set of available ports for championships.
-    ports: Arc<RwLock<AHashSet<i32>>>,
+    ports: MachinePorts,
     /// Repository for user-specific database operations.
     user_repository: UserRepository,
     /// Repository for championship-specific database operations.
@@ -52,17 +48,14 @@ impl ChampionshipService {
     pub async fn new(db_conn: &Database, cache: &RedisCache) -> Self {
         let user_repository = UserRepository::new(db_conn, cache);
         let championship_repository = ChampionshipRepository::new(db_conn, cache);
-
-        let ports = Self::available_ports(&championship_repository)
-            .await
-            .unwrap();
+        let machine_port = MachinePorts::new(&championship_repository).await;
 
         Self {
             db: db_conn.clone(),
             cache: cache.clone(),
             user_repository,
             championship_repository,
-            ports: Arc::new(RwLock::new(ports)),
+            ports: machine_port,
             ids_generator: IdsGenerator::new(700000000..799999999, None),
         }
     }
@@ -79,9 +72,6 @@ impl ChampionshipService {
     /// # Returns
     /// An empty result indicating success or an error if the operation fails.
     pub async fn create(&self, payload: CreateChampionshipDto, user_id: i32) -> AppResult<()> {
-        let port = self.get_port().await?;
-        let id = self.ids_generator.gen_id();
-
         if self
             .championship_repository
             .find_by_name(&payload.name)
@@ -113,6 +103,13 @@ impl ChampionshipService {
                 relate_user_with_championship_stmt_fut
             )?;
 
+            let id = self.ids_generator.gen_id();
+
+            let port = self
+                .ports
+                .get()
+                .ok_or(ChampionshipError::NoPortsAvailable)?;
+
             conn.execute(
                 &create_championship_stmt,
                 &[
@@ -130,10 +127,7 @@ impl ChampionshipService {
                 .await?;
         }
 
-        let remove_port_fut = self.remove_port(port);
-        let delete_by_user_id_fut = self.cache.championship.delete_by_user_id(user_id);
-
-        tokio::try_join!(remove_port_fut, delete_by_user_id_fut)?;
+        self.cache.championship.delete_by_user_id(user_id).await?;
 
         Ok(())
     }
@@ -359,37 +353,6 @@ impl ChampionshipService {
         tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut)?;
         conn.execute(&delete_championship_stmt, &bindings).await?;
         info!("Championship deleted with success: {id}");
-
-        Ok(())
-    }
-
-    async fn available_ports(
-        championship_repository: &ChampionshipRepository,
-    ) -> AppResult<AHashSet<i32>> {
-        let mut all_ports: AHashSet<i32> = (20777..=20850).collect();
-        let ports_in_use = championship_repository.ports_in_use().await?;
-
-        for port in ports_in_use {
-            all_ports.remove(&port);
-        }
-
-        info!("Available ports: {:?}", all_ports.len());
-        Ok(all_ports)
-    }
-
-    async fn get_port(&self) -> AppResult<i32> {
-        let ports = self.ports.read();
-
-        if let Some(port) = ports.iter().next() {
-            Ok(*port)
-        } else {
-            Err(CommonError::NotPortsAvailable)?
-        }
-    }
-
-    async fn remove_port(&self, port: i32) -> AppResult<()> {
-        let mut ports = self.ports.write();
-        ports.remove(&port);
 
         Ok(())
     }

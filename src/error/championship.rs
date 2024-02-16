@@ -21,6 +21,8 @@ pub enum ChampionshipError {
     CannotRemoveOwner,
     #[error("Interval update time not reached")]
     IntervalNotReached,
+    #[error("No ports available")]
+    NoPortsAvailable,
 }
 
 impl WebResponseError for ChampionshipError {
@@ -33,6 +35,7 @@ impl WebResponseError for ChampionshipError {
             ChampionshipError::NotOwner => StatusCode::UNAUTHORIZED,
             ChampionshipError::CannotRemoveOwner => StatusCode::BAD_REQUEST,
             ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
+            ChampionshipError::NoPortsAvailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 
