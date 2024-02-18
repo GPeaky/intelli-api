@@ -2,37 +2,37 @@ syntax = "proto3";
 package protos.session_data;
 
 message PacketSessionData {
-    uint32 weather = 1;
-    int32 trackTemperature = 2;
-    int32 airTemperature = 3;
-    uint32 totalLaps = 4;
-    uint32 trackLength = 5;
-    uint32 sessionType = 6;
-    int32 trackId = 7;
-    uint32 formula = 8;
-    uint32 sessionTimeLeft = 9;
-    uint32 sessionDuration = 10;
-    uint32 pitSpeedLimit = 11;
-    uint32 numMarshalZones = 12;
-    repeated MarshalZone marshallZones = 13;
-    uint32 safetyCarStatus = 14;
-    uint32 networkGame = 15;
-    uint32 forecastAccuracy = 16;
-    uint32 aiDifficulty = 17;
-    uint32 seasonLinkIdentifier = 18;
-    uint32 weekendLinkIdentifier = 19;
-    uint32 sessionLinkIdentifier = 20;
-    uint32 gameMode = 21;
-    uint32 ruleSet = 22;
-    uint32 timeOfDay = 23;
-    uint32 sessionLength = 24;
-    uint32 numSafetyCarPeriods = 25;
-    uint32 numVirtualSafetyCarPeriods = 26;
-    uint32 numRedFlagPeriods = 27;
-    uint32 rainPercentage = 28;
+  uint32 weather = 1;
+  int32 trackTemperature = 2;
+  int32 airTemperature = 3;
+  uint32 totalLaps = 4;
+  uint32 trackLength = 5;
+  uint32 sessionType = 6;
+  int32 trackId = 7;
+  uint32 formula = 8;
+  uint32 sessionTimeLeft = 9;
+  uint32 sessionDuration = 10;
+  uint32 pitSpeedLimit = 11;
+  uint32 numMarshalZones = 12;
+  repeated MarshalZone marshallZones = 13;
+  uint32 safetyCarStatus = 14;
+  uint32 networkGame = 15;
+  uint32 forecastAccuracy = 16;
+  uint32 aiDifficulty = 17;
+  uint32 seasonLinkIdentifier = 18;
+  uint32 weekendLinkIdentifier = 19;
+  uint32 sessionLinkIdentifier = 20;
+  uint32 gameMode = 21;
+  uint32 ruleSet = 22;
+  uint32 timeOfDay = 23;
+  uint32 sessionLength = 24;
+  uint32 numSafetyCarPeriods = 25;
+  uint32 numVirtualSafetyCarPeriods = 26;
+  uint32 numRedFlagPeriods = 27;
+  uint32 rainPercentage = 28;
 }
 
 message MarshalZone {
-    float zoneStart = 1; // Fraction (0..1) of way through the lap the marshal zone starts
-    int32 zoneFlag = 2;   // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow
+  float zoneStart = 1;
+  int32 zoneFlag = 2;
 }

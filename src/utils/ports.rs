@@ -26,6 +26,7 @@ impl MachinePorts {
     // Todo: Make sure that championship is created before eliminating the port from the list
     pub fn get(&self) -> Option<i32> {
         let mut ports = self.ports.lock();
+
         ports.pop_front()
     }
 }

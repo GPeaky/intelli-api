@@ -32,32 +32,32 @@ jobs:
       - name: Run cargo check
         run: cargo check
 
-  # miri:
-  #   name: Miri
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [ ubuntu-latest ]
-  #       rust: [ nightly ]
+  miri:
+    name: Miri
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        rust: [ nightly ]
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install Rust
-  #       uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ matrix.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
 
-  #     - name: Install Miri
-  #       run: |
-  #         rustup toolchain install nightly --component miri
-  #         rustup override set nightly
-  #         cargo miri setup
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
 
-  #     - name: Install Protoc
-  #       uses: arduino/setup-protoc@master
+      - name: Install Protoc
+        uses: arduino/setup-protoc@master
 
-  #     - name: Test with Miri
-  #       run: cargo miri test
+      - name: Test with Miri
+        run: cargo miri test
 
   lints:
     name: Lints

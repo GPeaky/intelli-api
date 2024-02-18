@@ -3,86 +3,93 @@ package protos.event_data;
 
 // Main Message
 message PacketEventData {
-    bytes eventStringCode = 1;         // Event string code, see below
-    EventDataDetails eventDetails = 2; // Event details - should be interpreted differently for each type
+  bytes eventStringCode = 1; // Event string code, see below
+  EventDataDetails eventDetails =
+      2; // Event details - should be interpreted differently for each type
 }
 
 // Event Details
 message EventDataDetails {
-    oneof details {
-        FastestLap fastest_lap = 1;
-        Retirement retirement = 2;
-        TeamMateInPits team_mate_in_pits = 3;
-        RaceWinner race_winner = 4;
-        Penalty penalty = 5;
-        SpeedTrap speed_trap = 6;
-        StartLights start_lights = 7;
-        DriveThroughPenaltyServed drive_through_penalty_served = 8;
-        StopGoPenaltyServed stop_go_penalty_served = 9;
-        Flashback flashback = 10;
-        Buttons buttons = 11;
-        Overtake overtake = 12;
-    }
+  oneof details {
+    FastestLap fastest_lap = 1;
+    Retirement retirement = 2;
+    TeamMateInPits team_mate_in_pits = 3;
+    RaceWinner race_winner = 4;
+    Penalty penalty = 5;
+    SpeedTrap speed_trap = 6;
+    StartLights start_lights = 7;
+    DriveThroughPenaltyServed drive_through_penalty_served = 8;
+    StopGoPenaltyServed stop_go_penalty_served = 9;
+    Flashback flashback = 10;
+    Buttons buttons = 11;
+    Overtake overtake = 12;
+  }
 }
 
 message FastestLap {
-    uint32 vehicleIdx = 1; // Vehicle index of car achieving fastest lap
-    float lapTime = 2;     // Lap time is in seconds
+  uint32 vehicleIdx = 1; // Vehicle index of car achieving fastest lap
+  float lapTime = 2;     // Lap time is in seconds
 }
 
 message Retirement {
-    uint32 vehicleIdx = 1; // Vehicle index of car retiring
+  uint32 vehicleIdx = 1; // Vehicle index of car retiring
 }
 
 message TeamMateInPits {
-    uint32 vehicleIdx = 1; // Vehicle index of team mate
+  uint32 vehicleIdx = 1; // Vehicle index of team mate
 }
 
 message RaceWinner {
-    uint32 vehicleIdx = 1; // Vehicle index of the race winner
+  uint32 vehicleIdx = 1; // Vehicle index of the race winner
 }
 
 message Penalty {
-    uint32 penaltyType = 1;       // Penalty type – see Appendices
-    uint32 infringementType = 2;  // Infringement type – see Appendices
-    uint32 vehicleIdx = 3;        // Vehicle index of the car the penalty is applied to
-    uint32 otherVehicleIdx = 4;   // Vehicle index of the other car involved
-    uint32 time = 5;              // Time gained, or time spent doing action in seconds
-    uint32 lapNum = 6;            // Lap the penalty occurred on
-    uint32 placesGained = 7;      // Number of places gained by this
+  uint32 penaltyType = 1;      // Penalty type – see Appendices
+  uint32 infringementType = 2; // Infringement type – see Appendices
+  uint32 vehicleIdx = 3; // Vehicle index of the car the penalty is applied to
+  uint32 otherVehicleIdx = 4; // Vehicle index of the other car involved
+  uint32 time = 5;         // Time gained, or time spent doing action in seconds
+  uint32 lapNum = 6;       // Lap the penalty occurred on
+  uint32 placesGained = 7; // Number of places gained by this
 }
 
 message SpeedTrap {
-    uint32 vehicleIdx = 1;                  // Vehicle index of the vehicle triggering speed trap
-    float speed = 2;                        // Top speed achieved in kilometres per hour
-    uint32 isOverallFastestInSession = 3;   // Overall fastest speed in session = 1, otherwise 0
-    uint32 isDriverFastestInSession = 4;    // Fastest speed for driver in session = 1, otherwise 0
-    uint32 fastestVehicleIdxInSession = 5;  // Vehicle index of the vehicle that is the fastest in this session
-    float fastestSpeedInSession = 6;        // Speed of the vehicle that is the fastest in this session
+  uint32 vehicleIdx = 1; // Vehicle index of the vehicle triggering speed trap
+  float speed = 2;       // Top speed achieved in kilometres per hour
+  uint32 isOverallFastestInSession =
+      3; // Overall fastest speed in session = 1, otherwise 0
+  uint32 isDriverFastestInSession =
+      4; // Fastest speed for driver in session = 1, otherwise 0
+  uint32 fastestVehicleIdxInSession =
+      5; // Vehicle index of the vehicle that is the fastest in this session
+  float fastestSpeedInSession =
+      6; // Speed of the vehicle that is the fastest in this session
 }
 
 message StartLights {
-    uint32 numLights = 1; // Number of lights showing
+  uint32 numLights = 1; // Number of lights showing
 }
 
 message DriveThroughPenaltyServed {
-    uint32 vehicleIdx = 1; // Vehicle index of the vehicle serving drive through
+  uint32 vehicleIdx = 1; // Vehicle index of the vehicle serving drive through
 }
 
 message StopGoPenaltyServed {
-    uint32 vehicleIdx = 1; // Vehicle index of the vehicle serving stop go
+  uint32 vehicleIdx = 1; // Vehicle index of the vehicle serving stop go
 }
 
 message Flashback {
-    uint32 flashbackFrameIdentifier = 1; // Frame identifier flashed back to
-    float flashbackSessionTime = 2;      // Session time flashed back to
+  uint32 flashbackFrameIdentifier = 1; // Frame identifier flashed back to
+  float flashbackSessionTime = 2;      // Session time flashed back to
 }
 
 message Buttons {
-    uint32 buttonStatus = 1; // Bit flags specifying which buttons are being pressed currently - see appendices
+  uint32 buttonStatus = 1; // Bit flags specifying which buttons are being
+                           // pressed currently - see appendices
 }
 
 message Overtake {
-    uint32 overtakingVehicleIdx = 1;      // Vehicle index of the vehicle overtaking
-    uint32 beingOvertakenVehicleIdx = 2;  // Vehicle index of the vehicle being overtaken
+  uint32 overtakingVehicleIdx = 1; // Vehicle index of the vehicle overtaking
+  uint32 beingOvertakenVehicleIdx =
+      2; // Vehicle index of the vehicle being overtaken
 }
