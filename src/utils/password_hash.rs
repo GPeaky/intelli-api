@@ -21,11 +21,11 @@ pub fn hash_password(password: &str) -> AppResult<String> {
     let mut hash = [0u8; CREDENTIAL_LEN];
     pbkdf2::derive(ALG, ITERATIONS, &salt, password.as_bytes(), &mut hash);
 
-    let mut salt_and_hash = Vec::with_capacity(salt.len() + hash.len());
-    salt_and_hash.extend_from_slice(&salt);
-    salt_and_hash.extend_from_slice(&hash);
+    let mut salt_hash = Vec::with_capacity(salt.len() + hash.len());
+    salt_hash.extend_from_slice(&salt);
+    salt_hash.extend_from_slice(&hash);
 
-    let encoded = STANDARD.encode(&salt_and_hash);
+    let encoded = STANDARD.encode(&salt_hash);
 
     Ok(encoded)
 }
