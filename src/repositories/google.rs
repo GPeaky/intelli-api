@@ -13,10 +13,10 @@ use crate::{
 /// secret, redirect URI, grant type, and an HTTP client for making requests.
 #[derive(Clone)]
 pub struct GoogleRepository {
-    client_id: String,
-    client_secret: String,
-    redirect_uri: String,
-    grant_type: String,
+    client_id: &'static str,
+    client_secret: &'static str,
+    redirect_uri: &'static str,
+    grant_type: &'static str,
     reqwest_client: reqwest::Client,
 }
 
@@ -30,11 +30,22 @@ impl GoogleRepository {
     /// if any of the required environment variables are missing.
     pub fn new() -> Self {
         Self {
-            client_id: var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID secret not found"),
+            client_id: var("GOOGLE_CLIENT_ID")
+                .expect("GOOGLE_CLIENT_ID secret not found")
+                .leak(),
+
             client_secret: var("GOOGLE_CLIENT_SECRET")
-                .expect("GOOGLE_CLIENT_SECRET secret not found"),
-            redirect_uri: var("GOOGLE_REDIRECT_URI").expect("GOOGLE_REDIRECT_URI secret not found"),
-            grant_type: var("GOOGLE_GRANT_TYPE").expect("GOOGLE_GRANT_TYPE secret not found"),
+                .expect("GOOGLE_CLIENT_SECRET secret not found")
+                .leak(),
+
+            redirect_uri: var("GOOGLE_REDIRECT_URI")
+                .expect("GOOGLE_REDIRECT_URI secret not found")
+                .leak(),
+
+            grant_type: var("GOOGLE_GRANT_TYPE")
+                .expect("GOOGLE_GRANT_TYPE secret not found")
+                .leak(),
+
             reqwest_client: reqwest::Client::new(),
         }
     }
@@ -55,11 +66,11 @@ impl GoogleRepository {
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
         let access_token = {
             let token_request = GoogleTokenRequest {
-                client_id: &self.client_id,
-                client_secret: &self.client_secret,
+                client_id: self.client_id,
+                client_secret: self.client_secret,
                 code: callback_code,
-                grant_type: &self.grant_type,
-                redirect_uri: &self.redirect_uri,
+                grant_type: self.grant_type,
+                redirect_uri: self.redirect_uri,
             };
 
             let response: GoogleAuthResponse = self
