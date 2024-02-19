@@ -13,7 +13,6 @@ use crate::{
 /// This struct provides an interface to interact with championship data stored in both a
 /// db and a cache layer. It abstracts away the details of querying and caching, offering
 /// methods to retrieve and manage championship information efficiently.
-#[derive(Clone)]
 pub struct ChampionshipRepository {
     /// The db connection used for querying championship data.
     db: &'static Database,
@@ -21,7 +20,7 @@ pub struct ChampionshipRepository {
     cache: &'static RedisCache,
 }
 
-impl UsedIds for ChampionshipRepository {
+impl UsedIds for &'static ChampionshipRepository {
     async fn used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 

@@ -9,8 +9,6 @@ use crate::{
     config::constants::PASSWORD_UPDATE_INTERVAL,
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
-    repositories::UserRepositoryTrait,
-    services::{TokenServiceTrait, UserServiceTrait},
     states::AppState,
     structs::{
         AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,

@@ -6,7 +6,6 @@ pub(crate) use admin::*;
 use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError},
-    services::UserServiceTrait,
     states::AppState,
     structs::{UpdateUser, UserData},
 };

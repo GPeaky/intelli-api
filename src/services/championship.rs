@@ -6,7 +6,7 @@ use crate::{
     cache::RedisCache,
     config::Database,
     error::{AppResult, ChampionshipError, CommonError, UserError},
-    repositories::{ChampionshipRepository, UserRepository, UserRepositoryTrait},
+    repositories::{ChampionshipRepository, UserRepository},
     structs::{CreateChampionshipDto, UpdateChampionship},
     utils::{write, IdsGenerator, MachinePorts},
 };
@@ -16,7 +16,6 @@ use crate::{
 /// This service integrates db and cache operations to handle championships efficiently.
 /// It supports creating new championships, updating existing ones, adding or removing users,
 /// and deleting championships, all while managing port assignments for each championship.
-#[derive(Clone)]
 pub struct ChampionshipService {
     /// Database connection for persistent storage of championship data.
     db: &'static Database,
@@ -29,7 +28,7 @@ pub struct ChampionshipService {
     /// Repository for championship-specific db operations.
     championship_repo: &'static ChampionshipRepository,
     /// Id generator for championship ids
-    ids_generator: IdsGenerator<ChampionshipRepository>,
+    ids_generator: IdsGenerator<&'static ChampionshipRepository>,
 }
 
 //TODO: Create a common trait for the entities and implement the common methods there
@@ -52,8 +51,7 @@ impl ChampionshipService {
         championship_repo: &'static ChampionshipRepository,
     ) -> Self {
         let machine_port = MachinePorts::new(championship_repo).await;
-        let ids_generator =
-            IdsGenerator::new(700000000..799999999, championship_repo.clone(), None).await;
+        let ids_generator = IdsGenerator::new(700000000..799999999, championship_repo, None).await;
 
         Self {
             db,

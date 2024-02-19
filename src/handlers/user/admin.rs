@@ -7,8 +7,6 @@ use ntex::web::{
 use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
-    repositories::UserRepositoryTrait,
-    services::UserServiceTrait,
     states::AppState,
     structs::UserIdPath,
 };

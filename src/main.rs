@@ -30,8 +30,8 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     initialize_tracing_subscriber();
     let app_state = {
-        let db: &'static Database = Box::leak(Box::from(Database::default().await));
-        let redis_cache: &'static RedisCache = Box::leak(Box::new(RedisCache::new(db)));
+        let db = Box::leak(Box::from(Database::default().await));
+        let redis_cache = Box::leak(Box::new(RedisCache::new(db)));
         let firewall_svc = FirewallService::new();
 
         AppState::new(db, firewall_svc, redis_cache).await

@@ -5,8 +5,6 @@ use ntex::web::{
 
 use crate::{
     error::AppResult,
-    repositories::UserRepositoryTrait,
-    services::UserServiceTrait,
     states::AppState,
     structs::{EmailUser, EmailVerified, VerifyEmailParams},
 };

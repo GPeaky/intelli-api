@@ -7,8 +7,6 @@ use ntex::{
 
 use crate::{
     error::{CommonError, TokenError, UserError},
-    repositories::UserRepositoryTrait,
-    services::TokenServiceTrait,
     states::AppState,
 };
 
