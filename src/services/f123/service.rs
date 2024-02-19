@@ -26,7 +26,7 @@ type Services = Arc<RwLock<AHashMap<i32, JoinHandle<AppResult<()>>>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
-    db_conn: Database,
+    db: &'static Database,
     services: Services,
     channels: Channels,
     firewall: FirewallService,
@@ -34,9 +34,9 @@ pub struct F123Service {
 
 // TODO: Remove socket errors and implement F123ServiceError
 impl F123Service {
-    pub fn new(db_conn: &Database, firewall_service: FirewallService) -> Self {
+    pub fn new(db: &'static Database, firewall_service: FirewallService) -> Self {
         Self {
-            db_conn: db_conn.clone(),
+            db,
             firewall: firewall_service,
             channels: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
             services: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
@@ -123,7 +123,7 @@ impl F123Service {
         port: i32,
         championship_id: i32,
     ) -> JoinHandle<AppResult<()>> {
-        let db = self.db_conn.clone();
+        let db = self.db;
         let firewall = self.firewall.clone();
         let services = self.services.clone();
         let channels = self.channels.clone();
@@ -344,7 +344,7 @@ impl F123Service {
                                 // info!("Car Status: {:?}", car_status);
                             }
 
-                            //TODO Collect All data from redis and save it to the mariadb database
+                            //TODO Collect All data from redis and save it to the mariadb db
                             F123Data::FinalClassification(classification_data) => {
                                 let packet = classification_data
                                     .convert(PacketType::FinalClassificationData)
@@ -363,8 +363,8 @@ impl F123Service {
                                     }
                                 }
 
-                                // If session type is race save all session data in the database and close the service
-                                // Todo: this should be called after saving all data in the database
+                                // If session type is race save all session data in the db and close the service
+                                // Todo: this should be called after saving all data in the db
                                 packet_batching.push(packet).await?;
                             }
                         }

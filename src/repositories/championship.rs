@@ -5,19 +5,40 @@ use crate::{
     config::Database,
     entity::{Championship, FromRow},
     error::{AppError, AppResult},
+    utils::UsedIds,
 };
 
 /// A repository for managing championship data, with support for caching.
 ///
 /// This struct provides an interface to interact with championship data stored in both a
-/// database and a cache layer. It abstracts away the details of querying and caching, offering
+/// db and a cache layer. It abstracts away the details of querying and caching, offering
 /// methods to retrieve and manage championship information efficiently.
 #[derive(Clone)]
 pub struct ChampionshipRepository {
-    /// The database connection used for querying championship data.
-    database: Database,
+    /// The db connection used for querying championship data.
+    db: &'static Database,
     /// The cache layer used for storing and retrieving cached championship data.
-    cache: RedisCache,
+    cache: &'static RedisCache,
+}
+
+impl UsedIds for ChampionshipRepository {
+    async fn used_ids(&self) -> AppResult<Vec<i32>> {
+        let conn = self.db.pg.get().await?;
+
+        let championship_ids_stmt = conn
+            .prepare_cached(
+                r#"
+                    SELECT id FROM championship
+                "#,
+            )
+            .await?;
+
+        let rows = conn.query(&championship_ids_stmt, &[]).await?;
+
+        let championship_ids = rows.iter().map(|row| row.get("id")).collect();
+
+        Ok(championship_ids)
+    }
 }
 
 impl ChampionshipRepository {
@@ -25,17 +46,14 @@ impl ChampionshipRepository {
     ///
     /// # Arguments
     ///
-    /// * `db_conn` - A reference to the database connection.
+    /// * `db` - A reference to the db connection.
     /// * `cache` - A reference to the cache layer.
     ///
     /// # Returns
     ///
     /// A new `ChampionshipRepository` instance.
-    pub fn new(db_conn: &Database, cache: &RedisCache) -> Self {
-        Self {
-            database: db_conn.clone(),
-            cache: cache.clone(),
-        }
+    pub fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+        Self { db, cache }
     }
 
     /// Retrieves a list of ports currently in use by championships.
@@ -45,7 +63,7 @@ impl ChampionshipRepository {
     /// A vector of integers representing the ports in use.
     pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
         let rows = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let ports_in_use_stmt = conn
                 .prepare_cached(
@@ -78,7 +96,7 @@ impl ChampionshipRepository {
         };
 
         let row = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let find_championship_stmt = conn
                 .prepare_cached(
@@ -110,7 +128,7 @@ impl ChampionshipRepository {
         };
 
         let row = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let find_by_name_stmt = conn
                 .prepare_cached(
@@ -142,7 +160,7 @@ impl ChampionshipRepository {
         };
 
         let rows = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let find_all_stmt = conn
                 .prepare_cached(
@@ -182,7 +200,7 @@ impl ChampionshipRepository {
     /// A vector of integers representing the user IDs.
     pub async fn users(&self, id: i32) -> AppResult<Vec<i32>> {
         let rows = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let championship_users_stmt = conn
                 .prepare_cached(
@@ -212,7 +230,7 @@ impl ChampionshipRepository {
     /// The number of championships associated with the user.
     pub async fn championship_len(&self, user_id: i32) -> AppResult<usize> {
         let rows = {
-            let conn = self.database.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let championship_len_stmt = conn
                 .prepare_cached(
@@ -235,11 +253,11 @@ impl ChampionshipRepository {
         Ok(rows.len())
     }
 
-    /// Converts a database row to a `Championship` instance and caches it.
+    /// Converts a db row to a `Championship` instance and caches it.
     ///
     /// # Arguments
     ///
-    /// * `row` - An optional row from the database.
+    /// * `row` - An optional row from the db.
     ///
     /// # Returns
     ///

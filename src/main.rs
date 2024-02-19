@@ -30,11 +30,11 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     initialize_tracing_subscriber();
     let app_state = {
-        let db = Database::default().await;
-        let redis_cache = RedisCache::new(&db);
-        let firewall_service = FirewallService::new();
+        let db: &'static Database = Box::leak(Box::from(Database::default().await));
+        let redis_cache: &'static RedisCache = Box::leak(Box::new(RedisCache::new(db)));
+        let firewall_svc = FirewallService::new();
 
-        AppState::new(&db, firewall_service, &redis_cache).await
+        AppState::new(db, firewall_svc, redis_cache).await
     };
 
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();

@@ -19,20 +19,20 @@ use super::{TokenService, TokenServiceTrait};
 /// A service for managing user accounts.
 ///
 /// This service provides functionality to create, update, delete, and manage the state of user
-/// accounts. It integrates database operations with caching for improved performance and
-/// efficiency, leveraging both a direct database connection and a Redis cache.
+/// accounts. It integrates db operations with caching for improved performance and
+/// efficiency, leveraging both a direct db connection and a Redis cache.
 #[derive(Clone)]
 pub struct UserService {
     /// Redis cache for temporarily storing user data.
-    cache: RedisCache,
+    cache: &'static RedisCache,
     /// Database connection for persistent storage.
-    db_conn: Database,
-    /// Repository for user-specific database operations.
-    user_repo: UserRepository,
+    db: &'static Database,
+    /// Repository for user-specific db operations.
+    user_repo: &'static UserRepository,
     /// Service for managing authentication tokens.
-    token_service: TokenService,
+    token_svc: TokenService,
     /// Service for generating unique IDs.
-    ids_generator: IdsGenerator,
+    ids_generator: IdsGenerator<UserRepository>,
 }
 
 // TODO: Remove the `UserServiceTrait` and `UserService` and use the `UserService` directly. With the possibility of using a `EntityService` trait for common methods for all entities.
@@ -41,12 +41,16 @@ pub trait UserServiceTrait {
     /// Constructs a new instance of the user service.
     ///
     /// # Arguments
-    /// - `db_conn`: A reference to the database connection.
+    /// - `db`: A reference to the db connection.
     /// - `cache`: A reference to the Redis cache.
     ///
     /// # Returns
     /// A new `UserService` instance.
-    fn new(db_conn: &Database, cache: &RedisCache) -> Self;
+    async fn new(
+        db: &'static Database,
+        cache: &'static RedisCache,
+        user_repo: &'static UserRepository,
+    ) -> Self;
 
     /// Creates a new user account.
     ///
@@ -126,13 +130,20 @@ pub trait UserServiceTrait {
 
 #[async_trait]
 impl UserServiceTrait for UserService {
-    fn new(db_conn: &Database, cache: &RedisCache) -> Self {
+    async fn new(
+        db: &'static Database,
+        cache: &'static RedisCache,
+        user_repo: &'static UserRepository,
+    ) -> Self {
+        let token_svc = TokenService::new(cache);
+        let ids_generator = IdsGenerator::new(600000000..699999999, user_repo.clone(), None).await;
+
         Self {
-            cache: cache.clone(),
-            db_conn: db_conn.clone(),
-            user_repo: UserRepository::new(db_conn, cache),
-            token_service: TokenService::new(cache),
-            ids_generator: IdsGenerator::new(600000000..699999999, None),
+            cache,
+            db,
+            token_svc,
+            user_repo,
+            ids_generator,
         }
     }
 
@@ -144,8 +155,8 @@ impl UserServiceTrait for UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = self.ids_generator.gen_id();
-        let conn = self.db_conn.pg.get().await?;
+        let id = self.ids_generator.gen_id().await;
+        let conn = self.db.pg.get().await?;
 
         match &register.provider {
             Some(provider) if provider == &Provider::Google => {
@@ -153,7 +164,7 @@ impl UserServiceTrait for UserService {
                     .prepare_cached(
                         r#"
                             INSERT INTO users (id, email, username, avatar, provider, active)
-                            VALUES ($1,$2,$3,$4,$5, true)
+                            VALUES ($1,$2,$3,$4,$5, true)c
                         "#,
                     )
                     .await?;
@@ -233,7 +244,7 @@ impl UserServiceTrait for UserService {
             (query, params)
         };
 
-        let conn = self.db_conn.pg.get().await?;
+        let conn = self.db.pg.get().await?;
         let update_user_stmt = conn.prepare_cached(&query).await?;
 
         let delete_cache_fut = self.cache.user.delete(user.id);
@@ -248,7 +259,7 @@ impl UserServiceTrait for UserService {
 
     // Todo: Create a column "deleted" in users table and update it instead of delete
     async fn delete(&self, id: i32) -> AppResult<()> {
-        let conn = self.db_conn.pg.get().await?;
+        let conn = self.db.pg.get().await?;
 
         let delete_users_relations_stmt_fut = conn.prepare_cached(
             r#"
@@ -291,7 +302,7 @@ impl UserServiceTrait for UserService {
             Err(UserError::UpdateLimitExceeded)?
         }
 
-        let conn = self.db_conn.pg.get().await?;
+        let conn = self.db.pg.get().await?;
         let reset_password_stmt = conn
             .prepare_cached(
                 r#"
@@ -323,7 +334,7 @@ impl UserServiceTrait for UserService {
             .await?;
 
         let user_id = {
-            let token_data = self.token_service.validate(token)?;
+            let token_data = self.token_svc.validate(token)?;
             if token_data.claims.token_type != TokenType::ResetPassword {
                 error!("Token type is not ResetPassword");
                 Err(TokenError::InvalidToken)?
@@ -342,7 +353,7 @@ impl UserServiceTrait for UserService {
     }
 
     async fn activate(&self, id: i32) -> AppResult<()> {
-        let conn = self.db_conn.pg.get().await?;
+        let conn = self.db.pg.get().await?;
 
         let activate_user_stmt = conn
             .prepare_cached(
@@ -371,7 +382,7 @@ impl UserServiceTrait for UserService {
     async fn activate_with_token(&self, token: &str) -> AppResult<i32> {
         self.cache.token.get_token(token, &TokenType::Email).await?;
         let user_id = {
-            let token_data = self.token_service.validate(token)?;
+            let token_data = self.token_svc.validate(token)?;
             if token_data.claims.token_type != TokenType::Email {
                 Err(TokenError::InvalidToken)?
             }
@@ -389,7 +400,7 @@ impl UserServiceTrait for UserService {
     }
 
     async fn deactivate(&self, id: i32) -> AppResult<()> {
-        let conn = self.db_conn.pg.get().await?;
+        let conn = self.db.pg.get().await?;
         let deactivate_user_stmt = conn
             .prepare_cached(
                 r#"

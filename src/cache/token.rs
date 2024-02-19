@@ -12,7 +12,7 @@ use crate::{
 ///
 #[derive(Clone)]
 pub struct TokenCache {
-    db: Database,
+    db: &'static Database,
 }
 
 impl TokenCache {
@@ -25,8 +25,8 @@ impl TokenCache {
     /// # Returns
     ///
     /// A new `TokenCache` instance.
-    pub fn new(db: &Database) -> Self {
-        Self { db: db.clone() }
+    pub fn new(db: &'static Database) -> Self {
+        Self { db }
     }
 
     /// Sets a token in the Redis cache.

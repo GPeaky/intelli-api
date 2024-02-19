@@ -17,12 +17,9 @@ pub async fn callback(
     state: State<AppState>,
     query: Query<GoogleCallbackQuery>,
 ) -> AppResult<impl Responder> {
-    let google_user = state.google_repository.account_info(&query.code).await?;
+    let google_user = state.google_repo.account_info(&query.code).await?;
 
-    let user = state
-        .user_repository
-        .find_by_email(&google_user.email)
-        .await?;
+    let user = state.user_repo.find_by_email(&google_user.email).await?;
 
     let user = match user {
         Some(user) => {
@@ -34,22 +31,18 @@ pub async fn callback(
         }
 
         None => {
-            let id = state.user_service.create(&google_user.into()).await?;
+            let id = state.user_svc.create(&google_user.into()).await?;
 
-            match state.user_repository.find(id).await? {
+            match state.user_repo.find(id).await? {
                 Some(user) => user,
                 None => Err(UserError::NotFound)?,
             }
         }
     };
 
-    let access_token_fut = state
-        .token_service
-        .generate_token(user.id, TokenType::Bearer);
+    let access_token_fut = state.token_svc.generate_token(user.id, TokenType::Bearer);
 
-    let refresh_token_fut = state
-        .token_service
-        .generate_refresh_token(user.id, "google");
+    let refresh_token_fut = state.token_svc.generate_refresh_token(user.id, "google");
 
     let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
 

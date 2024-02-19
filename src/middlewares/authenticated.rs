@@ -61,12 +61,8 @@ where
             &header_str[BEARER_PREFIX.len()..]
         };
 
-        let id = state.token_service.validate(header)?.claims.sub;
-        let user = state
-            .user_repository
-            .find(id)
-            .await?
-            .ok_or(UserError::NotFound)?;
+        let id = state.token_svc.validate(header)?.claims.sub;
+        let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
 
         req.extensions_mut().insert(Arc::new(user));
         let res = ctx.call(&self.service, req).await?;

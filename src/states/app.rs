@@ -13,37 +13,47 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
-    pub user_service: UserService,
-    pub user_repository: UserRepository,
-    pub token_service: TokenService,
-    pub championship_service: ChampionshipService,
-    pub championship_repository: ChampionshipRepository,
-    pub email_service: EmailService,
-    pub f123_service: F123Service,
-    pub f123_repository: F123Repository,
-    pub saved_session_service: SavedSessionService,
-    pub google_repository: GoogleRepository,
-    pub server_repository: ServerRepository,
+    pub user_svc: UserService,
+    pub user_repo: &'static UserRepository,
+    pub token_svc: TokenService,
+    pub championship_svc: ChampionshipService,
+    pub championship_repo: &'static ChampionshipRepository,
+    pub email_svc: EmailService,
+    pub f123_svc: F123Service,
+    pub f123_repo: F123Repository,
+    pub saved_session_svc: SavedSessionService,
+    pub google_repo: GoogleRepository,
+    pub server_repo: ServerRepository,
 }
 
 impl AppState {
     pub async fn new(
-        db_conn: &Database,
-        firewall_service: FirewallService,
-        cache: &RedisCache,
+        db: &'static Database,
+        firewall_svc: FirewallService,
+        cache: &'static RedisCache,
     ) -> Self {
+        // Repositories
+        let f123_repo = F123Repository::new(db);
+        let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
+        let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
+
+        // Services
+        let user_svc = UserService::new(db, cache, user_repo).await;
+        let championship_svc =
+            ChampionshipService::new(db, cache, user_repo, championship_repo).await;
+
         Self {
-            user_service: UserService::new(db_conn, cache),
-            f123_service: F123Service::new(db_conn, firewall_service),
-            f123_repository: F123Repository::new(db_conn),
-            user_repository: UserRepository::new(db_conn, cache),
-            token_service: TokenService::new(cache),
-            championship_service: ChampionshipService::new(db_conn, cache).await,
-            championship_repository: ChampionshipRepository::new(db_conn, cache),
-            email_service: EmailService::new(),
-            saved_session_service: SavedSessionService::new(db_conn, cache),
-            google_repository: GoogleRepository::new(),
-            server_repository: ServerRepository::new(db_conn),
+            user_svc,
+            f123_svc: F123Service::new(db, firewall_svc),
+            f123_repo,
+            user_repo,
+            token_svc: TokenService::new(cache),
+            championship_svc,
+            championship_repo,
+            email_svc: EmailService::new(),
+            saved_session_svc: SavedSessionService::new(db, cache).await,
+            google_repo: GoogleRepository::new(),
+            server_repo: ServerRepository::new(db),
         }
     }
 }

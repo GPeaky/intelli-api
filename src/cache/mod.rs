@@ -24,7 +24,6 @@ mod user;
 /// let db = Database::connect(...); // Assume `Database::connect` is a method that returns a database connection.
 /// let cache = RedisCache::new(&db);
 /// ```
-#[derive(Clone)]
 pub struct RedisCache {
     /// Cache for user-related data.
     pub user: UserCache,
@@ -41,7 +40,7 @@ impl RedisCache {
     /// # Arguments
     ///
     /// * `db` - A reference to a `Database` instance to be used for cache initialization.
-    pub fn new(db: &Database) -> Self {
+    pub fn new(db: &'static Database) -> Self {
         Self {
             user: UserCache::new(db),
             championship: ChampionshipCache::new(db),

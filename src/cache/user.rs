@@ -19,7 +19,7 @@ const EMAIL: &str = "email";
 ///
 #[derive(Clone)]
 pub struct UserCache {
-    db: Database,
+    db: &'static Database,
 }
 
 impl UserCache {
@@ -32,8 +32,8 @@ impl UserCache {
     /// # Returns
     ///
     /// A new `UserCache` instance.
-    pub fn new(db: &Database) -> Self {
-        Self { db: db.clone() }
+    pub fn new(db: &'static Database) -> Self {
+        Self { db }
     }
 
     /// Retrieves a user by their email address from the Redis cache.

@@ -19,7 +19,7 @@ pub struct TokenService {
     /// JWT header configuration.
     header: Header,
     /// Redis cache for storing and retrieving tokens.
-    cache: RedisCache,
+    cache: &'static RedisCache,
     /// Token validation configurations.
     validation: Validation,
     /// Encoding key for generating tokens.
@@ -38,7 +38,7 @@ pub trait TokenServiceTrait {
     ///
     /// # Returns
     /// A new `TokenService` instance.
-    fn new(cache: &RedisCache) -> Self;
+    fn new(cache: &'static RedisCache) -> Self;
 
     /// Validates a token and returns the associated claims.
     ///
@@ -114,9 +114,9 @@ pub trait TokenServiceTrait {
 
 #[async_trait]
 impl TokenServiceTrait for TokenService {
-    fn new(cache: &RedisCache) -> Self {
+    fn new(cache: &'static RedisCache) -> Self {
         Self {
-            cache: cache.clone(),
+            cache,
             header: Header::new(jsonwebtoken::Algorithm::RS256),
             encoding_key: EncodingKey::from_rsa_pem(
                 &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),

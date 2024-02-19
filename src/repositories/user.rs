@@ -6,28 +6,29 @@ use crate::{
     config::Database,
     entity::{FromRow, User},
     error::{AppResult, UserError},
+    utils::UsedIds,
 };
 
-/// A repository for managing user data within a database and cache.
+/// A repository for managing user data within a db and cache.
 ///
 /// This struct provides an interface to interact with user records, offering capabilities
-/// to find, verify, and manage user information. It integrates both a database connection
-/// and a caching layer to optimize data retrieval and reduce database load.
+/// to find, verify, and manage user information. It integrates both a db connection
+/// and a caching layer to optimize data retrieval and reduce db load.
 #[derive(Clone)]
 pub struct UserRepository {
-    db_conn: Database,
-    cache: RedisCache,
+    db: &'static Database,
+    cache: &'static RedisCache,
 }
 
 impl UserRepository {
-    /// Converts a database row into a `User` object.
+    /// Converts a db row into a `User` object.
     ///
-    /// This private method attempts to convert a database row into a `User` struct.
+    /// This private method attempts to convert a db row into a `User` struct.
     /// If the row exists and the user is active, it caches the user information
     /// and returns the user. If the user is not active, it returns an error.
     ///
     /// # Arguments
-    /// - `row`: An optional database row that may contain user data.
+    /// - `row`: An optional db row that may contain user data.
     ///
     /// # Returns
     /// - `Ok(Some(User))` if the user is found and active.
@@ -50,17 +51,37 @@ impl UserRepository {
     }
 }
 
+impl UsedIds for UserRepository {
+    async fn used_ids(&self) -> AppResult<Vec<i32>> {
+        let conn = self.db.pg.get().await?;
+
+        let user_ids_stmt = conn
+            .prepare_cached(
+                r#"
+                    SELECT id FROM users
+            "#,
+            )
+            .await?;
+
+        let rows = conn.query(&user_ids_stmt, &[]).await?;
+
+        let user_ids = rows.iter().map(|row| row.get(0)).collect();
+
+        Ok(user_ids)
+    }
+}
+
 #[async_trait]
 pub trait UserRepositoryTrait {
     /// Creates a new `UserRepository` instance.
     ///
     /// # Arguments
-    /// - `db_conn`: A reference to a `Database` connection.
+    /// - `db`: A reference to a `Database` connection.
     /// - `cache`: A reference to a `RedisCache`.
     ///
     /// # Returns
     /// A new instance of `UserRepository`.
-    fn new(db_conn: &Database, cache: &RedisCache) -> Self;
+    fn new(db: &'static Database, cache: &'static RedisCache) -> Self;
 
     /// Finds a user by ID.
     ///
@@ -111,11 +132,8 @@ pub trait UserRepositoryTrait {
 
 #[async_trait]
 impl UserRepositoryTrait for UserRepository {
-    fn new(db_conn: &Database, cache: &RedisCache) -> Self {
-        Self {
-            cache: cache.clone(),
-            db_conn: db_conn.clone(),
-        }
+    fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+        Self { cache, db }
     }
 
     async fn find(&self, id: i32) -> AppResult<Option<User>> {
@@ -124,7 +142,7 @@ impl UserRepositoryTrait for UserRepository {
         };
 
         let row = {
-            let conn = self.db_conn.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let find_user_stmt = conn
                 .prepare_cached(
@@ -147,7 +165,7 @@ impl UserRepositoryTrait for UserRepository {
         };
 
         let row = {
-            let conn = self.db_conn.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let user_exists_stmt = conn
                 .prepare_cached(
@@ -166,7 +184,7 @@ impl UserRepositoryTrait for UserRepository {
 
     async fn status(&self, id: i32) -> AppResult<Option<bool>> {
         let row = {
-            let conn = self.db_conn.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let user_status_stmt = conn
                 .prepare_cached(
@@ -193,7 +211,7 @@ impl UserRepositoryTrait for UserRepository {
         };
 
         let row = {
-            let conn = self.db_conn.pg.get().await?;
+            let conn = self.db.pg.get().await?;
 
             let find_by_email_stmt = conn
                 .prepare_cached(

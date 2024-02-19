@@ -39,10 +39,7 @@ pub async fn create_championship(
         .cloned()
         .ok_or(CommonError::InternalServerError)?;
 
-    let championships_len = state
-        .championship_repository
-        .championship_len(user.id)
-        .await?;
+    let championships_len = state.championship_repo.championship_len(user.id).await?;
 
     match user.role {
         Role::Free => {
@@ -67,7 +64,7 @@ pub async fn create_championship(
     }
 
     state
-        .championship_service
+        .championship_svc
         .create(form.into_inner(), user.id)
         .await?;
 
@@ -92,7 +89,7 @@ pub async fn update(
         .id;
 
     state
-        .championship_service
+        .championship_svc
         .update(path.0, user_id, &form)
         .await?;
 
@@ -117,7 +114,7 @@ pub async fn add_user(
         .id;
 
     state
-        .championship_service
+        .championship_svc
         .add_user(path.0, user_id, &form.email)
         .await?;
 
@@ -141,7 +138,7 @@ pub async fn remove_user(
         .id;
 
     state
-        .championship_service
+        .championship_svc
         .remove_user(path.id, user_id, path.user_id)
         .await?;
 
@@ -157,7 +154,7 @@ pub async fn get_championship(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(path.0).await? else {
+    let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
@@ -175,7 +172,7 @@ pub async fn all_championships(
         .ok_or(CommonError::InternalServerError)?
         .id;
 
-    let championships = state.championship_repository.find_all(user_id).await?;
+    let championships = state.championship_repo.find_all(user_id).await?;
 
     Ok(HttpResponse::Ok().json(&championships))
 }

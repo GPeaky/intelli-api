@@ -8,14 +8,12 @@ use crate::{config::Database, error::AppResult, structs::F123CachedData};
 #[derive(Clone)]
 pub struct F123Repository {
     #[allow(unused)]
-    database: Database,
+    db: &'static Database,
 }
 
 impl F123Repository {
-    pub fn new(db_conn: &Database) -> Self {
-        Self {
-            database: db_conn.clone(),
-        }
+    pub fn new(db: &'static Database) -> Self {
+        Self { db }
     }
 
     // Todo: finish this integration and try to optimize it :) 2ms is too much
@@ -23,7 +21,7 @@ impl F123Repository {
     #[allow(unused)]
     pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
         // let time = Instant::now();
-        let mut conn = self.database.redis.get().await?;
+        let mut conn = self.db.redis.get().await?;
 
         // Todo: create a struct for this data
         #[allow(clippy::type_complexity)]

@@ -14,7 +14,7 @@ use crate::{
 
 #[inline(always)]
 pub async fn active_services(state: State<AppState>) -> AppResult<impl Responder> {
-    let services = state.f123_service.active_services().await;
+    let services = state.f123_svc.active_services().await;
     Ok(HttpResponse::Ok().json(&services))
 }
 
@@ -27,12 +27,12 @@ pub async fn start_service(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(path.0).await? else {
+    let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     state
-        .f123_service
+        .f123_svc
         .start_service(championship.port, championship.id)
         .await?;
 
@@ -48,12 +48,12 @@ pub async fn service_status(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some(championship) = state.championship_repository.find(path.0).await? else {
+    let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     let num_connections = 0;
-    let service_active = state.f123_service.service_active(championship.id).await;
+    let service_active = state.f123_svc.service_active(championship.id).await;
 
     // if service_active {
     // if let Some(count) = get(&path.id) {
@@ -78,7 +78,7 @@ pub async fn stop_service(
         Err(CommonError::ValidationFailed)?
     }
 
-    state.f123_service.stop_service(path.0).await?;
+    state.f123_svc.stop_service(path.0).await?;
 
     Ok(HttpResponse::Ok())
 }

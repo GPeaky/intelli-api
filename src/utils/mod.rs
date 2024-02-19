@@ -1,4 +1,4 @@
-pub(crate) use ids_generator::IdsGenerator;
+pub(crate) use ids_generator::{IdsGenerator, UsedIds};
 pub(crate) use ports::MachinePorts;
 use std::fmt::Write;
 

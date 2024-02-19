@@ -19,11 +19,11 @@ pub async fn handle_stream(
         Err(CommonError::ValidationFailed)?
     }
 
-    if !state.f123_service.service_active(path.0).await {
+    if !state.f123_svc.service_active(path.0).await {
         Err(F123ServiceError::NotActive)?
     }
 
-    let Some(rx) = state.f123_service.subscribe(path.0).await else {
+    let Some(rx) = state.f123_svc.subscribe(path.0).await else {
         Err(F123ServiceError::NotActive)?
     };
 

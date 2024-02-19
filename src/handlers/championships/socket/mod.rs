@@ -37,11 +37,11 @@
 //         Err(CommonError::ValidationFailed)?
 //     }
 
-//     let Some(championship) = state.championship_repository.find(path.0).await? else {
+//     let Some(championship) = state.championship_repo.find(path.0).await? else {
 //         Err(ChampionshipError::NotFound)?
 //     };
 
-//     if !state.f123_service.service_active(championship.id).await {
+//     if !state.f123_svc.service_active(championship.id).await {
 //         Err(F123ServiceError::NotActive)?
 //     }
 
@@ -63,7 +63,7 @@
 //     {
 //         // todo: Use this cache data to send to the client
 //         let _cache = state
-//             .f123_repository
+//             .f123_repo
 //             .get_cache_data(championship_id)
 //             .await?;
 
@@ -74,7 +74,7 @@
 //         // }
 //     }
 
-//     let Some(rx) = state.f123_service.subscribe(championship_id).await else {
+//     let Some(rx) = state.f123_svc.subscribe(championship_id).await else {
 //         return Err(F123ServiceError::NotFound.into());
 //     };
 

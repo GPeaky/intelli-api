@@ -12,7 +12,6 @@ use tracing::info;
 embed_migrations!("migrations");
 
 /// Represents the application's database connections, encapsulating both Redis and Postgres pools.
-#[derive(Clone)]
 pub struct Database {
     /// The Redis connection pool for caching or other Redis operations.
     pub redis: deadpool_redis::Pool,

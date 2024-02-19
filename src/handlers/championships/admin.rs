@@ -19,7 +19,7 @@ pub async fn user_championships(
         Err(CommonError::ValidationFailed)?
     }
 
-    let championships = state.championship_repository.find_all(path.0).await?;
+    let championships = state.championship_repo.find_all(path.0).await?;
     Ok(HttpResponse::Ok().json(&championships))
 }
 
@@ -28,10 +28,10 @@ pub async fn delete_championship(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<impl Responder> {
-    let Some(championship) = state.championship_repository.find(path.0).await? else {
+    let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
-    state.championship_service.delete(championship.id).await?;
+    state.championship_svc.delete(championship.id).await?;
     Ok(HttpResponse::Ok())
 }

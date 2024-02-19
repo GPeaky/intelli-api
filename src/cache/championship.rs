@@ -21,7 +21,7 @@ const USER_ID: &str = "user_id";
 ///
 #[derive(Clone)]
 pub struct ChampionshipCache {
-    db: Database,
+    db: &'static Database,
 }
 
 impl ChampionshipCache {
@@ -34,8 +34,8 @@ impl ChampionshipCache {
     /// # Returns
     ///
     /// A new `ChampionshipCache` instance.
-    pub fn new(db: &Database) -> Self {
-        Self { db: db.clone() }
+    pub fn new(db: &'static Database) -> Self {
+        Self { db }
     }
 
     /// Retrieves all championships associated with a user by their user ID from the Redis cache.

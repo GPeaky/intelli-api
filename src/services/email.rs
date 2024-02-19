@@ -6,10 +6,18 @@ use lettre::{
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use loole::Sender;
+use once_cell::sync::Lazy;
 use sailfish::TemplateOnce;
 use tracing::error;
 
 use crate::{error::AppResult, structs::EmailUser};
+
+static MAILBOX: Lazy<Mailbox> = Lazy::new(|| {
+    Mailbox::new(
+        Some("Intelli Telemetry".to_owned()),
+        Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
+    )
+});
 
 /// A service for sending emails asynchronously.
 ///
@@ -18,7 +26,7 @@ use crate::{error::AppResult, structs::EmailUser};
 /// operations do not block the main execution thread. The service is designed to handle
 /// potentially high volumes of email sending tasks with resilience.
 #[derive(Clone)]
-pub struct EmailService(Sender<Message>, Mailbox);
+pub struct EmailService(Sender<Message>);
 
 // Todo: Implement a pool of receivers to send emails in case of a single receiver can't handle the load
 impl EmailService {
@@ -34,15 +42,10 @@ impl EmailService {
     /// # Examples
     ///
     /// ```
-    /// let email_service = EmailService::new();
+    /// let email_svc = EmailService::new();
     /// ```
     pub fn new() -> Self {
         let (tx, rx) = loole::bounded(50);
-
-        let mailbox = Mailbox::new(
-            Some("Intelli Telemetry".to_owned()),
-            Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
-        );
 
         tokio::spawn(async move {
             let mailer: AsyncSmtpTransport<Tokio1Executor> =
@@ -64,7 +67,7 @@ impl EmailService {
             }
         });
 
-        Self(tx, mailbox)
+        Self(tx)
     }
 
     /// Sends an email to a specified recipient.
@@ -85,7 +88,7 @@ impl EmailService {
     /// # Examples
     ///
     /// ```
-    /// let result = email_service.send_mail(user, "Welcome!", template);
+    /// let result = email_svc.send_mail(user, "Welcome!", template);
     /// if result.is_ok() {
     ///     println!("Email sent successfully");
     /// } else {
@@ -99,7 +102,7 @@ impl EmailService {
         body: T,
     ) -> AppResult<()> {
         let message = Message::builder()
-            .from(self.1.to_owned())
+            .from(MAILBOX.to_owned())
             .to(Mailbox::new(
                 Some(user.username.to_string()),
                 Address::from_str(user.email).unwrap(),

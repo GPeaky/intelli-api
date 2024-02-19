@@ -28,14 +28,14 @@ pub(crate) async fn register(
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let user_id = state.user_service.create(&form).await?;
+    let user_id = state.user_svc.create(&form).await?;
 
     let token = state
-        .token_service
+        .token_svc
         .generate_token(user_id, TokenType::Email)
         .await?;
 
-    state.token_service.save_email_token(&token).await?;
+    state.token_svc.save_email_token(&token).await?;
 
     let template = VerifyEmail {
         verification_link: &format!(
@@ -45,7 +45,7 @@ pub(crate) async fn register(
     };
 
     state
-        .email_service
+        .email_svc
         .send_mail((&*form).into(), "Verify Email", template)?;
 
     Ok(HttpResponse::Created())
@@ -61,7 +61,7 @@ pub(crate) async fn login(
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
+    let Some(user) = state.user_repo.find_by_email(&form.email).await? else {
         return Err(UserError::NotFound)?;
     };
 
@@ -72,18 +72,16 @@ pub(crate) async fn login(
     }
 
     if !state
-        .user_repository
+        .user_repo
         .validate_password(&form.password, &user.password.unwrap())?
     {
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token_fut = state
-        .token_service
-        .generate_token(user.id, TokenType::Bearer);
+    let access_token_fut = state.token_svc.generate_token(user.id, TokenType::Bearer);
 
     let refresh_token_fut = state
-        .token_service
+        .token_svc
         .generate_refresh_token(user.id, &query.fingerprint);
 
     let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
@@ -102,7 +100,7 @@ pub(crate) async fn refresh_token(
     query: Query<RefreshTokenQuery>,
 ) -> AppResult<impl Responder> {
     let access_token = state
-        .token_service
+        .token_svc
         .refresh_access_token(&query.refresh_token, &query.fingerprint)
         .await?;
 
@@ -124,7 +122,7 @@ pub(crate) async fn logout(
         .id;
 
     state
-        .token_service
+        .token_svc
         .remove_refresh_token(user_id, &query.fingerprint)
         .await?;
 
@@ -140,7 +138,7 @@ pub(crate) async fn forgot_password(
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let Some(user) = state.user_repository.find_by_email(&form.email).await? else {
+    let Some(user) = state.user_repo.find_by_email(&form.email).await? else {
         return Err(UserError::NotFound)?;
     };
 
@@ -150,7 +148,7 @@ pub(crate) async fn forgot_password(
     }
 
     let token = state
-        .token_service
+        .token_svc
         .generate_token(user.id, TokenType::ResetPassword)
         .await?;
 
@@ -161,12 +159,9 @@ pub(crate) async fn forgot_password(
         ),
     };
 
-    state
-        .token_service
-        .save_reset_password_token(&token)
-        .await?;
+    state.token_svc.save_reset_password_token(&token).await?;
 
-    state.email_service.send_mail(
+    state.email_svc.send_mail(
         EmailUser {
             username: &user.username,
             email: &user.email,
@@ -189,17 +184,17 @@ pub async fn reset_password(
     }
 
     let user_id = state
-        .user_service
+        .user_svc
         .reset_password_with_token(&query.token, &form.password)
         .await?;
 
-    let Some(user) = state.user_repository.find(user_id).await? else {
+    let Some(user) = state.user_repo.find(user_id).await? else {
         Err(UserError::NotFound)?
     };
 
     let template = PasswordChanged {};
 
-    state.email_service.send_mail(
+    state.email_svc.send_mail(
         EmailUser {
             username: &user.username,
             email: &user.email,

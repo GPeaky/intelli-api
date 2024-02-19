@@ -1,7 +1,7 @@
 [package]
 name = "intelli-api"
 edition = "2021"
-version = "0.4.51"
+version = "0.4.6"
 readme = "README.md"
 description = "F123 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
@@ -28,7 +28,6 @@ thiserror = "1.0"
 serde_derive = "1"
 jsonwebtoken = "9"
 async-trait = "0.1"
-parking_lot = "0.12"
 deadpool-redis = "0.14"
 postgres-derive = "0.4"
 zerocopy = "0.8.0-alpha"
@@ -47,6 +46,7 @@ refinery = { version = "0.8", features = ["tokio-postgres"] }
 openssl = { version = "0.10.63", features = ["v110", "vendored"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+parking_lot = { version = "0.12", features = ["send_guard", "arc_lock"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
