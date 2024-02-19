@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 use crate::error::AppResult;
 
-const DEFAULT_POOL_SIZE: usize = 100;
+const DEFAULT_POOL_SIZE: usize = 1000;
 
 /// Trait for retrieving used IDs from a data source.
 pub trait UsedIds {
@@ -85,7 +85,7 @@ impl<T: UsedIds> IdsGenerator<T> {
     pub async fn gen_id(&self) -> i32 {
         let mut ids = self.ids.lock().await;
 
-        if ids.len() < self.pool_size / 2 {
+        if ids.is_empty() {
             self.refill(&mut ids).await;
         }
 
