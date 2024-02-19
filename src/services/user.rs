@@ -82,7 +82,7 @@ impl UserService {
                     .prepare_cached(
                         r#"
                             INSERT INTO users (id, email, username, avatar, provider, active)
-                            VALUES ($1,$2,$3,$4,$5, true)c
+                            VALUES ($1,$2,$3,$4,$5, true)
                         "#,
                     )
                     .await?;
