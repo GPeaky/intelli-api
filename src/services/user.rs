@@ -1,4 +1,3 @@
-use bcrypt::{hash, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use postgres_types::ToSql;
 use tracing::{error, info};
@@ -10,7 +9,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepository,
     structs::{RegisterUserDto, TokenType, UpdateUser},
-    utils::{write, IdsGenerator},
+    utils::{password_hash, write, IdsGenerator},
 };
 
 use super::TokenService;
@@ -101,7 +100,10 @@ impl UserService {
             }
 
             None => {
-                let hashed_password = hash(register.password.clone().unwrap(), DEFAULT_COST)?;
+                let hashed_password =
+                    password_hash::hash_password(register.password.as_ref().unwrap())?;
+
+                println!("hashed_password: {}", hashed_password.len());
 
                 let create_google_user_stmt = conn
                     .prepare_cached(
@@ -254,7 +256,7 @@ impl UserService {
             )
             .await?;
 
-        let hashed_password = hash(password, DEFAULT_COST)?;
+        let hashed_password = password_hash::hash_password(password)?;
         let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
         let update_user_fut = async {
             conn.execute(&reset_password_stmt, &bindings).await?;

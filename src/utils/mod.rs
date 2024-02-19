@@ -3,6 +3,7 @@ pub(crate) use ports::MachinePorts;
 use std::fmt::Write;
 
 mod ids_generator;
+pub(crate) mod password_hash;
 mod ports;
 mod time;
 

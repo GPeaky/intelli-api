@@ -65,7 +65,9 @@ pub(crate) async fn login(
 
     if !user.active {
         return Err(UserError::NotVerified)?;
-    } else if user.provider != Provider::Local {
+    }
+
+    if user.provider != Provider::Local {
         return Err(UserError::GoogleLogin)?;
     }
 

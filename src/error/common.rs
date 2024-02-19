@@ -10,6 +10,8 @@ pub enum CommonError {
     ValidationFailed,
     #[error("Internal Server Error")]
     InternalServerError,
+    #[error("Hashing Failed")]
+    HashingFailed,
     #[error("Not valid Update")]
     NotValidUpdate,
     #[error("Invalid Used Feature {0}")]
@@ -21,6 +23,7 @@ impl WebResponseError for CommonError {
         match self {
             CommonError::ValidationFailed => StatusCode::BAD_REQUEST,
             CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            CommonError::HashingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
             CommonError::InvalidUsedFeature(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }

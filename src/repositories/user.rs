@@ -5,7 +5,7 @@ use crate::{
     config::Database,
     entity::{FromRow, User},
     error::{AppResult, UserError},
-    utils::UsedIds,
+    utils::{password_hash, UsedIds},
 };
 
 /// A repository for managing user data within a db and cache.
@@ -211,6 +211,6 @@ impl UserRepository {
     /// # Returns
     /// `true` if the password matches the hash, otherwise `false`.
     pub fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {
-        Ok(bcrypt::verify(pwd, hash)?)
+        password_hash::verify_password(hash, pwd)
     }
 }
