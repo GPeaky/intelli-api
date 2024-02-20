@@ -1,34 +1,41 @@
 use chrono::{DateTime, Utc};
-use parking_lot::RwLock;
-use std::{sync::Arc, time::Duration};
+use std::{cell::UnsafeCell, ptr::NonNull, time::Duration};
 use tokio::time::sleep;
 
 #[allow(unused)]
 pub struct CachedTime {
-    time: Arc<RwLock<DateTime<Utc>>>,
+    time: NonNull<UnsafeCell<DateTime<Utc>>>,
 }
+
+unsafe impl Send for CachedTime {}
+unsafe impl Sync for CachedTime {}
 
 #[allow(unused)]
 
 impl CachedTime {
     pub fn new() -> Self {
-        let time = Arc::from(RwLock::new(Utc::now()));
-        let time_clone = time.clone();
+        let time = Box::new(UnsafeCell::new(Utc::now()));
+        let time_ptr = Box::into_raw(time);
 
-        let instance = Self { time };
+        let instance = Self {
+            time: unsafe { NonNull::new_unchecked(time_ptr) },
+        };
 
-        tokio::spawn(async move {
-            loop {
-                sleep(Duration::from_secs(60)).await;
-                let mut time = time_clone.write();
-                *time = Utc::now();
-            }
-        });
+        // TODO: finish this impl
+        // tokio::spawn(async move {
+        //     loop {
+        //         sleep(Duration::from_secs(60)).await;
+
+        //         unsafe {
+        //             *(*time_ptr).get() = Utc::now();
+        //         }
+        //     }
+        // });
 
         instance
     }
 
-    pub fn get(&self) -> DateTime<Utc> {
-        *self.time.read()
+    pub unsafe fn get(&self) -> DateTime<Utc> {
+        *(self.time.as_ref()).get()
     }
 }
