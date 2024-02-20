@@ -1,6 +1,7 @@
 pub(crate) use ids_generator::{IdsGenerator, UsedIds};
 pub(crate) use ports::MachinePorts;
 use std::fmt::Write;
+pub(crate) use time::CachedTime;
 
 mod ids_generator;
 pub(crate) mod password_hash;
