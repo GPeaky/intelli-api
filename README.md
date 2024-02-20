@@ -1,7 +1,7 @@
 <p align="center">
-    <img src="https://cdn.discordapp.com/attachments/1086116819644985345/1127742819591794729/31_sin_titulo_20230710012713.png" style="width:20vh;" >
+    <img src="https://avatars.githubusercontent.com/u/158355068?s=400&u=dd74b7a8edf3863336bf4cbc03a26c1c450f424f&v=4" style="width:20vh;" >
 </p>
-<h1 align="center">Intelli</h1>
+<h1 align="center">Intelli Telemetry</h1>
 
 ## Table of Contents
 

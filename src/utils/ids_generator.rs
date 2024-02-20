@@ -33,7 +33,7 @@ pub struct IdsGenerator<T: UsedIds> {
     ids: Arc<Mutex<VecDeque<i32>>>,
     range: Range<i32>,
     pool_size: usize,
-    repository: T,
+    repo: T,
 }
 
 impl<T: UsedIds> IdsGenerator<T> {
@@ -43,14 +43,14 @@ impl<T: UsedIds> IdsGenerator<T> {
     ///
     /// * `range` - The `RangeInclusive<i32>` from which IDs are generated.
     /// * `size` - Optional `usize` specifying the pool size. Uses a default if None.
-    pub async fn new(range: Range<i32>, repository: T, size: Option<usize>) -> Self {
+    pub async fn new(range: Range<i32>, repo: T, size: Option<usize>) -> Self {
         let size = size.unwrap_or(DEFAULT_POOL_SIZE);
 
         let generator = IdsGenerator {
             ids: Arc::new(Mutex::new(VecDeque::with_capacity(size))),
             range,
             pool_size: size,
-            repository,
+            repo,
         };
 
         {
@@ -63,7 +63,7 @@ impl<T: UsedIds> IdsGenerator<T> {
 
     async fn refill(&self, ids: &mut VecDeque<i32>) {
         let mut rng = StdRng::from_entropy();
-        let used_ids = self.repository.used_ids().await.unwrap_or_default();
+        let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
         // Todo: Check if the id don't exist on in the db and in the range
         while ids.len() < self.pool_size {
