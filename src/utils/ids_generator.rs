@@ -65,8 +65,9 @@ impl<T: UsedIds> IdsGenerator<T> {
         let mut rng = StdRng::from_entropy();
         let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
-        // Todo: Check if the id don't exist on in the db and in the range
-        while ids.len() < self.pool_size {
+        let it = ids.len() - self.pool_size;
+
+        for _ in 0..it {
             let id = rng.gen_range(self.range.clone());
 
             if !ids.contains(&id) && !used_ids.contains(&id) {
