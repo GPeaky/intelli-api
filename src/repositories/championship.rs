@@ -1,3 +1,4 @@
+use ahash::AHashSet;
 use tokio_postgres::Row;
 
 use crate::{
@@ -21,7 +22,7 @@ pub struct ChampionshipRepository {
 }
 
 impl UsedIds for &'static ChampionshipRepository {
-    async fn used_ids(&self) -> AppResult<Vec<i32>> {
+    async fn used_ids(&self) -> AppResult<AHashSet<i32>> {
         let conn = self.db.pg.get().await?;
 
         let championship_ids_stmt = conn
@@ -33,10 +34,14 @@ impl UsedIds for &'static ChampionshipRepository {
             .await?;
 
         let rows = conn.query(&championship_ids_stmt, &[]).await?;
+        let mut championships_ids = AHashSet::with_capacity(rows.len());
 
-        let championship_ids = rows.iter().map(|row| row.get("id")).collect();
+        for row in rows {
+            let id: i32 = row.get("id");
+            championships_ids.insert(id);
+        }
 
-        Ok(championship_ids)
+        Ok(championships_ids)
     }
 }
 

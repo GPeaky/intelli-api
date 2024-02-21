@@ -1,3 +1,4 @@
+use ahash::AHashSet;
 use tokio_postgres::Row;
 
 use crate::{
@@ -50,7 +51,7 @@ impl UserRepository {
 }
 
 impl UsedIds for &'static UserRepository {
-    async fn used_ids(&self) -> AppResult<Vec<i32>> {
+    async fn used_ids(&self) -> AppResult<AHashSet<i32>> {
         let conn = self.db.pg.get().await?;
 
         let user_ids_stmt = conn
@@ -63,7 +64,12 @@ impl UsedIds for &'static UserRepository {
 
         let rows = conn.query(&user_ids_stmt, &[]).await?;
 
-        let user_ids = rows.iter().map(|row| row.get(0)).collect();
+        let mut user_ids = AHashSet::with_capacity(rows.len());
+
+        for row in rows {
+            let id: i32 = row.get(0);
+            user_ids.insert(id);
+        }
 
         Ok(user_ids)
     }

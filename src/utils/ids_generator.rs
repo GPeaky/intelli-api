@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, ops::Range, sync::Arc};
 
+use ahash::AHashSet;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use tokio::sync::Mutex;
 
@@ -9,7 +10,7 @@ const DEFAULT_POOL_SIZE: usize = 1000;
 
 /// Trait for retrieving used IDs from a data source.
 pub trait UsedIds {
-    async fn used_ids(&self) -> AppResult<Vec<i32>>;
+    async fn used_ids(&self) -> AppResult<AHashSet<i32>>;
 }
 
 /// Struct for generating unique IDs within a specific range.
@@ -43,13 +44,13 @@ impl<T: UsedIds> IdsGenerator<T> {
     ///
     /// * `range` - The `RangeInclusive<i32>` from which IDs are generated.
     /// * `size` - Optional `usize` specifying the pool size. Uses a default if None.
-    pub async fn new(range: Range<i32>, repo: T, size: Option<usize>) -> Self {
-        let size = size.unwrap_or(DEFAULT_POOL_SIZE);
+    pub async fn new(range: Range<i32>, repo: T, pool_size: Option<usize>) -> Self {
+        let pool_size = pool_size.unwrap_or(DEFAULT_POOL_SIZE);
 
         let generator = IdsGenerator {
-            ids: Arc::new(Mutex::new(VecDeque::with_capacity(size))),
+            ids: Arc::new(Mutex::new(VecDeque::with_capacity(pool_size))),
             range,
-            pool_size: size,
+            pool_size,
             repo,
         };
 
@@ -61,18 +62,31 @@ impl<T: UsedIds> IdsGenerator<T> {
         generator
     }
 
+    /// Refills the ID pool asynchronously when it becomes empty.
+    ///
+    /// This method generates unique IDs within the specified range, ensuring that
+    /// each ID is not already present in the pool or among previously used IDs.
+    /// It's designed to be called automatically, maintaining a sufficient supply
+    /// of unique IDs for the application's needs.
+    ///
+    /// Note: `refill` is not intended to be called directly; it is triggered
+    /// internally when the pool of available IDs is depleted.
     async fn refill(&self, ids: &mut VecDeque<i32>) {
         let mut rng = StdRng::from_entropy();
+        let mut local_set = AHashSet::with_capacity(self.pool_size);
         let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
-        let it = ids.len() - self.pool_size;
+        for _ in 0..self.pool_size {
+            let id = loop {
+                let id = rng.gen_range(self.range.start..=self.range.end);
 
-        for _ in 0..it {
-            let id = rng.gen_range(self.range.clone());
+                if !local_set.contains(&id) && !used_ids.contains(&id) {
+                    local_set.insert(id);
+                    break id;
+                }
+            };
 
-            if !ids.contains(&id) && !used_ids.contains(&id) {
-                ids.push_back(id);
-            }
+            ids.push_back(id);
         }
     }
 
