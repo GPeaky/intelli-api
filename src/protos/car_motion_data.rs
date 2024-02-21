@@ -8,7 +8,6 @@ impl ToProtoMessage for BPacketMotionData {
     type ProtoType = PacketMotionData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
-        let time = std::time::Instant::now();
         let mut car_motion_data = Vec::with_capacity(self.car_motion_data.len());
 
         for value in &self.car_motion_data {
@@ -29,7 +28,6 @@ impl ToProtoMessage for BPacketMotionData {
             });
         }
 
-        println!("Time to convert to proto: {:?}", time.elapsed());
         Some(PacketMotionData { car_motion_data })
     }
 }
