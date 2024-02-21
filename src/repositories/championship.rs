@@ -5,7 +5,7 @@ use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
     entity::{Championship, FromRow},
-    error::{AppError, AppResult},
+    error::AppResult,
     utils::UsedIds,
 };
 
@@ -180,10 +180,12 @@ impl ChampionshipRepository {
             conn.query(&find_all_stmt, &[&user_id]).await?
         };
 
-        let championships = rows
-            .iter()
-            .map(Championship::from_row)
-            .collect::<Result<Vec<Championship>, AppError>>()?;
+        let mut championships = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            let championship = Championship::from_row(&row)?;
+            championships.push(championship);
+        }
 
         self.cache
             .championship

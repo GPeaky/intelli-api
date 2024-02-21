@@ -8,6 +8,25 @@ impl ToProtoMessage for BPacketSessionData {
     type ProtoType = PacketSessionData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
+        let mut sum_rain_percentage = 0;
+
+        for weather in &self.weather_forecast_samples {
+            sum_rain_percentage += weather.rain_percentage as u32;
+        }
+
+        let rain_percentage = sum_rain_percentage
+            .checked_div(self.num_weather_forecast_samples as u32)
+            .unwrap_or(0);
+
+        let mut marshall_zones = Vec::with_capacity(self.num_marshal_zones as usize);
+
+        for marshal_zone in &self.marshal_zones {
+            marshall_zones.push(MarshalZone {
+                zone_start: marshal_zone.zone_start,
+                zone_flag: marshal_zone.zone_flag as i32,
+            });
+        }
+
         Some(PacketSessionData {
             weather: self.weather as u32,
             track_temperature: self.track_temperature as i32,
@@ -35,24 +54,8 @@ impl ToProtoMessage for BPacketSessionData {
             num_safety_car_periods: self.num_safety_car_periods as u32,
             num_virtual_safety_car_periods: self.num_virtual_safety_car_periods as u32,
             num_red_flag_periods: self.num_red_flag_periods as u32,
-            rain_percentage: self
-                .weather_forecast_samples
-                .iter()
-                .take(self.num_weather_forecast_samples as usize)
-                .map(|weather| weather.rain_percentage as u32)
-                .sum::<u32>()
-                .checked_div(self.num_weather_forecast_samples as u32)
-                .unwrap_or(0),
-
-            marshall_zones: self
-                .marshal_zones
-                .iter()
-                .take(self.num_marshal_zones as usize)
-                .map(|marshal_zone| MarshalZone {
-                    zone_start: marshal_zone.zone_start,
-                    zone_flag: marshal_zone.zone_flag as i32,
-                })
-                .collect(),
+            rain_percentage,
+            marshall_zones,
         })
     }
 }
