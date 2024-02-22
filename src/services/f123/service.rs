@@ -17,7 +17,7 @@ use tokio::{
     task::JoinHandle,
     time::timeout,
 };
-use tracing::{error, info};
+use tracing::{error, info, info_span};
 
 type ChanelData = Bytes;
 type F123Channel = Arc<Sender<ChanelData>>;
@@ -61,25 +61,6 @@ impl F123Service {
         Some(channel.subscribe())
     }
 
-    pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
-        let mut channels = self.channels.write();
-        let mut services = self.services.write();
-
-        if channels.remove(&championship_id).is_none() {
-            Err(F123ServiceError::NotFound)?;
-        };
-
-        if let Some(services) = services.remove(&championship_id) {
-            // todo: Use oneshot channel to stop the socket in the best way possible
-            services.abort();
-        } else {
-            Err(F123ServiceError::NotFound)?;
-        };
-
-        info!("Service stopped for championship: {}", championship_id);
-        Ok(())
-    }
-
     pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
         let mut services = self.services.upgradable_read();
 
@@ -98,6 +79,24 @@ impl F123Service {
             services.insert(championship_id, service);
         });
 
+        Ok(())
+    }
+
+    pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
+        let mut channels = self.channels.write();
+        let mut services = self.services.write();
+
+        if channels.remove(&championship_id).is_none() {
+            Err(F123ServiceError::NotFound)?;
+        };
+
+        if let Some(services) = services.remove(&championship_id) {
+            services.abort();
+        } else {
+            Err(F123ServiceError::NotFound)?;
+        };
+
+        info!("Service stopped for championship: {}", championship_id);
         Ok(())
     }
 
@@ -129,6 +128,9 @@ impl F123Service {
         let channels = self.channels.clone();
 
         tokio::spawn(async move {
+            let span = info_span!("F123 Service", championship_id = championship_id);
+            let _guard = span.enter();
+
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();
@@ -150,11 +152,11 @@ impl F123Service {
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
-                error!("There was an error binding to the socket for championship: {championship_id:?}");
+                error!("There was an error binding to the socket");
                 return Err(F123ServiceError::UdpSocket)?;
             };
 
-            info!("Listening for F123 data on port: {port} for championship: {championship_id:?}");
+            info!("Listening for F123 data on port: {port}");
 
             {
                 let mut channels = channels.write();
@@ -177,7 +179,7 @@ impl F123Service {
                         }
 
                         let Some(header) = F123Data::try_deserialize_header(buf) else {
-                            error!("Error deserializing F123 header, for championship: {championship_id:?}");
+                            error!("Error deserializing F123 header");
                             continue;
                         };
 
@@ -193,7 +195,7 @@ impl F123Service {
 
                         let now = Instant::now();
                         let Ok(packet_id) = PacketIds::try_from(header.packet_id) else {
-                            error!("Error deserializing F123 packet id, for championship: {championship_id:?}");
+                            error!("Error deserializing F123 packet id");
                             continue;
                         };
 
@@ -237,10 +239,7 @@ impl F123Service {
                             F123Data::Session(session_data) => {
                                 #[cfg(not(debug_assertions))]
                                 if session_data.network_game != 1 {
-                                    error!(
-                                        "Not Online Game, closing service for championship: {}",
-                                        championship_id
-                                    );
+                                    error!("Not Online Game, closing service");
 
                                     close_service.await?;
                                     return Err(F123ServiceError::NotOnlineSession)?;
@@ -249,7 +248,7 @@ impl F123Service {
                                 let Ok(converted_session_type) =
                                     SessionType::try_from(session_data.session_type)
                                 else {
-                                    error!("Error deserializing F123 session type, for championship: {championship_id:?}");
+                                    error!("Error deserializing F123 session type");
                                     continue;
                                 };
 
@@ -372,13 +371,13 @@ impl F123Service {
 
                     Ok(Err(e)) => {
                         error!("Error receiving data from udp socket: {}", e);
-                        info!("Stopping socket for championship: {}", championship_id);
+                        info!("Stopping socket");
                         close_service.await?;
                         return Err(F123ServiceError::ReceivingData)?;
                     }
 
                     Err(_) => {
-                        info!("Service timeout for championship: {}", championship_id);
+                        info!("Service timeout");
                         close_service.await?;
                         return Ok(());
                     }
