@@ -65,7 +65,7 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// A vector of integers representing the ports in use.
-    pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
+    pub async fn ports_in_use(&self) -> AppResult<AHashSet<i32>> {
         let rows = {
             let conn = self.db.pg.get().await?;
 
@@ -80,9 +80,14 @@ impl ChampionshipRepository {
             conn.query(&ports_in_use_stmt, &[]).await?
         };
 
-        let ports_in_use = rows.iter().map(|row| row.get("port")).collect();
+        let mut ports = AHashSet::with_capacity(rows.len());
 
-        Ok(ports_in_use)
+        for row in rows {
+            let port: i32 = row.get("port");
+            ports.insert(port);
+        }
+
+        Ok(ports)
     }
 
     /// Finds a championship by its ID.
@@ -220,7 +225,12 @@ impl ChampionshipRepository {
             conn.query(&championship_users_stmt, &[&id]).await?
         };
 
-        let users = rows.iter().map(|row| row.get("user_id")).collect();
+        let mut users = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            let user_id: i32 = row.get("user_id");
+            users.push(user_id);
+        }
 
         Ok(users)
     }

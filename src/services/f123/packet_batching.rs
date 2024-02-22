@@ -233,8 +233,11 @@ impl PacketBatching {
                 return Ok(());
             }
 
-            let buf = buf.drain(..).collect::<Vec<_>>();
-            buf
+            // TODO: Test this new impl and compare performance
+            let mut taken_buf = Vec::with_capacity(2048);
+            std::mem::swap(&mut taken_buf, &mut *buf);
+
+            taken_buf
         };
 
         // TODO: Implement another cache method for events

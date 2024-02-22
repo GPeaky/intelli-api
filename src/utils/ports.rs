@@ -14,9 +14,13 @@ pub struct MachinePorts {
 impl MachinePorts {
     pub async fn new(championship_repo: &ChampionshipRepository) -> Self {
         let ports_used = championship_repo.ports_in_use().await.unwrap();
-        let ports = PORTS_RANGE
-            .filter(|port| !ports_used.contains(port))
-            .collect::<VecDeque<i32>>();
+        let mut ports = VecDeque::with_capacity(PORTS_RANGE.len());
+
+        for port in PORTS_RANGE {
+            if !ports_used.contains(&port) {
+                ports.push_back(port);
+            }
+        }
 
         let ports = Arc::new(Mutex::new(ports));
 
@@ -26,7 +30,6 @@ impl MachinePorts {
     // Todo: Make sure that championship is created before eliminating the port from the list
     pub fn get(&self) -> Option<i32> {
         let mut ports = self.ports.lock();
-
         ports.pop_front()
     }
 }

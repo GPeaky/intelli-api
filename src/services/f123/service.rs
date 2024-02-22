@@ -45,7 +45,7 @@ impl F123Service {
 
     pub async fn active_services(&self) -> Vec<i32> {
         let services = self.services.read();
-        services.keys().copied().collect()
+        services.keys().cloned().collect()
     }
 
     pub async fn service_active(&self, id: i32) -> bool {
