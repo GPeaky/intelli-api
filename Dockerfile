@@ -5,7 +5,7 @@ RUN dnf -y update && \
     dnf -y groupinstall "Development Tools" && \
     dnf clean all
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain nightly
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /usr/src/intelli-api
