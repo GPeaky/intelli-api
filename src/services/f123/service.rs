@@ -8,7 +8,7 @@ use crate::{
     FirewallService,
 };
 use ahash::AHashMap;
-use ntex::{rt, util::Bytes};
+use ntex::util::Bytes;
 use parking_lot::RwLock;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
@@ -128,7 +128,7 @@ impl F123Service {
         let services = self.services.clone();
         let channels = self.channels.clone();
 
-        rt::spawn(async move {
+        tokio::spawn(async move {
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();
