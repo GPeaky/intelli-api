@@ -4,11 +4,14 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
+#[allow(unused)]
 pub struct CachedTime {
     time: AtomicPtr<DateTime<Utc>>,
 }
 
 impl CachedTime {
+    #[allow(unused)]
+
     pub fn new() -> Arc<Self> {
         let initial_time = Box::new(Utc::now());
         let time_ptr = Box::into_raw(initial_time);
@@ -35,6 +38,8 @@ impl CachedTime {
 
         instance
     }
+
+    #[allow(unused)]
 
     pub fn get(&self) -> DateTime<Utc> {
         unsafe { *self.time.load(Ordering::Relaxed) }

@@ -1,6 +1,7 @@
 pub(crate) use ids_generator::{IdsGenerator, UsedIds};
 pub(crate) use ports::MachinePorts;
 use std::fmt::Write;
+#[allow(unused)]
 pub(crate) use time::CachedTime;
 
 mod ids_generator;
