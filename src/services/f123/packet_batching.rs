@@ -15,6 +15,8 @@ use tokio::{
 };
 use tracing::{info, warn};
 
+const BATCHING_VECTOR_CAPACITY: usize = 2048;
+
 /// `PacketBatching` is responsible for collecting packets over a period of 700ms,
 /// batching them together, and then sending a single batched packet. It serves
 /// as a buffering layer that aggregates packets to minimize processing and sending overhead.
@@ -81,7 +83,7 @@ impl PacketBatching {
     /// instance is no longer needed to properly clean up resources.
     pub fn new(tx: Sender<Bytes>, cache: F123InsiderCache) -> Self {
         let (otx, orx) = oneshot::channel::<()>();
-        let buf = Arc::from(Mutex::from(Vec::with_capacity(2048)));
+        let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_VECTOR_CAPACITY)));
 
         let instance = Self {
             buf: buf.clone(),
@@ -234,7 +236,7 @@ impl PacketBatching {
             }
 
             // TODO: Test this new impl and compare performance
-            let mut taken_buf = Vec::with_capacity(2048);
+            let mut taken_buf = Vec::with_capacity(BATCHING_VECTOR_CAPACITY);
             std::mem::swap(&mut taken_buf, &mut *buf);
 
             taken_buf
