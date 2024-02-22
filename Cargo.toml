@@ -16,9 +16,7 @@ zstd = "0.13"
 ahash = "0.8"
 loole = "0.3"
 ring = "0.17"
-rand = "0.8.5"
 prost = "0.12"
-bcrypt = "0.15"
 tracing = "0.1"
 base64 = "0.21"
 sailfish = "0.8"
@@ -32,23 +30,28 @@ jsonwebtoken = "9"
 async-trait = "0.1"
 deadpool-redis = "0.14"
 postgres-derive = "0.4"
-zerocopy = "0.8.0-alpha"
 deadpool-postgres = "0.12"
 zerocopy-derive = "0.8.0-alpha"
-serde = { version = "1", features = ["rc"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }
+rand = { version = "0.8.5", features = ["nightly"] }
+openssl = { version = "0.10.63", features = ["v110"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
+serde = { version = "1", features = ["rc", "unstable"] }
 ntex = { version = "1", features = ["tokio", "openssl"] }
 once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
-openssl = { version = "0.10.63", features = ["v110"] }
+zerocopy = { version = "0.8.0-alpha", features = ["simd-nightly"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
-parking_lot = { version = "0.12", features = ["send_guard", "arc_lock"] }
+parking_lot = { version = "0.12", features = [
+    "send_guard",
+    "arc_lock",
+    "nightly",
+] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",

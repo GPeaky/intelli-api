@@ -1,4 +1,3 @@
-use bcrypt::BcryptError;
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
 use lettre::Message;
@@ -36,8 +35,6 @@ pub enum AppError {
     #[error(transparent)]
     PgPool(#[from] PoolError),
     #[error(transparent)]
-    Bcrypt(#[from] BcryptError),
-    #[error(transparent)]
     Redis(#[from] RedisError),
     #[error(transparent)]
     RedisPool(#[from] RedisPoolError),
@@ -64,7 +61,6 @@ impl WebResponseError for AppError {
             AppError::F123(e) => e.status_code(),
             AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Bcrypt(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::RedisPool(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -97,14 +93,6 @@ impl WebResponseError for AppError {
                 HttpResponse::build(self.status_code())
                     .set_header("content-type", "text/html; charset=utf-8")
                     .body("Pool error")
-            }
-
-            AppError::Bcrypt(e) => {
-                error!("{e}");
-
-                HttpResponse::build(self.status_code())
-                    .set_header("content-type", "text/html; charset=utf-8")
-                    .body("Encryption error")
             }
 
             AppError::Redis(e) => {
