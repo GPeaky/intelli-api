@@ -102,7 +102,7 @@ impl EmailService {
         body: T,
     ) -> AppResult<()> {
         let message = Message::builder()
-            .from(MAILBOX.to_owned())
+            .from(unsafe { std::ptr::read(&*MAILBOX as *const Mailbox) })
             .to(Mailbox::new(
                 Some(user.username.to_string()),
                 Address::from_str(user.email).unwrap(),
