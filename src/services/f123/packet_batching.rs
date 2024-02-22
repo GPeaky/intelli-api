@@ -103,7 +103,6 @@ impl PacketBatching {
                     }
 
                     _ = orx.get_mut() => {
-                        info!("Packet batching: shutdown");
                         break;
                     }
                 }
