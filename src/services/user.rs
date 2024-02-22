@@ -103,8 +103,6 @@ impl UserService {
                 let hashed_password =
                     password_hash::hash_password(register.password.as_ref().unwrap())?;
 
-                println!("hashed_password: {}", hashed_password.len());
-
                 let create_google_user_stmt = conn
                     .prepare_cached(
                         r#"
