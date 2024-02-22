@@ -90,14 +90,14 @@ impl<T: UsedIds> IdsGenerator<T> {
         }
     }
 
-    /// Generates and returns a unique ID.
+    /// Returns a unique ID.
     ///
     /// Refills the pool automatically if more than half is consumed.
     ///
     /// # Returns
     ///
     /// Returns an `i32` as the generated ID.
-    pub async fn gen_id(&self) -> i32 {
+    pub async fn next(&self) -> i32 {
         let mut ids = self.ids.lock().await;
 
         if ids.is_empty() {

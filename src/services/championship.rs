@@ -106,7 +106,7 @@ impl ChampionshipService {
                 relate_user_with_championship_stmt_fut
             )?;
 
-            let id = self.ids_generator.gen_id().await;
+            let id = self.ids_generator.next().await;
 
             let port = self
                 .ports

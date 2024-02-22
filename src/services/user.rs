@@ -72,7 +72,7 @@ impl UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = self.ids_generator.gen_id().await;
+        let id = self.ids_generator.next().await;
         let conn = self.db.pg.get().await?;
 
         match &register.provider {
