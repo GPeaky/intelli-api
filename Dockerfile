@@ -1,7 +1,7 @@
 FROM fedora:latest as builder
 
 RUN dnf -y update && \
-    dnf -y install openssl ca-certificates pkgconfig protobuf-compiler mold mimalloc perl perl-FindBin && \
+    dnf -y install ca-certificates pkgconfig protobuf-compiler mold mimalloc openssl-devel && \
     dnf -y groupinstall "Development Tools" && \
     dnf clean all
 
