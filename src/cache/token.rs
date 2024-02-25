@@ -48,7 +48,7 @@ impl TokenCache {
     pub async fn set_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
             Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set".to_string(),
+                "Refresh token can't be set",
             ))?;
         }
 
@@ -83,7 +83,7 @@ impl TokenCache {
     pub async fn get_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
             Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set".to_string(),
+                "Refresh token can't be set",
             ))?;
         }
 
@@ -114,7 +114,7 @@ impl TokenCache {
     pub async fn remove_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
             Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set".to_string(),
+                "Refresh token can't be set",
             ))?;
         }
 

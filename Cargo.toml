@@ -24,7 +24,6 @@ dotenvy = "0.15"
 mimalloc = "0.1"
 serde_trim = "1"
 ntex-cors = "0.5"
-thiserror = "1.0"
 serde_derive = "1"
 jsonwebtoken = "9"
 async-trait = "0.1"
@@ -47,14 +46,14 @@ refinery = { version = "0.8", features = ["tokio-postgres"] }
 zerocopy = { version = "0.8.0-alpha", features = ["simd-nightly"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+tracing-subscriber = { version = "0.3", features = [
+    "parking_lot",
+    "env-filter",
+] }
 parking_lot = { version = "0.12", features = [
     "send_guard",
     "arc_lock",
     "nightly",
-] }
-tracing-subscriber = { version = "0.3", features = [
-    "parking_lot",
-    "env-filter",
 ] }
 lettre = { version = "0.11", default-features = false, features = [
     "tokio1-rustls-tls",

@@ -10,7 +10,10 @@ use once_cell::sync::Lazy;
 use sailfish::TemplateOnce;
 use tracing::error;
 
-use crate::{error::AppResult, structs::EmailUser};
+use crate::{
+    error::{AppResult, CommonError},
+    structs::EmailUser,
+};
 
 static MAILBOX: Lazy<Mailbox> = Lazy::new(|| {
     Mailbox::new(
@@ -112,7 +115,10 @@ impl EmailService {
             .body(body.render_once()?)
             .expect("Message builder error");
 
-        self.0.send(message)?;
+        self.0.send(message).map_err(|e| {
+            error!("Error sending email: {}", e);
+            CommonError::SendMail
+        })?;
 
         Ok(())
     }

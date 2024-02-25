@@ -1,32 +1,35 @@
+use std::fmt::Display;
+
 use ntex::{
     http::StatusCode,
     web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
-use thiserror::Error;
 
-#[allow(unused)]
-#[derive(Debug, Error)]
+use super::AppError;
+
+#[derive(Debug)]
 pub enum ChampionshipError {
-    #[error("Championship already exists")]
     AlreadyExists,
-    #[error("Not Championships")]
+    #[allow(unused)]
     NotChampionships,
-    #[error("Championship not found")]
     NotFound,
-    #[error("Championship limit reached")]
     LimitReached,
-    #[error("Not Owner of Championship")]
     NotOwner,
-    #[error("Cannot remove owner of Championship")]
     CannotRemoveOwner,
-    #[error("Interval update time not reached")]
     IntervalNotReached,
-    #[error("No ports available")]
     NoPortsAvailable,
 }
 
-impl WebResponseError for ChampionshipError {
-    fn status_code(&self) -> StatusCode {
+impl std::error::Error for ChampionshipError {}
+
+impl Display for ChampionshipError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.error_message())
+    }
+}
+
+impl ChampionshipError {
+    pub const fn status_code(&self) -> StatusCode {
         match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
             ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,
@@ -39,9 +42,30 @@ impl WebResponseError for ChampionshipError {
         }
     }
 
+    pub const fn error_message(&self) -> &'static str {
+        match self {
+            ChampionshipError::AlreadyExists => "Championship already exists",
+            ChampionshipError::NotChampionships => "Not Championships",
+            ChampionshipError::NotFound => "Championship not found",
+            ChampionshipError::LimitReached => "Championship limit reached",
+            ChampionshipError::NotOwner => "Not Owner of Championship",
+            ChampionshipError::CannotRemoveOwner => "Cannot remove owner of Championship",
+            ChampionshipError::IntervalNotReached => "Interval update time not reached",
+            ChampionshipError::NoPortsAvailable => "No ports available",
+        }
+    }
+}
+
+impl WebResponseError for ChampionshipError {
     fn error_response(&self, _: &HttpRequest) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
+            .set_header("content-type", "text/plain; charset=utf-8")
+            .body(self.error_message())
+    }
+}
+
+impl From<ChampionshipError> for AppError {
+    fn from(error: ChampionshipError) -> Self {
+        AppError::Championship(error)
     }
 }
