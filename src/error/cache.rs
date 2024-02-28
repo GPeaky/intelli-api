@@ -1,25 +1,40 @@
-use ntex::{
-    http::StatusCode,
-    web::{error::WebResponseError, HttpRequest, HttpResponse},
-};
-use thiserror::Error;
+use ntex::http::StatusCode;
+use std::{error::Error, fmt::Display};
 
-#[derive(Debug, Error)]
+use super::AppError;
+
+#[derive(Debug)]
 pub enum CacheError {
-    #[error("Error deserializing entity from cache")]
     Deserialize,
-    #[error("Error serializing entity to cache")]
     Serialize,
 }
 
-impl WebResponseError for CacheError {
-    fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
+impl CacheError {
+    pub const fn status_code(&self) -> StatusCode {
+        match self {
+            CacheError::Deserialize => StatusCode::INTERNAL_SERVER_ERROR,
+            CacheError::Serialize => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 
-    fn error_response(&self, _: &HttpRequest) -> HttpResponse {
-        HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
+    pub const fn error_message(&self) -> &'static str {
+        match self {
+            CacheError::Deserialize => "Error deserializing entity from cache",
+            CacheError::Serialize => "Error serializing entity to cache",
+        }
+    }
+}
+
+impl Error for CacheError {}
+
+impl From<CacheError> for AppError {
+    fn from(e: CacheError) -> Self {
+        AppError::Cache(e)
+    }
+}
+
+impl Display for CacheError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.error_message())
     }
 }

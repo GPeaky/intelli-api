@@ -2,40 +2,28 @@ use ntex::{
     http::StatusCode,
     web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
-use thiserror::Error;
 
-#[derive(Debug, Error)]
+use super::AppError;
+
+#[derive(Debug)]
 pub enum UserError {
-    #[error("User already exists")]
     AlreadyExists,
-    #[error("User not found")]
     NotFound,
-    #[error("Invalid credentials")]
     InvalidCredentials,
-    #[error("Not verified user")]
     NotVerified,
-    #[error("Use google to login")]
     GoogleLogin,
-    #[error("Unauthorized user")]
     Unauthorized,
-    #[error("Cannot Delete Yourself")]
     AutoDelete,
-    #[error("User Already Active")]
     AlreadyActive,
-    #[error("User is not active")]
     AlreadyInactive,
-    #[error("Invalid Provider")]
     InvalidProvider,
-    #[error("Using wrong provider")]
     WrongProvider,
-    #[error("Invalid Update")]
     InvalidUpdate,
-    #[error("Update Limit Exceeded")]
     UpdateLimitExceeded,
 }
 
-impl WebResponseError for UserError {
-    fn status_code(&self) -> StatusCode {
+impl UserError {
+    pub const fn status_code(&self) -> StatusCode {
         match self {
             UserError::AlreadyExists => StatusCode::CONFLICT,
             UserError::NotFound => StatusCode::NOT_FOUND,
@@ -53,9 +41,43 @@ impl WebResponseError for UserError {
         }
     }
 
+    pub const fn error_message(&self) -> &'static str {
+        match self {
+            UserError::AlreadyExists => "User already exists",
+            UserError::NotFound => "User not found",
+            UserError::InvalidCredentials => "Invalid credentials",
+            UserError::NotVerified => "Not verified user",
+            UserError::GoogleLogin => "Use google to login",
+            UserError::Unauthorized => "Unauthorized user",
+            UserError::AutoDelete => "Cannot Delete Yourself",
+            UserError::AlreadyActive => "User Already Active",
+            UserError::AlreadyInactive => "User is not active",
+            UserError::InvalidProvider => "Invalid Provider",
+            UserError::WrongProvider => "Using wrong provider",
+            UserError::InvalidUpdate => "Invalid Update",
+            UserError::UpdateLimitExceeded => "Update Limit Exceeded",
+        }
+    }
+}
+
+impl std::error::Error for UserError {}
+
+impl std::fmt::Display for UserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.error_message())
+    }
+}
+
+impl From<UserError> for AppError {
+    fn from(e: UserError) -> Self {
+        AppError::User(e)
+    }
+}
+
+impl WebResponseError for UserError {
     fn error_response(&self, _: &HttpRequest) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/html; charset=utf-8")
-            .body(self.to_string())
+            .set_header("content-type", "text/plain; charset=utf-8")
+            .body(self.error_message())
     }
 }

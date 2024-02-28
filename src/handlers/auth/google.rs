@@ -39,7 +39,6 @@ pub async fn callback(
     };
 
     let access_token_fut = state.token_svc.generate_token(user.id, TokenType::Bearer);
-
     let refresh_token_fut = state.token_svc.generate_refresh_token(user.id, "google");
 
     let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
