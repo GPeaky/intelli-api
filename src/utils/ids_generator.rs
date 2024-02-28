@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, ops::Range, sync::Arc};
 
 use ahash::AHashSet;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use ring::rand::{SecureRandom, SystemRandom};
 use tokio::sync::Mutex;
 
 use crate::error::AppResult;
@@ -72,13 +72,21 @@ impl<T: UsedIds> IdsGenerator<T> {
     /// Note: `refill` is not intended to be called directly; it is triggered
     /// internally when the pool of available IDs is depleted.
     async fn refill(&self, ids: &mut VecDeque<i32>) {
-        let mut rng = StdRng::from_entropy();
+        let rng = SystemRandom::new();
         let mut local_set = AHashSet::with_capacity(self.pool_size);
         let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
         for _ in 0..self.pool_size {
+            let mut rand_buf = [0u8; 4];
+
             let id = loop {
-                let id = rng.gen_range(self.range.start..=self.range.end);
+                if let Err(e) = rng.fill(&mut rand_buf) {
+                    tracing::error!("Error generating random bytes: {:?}", e);
+                    continue;
+                }
+
+                let num = i32::from_ne_bytes(rand_buf).abs();
+                let id = self.range.start + (num % (self.range.end - self.range.start));
 
                 if !local_set.contains(&id) && !used_ids.contains(&id) {
                     local_set.insert(id);

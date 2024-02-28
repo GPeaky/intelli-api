@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use std::alloc::{alloc, dealloc, Layout};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,35 +14,54 @@ impl CachedTime {
     #[allow(unused)]
 
     pub fn new() -> Arc<Self> {
-        let initial_time = Box::new(Utc::now());
-        let time_ptr = Box::into_raw(initial_time);
+        let layout = Layout::new::<DateTime<Utc>>();
+        let raw_ptr = unsafe { alloc(layout) as *mut DateTime<Utc> };
 
-        let instance = Arc::new(Self {
-            time: AtomicPtr::new(time_ptr),
-        });
-
-        let instance_clone = Arc::clone(&instance);
-
-        tokio::spawn(async move {
-            loop {
-                sleep(Duration::from_secs(60)).await;
-                let new_time = Box::new(Utc::now());
-                let new_time_ptr = Box::into_raw(new_time);
-
-                let old_ptr = instance_clone.time.swap(new_time_ptr, Ordering::Relaxed);
-
-                unsafe {
-                    let _ = Box::from_raw(old_ptr);
-                }
+        if !raw_ptr.is_null() {
+            unsafe {
+                raw_ptr.write(Utc::now());
             }
-        });
 
-        instance
+            let instance = Arc::new(Self {
+                time: AtomicPtr::new(raw_ptr),
+            });
+
+            let instance_clone = Arc::clone(&instance);
+
+            tokio::spawn(async move {
+                loop {
+                    sleep(Duration::from_secs(60)).await;
+                    let ptr = instance_clone.time.load(Ordering::Relaxed);
+
+                    if !ptr.is_null() {
+                        unsafe {
+                            ptr.write(Utc::now());
+                        }
+                    }
+                }
+            });
+
+            instance
+        } else {
+            unreachable!("Failed to allocate memory for CachedTime instance.");
+        }
     }
 
     #[allow(unused)]
 
     pub fn get(&self) -> DateTime<Utc> {
         unsafe { *self.time.load(Ordering::Relaxed) }
+    }
+}
+
+impl Drop for CachedTime {
+    fn drop(&mut self) {
+        unsafe {
+            let ptr = self.time.load(Ordering::Relaxed);
+            if !ptr.is_null() {
+                let layout = Layout::new::<DateTime<Utc>>();
+                dealloc(ptr as *mut u8, layout);
+            }
+        }
     }
 }

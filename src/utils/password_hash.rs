@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use ring::{
     pbkdf2,
-    rand::{self, SecureRandom},
+    rand::{SecureRandom, SystemRandom},
 };
 use std::num::NonZeroU32;
 
@@ -14,7 +14,7 @@ const ITERATIONS: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100_000) };
 
 pub fn hash_password(password: &str) -> AppResult<String> {
     let mut salt = [0u8; SALT_LEN];
-    let rng = rand::SystemRandom::new();
+    let rng = SystemRandom::new();
     rng.fill(&mut salt)
         .map_err(|_| CommonError::HashingFailed)?;
 
