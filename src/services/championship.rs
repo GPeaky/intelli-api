@@ -49,18 +49,18 @@ impl ChampionshipService {
         cache: &'static RedisCache,
         user_repo: &'static UserRepository,
         championship_repo: &'static ChampionshipRepository,
-    ) -> Self {
-        let machine_port = MachinePorts::new(championship_repo).await;
+    ) -> AppResult<Self> {
+        let machine_port = MachinePorts::new(championship_repo).await?;
         let ids_generator = IdsGenerator::new(700000000..799999999, championship_repo, None).await;
 
-        Self {
+        Ok(Self {
             db,
             cache,
             user_repo,
             championship_repo,
             ports: machine_port,
             ids_generator,
-        }
+        })
     }
 
     /// Creates a new championship with the specified details.

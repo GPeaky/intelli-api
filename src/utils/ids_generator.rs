@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, ops::Range, sync::Arc};
+use std::{collections::VecDeque, ops::Range, ptr, sync::Arc};
 
 use ahash::AHashSet;
 use ring::rand::{SecureRandom, SystemRandom};
@@ -33,6 +33,7 @@ pub trait UsedIds {
 pub struct IdsGenerator<T: UsedIds> {
     ids: Arc<Mutex<VecDeque<i32>>>,
     range: Range<i32>,
+    valid_range: i32,
     pool_size: usize,
     repo: T,
 }
@@ -46,11 +47,13 @@ impl<T: UsedIds> IdsGenerator<T> {
     /// * `size` - Optional `usize` specifying the pool size. Uses a default if None.
     pub async fn new(range: Range<i32>, repo: T, pool_size: Option<usize>) -> Self {
         let pool_size = pool_size.unwrap_or(DEFAULT_POOL_SIZE);
+        let valid_range = range.end - range.start;
 
         let generator = IdsGenerator {
             ids: Arc::new(Mutex::new(VecDeque::with_capacity(pool_size))),
             range,
             pool_size,
+            valid_range,
             repo,
         };
 
@@ -76,25 +79,26 @@ impl<T: UsedIds> IdsGenerator<T> {
         let mut local_set = AHashSet::with_capacity(self.pool_size);
         let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
-        for _ in 0..self.pool_size {
-            let mut rand_buf = [0u8; 4];
+        let mut buf = [0u8; 4 * 1000];
 
-            let id = loop {
-                if let Err(e) = rng.fill(&mut rand_buf) {
-                    tracing::error!("Error generating random bytes: {:?}", e);
-                    continue;
-                }
+        if let Err(e) = rng.fill(&mut buf) {
+            tracing::error!("Error generating random bytes: {:?}", e);
+            // Todo: handle error
+            return;
+        }
 
-                let num = i32::from_ne_bytes(rand_buf).abs();
-                let id = self.range.start + (num % (self.range.end - self.range.start));
-
-                if !local_set.contains(&id) && !used_ids.contains(&id) {
-                    local_set.insert(id);
-                    break id;
-                }
+        for chunk in buf.chunks(4) {
+            let num = unsafe {
+                let arr_ptr = chunk.as_ptr() as *const [u8; 4];
+                i32::from_ne_bytes(ptr::read_unaligned(arr_ptr)).abs()
             };
+            let id = self.range.start + (num % self.valid_range);
 
-            ids.push_back(id);
+            // Todo: if the id is already used, add it to a list of used ids and try again
+            if !used_ids.contains(&id) && !local_set.contains(&id) {
+                local_set.insert(id);
+                ids.push_back(id);
+            }
         }
     }
 

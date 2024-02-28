@@ -1,6 +1,7 @@
 use crate::{
     cache::RedisCache,
     config::Database,
+    error::AppResult,
     repositories::{
         ChampionshipRepository, F123Repository, GoogleRepository, ServerRepository, UserRepository,
     },
@@ -30,7 +31,7 @@ impl AppState {
         db: &'static Database,
         firewall_svc: FirewallService,
         cache: &'static RedisCache,
-    ) -> Self {
+    ) -> AppResult<Self> {
         // Repositories
         let f123_repo = F123Repository::new(db);
         let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
@@ -43,11 +44,11 @@ impl AppState {
             UserService::new(db, cache, user_repo, token_svc).await,
         ));
         let championship_svc = Box::leak(Box::from(
-            ChampionshipService::new(db, cache, user_repo, championship_repo).await,
+            ChampionshipService::new(db, cache, user_repo, championship_repo).await?,
         ));
         let saved_session_svc = Box::leak(Box::from(SavedSessionService::new(db, cache).await));
 
-        Self {
+        Ok(Self {
             user_svc,
             f123_svc: F123Service::new(db, firewall_svc),
             f123_repo,
@@ -59,6 +60,6 @@ impl AppState {
             saved_session_svc,
             google_repo,
             server_repo: ServerRepository::new(db),
-        }
+        })
     }
 }
