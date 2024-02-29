@@ -61,12 +61,12 @@ where
                 .or_insert((0, now + RATE_LIMIT_DURATION));
 
             if now > entry.1 {
-                *entry = (1, now + RATE_LIMIT_DURATION);
+                *entry = (0, now + RATE_LIMIT_DURATION);
             } else if entry.0 > RATE_LIMIT {
                 return Err(CommonError::LoginRateLimited)?;
-            } else {
-                entry.0 += 1;
             }
+
+            entry.0 += 1;
         } else {
             warn!("No CF-Connecting-IP header, not rate limiting");
         }
