@@ -51,7 +51,7 @@ impl ChampionshipService {
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
         let machine_port = MachinePorts::new(championship_repo).await?;
-        let ids_generator = IdsGenerator::new(700000000..799999999, championship_repo, None).await;
+        let ids_generator = IdsGenerator::new(700000000..799999999, championship_repo).await;
 
         Ok(Self {
             db,

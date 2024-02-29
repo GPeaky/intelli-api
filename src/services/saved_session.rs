@@ -19,7 +19,7 @@ impl SavedSessionService {
     pub async fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
         let saved_session_repo = SavedSessionRepository::new(db, cache);
         let ids_generator =
-            IdsGenerator::new(800000000..900000000, saved_session_repo.clone(), None).await;
+            IdsGenerator::new(800000000..900000000, saved_session_repo.clone()).await;
 
         Self {
             cache,

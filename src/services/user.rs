@@ -47,7 +47,7 @@ impl UserService {
         user_repo: &'static UserRepository,
         token_svc: &'static TokenService,
     ) -> Self {
-        let ids_generator = IdsGenerator::new(600000000..699999999, user_repo, None).await;
+        let ids_generator = IdsGenerator::new(600000000..699999999, user_repo).await;
 
         Self {
             cache,
