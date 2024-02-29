@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use ahash::AHashMap;
 use compact_str::CompactString;
@@ -13,7 +16,7 @@ use tracing::{info, warn};
 use crate::{error::CommonError, utils::CachedTime};
 
 const RATE_LIMIT: u8 = 5;
-const RATE_LIMIT_DURATION: u64 = 60 * 2;
+const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
 static CACHED_TIME: Lazy<Arc<CachedTime>> = Lazy::new(CachedTime::new);
 
 pub struct LoginLimit;
@@ -56,18 +59,15 @@ where
             let now = CACHED_TIME.instant();
             let ip = CompactString::from(ip.to_str().unwrap());
             let mut visitors = self.visitors.lock();
-            let count = visitors.entry(ip).or_insert((0, now));
+            let entry = visitors.entry(ip).or_insert((0, now + RATE_LIMIT_DURATION));
 
-            if now.duration_since(count.1).as_secs() > RATE_LIMIT_DURATION {
-                count.0 = 0;
-                count.1 = now;
-            }
-
-            if count.0 > RATE_LIMIT {
+            if now > entry.1 {
+                *entry = (1, now + RATE_LIMIT_DURATION);
+            } else if entry.0 > RATE_LIMIT {
                 return Err(CommonError::LoginRateLimited)?;
+            } else {
+                entry.0 += 1;
             }
-
-            count.0 += 1;
         } else {
             warn!("No CF-Connecting-IP header, not rate limiting");
         }
