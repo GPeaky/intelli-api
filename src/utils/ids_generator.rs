@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 
 use crate::error::AppResult;
 
-const DEFAULT_POOL_SIZE: usize = 1000;
+const POOL_SIZE: usize = 1000;
 
 /// Trait for retrieving used IDs from a data source.
 pub trait UsedIds {
@@ -35,7 +35,6 @@ pub struct IdsGenerator<T: UsedIds> {
     ids: Arc<Mutex<VecDeque<i32>>>,
     range: Range<i32>,
     valid_range: i32,
-    pool_size: usize,
     repo: T,
 }
 
@@ -46,14 +45,12 @@ impl<T: UsedIds> IdsGenerator<T> {
     ///
     /// * `range` - The `RangeInclusive<i32>` from which IDs are generated.
     /// * `size` - Optional `usize` specifying the pool size. Uses a default if None.
-    pub async fn new(range: Range<i32>, repo: T, pool_size: Option<usize>) -> Self {
-        let pool_size = pool_size.unwrap_or(DEFAULT_POOL_SIZE);
+    pub async fn new(range: Range<i32>, repo: T) -> Self {
         let valid_range = range.end - range.start;
 
         let generator = IdsGenerator {
-            ids: Arc::new(Mutex::new(VecDeque::with_capacity(pool_size))),
+            ids: Arc::new(Mutex::new(VecDeque::with_capacity(POOL_SIZE))),
             range,
-            pool_size,
             valid_range,
             repo,
         };
@@ -77,10 +74,10 @@ impl<T: UsedIds> IdsGenerator<T> {
     /// internally when the pool of available IDs is depleted.
     async fn refill(&self, ids: &mut VecDeque<i32>) {
         let rng = SystemRandom::new();
-        let mut local_set = AHashSet::with_capacity(self.pool_size);
+        let mut local_set = AHashSet::with_capacity(POOL_SIZE);
         let used_ids = self.repo.used_ids().await.unwrap_or_default();
 
-        let mut buf = [0u8; 4 * 1000];
+        let mut buf = [0u8; 4 * POOL_SIZE];
 
         if let Err(e) = rng.fill(&mut buf) {
             panic!("Failed to generate random bytes: {}", e);
