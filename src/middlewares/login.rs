@@ -4,20 +4,17 @@ use std::{
 };
 
 use ahash::AHashMap;
-use compact_str::CompactString;
 use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},
 };
-use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::{info, warn};
 
-use crate::{error::CommonError, utils::CachedTime};
+use crate::error::CommonError;
 
 const RATE_LIMIT: u8 = 5;
 const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
-static CACHED_TIME: Lazy<Arc<CachedTime>> = Lazy::new(CachedTime::new);
 
 pub struct LoginLimit;
 
@@ -32,7 +29,7 @@ impl<S> Middleware<S> for LoginLimit {
 
 pub struct LoginLimitMiddleware<S> {
     service: S,
-    visitors: Arc<Mutex<AHashMap<CompactString, (u8, Instant)>>>,
+    visitors: Arc<Mutex<AHashMap<String, (u8, Instant)>>>,
 }
 
 impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>
@@ -56,10 +53,12 @@ where
 
         // Only rate limit if the request is coming from the cloudflare proxy
         if let Some(ip) = ip {
-            let now = CACHED_TIME.instant();
-            let ip = CompactString::from(ip.to_str().unwrap());
+            let now = Instant::now();
+            let ip = unsafe { std::str::from_utf8_unchecked(ip.as_ref()) };
             let mut visitors = self.visitors.lock();
-            let entry = visitors.entry(ip).or_insert((0, now + RATE_LIMIT_DURATION));
+            let entry = visitors
+                .entry(ip.to_owned())
+                .or_insert((0, now + RATE_LIMIT_DURATION));
 
             if now > entry.1 {
                 *entry = (1, now + RATE_LIMIT_DURATION);
