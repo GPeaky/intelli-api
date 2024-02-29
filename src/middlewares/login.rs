@@ -7,12 +7,12 @@ use ntex::{
     web::{Error, WebRequest, WebResponse},
 };
 use parking_lot::Mutex;
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::error::CommonError;
 
-const RATE_LIMIT: usize = 5;
-const RATE_LIMIT_DURATION: u64 = 120;
+const RATE_LIMIT: u8 = 5;
+const RATE_LIMIT_DURATION: u64 = 60 * 2;
 
 pub struct LoginLimit;
 
@@ -27,7 +27,7 @@ impl<S> Middleware<S> for LoginLimit {
 
 pub struct LoginLimitMiddleware<S> {
     service: S,
-    visitors: Arc<Mutex<AHashMap<CompactString, (usize, Instant)>>>,
+    visitors: Arc<Mutex<AHashMap<CompactString, (u8, Instant)>>>,
 }
 
 impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>
@@ -60,8 +60,7 @@ where
             }
 
             if count.0 > RATE_LIMIT {
-                info!("{} is rate limited", ip);
-                return Err(CommonError::RateLimited)?;
+                return Err(CommonError::LoginRateLimited)?;
             }
 
             count.0 += 1;

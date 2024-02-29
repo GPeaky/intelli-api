@@ -12,7 +12,7 @@ pub enum CommonError {
     SendMail,
     HashingFailed,
     NotValidUpdate,
-    RateLimited,
+    LoginRateLimited,
     InvalidUsedFeature(&'static str),
 }
 
@@ -24,7 +24,7 @@ impl CommonError {
             CommonError::SendMail => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::HashingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
-            CommonError::RateLimited => StatusCode::TOO_MANY_REQUESTS,
+            CommonError::LoginRateLimited => StatusCode::TOO_MANY_REQUESTS,
             CommonError::InvalidUsedFeature(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -36,7 +36,7 @@ impl CommonError {
             CommonError::SendMail => "Error to send mail",
             CommonError::HashingFailed => "Hashing Failed",
             CommonError::NotValidUpdate => "Not valid Update",
-            CommonError::RateLimited => "Rate limited",
+            CommonError::LoginRateLimited => "Rate limited",
             CommonError::InvalidUsedFeature(feature) => feature,
         }
     }
