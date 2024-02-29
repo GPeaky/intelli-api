@@ -1,3 +1,4 @@
+use core::panic;
 use std::{collections::VecDeque, ops::Range, ptr, sync::Arc};
 
 use ahash::AHashSet;
@@ -82,15 +83,13 @@ impl<T: UsedIds> IdsGenerator<T> {
         let mut buf = [0u8; 4 * 1000];
 
         if let Err(e) = rng.fill(&mut buf) {
-            tracing::error!("Error generating random bytes: {:?}", e);
-            // Todo: handle error
-            return;
+            panic!("Failed to generate random bytes: {}", e);
         }
 
         for chunk in buf.chunks(4) {
             let num = unsafe {
-                let arr_ptr = chunk.as_ptr() as *const [u8; 4];
-                i32::from_ne_bytes(ptr::read_unaligned(arr_ptr)).abs()
+                let chunk_ptr = chunk.as_ptr() as *const i32;
+                ptr::read_unaligned(chunk_ptr).abs()
             };
             let id = self.range.start + (num % self.valid_range);
 
@@ -112,10 +111,12 @@ impl<T: UsedIds> IdsGenerator<T> {
     pub async fn next(&self) -> i32 {
         let mut ids = self.ids.lock().await;
 
-        if ids.is_empty() {
-            self.refill(&mut ids).await;
+        match ids.pop_front() {
+            Some(id) => id,
+            None => {
+                self.refill(&mut ids).await;
+                ids.pop_front().unwrap() // Safe to unwrap because we just refilled the queue
+            }
         }
-
-        ids.pop_front().unwrap() // Safe to unwrap because we just refilled the queue
     }
 }
