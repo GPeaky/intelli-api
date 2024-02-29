@@ -6,13 +6,15 @@ use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},
 };
+use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::{info, warn};
 
-use crate::error::CommonError;
+use crate::{error::CommonError, utils::CachedTime};
 
 const RATE_LIMIT: u8 = 5;
 const RATE_LIMIT_DURATION: u64 = 60 * 2;
+static CACHED_TIME: Lazy<Arc<CachedTime>> = Lazy::new(CachedTime::new);
 
 pub struct LoginLimit;
 
@@ -51,10 +53,10 @@ where
 
         // Only rate limit if the request is coming from the cloudflare proxy
         if let Some(ip) = ip {
-            let now = Instant::now();
+            let now = CACHED_TIME.instant();
             let ip = CompactString::from(ip.to_str().unwrap());
             let mut visitors = self.visitors.lock();
-            let count = visitors.entry(ip.clone()).or_insert((0, now));
+            let count = visitors.entry(ip).or_insert((0, now));
 
             if now.duration_since(count.1).as_secs() > RATE_LIMIT_DURATION {
                 count.0 = 0;
