@@ -1,6 +1,5 @@
 use crate::config::constants::*;
 use deadpool_redis::redis::{self, AsyncCommands};
-// use tokio::time::Instant;
 use tracing::info;
 
 use crate::{config::Database, error::AppResult, structs::F123CachedData};
@@ -20,7 +19,6 @@ impl F123Repository {
     // Todo: implement mini cache in memory for last data cached (Interval 3 seconds)
     #[allow(unused)]
     pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
-        // let time = Instant::now();
         let mut conn = self.db.redis.get().await?;
 
         // Todo: create a struct for this data
@@ -59,11 +57,6 @@ impl F123Repository {
             events,
             session_history,
         };
-
-        // info!(
-        //     "F123Repository::get_cache_data took {}ms",
-        //     time.elapsed().as_millis()
-        // );
 
         info!("F123Repository::get_cache_data {:?}", cached_data);
 

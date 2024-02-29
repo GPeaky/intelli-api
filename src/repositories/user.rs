@@ -19,37 +19,6 @@ pub struct UserRepository {
     cache: &'static RedisCache,
 }
 
-impl UserRepository {
-    /// Converts a db row into a `User` object.
-    ///
-    /// This private method attempts to convert a db row into a `User` struct.
-    /// If the row exists and the user is active, it caches the user information
-    /// and returns the user. If the user is not active, it returns an error.
-    ///
-    /// # Arguments
-    /// - `row`: An optional db row that may contain user data.
-    ///
-    /// # Returns
-    /// - `Ok(Some(User))` if the user is found and active.
-    /// - `Ok(None)` if the row is `None`.
-    /// - `Err(UserError::NotVerified)` if the user is not active.
-    #[inline]
-    async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
-        if let Some(row) = row {
-            let user = User::from_row(&row)?;
-
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
-            self.cache.user.set(&user).await?;
-            return Ok(Some(user));
-        }
-
-        Ok(None)
-    }
-}
-
 impl UsedIds for &'static UserRepository {
     async fn used_ids(&self) -> AppResult<AHashSet<i32>> {
         let conn = self.db.pg.get().await?;
@@ -208,6 +177,35 @@ impl UserRepository {
         self.convert_to_user(row).await
     }
 
+    /// Converts a db row into a `User` object.
+    ///
+    /// This private method attempts to convert a db row into a `User` struct.
+    /// If the row exists and the user is active, it caches the user information
+    /// and returns the user. If the user is not active, it returns an error.
+    ///
+    /// # Arguments
+    /// - `row`: An optional db row that may contain user data.
+    ///
+    /// # Returns
+    /// - `Ok(Some(User))` if the user is found and active.
+    /// - `Ok(None)` if the row is `None`.
+    /// - `Err(UserError::NotVerified)` if the user is not active.
+    #[inline]
+    async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
+        if let Some(row) = row {
+            let user = User::from_row(&row)?;
+
+            if !user.active {
+                Err(UserError::NotVerified)?
+            }
+
+            self.cache.user.set(&user).await?;
+            return Ok(Some(user));
+        }
+
+        Ok(None)
+    }
+
     /// Validates a user's password against a stored hash.
     ///
     /// # Arguments
@@ -216,6 +214,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// `true` if the password matches the hash, otherwise `false`.
+    #[inline]
     pub fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {
         password_hash::verify_password(hash, pwd)
     }
