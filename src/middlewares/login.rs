@@ -9,7 +9,7 @@ use ntex::{
     web::{Error, WebRequest, WebResponse},
 };
 use parking_lot::Mutex;
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::error::CommonError;
 
