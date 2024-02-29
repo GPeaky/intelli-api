@@ -49,6 +49,8 @@ pub(crate) async fn register(
     Ok(HttpResponse::Created())
 }
 
+// Todo: This function call is expensive in terms of performance. Because dehashing the password is a blocking operation
+// Todo: Every user should have a limit to login attempts and should be locked out for a certain period of time
 #[inline(always)]
 pub(crate) async fn login(
     state: State<AppState>,

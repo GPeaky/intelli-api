@@ -13,13 +13,19 @@ use crate::{
         heartbeat,
         user::{update_user, user_data},
     },
-    middlewares::Authentication,
+    middlewares::{Authentication, LoginLimit},
 };
 
 #[inline(always)]
 pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
     cfg.service(
         scope("/auth")
+            .service(resource("/login").route(post().to(login)).wrap(LoginLimit))
+            .service(
+                resource("/logout")
+                    .route(get().to(logout))
+                    .wrap(Authentication),
+            )
             .route("/google/callback", get().to(callback))
             .route("/register", post().to(register))
             .route("/login", post().to(login))
@@ -27,12 +33,6 @@ pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
             .route("/verify/email", get().to(verify_email))
             .route("/forgot-password", post().to(forgot_password))
             .route("/reset-password", post().to(reset_password)),
-    );
-
-    cfg.service(
-        resource("/logout")
-            .route(get().to(logout))
-            .wrap(Authentication),
     );
 
     cfg.service(
