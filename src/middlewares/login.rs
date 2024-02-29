@@ -48,7 +48,6 @@ where
         req: WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
-        let time = std::time::Instant::now();
         let ip = req.headers().get("CF-Connecting-IP");
 
         // Only rate limit if the request is coming from the cloudflare proxy
@@ -70,9 +69,6 @@ where
         } else {
             warn!("No CF-Connecting-IP header, not rate limiting");
         }
-
-        let time = time.elapsed();
-        info!("Time taken: {:?}", time);
 
         let res = ctx.call(&self.service, req).await?;
         Ok(res)
