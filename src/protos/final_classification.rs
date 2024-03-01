@@ -15,15 +15,15 @@ impl ToProtoMessage for BFinalClassificationData {
             let mut tyre_stints_visual = Vec::with_capacity(8);
             let mut tyre_stints_end_laps = Vec::with_capacity(8);
 
-            for &x in &value.tyre_stints_actual {
+            for x in value.tyre_stints_actual {
                 tyre_stints_actual.push(x as u32);
             }
 
-            for &x in &value.tyre_stints_visual {
+            for x in value.tyre_stints_visual {
                 tyre_stints_visual.push(x as u32);
             }
 
-            for &x in &value.tyre_stints_end_laps {
+            for x in value.tyre_stints_end_laps {
                 tyre_stints_end_laps.push(x as u32);
             }
 

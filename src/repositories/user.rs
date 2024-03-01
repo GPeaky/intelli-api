@@ -4,7 +4,7 @@ use tokio_postgres::Row;
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    entity::{FromRow, User},
+    entity::User,
     error::{AppResult, UserError},
     utils::{password_hash, UsedIds},
 };
@@ -193,7 +193,7 @@ impl UserRepository {
     #[inline]
     async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
         if let Some(row) = row {
-            let user = User::from_row(&row)?;
+            let user = User::try_from(&row)?;
 
             if !user.active {
                 Err(UserError::NotVerified)?

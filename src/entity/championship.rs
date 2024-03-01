@@ -4,9 +4,7 @@ use postgres_derive::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
-use crate::error::AppResult;
-
-use super::FromRow;
+use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
@@ -32,18 +30,33 @@ pub struct Championship {
     pub updated_at: DateTime<Utc>,
 }
 
-impl FromRow for Championship {
-    fn from_row(row: &Row) -> AppResult<Self> {
+impl Championship {
+    pub fn try_from_rows(rows: &Vec<Row>) -> AppResult<Vec<Championship>> {
+        let mut championships = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            championships.push(Championship::try_from(row)?);
+        }
+
+        Ok(championships)
+    }
+}
+
+impl TryFrom<&Row> for Championship {
+    type Error = AppError;
+
+    #[inline]
+    fn try_from(value: &Row) -> AppResult<Championship> {
         Ok(Championship {
-            id: row.try_get("id")?,
-            port: row.try_get("port")?,
-            name: row.try_get("name")?,
-            category: row.try_get("category")?,
-            season: row.try_get("season")?,
-            driver_count: row.try_get("driver_count")?,
-            owner_id: row.try_get("owner_id")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
+            id: value.try_get("id")?,
+            port: value.try_get("port")?,
+            name: value.try_get("name")?,
+            category: value.try_get("category")?,
+            season: value.try_get("season")?,
+            driver_count: value.try_get("driver_count")?,
+            owner_id: value.try_get("owner_id")?,
+            created_at: value.try_get("created_at")?,
+            updated_at: value.try_get("updated_at")?,
         })
     }
 }

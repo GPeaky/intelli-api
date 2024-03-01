@@ -4,7 +4,7 @@ use tokio_postgres::Row;
 use crate::{
     cache::{EntityCache, RedisCache},
     config::Database,
-    entity::{Championship, FromRow},
+    entity::Championship,
     error::AppResult,
     utils::UsedIds,
 };
@@ -185,12 +185,7 @@ impl ChampionshipRepository {
             conn.query(&find_all_stmt, &[&user_id]).await?
         };
 
-        let mut championships = Vec::with_capacity(rows.len());
-
-        for row in rows {
-            let championship = Championship::from_row(&row)?;
-            championships.push(championship);
-        }
+        let championships = Championship::try_from_rows(&rows)?;
 
         self.cache
             .championship
@@ -281,7 +276,7 @@ impl ChampionshipRepository {
     #[inline]
     async fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Championship>> {
         if let Some(row) = row {
-            let championship = Championship::from_row(&row)?;
+            let championship = Championship::try_from(&row)?;
             self.cache.championship.set(&championship).await?;
             return Ok(Some(championship));
         }

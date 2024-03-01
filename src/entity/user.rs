@@ -6,9 +6,7 @@ use postgres_derive::{FromSql, ToSql};
 use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
-use crate::error::AppResult;
-
-use super::FromRow;
+use crate::error::{AppError, AppResult};
 
 pub type UserExtension = Arc<User>;
 
@@ -55,8 +53,11 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-impl FromRow for User {
-    fn from_row(row: &Row) -> AppResult<Self> {
+impl TryFrom<&Row> for User {
+    type Error = AppError;
+
+    #[inline]
+    fn try_from(row: &Row) -> AppResult<User> {
         Ok(User {
             id: row.try_get("id")?,
             email: row.try_get("email")?,
