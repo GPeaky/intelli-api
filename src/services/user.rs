@@ -226,48 +226,6 @@ impl UserService {
         Ok(())
     }
 
-    /// Resets the password for a user account.
-    ///
-    /// # Arguments
-    /// - `id`: The ID of the user whose password is to be reset.
-    /// - `password`: The new password.
-    ///
-    /// # Returns
-    /// An empty result indicating success or failure.
-    async fn reset_password(&self, id: i32, password: &str) -> AppResult<()> {
-        let Some(user) = self.user_repo.find(id).await? else {
-            Err(UserError::NotFound)?
-        };
-
-        if Utc::now().signed_duration_since(user.updated_at) <= Duration::minutes(15) {
-            Err(UserError::UpdateLimitExceeded)?
-        }
-
-        let conn = self.db.pg.get().await?;
-        let reset_password_stmt = conn
-            .prepare_cached(
-                r#"
-                    UPDATE users
-                    SET password = $1
-                    WHERE id = $2
-                "#,
-            )
-            .await?;
-
-        let hashed_password = password_hash::hash_password(password)?;
-        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
-        let update_user_fut = async {
-            conn.execute(&reset_password_stmt, &bindings).await?;
-            Ok(())
-        };
-        let remove_cache_fut = self.cache.user.delete(id);
-
-        tokio::try_join!(update_user_fut, remove_cache_fut)?;
-        info!("User password reseated with success: {}", id);
-
-        Ok(())
-    }
-
     /// Resets the password for a user account using a token.
     ///
     /// # Arguments
@@ -390,6 +348,48 @@ impl UserService {
 
         tokio::try_join!(deactivate_user_fut, delete_cache_fut)?;
         info!("User activated with success: {}", id);
+        Ok(())
+    }
+
+    /// Resets the password for a user account.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user whose password is to be reset.
+    /// - `password`: The new password.
+    ///
+    /// # Returns
+    /// An empty result indicating success or failure.
+    async fn reset_password(&self, id: i32, password: &str) -> AppResult<()> {
+        let Some(user) = self.user_repo.find(id).await? else {
+            Err(UserError::NotFound)?
+        };
+
+        if Utc::now().signed_duration_since(user.updated_at) <= Duration::minutes(15) {
+            Err(UserError::UpdateLimitExceeded)?
+        }
+
+        let conn = self.db.pg.get().await?;
+        let reset_password_stmt = conn
+            .prepare_cached(
+                r#"
+                    UPDATE users
+                    SET password = $1
+                    WHERE id = $2
+                "#,
+            )
+            .await?;
+
+        let hashed_password = password_hash::hash_password(password)?;
+        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
+        let update_user_fut = async {
+            conn.execute(&reset_password_stmt, &bindings).await?;
+            Ok(())
+        };
+        let remove_cache_fut = self.cache.user.delete(id);
+
+        tokio::try_join!(update_user_fut, remove_cache_fut)?;
+        info!("User password reseated with success: {}", id);
+
         Ok(())
     }
 }

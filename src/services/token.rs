@@ -84,6 +84,7 @@ impl TokenService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
+    #[inline]
     pub async fn save_email_token(&self, token: &str) -> AppResult<()> {
         self.cache.token.set_token(token, &TokenType::Email).await
     }
