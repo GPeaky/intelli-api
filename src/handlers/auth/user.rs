@@ -17,6 +17,7 @@ use crate::{
     },
 };
 
+// Todo: Add rate limiting to the register endpoint
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
@@ -49,8 +50,6 @@ pub(crate) async fn register(
     Ok(HttpResponse::Created())
 }
 
-// Todo: This function call is expensive in terms of performance. Because dehashing the password is a blocking operation
-// Todo: Every user should have a limit to login attempts and should be locked out for a certain period of time
 #[inline(always)]
 pub(crate) async fn login(
     state: State<AppState>,
@@ -175,6 +174,7 @@ pub(crate) async fn forgot_password(
     Ok(HttpResponse::Ok())
 }
 
+// Todo: Add rate limiting to the reset password endpoint
 #[inline(always)]
 pub async fn reset_password(
     query: Query<ResetPasswordQuery>,

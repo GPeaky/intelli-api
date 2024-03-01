@@ -16,7 +16,6 @@ pub async fn callback(
     query: Query<GoogleCallbackQuery>,
 ) -> AppResult<impl Responder> {
     let google_user = state.google_repo.account_info(&query.code).await?;
-
     let user = state.user_repo.find_by_email(&google_user.email).await?;
 
     let user = match user {

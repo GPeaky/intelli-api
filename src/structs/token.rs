@@ -1,4 +1,4 @@
-use chrono::{Duration, Local};
+use chrono::{Duration, Local, TimeDelta};
 use serde::{Deserialize, Serialize};
 
 //* Token Type Enum
@@ -20,11 +20,7 @@ pub struct TokenClaim {
 // Token Type Implementation
 impl TokenType {
     pub fn set_expiration(&self) -> usize {
-        let minutes = match self {
-            TokenType::RefreshBearer => Duration::days(7),
-            TokenType::Bearer => Duration::days(1),
-            _ => Duration::minutes(15),
-        };
+        let minutes = self.minutes();
 
         Local::now()
             .checked_add_signed(minutes)
@@ -32,12 +28,20 @@ impl TokenType {
             .timestamp() as usize
     }
 
-    pub fn base_key(&self) -> &str {
+    pub const fn base_key(&self) -> &'static str {
         match self {
             TokenType::Email => "tokens:email",
             TokenType::ResetPassword => "tokens:reset_password",
             TokenType::RefreshBearer => "tokens:refresh_access",
             _ => panic!("Invalid token type"),
+        }
+    }
+
+    const fn minutes(&self) -> TimeDelta {
+        match self {
+            TokenType::RefreshBearer => Duration::days(17),
+            TokenType::Bearer => Duration::days(1),
+            _ => Duration::minutes(15),
         }
     }
 }

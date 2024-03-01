@@ -1,5 +1,5 @@
 use tracing::error;
-use zerocopy::{FromBytes, NoCell};
+use zerocopy::{FromBytes, KnownLayout, NoCell};
 
 use super::game::*;
 
@@ -505,7 +505,7 @@ impl<'a> F123Data<'a> {
     }
 
     #[inline(always)]
-    fn try_deserialize_packet<T: FromBytes + NoCell>(bytes: &[u8]) -> Option<&T> {
+    fn try_deserialize_packet<T: FromBytes + NoCell + KnownLayout>(bytes: &[u8]) -> Option<&T> {
         match T::ref_from_prefix(bytes) {
             Some(packet) => Some(packet),
             None => {
