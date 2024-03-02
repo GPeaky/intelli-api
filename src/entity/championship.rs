@@ -24,9 +24,7 @@ pub struct Championship {
     pub season: i16,
     pub driver_count: i16,
     pub owner_id: i32,
-    #[serde(skip_serializing)]
     pub created_at: DateTime<Utc>,
-    #[serde(skip_serializing)]
     pub updated_at: DateTime<Utc>,
 }
 

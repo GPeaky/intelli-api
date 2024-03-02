@@ -33,9 +33,9 @@ impl Database {
     ///
     /// # Examples
     /// ```
-    /// let database = Database::default().await;
+    /// let database = Database::new().await;
     /// ```
-    pub async fn default() -> Self {
+    pub async fn new() -> Self {
         info!("Connecting Databases...");
 
         // Postgres connection

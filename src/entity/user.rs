@@ -47,9 +47,7 @@ pub struct User {
     pub role: Role,
     #[serde(skip_serializing)]
     pub active: bool,
-    #[serde(skip_serializing)]
     pub created_at: DateTime<Utc>,
-    #[serde(skip_serializing)]
     pub updated_at: DateTime<Utc>,
 }
 
