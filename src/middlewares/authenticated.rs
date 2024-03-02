@@ -41,7 +41,6 @@ where
         req: WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
-        let time = std::time::Instant::now();
         let Some(state) = req.app_state::<AppState>() else {
             Err(CommonError::InternalServerError)?
         };
@@ -61,11 +60,10 @@ where
         };
 
         let id = state.token_svc.validate(header)?.claims.sub;
+        // Todo: Try to optimize this
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
         req.extensions_mut().insert(Arc::new(user));
 
-        let time = time.elapsed();
-        println!("AuthenticationMiddleware: {:?}", time);
         let res = ctx.call(&self.service, req).await?;
         Ok(res)
     }
