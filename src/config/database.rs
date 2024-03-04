@@ -47,7 +47,7 @@ impl Database {
             let manager = deadpool_postgres::Manager::new(config, NoTls);
 
             deadpool_postgres::Pool::builder(manager)
-                .max_size(100)
+                .max_size(200)
                 .build()
                 .unwrap()
         };
