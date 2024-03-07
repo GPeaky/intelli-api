@@ -32,7 +32,6 @@ pub struct F123Service {
     firewall: FirewallService,
 }
 
-// TODO: Remove socket errors and implement F123ServiceError
 impl F123Service {
     pub fn new(db: &'static Database, firewall_service: FirewallService) -> Self {
         Self {

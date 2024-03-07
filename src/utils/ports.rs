@@ -8,7 +8,6 @@ pub const PORTS_RANGE: Range<i32> = 27700..27800;
 
 #[derive(Clone)]
 pub struct MachinePorts {
-    // Probably use AHashSet instead of VecDeque
     ports: Arc<Mutex<VecDeque<i32>>>,
 }
 

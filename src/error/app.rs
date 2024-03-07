@@ -13,7 +13,7 @@ use super::{
 
 pub type AppResult<T> = Result<T, AppError>;
 
-// TODO: Add more errors and handle them in a better way
+// Todo: Handle 3rd party errors in a better way
 #[derive(Debug)]
 pub enum AppError {
     User(UserError),

@@ -234,7 +234,6 @@ impl PacketBatching {
                 return Ok(());
             }
 
-            // TODO: Test this new impl and compare performance
             let mut taken_buf = Vec::with_capacity(BATCHING_VECTOR_CAPACITY);
             std::mem::swap(&mut taken_buf, &mut *buf);
 

@@ -20,7 +20,6 @@ use crate::{config::constants::MAX_CONCURRENT_EMAILS, error::AppResult, structs:
 #[derive(Clone)]
 pub struct EmailService(Arc<AsyncSmtpTransport<Tokio1Executor>>, Arc<Semaphore>);
 
-// Todo: Implement a pool of receivers to send emails in case of a single receiver can't handle the load
 impl EmailService {
     /// Constructs a new `EmailService`.
     ///

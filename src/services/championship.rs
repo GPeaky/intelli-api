@@ -206,7 +206,6 @@ impl ChampionshipService {
         }
 
         let users = self.championship_repo.users(id).await?;
-        // Todo: Check if this is working as expected
         self.cache.championship.delete_all(id, users).await?;
 
         Ok(())
