@@ -1,0 +1,13 @@
+[Unit]
+Description=Intelli Api Main Service
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/home/fedora/deployments/intelli-api
+ExecStart=/home/fedora/deployments/intelli-api/intelli-api
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

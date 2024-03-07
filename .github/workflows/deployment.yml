@@ -7,63 +7,27 @@ on:
     types:
       - completed
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build_and_deploy:
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.ref == 'refs/heads/main'
     runs-on: self-hosted
     environment: intelli
-
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASS: ${{ secrets.DB_PASS }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up .env file
+      - name: Build the Project
+        run:
+          cargo build --release
+
+      - name: Deploy to Server
         run: |
-          echo "HOST=\"${{ vars.HOST }}\"" > .env
-          echo "REDIS_URL=\"${{ vars.REDIS_URL }}\"" >> .env
-          echo "DATABASE_URL=\"${{ env.DATABASE_URL }}\"" >> .env
-          echo "EMAIL_HOST=\"${{ vars.EMAIL_HOST }}\"" >> .env
-          echo "EMAIL_FROM=\"${{ vars.EMAIL_FROM }}\"" >> .env
-          echo "EMAIL_NAME=\"${{ vars.EMAIL_NAME }}\"" >> .env
-          echo "EMAIL_PASS=\"${{ env.EMAIL_PASS }}\"" >> .env
-          echo "GOOGLE_CLIENT_ID=\"${{ vars.GOOGLE_CLIENT_ID }}\"" >> .env
-          echo "GOOGLE_CLIENT_SECRET=\"${{ env.GOOGLE_CLIENT_SECRET }}\"" >> .env
-          echo "GOOGLE_REDIRECT_URI=\"${{ vars.GOOGLE_REDIRECT_URI }}\"" >> .env
-          echo "GOOGLE_GRANT_TYPE=\"${{ vars.GOOGLE_GRANT_TYPE }}\"" >> .env
+          # Stop the running service
+          sudo systemctl stop intelli-api
 
-      - name: Create certs directory
-        run: mkdir -p ./certs
+          # Copy the new binary to the deployment directory
+          mv target/release/intelli-api /home/fedora/deployments/intelli-api
 
-      - name: Decode and save certificates
-        run: |
-          echo "${{ secrets.JSON_WEB_TOKEN_CRT }}" | base64 -d > ./certs/jsonwebtoken.crt
-          echo "${{ secrets.JSON_WEB_TOKEN_KEY }}" | base64 -d > ./certs/jsonwebtoken.key
-          echo "${{ secrets.WEB_CRT }}" | base64 -d > ./certs/cert.pem
-          echo "${{ secrets.WEB_KEY }}" | base64 -d > ./certs/key.pem
+          # Start the service
+          sudo systemctl start intelli-api
 
-      - name: Pull latest PostgreSQL image
-        if: github.event_name == 'push'
-        run: docker pull postgres:latest
-
-      - name: Pull latest KeyDB image
-        if: github.event_name == 'push'
-        run: docker pull eqalpha/keydb
-
-      - name: Build with Docker Compose
-        run: docker-compose build
-
-      - name: Run with Docker Compose
-        run: docker-compose up -d
