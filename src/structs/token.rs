@@ -20,7 +20,7 @@ pub struct TokenClaim {
 // Token Type Implementation
 impl TokenType {
     pub fn set_expiration(&self) -> usize {
-        let minutes = self.minutes();
+        let minutes = self.minutes().unwrap();
 
         Local::now()
             .checked_add_signed(minutes)
@@ -37,11 +37,11 @@ impl TokenType {
         }
     }
 
-    const fn minutes(&self) -> TimeDelta {
+    const fn minutes(&self) -> Option<TimeDelta> {
         match self {
-            TokenType::RefreshBearer => Duration::days(17),
-            TokenType::Bearer => Duration::days(1),
-            _ => Duration::minutes(15),
+            TokenType::RefreshBearer => Duration::try_days(17),
+            TokenType::Bearer => Duration::try_days(1),
+            _ => Duration::try_minutes(15),
         }
     }
 }

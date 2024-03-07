@@ -25,7 +25,8 @@ pub async fn verify_email(
 
     state
         .email_svc
-        .send_mail(email_user, "Email Verified", template)?;
+        .send_mail(email_user, "Email Verified", template)
+        .await?;
 
     Ok(HttpResponse::Ok())
 }

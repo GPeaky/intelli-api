@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use garde::Validate;
 use ntex::web::{
     types::{Form, Query, State},
@@ -6,7 +6,6 @@ use ntex::web::{
 };
 
 use crate::{
-    config::constants::PASSWORD_UPDATE_INTERVAL,
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
     states::AppState,
@@ -45,7 +44,8 @@ pub(crate) async fn register(
 
     state
         .email_svc
-        .send_mail((&*form).into(), "Verify Email", template)?;
+        .send_mail((&*form).into(), "Verify Email", template)
+        .await?;
 
     Ok(HttpResponse::Created())
 }
@@ -144,7 +144,7 @@ pub(crate) async fn forgot_password(
     };
 
     // Todo: Duration::hours(1) should be a constant and Utc::now() should be saved in a variable for a cache of 1 minute
-    if Utc::now().signed_duration_since(user.updated_at) > *PASSWORD_UPDATE_INTERVAL {
+    if Utc::now().signed_duration_since(user.updated_at) > Duration::try_hours(1).unwrap() {
         return Err(UserError::UpdateLimitExceeded)?;
     }
 
@@ -162,14 +162,17 @@ pub(crate) async fn forgot_password(
 
     state.token_svc.save_reset_password_token(&token).await?;
 
-    state.email_svc.send_mail(
-        EmailUser {
-            username: &user.username,
-            email: &user.email,
-        },
-        "Reset Password",
-        template,
-    )?;
+    state
+        .email_svc
+        .send_mail(
+            EmailUser {
+                username: &user.username,
+                email: &user.email,
+            },
+            "Reset Password",
+            template,
+        )
+        .await?;
 
     Ok(HttpResponse::Ok())
 }
@@ -196,14 +199,17 @@ pub async fn reset_password(
 
     let template = PasswordChanged {};
 
-    state.email_svc.send_mail(
-        EmailUser {
-            username: &user.username,
-            email: &user.email,
-        },
-        "Password Changed",
-        template,
-    )?;
+    state
+        .email_svc
+        .send_mail(
+            EmailUser {
+                username: &user.username,
+                email: &user.email,
+            },
+            "Password Changed",
+            template,
+        )
+        .await?;
 
     Ok(HttpResponse::Ok())
 }

@@ -1,26 +1,15 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use lettre::{
-    message::{header::ContentType, Mailbox},
+    message::{header::ContentType, Mailbox, MessageBuilder},
     transport::smtp::authentication::Credentials,
-    Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+    Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-use loole::Sender;
-use once_cell::sync::Lazy;
 use sailfish::TemplateOnce;
+use tokio::sync::Semaphore;
 use tracing::error;
 
-use crate::{
-    error::{AppResult, CommonError},
-    structs::EmailUser,
-};
-
-static MAILBOX: Lazy<Mailbox> = Lazy::new(|| {
-    Mailbox::new(
-        Some("Intelli Telemetry".to_owned()),
-        Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
-    )
-});
+use crate::{config::constants::MAX_CONCURRENT_EMAILS, error::AppResult, structs::EmailUser};
 
 /// A service for sending emails asynchronously.
 ///
@@ -29,7 +18,7 @@ static MAILBOX: Lazy<Mailbox> = Lazy::new(|| {
 /// operations do not block the main execution thread. The service is designed to handle
 /// potentially high volumes of email sending tasks with resilience.
 #[derive(Clone)]
-pub struct EmailService(Sender<Message>);
+pub struct EmailService(Arc<AsyncSmtpTransport<Tokio1Executor>>, Arc<Semaphore>);
 
 // Todo: Implement a pool of receivers to send emails in case of a single receiver can't handle the load
 impl EmailService {
@@ -48,29 +37,22 @@ impl EmailService {
     /// let email_svc = EmailService::new();
     /// ```
     pub fn new() -> Self {
-        let (tx, rx) = loole::bounded(50);
+        let mailer = Arc::from(
+            AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
+                dotenvy::var("EMAIL_HOST").unwrap().as_str(),
+            )
+            .unwrap()
+            .port(2525)
+            .credentials(Credentials::new(
+                dotenvy::var("EMAIL_NAME").unwrap(),
+                dotenvy::var("EMAIL_PASS").unwrap(),
+            ))
+            .build(),
+        );
 
-        tokio::spawn(async move {
-            let mailer: AsyncSmtpTransport<Tokio1Executor> =
-                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
-                    dotenvy::var("EMAIL_HOST").unwrap().as_str(),
-                )
-                .unwrap()
-                .port(2525)
-                .credentials(Credentials::new(
-                    dotenvy::var("EMAIL_NAME").unwrap(),
-                    dotenvy::var("EMAIL_PASS").unwrap(),
-                ))
-                .build();
+        let semaphore = Arc::from(Semaphore::new(MAX_CONCURRENT_EMAILS));
 
-            while let Ok(message) = rx.recv_async().await {
-                if let Err(e) = mailer.send(message).await {
-                    error!("Error sending email: {}", e);
-                }
-            }
-        });
-
-        Self(tx)
+        Self(mailer, semaphore)
     }
 
     /// Sends an email to a specified recipient.
@@ -98,27 +80,39 @@ impl EmailService {
     ///     println!("Failed to send email");
     /// }
     /// ```
-    pub fn send_mail<'a, T: TemplateOnce>(
+    pub async fn send_mail<'a, T: TemplateOnce>(
         &self,
+        // TODO: change this to a generic type that can be used for any user type
         user: EmailUser<'a>,
         subject: &'a str,
         body: T,
     ) -> AppResult<()> {
-        let message = Message::builder()
-            .from(unsafe { std::ptr::read(&*MAILBOX as *const Mailbox) })
+        let permit = self.1.clone().acquire_owned().await.unwrap();
+
+        let message = MessageBuilder::new()
+            .from(Mailbox::new(
+                Some("Intelli Telemetry".to_owned()),
+                Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
+            ))
             .to(Mailbox::new(
                 Some(user.username.to_string()),
                 Address::from_str(user.email).unwrap(),
             ))
-            .header(ContentType::TEXT_HTML)
             .subject(subject)
+            .header(ContentType::TEXT_HTML)
             .body(body.render_once()?)
             .expect("Message builder error");
 
-        self.0.send(message).map_err(|e| {
-            error!("Error sending email: {}", e);
-            CommonError::SendMail
-        })?;
+        let mailer = self.0.clone();
+        tokio::spawn(async move {
+            let res = mailer.send(message).await;
+
+            if let Err(e) = res {
+                error!("Error sending email: {}", e);
+            }
+
+            drop(permit);
+        });
 
         Ok(())
     }

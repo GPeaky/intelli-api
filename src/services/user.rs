@@ -9,7 +9,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepository,
     structs::{RegisterUserDto, TokenType, UpdateUser},
-    utils::{password_hash, write, IdsGenerator},
+    utils::{hash_password, write, IdsGenerator},
 };
 
 use super::TokenService;
@@ -100,8 +100,7 @@ impl UserService {
             }
 
             None => {
-                let hashed_password =
-                    password_hash::hash_password(register.password.as_ref().unwrap())?;
+                let hashed_password = hash_password(register.password.as_ref().unwrap())?;
 
                 let create_google_user_stmt = conn
                     .prepare_cached(
@@ -141,7 +140,7 @@ impl UserService {
     /// # Returns
     /// An empty result indicating success or failure.
     pub async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()> {
-        if Utc::now().signed_duration_since(user.updated_at) <= Duration::days(7) {
+        if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_days(7).unwrap() {
             Err(UserError::UpdateLimitExceeded)?
         }
 
@@ -364,7 +363,7 @@ impl UserService {
             Err(UserError::NotFound)?
         };
 
-        if Utc::now().signed_duration_since(user.updated_at) <= Duration::minutes(15) {
+        if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_minutes(15).unwrap() {
             Err(UserError::UpdateLimitExceeded)?
         }
 
@@ -379,7 +378,7 @@ impl UserService {
             )
             .await?;
 
-        let hashed_password = password_hash::hash_password(password)?;
+        let hashed_password = hash_password(password)?;
         let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
         let update_user_fut = async {
             conn.execute(&reset_password_stmt, &bindings).await?;

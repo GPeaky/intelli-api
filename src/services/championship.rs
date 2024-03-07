@@ -153,7 +153,9 @@ impl ChampionshipService {
                 Err(ChampionshipError::NotFound)?
             };
 
-            if Utc::now().signed_duration_since(championship.updated_at) <= Duration::days(7) {
+            if Utc::now().signed_duration_since(championship.updated_at)
+                <= Duration::try_days(7).unwrap()
+            {
                 Err(ChampionshipError::IntervalNotReached)?
             };
 
