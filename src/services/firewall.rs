@@ -21,6 +21,7 @@ use std::net::IpAddr;
 //     firewall_type: FirewallType,
 // }
 
+// TODO: Implement the firewall service with nftables
 #[derive(Clone)]
 pub struct FirewallService {
     // #[cfg(target_os = "linux")]

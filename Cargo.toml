@@ -19,8 +19,9 @@ prost = "0.12"
 tracing = "0.1"
 base64 = "0.22"
 ntex-cors = "1"
-sailfish = "0.8"
 dotenvy = "0.15"
+sailfish = "0.8"
+nftables = "0.3"
 mimalloc = "0.1"
 serde_trim = "1"
 serde_derive = "1"
@@ -59,6 +60,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
+
 
 [profile.release]
 debug = false           # Added Debug for trying to get hot spots in the code
