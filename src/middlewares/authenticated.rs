@@ -60,11 +60,7 @@ where
         };
 
         let id = state.token_svc.validate(header)?.claims.sub;
-        // Todo: Try to optimize this
-        let time = Instant::now();
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
-        let time = time.elapsed();
-        println!("Time taken to find user: {:?}", time);
         req.extensions_mut().insert(Arc::new(user));
 
         let res = ctx.call(&self.service, req).await?;
