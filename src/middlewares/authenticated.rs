@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
 
 use ntex::{
     service::{Middleware, Service, ServiceCtx},
