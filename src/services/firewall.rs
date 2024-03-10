@@ -163,6 +163,10 @@ impl FirewallService {
             .await
             .expect("Error executing command");
 
+        info!("status: {}", output.status);
+        info!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+        info!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+
         match output.status.success() {
             true => Ok(()),
             false => Err(FirewallError::CreatingChain)?,
