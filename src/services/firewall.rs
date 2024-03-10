@@ -156,16 +156,7 @@ impl FirewallService {
                 "chain",
                 "inet",
                 "nftables_svc",
-                id,
-                "{",
-                "type",
-                "filter",
-                "hook",
-                "input",
-                "priority",
-                "0",
-                ";",
-                "}",
+                id
             ])
             .output()
             .await
