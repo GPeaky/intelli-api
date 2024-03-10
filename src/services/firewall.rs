@@ -1,8 +1,8 @@
 use crate::error::{AppResult, FirewallError};
 use ahash::AHashMap;
-use parking_lot::RwLock;
 use std::{net::IpAddr, sync::Arc};
 use tokio::process::Command;
+use tokio::sync::RwLock;
 use tracing::warn;
 
 #[allow(unused)]
@@ -35,7 +35,7 @@ impl FirewallService {
 
     async fn rule_exists(&self, id: i32) -> bool {
         if cfg!(target_os = "linux") {
-            let rules = self.rules.read();
+            let rules = self.rules.read().await;
             rules.contains_key(&id)
         } else {
             warn!("Firewall service is not supported on this platform");
@@ -67,7 +67,7 @@ impl FirewallService {
 
             match output.status.success() {
                 true => {
-                    let mut rules = self.rules.write();
+                    let mut rules = self.rules.write().await;
                     rules.insert(
                         id,
                         FirewallRule {
@@ -98,7 +98,7 @@ impl FirewallService {
 
     pub async fn close(&self, id: i32) -> AppResult<()> {
         if cfg!(target_os = "linux") {
-            let rules = self.rules.read();
+            let rules = self.rules.read().await;
 
             if let Some(rule) = rules.get(&id) {
                 let output = Command::new("nft")
@@ -119,7 +119,8 @@ impl FirewallService {
 
                 match output.status.success() {
                     true => {
-                        let mut rules = self.rules.write();
+                        drop(rules); // Release the lock
+                        let mut rules = self.rules.write().await;
                         rules.remove(&id);
                         Ok(())
                     }
