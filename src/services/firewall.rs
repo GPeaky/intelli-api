@@ -49,28 +49,23 @@ impl FirewallService {
                 Err(FirewallError::RuleExists)?
             }
 
-            let chain_name = format!("championship_{}", id);
-            self.create_chain(&chain_name).await?;
-
             let output = Command::new("nft")
                 .args([
                     "add",
                     "rule",
                     "inet",
                     "nftables_svc",
-                    &chain_name,
+                    "INPUT",
                     "udp",
                     "dport",
-                    port.to_string().as_str(),
+                    &port.to_string(),
                     "accept",
+                    "comment",
+                    &id.to_string(),
                 ])
                 .output()
                 .await
                 .expect("Failed to execute command");
-
-            info!("status: {}", output.status);
-            info!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-            info!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 
             match output.status.success() {
                 true => {
@@ -108,28 +103,33 @@ impl FirewallService {
             let rules = self.rules.read().await;
 
             if let Some(rule) = rules.get(&id) {
-                let output = Command::new("sudo")
-                    .args([
-                        "nft",
-                        "delete",
-                        "chain",
-                        "inet",
-                        "nftables_svc",
-                        &id.to_string(),
-                    ])
-                    .output()
-                    .await
-                    .expect("Error executing command");
+                // let output = Command::new("sudo")
+                //     .args([
+                //         "nft",
+                //         "delete",
+                //         "rule",
+                //         "ip",
+                //         "filter",
+                //         "input",
+                //         "udp",
+                //         "dport",
+                //         &rule.port.to_string(),
+                //         "accept",
+                //     ])
+                //     .output()
+                //     .await
+                //     .expect("Error executing command");
 
-                match output.status.success() {
-                    true => {
-                        drop(rules); // Release the lock
-                        let mut rules = self.rules.write().await;
-                        rules.remove(&id);
-                        Ok(())
-                    }
-                    false => Err(FirewallError::ClosingPort)?,
-                }
+                // match output.status.success() {
+                //     true => {
+                //         drop(rules); // Release the lock
+                //         let mut rules = self.rules.write().await;
+                //         rules.remove(&id);
+                //         Ok(())
+                //     }
+                //     false => Err(FirewallError::ClosingPort)?,
+                // }
+                Ok(())
             } else {
                 Err(FirewallError::RuleNotFound)?
             }
@@ -146,29 +146,6 @@ impl FirewallService {
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())
-        }
-    }
-
-    async fn create_chain(&self, id: &str) -> AppResult<()> {
-        let output = Command::new("nft")
-            .args([
-                "add",
-                "chain",
-                "inet",
-                "nftables_svc",
-                id
-            ])
-            .output()
-            .await
-            .expect("Error executing command");
-
-        info!("status: {}", output.status);
-        info!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-        info!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-
-        match output.status.success() {
-            true => Ok(()),
-            false => Err(FirewallError::CreatingChain)?,
         }
     }
 }
