@@ -49,17 +49,19 @@ impl FirewallService {
                 Err(FirewallError::RuleExists)?
             }
 
-            let output = Command::new("sudo")
+            let chain_name = id.to_string();
+            self.create_chain(&chain_name).await?;
+
+            let output = Command::new("nft")
                 .args([
-                    "nft",
                     "add",
                     "rule",
                     "inet",
                     "nftables_svc",
-                    "INPUT",
+                    &chain_name,
                     "udp",
                     "dport",
-                    &port.to_string(),
+                    port.to_string().as_str(),
                     "accept",
                 ])
                 .output()
@@ -110,14 +112,10 @@ impl FirewallService {
                     .args([
                         "nft",
                         "delete",
-                        "rule",
-                        "ip",
-                        "filter",
-                        "input",
-                        "udp",
-                        "dport",
-                        &rule.port.to_string(),
-                        "accept",
+                        "chain",
+                        "inet",
+                        "nftables_svc",
+                        &id.to_string(),
                     ])
                     .output()
                     .await
@@ -148,6 +146,26 @@ impl FirewallService {
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())
+        }
+    }
+
+    async fn create_chain(&self, id: &str) -> AppResult<()> {
+        let output = Command::new("nft")
+            .args([
+                "add",
+                "chain",
+                "inet",
+                "nftables_svc",
+                id,
+                "{ type filter hook input priority 0; }",
+            ])
+            .output()
+            .await
+            .expect("Error executing command");
+
+        match output.status.success() {
+            true => Ok(()),
+            false => Err(FirewallError::CreatingChain)?,
         }
     }
 }

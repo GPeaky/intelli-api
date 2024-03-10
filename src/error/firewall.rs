@@ -4,6 +4,7 @@ use super::AppError;
 
 #[derive(Debug)]
 pub enum FirewallError {
+    CreatingChain,
     RuleExists,
     RuleNotFound,
     OpeningPort,
@@ -23,6 +24,7 @@ impl FirewallError {
         match self {
             FirewallError::RuleExists => StatusCode::CONFLICT,
             FirewallError::RuleNotFound => StatusCode::NOT_FOUND,
+            FirewallError::CreatingChain => StatusCode::INTERNAL_SERVER_ERROR,
             FirewallError::OpeningPort => StatusCode::INTERNAL_SERVER_ERROR,
             FirewallError::ClosingPort => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -32,6 +34,7 @@ impl FirewallError {
         match self {
             FirewallError::RuleExists => "Rule already exists",
             FirewallError::RuleNotFound => "Rule not found",
+            FirewallError::CreatingChain => "Failed to create chain",
             FirewallError::OpeningPort => "Failed to open port",
             FirewallError::ClosingPort => "Failed to close port",
         }
