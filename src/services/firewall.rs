@@ -50,7 +50,7 @@ impl FirewallService {
             }
 
             let output = Command::new("nft")
-                .args(&[
+                .args([
                     "add",
                     "rule",
                     "ip",
@@ -102,7 +102,7 @@ impl FirewallService {
 
             if let Some(rule) = rules.get(&id) {
                 let output = Command::new("nft")
-                    .args(&[
+                    .args([
                         "delete",
                         "rule",
                         "ip",
