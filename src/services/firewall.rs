@@ -3,7 +3,7 @@ use ahash::AHashMap;
 use std::{net::IpAddr, sync::Arc};
 use tokio::process::Command;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::warn;
 
 #[allow(unused)]
 #[derive(Clone, Copy)]
