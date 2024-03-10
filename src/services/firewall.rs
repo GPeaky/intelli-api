@@ -3,7 +3,7 @@ use ahash::AHashMap;
 use std::{net::IpAddr, sync::Arc};
 use tokio::process::Command;
 use tokio::sync::RwLock;
-use tracing::warn;
+use tracing::{info, warn};
 
 #[allow(unused)]
 #[derive(Clone, Copy)]
@@ -64,6 +64,9 @@ impl FirewallService {
                 .output()
                 .await
                 .expect("Failed to execute command");
+
+            info!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+            info!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 
             match output.status.success() {
                 true => {
