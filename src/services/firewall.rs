@@ -65,6 +65,7 @@ impl FirewallService {
                 .await
                 .expect("Failed to execute command");
 
+            info!("status: {}", output.status);
             info!("stdout: {}", String::from_utf8_lossy(&output.stdout));
             info!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 
