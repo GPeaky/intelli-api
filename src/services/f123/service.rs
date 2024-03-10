@@ -130,7 +130,7 @@ impl F123Service {
             let span = info_span!("F123 Service", championship_id = championship_id);
             let _guard = span.enter();
 
-            let mut port_partial_open = false;
+            // let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = Instant::now();
@@ -166,16 +166,16 @@ impl F123Service {
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
-                    Ok(Ok((size, address))) => {
+                    Ok(Ok((size, _address))) => {
                         let buf = &buf[..size];
 
-                        if !port_partial_open {
-                            firewall
-                                .open_partially(championship_id, address.ip())
-                                .await?;
+                        // if !port_partial_open {
+                        //     firewall
+                        //         .open_partially(championship_id, address.ip())
+                        //         .await?;
 
-                            port_partial_open = true;
-                        }
+                        //     port_partial_open = true;
+                        // }
 
                         let Some(header) = F123Data::try_deserialize_header(buf) else {
                             error!("Error deserializing F123 header");

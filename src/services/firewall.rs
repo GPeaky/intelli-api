@@ -1,7 +1,8 @@
-use crate::error::AppResult;
+use crate::error::{AppResult, FirewallError};
 use ahash::AHashMap;
 use parking_lot::RwLock;
 use std::{net::IpAddr, sync::Arc};
+use tokio::process::Command;
 use tracing::warn;
 
 #[allow(unused)]
@@ -44,16 +45,51 @@ impl FirewallService {
 
     pub async fn open(&self, id: i32, port: i32) -> AppResult<()> {
         if cfg!(target_os = "linux") {
-            todo!()
+            if self.rule_exists(id).await {
+                Err(FirewallError::RuleExists)?
+            }
+
+            let output = Command::new("nft")
+                .args(&[
+                    "add",
+                    "rule",
+                    "ip",
+                    "filter",
+                    "input",
+                    "udp",
+                    "dport",
+                    &port.to_string(),
+                    "accept",
+                ])
+                .output()
+                .await
+                .expect("Failed to execute command");
+
+            match output.status.success() {
+                true => {
+                    let mut rules = self.rules.write();
+                    rules.insert(
+                        id,
+                        FirewallRule {
+                            port,
+                            r#type: FirewallType::Open,
+                            address: None,
+                        },
+                    );
+                    Ok(())
+                }
+                false => Err(FirewallError::OpeningPort)?,
+            }
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())
         }
     }
 
+    // Todo: Implement the open_partially method
     pub async fn open_partially(&self, id: i32, address: IpAddr) -> AppResult<()> {
         if cfg!(target_os = "linux") {
-            todo!()
+            Ok(())
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())
@@ -62,16 +98,46 @@ impl FirewallService {
 
     pub async fn close(&self, id: i32) -> AppResult<()> {
         if cfg!(target_os = "linux") {
-            todo!()
+            let rules = self.rules.read();
+
+            if let Some(rule) = rules.get(&id) {
+                let output = Command::new("nft")
+                    .args(&[
+                        "delete",
+                        "rule",
+                        "ip",
+                        "filter",
+                        "input",
+                        "udp",
+                        "dport",
+                        &rule.port.to_string(),
+                        "accept",
+                    ])
+                    .output()
+                    .await
+                    .expect("Error executing command");
+
+                match output.status.success() {
+                    true => {
+                        let mut rules = self.rules.write();
+                        rules.remove(&id);
+                        Ok(())
+                    }
+                    false => Err(FirewallError::ClosingPort)?,
+                }
+            } else {
+                Err(FirewallError::RuleNotFound)?
+            }
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())
         }
     }
 
+    // TODO: Implement the close_all method
     pub async fn close_all(&self) -> AppResult<()> {
         if cfg!(target_os = "linux") {
-            todo!()
+            Ok(())
         } else {
             warn!("Firewall service is not supported on this platform");
             Ok(())

@@ -8,7 +8,8 @@ use ntex::{
 use tracing::error;
 
 use super::{
-    user::UserError, CacheError, ChampionshipError, CommonError, F123ServiceError, TokenError,
+    user::UserError, CacheError, ChampionshipError, CommonError, F123ServiceError, FirewallError,
+    TokenError,
 };
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -22,6 +23,7 @@ pub enum AppError {
     Common(CommonError),
     Cache(CacheError),
     F123(F123ServiceError),
+    Firewall(FirewallError),
     PgError(PgError),
     PgPool,
     Redis,
@@ -85,6 +87,7 @@ impl AppError {
             AppError::Common(e) => e.status_code(),
             AppError::Cache(e) => e.status_code(),
             AppError::F123(e) => e.status_code(),
+            AppError::Firewall(e) => e.status_code(),
             AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Redis => StatusCode::INTERNAL_SERVER_ERROR,
@@ -103,6 +106,7 @@ impl AppError {
             AppError::Common(e) => e.error_message(),
             AppError::Cache(e) => e.error_message(),
             AppError::F123(e) => e.error_message(),
+            AppError::Firewall(e) => e.error_message(),
             AppError::PgError(_) => "Database error",
             AppError::PgPool => "Pool error",
             AppError::Redis => "Cache error",
