@@ -49,7 +49,7 @@ impl FirewallService {
                 Err(FirewallError::RuleExists)?
             }
 
-            let chain_name = id.to_string();
+            let chain_name = format!("championship_{}", id);
             self.create_chain(&chain_name).await?;
 
             let output = Command::new("nft")
@@ -157,7 +157,15 @@ impl FirewallService {
                 "inet",
                 "nftables_svc",
                 id,
-                "{ type filter hook input priority 0; }",
+                "{",
+                "type",
+                "filter",
+                "hook",
+                "input",
+                "priority",
+                "0",
+                ";",
+                "}",
             ])
             .output()
             .await
