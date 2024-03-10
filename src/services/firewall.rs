@@ -49,8 +49,9 @@ impl FirewallService {
                 Err(FirewallError::RuleExists)?
             }
 
-            let output = Command::new("nft")
+            let output = Command::new("sudo")
                 .args([
+                    "nft",
                     "add",
                     "rule",
                     "ip",
@@ -105,8 +106,9 @@ impl FirewallService {
             let rules = self.rules.read().await;
 
             if let Some(rule) = rules.get(&id) {
-                let output = Command::new("nft")
+                let output = Command::new("sudo")
                     .args([
+                        "nft",
                         "delete",
                         "rule",
                         "ip",
