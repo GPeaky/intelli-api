@@ -32,8 +32,8 @@ postgres-derive = "0.4"
 deadpool-postgres = "0.12"
 zerocopy-derive = "0.8.0-alpha"
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.12.0", features = ["json"] }
-openssl = { version = "0.10.63", features = ["v110"] }
+reqwest = { version = "0.12", features = ["json"] }
+openssl = { version = "0.10", features = ["v110"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
