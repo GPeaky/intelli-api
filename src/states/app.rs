@@ -20,7 +20,9 @@ pub struct AppState {
     pub championship_repo: &'static ChampionshipRepository,
     pub email_svc: EmailService,
     pub f123_svc: F123Service,
+    #[allow(unused)]
     pub f123_repo: F123Repository,
+    #[allow(unused)]
     pub saved_session_svc: &'static SavedSessionService,
     pub google_repo: &'static GoogleRepository,
     pub server_repo: ServerRepository,

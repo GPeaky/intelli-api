@@ -18,6 +18,7 @@ pub struct GoogleTokenRequest<'a> {
     pub redirect_uri: &'a str,
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct GoogleAuthResponse {
     pub access_token: String,
@@ -27,6 +28,7 @@ pub struct GoogleAuthResponse {
     pub id_token: String,
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct GoogleUserInfo {
     pub id: String,

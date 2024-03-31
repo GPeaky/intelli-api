@@ -8,6 +8,7 @@ pub enum OptionalMessage<'a> {
     Number(u8),
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 pub struct F123CachedData {
     pub motion: Vec<u8>,

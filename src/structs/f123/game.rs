@@ -400,7 +400,6 @@ pub struct CarStatusData {
 
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, NoCell, KnownLayout)]
-#[repr(C)]
 pub struct CarDamageData {
     pub tyres_wear: [f32; 4],        // Tyre wear (percentage)
     pub tyres_damage: [u8; 4],       // Tyre damage (percentage)
