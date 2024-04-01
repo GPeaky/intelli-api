@@ -1,6 +1,8 @@
 use std::{collections::VecDeque, ops::Range, sync::Arc};
 
-use parking_lot::Mutex;
+use ahash::AHashSet;
+use parking_lot::{Mutex, RwLock};
+use tracing_log::log::error;
 
 use crate::{error::AppResult, repositories::ChampionshipRepository};
 
@@ -9,6 +11,7 @@ pub const PORTS_RANGE: Range<i32> = 27700..27800;
 #[derive(Clone)]
 pub struct MachinePorts {
     ports: Arc<Mutex<VecDeque<i32>>>,
+    used_ports: Arc<RwLock<AHashSet<i32>>>,
 }
 
 impl MachinePorts {
@@ -25,12 +28,35 @@ impl MachinePorts {
 
         let ports = Arc::new(Mutex::new(ports));
 
-        Ok(MachinePorts { ports })
+        Ok(MachinePorts {
+            ports,
+            used_ports: Arc::new(RwLock::new(ports_used)),
+        })
     }
 
-    // TODO: Make sure that championship is created before eliminating the port from the list
     pub fn get(&self) -> Option<i32> {
         let mut ports = self.ports.lock();
-        ports.pop_front()
+
+        match ports.pop_front() {
+            None => None,
+            Some(port) => {
+                let mut used_ports = self.used_ports.write();
+                used_ports.insert(port);
+                Some(port)
+            }
+        }
+    }
+
+    pub fn return_port(&self, port: i32) {
+        if !PORTS_RANGE.contains(&port) {
+            error!("Port {} is not in the range", port);
+            return;
+        }
+
+        let mut ports = self.ports.lock();
+
+        if !ports.contains(&port) {
+            ports.push_back(port);
+        }
     }
 }

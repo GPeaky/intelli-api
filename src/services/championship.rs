@@ -113,18 +113,24 @@ impl ChampionshipService {
                 .get()
                 .ok_or(ChampionshipError::NoPortsAvailable)?;
 
-            conn.execute(
-                &create_championship_stmt,
-                &[
-                    &id,
-                    &port,
-                    &payload.name,
-                    &payload.category,
-                    &payload.season,
-                    &user_id,
-                ],
-            )
-            .await?;
+            let result = conn
+                .execute(
+                    &create_championship_stmt,
+                    &[
+                        &id,
+                        &port,
+                        &payload.name,
+                        &payload.category,
+                        &payload.season,
+                        &user_id,
+                    ],
+                )
+                .await;
+
+            if let Err(e) = result {
+                self.ports.return_port(port);
+                return Err(e.into());
+            }
 
             conn.execute(&relate_user_with_championship_stmt, &[&user_id, &id])
                 .await?;

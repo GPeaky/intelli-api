@@ -57,8 +57,8 @@ impl Database {
         let redis = {
             let mut config =
                 RedisConfig::from_url(var("REDIS_URL").expect("Environment REDIS_URL not found"));
-            config.pool = Some(PoolConfig::new(300)); // Set the pool size
 
+            config.pool = Some(PoolConfig::new(300)); // Set the pool size
             config
                 .create_pool(Some(Runtime::Tokio1))
                 .expect("Failed to create Redis pool")

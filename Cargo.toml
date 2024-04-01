@@ -27,9 +27,9 @@ serde_derive = "1"
 jsonwebtoken = "9"
 compact_str = "0.7"
 async-trait = "0.1"
-deadpool-redis = "0.14"
+deadpool-redis = "0.15"
 postgres-derive = "0.4"
-deadpool-postgres = "0.12"
+deadpool-postgres = "0.13"
 zerocopy-derive = "0.8.0-alpha"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }

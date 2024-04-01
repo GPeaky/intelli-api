@@ -2,8 +2,8 @@ use core::panic;
 use std::{collections::VecDeque, ops::Range, ptr, sync::Arc};
 
 use ahash::AHashSet;
+use parking_lot::Mutex;
 use ring::rand::{SecureRandom, SystemRandom};
-use tokio::sync::Mutex;
 
 use crate::error::AppResult;
 
@@ -56,7 +56,7 @@ impl<T: UsedIds> IdsGenerator<T> {
         };
 
         {
-            let mut ids = generator.ids.lock().await;
+            let mut ids = generator.ids.lock_arc();
             generator.refill(&mut ids).await;
         }
 
@@ -90,7 +90,7 @@ impl<T: UsedIds> IdsGenerator<T> {
             };
             let id = self.range.start + (num % self.valid_range);
 
-            // Todo: if the id is already used, add it to a list of used ids and try again
+            // Todo: If the ID is already in the pool it will be skipped. and the pool will be refilled with less than POOL_SIZE
             if !used_ids.contains(&id) && !local_set.contains(&id) {
                 local_set.insert(id);
                 ids.push_back(id);
@@ -106,7 +106,7 @@ impl<T: UsedIds> IdsGenerator<T> {
     ///
     /// Returns an `i32` as the generated ID.
     pub async fn next(&self) -> i32 {
-        let mut ids = self.ids.lock().await;
+        let mut ids = self.ids.lock_arc();
 
         match ids.pop_front() {
             Some(id) => id,
