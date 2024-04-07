@@ -4,7 +4,7 @@ use crate::{
     cache::F123InsiderCache,
     config::constants::BATCHING_INTERVAL,
     error::{AppResult, F123ServiceError},
-    protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
+    protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
 };
 use ntex::util::Bytes;
@@ -13,7 +13,7 @@ use tokio::{
     sync::{broadcast::Sender, oneshot},
     time::interval,
 };
-use tracing::{info, warn};
+use tracing::warn;
 
 const BATCHING_VECTOR_CAPACITY: usize = 2048;
 

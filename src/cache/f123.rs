@@ -2,6 +2,7 @@ use deadpool_redis::{
     redis::{self, AsyncCommands},
     Connection,
 };
+use tracing::info;
 
 use crate::{
     config::constants::*, error::AppResult, protos::packet_header::PacketType,
@@ -52,12 +53,12 @@ impl F123InsiderCache {
         &mut self,
         packet_type: PacketType,
         data: &[u8],
-        optional_param: Option<OptionalMessage<'_>>,
+        second_param: Option<OptionalMessage<'_>>,
     ) -> AppResult<()> {
         match packet_type {
-            PacketType::CarMotion => self.set_motion_data(encoded_package).await?,
-            PacketType::SessionData => self.set_session_data(encoded_package).await?,
-            PacketType::Participants => self.set_participants_data(encoded_package).await?,
+            PacketType::CarMotion => self.set_motion_data(data).await,
+            PacketType::SessionData => self.set_session_data(data).await,
+            PacketType::Participants => self.set_participants_data(data).await,
 
             PacketType::SessionHistoryData => {
                 let car_id = match second_param.unwrap() {
@@ -65,7 +66,7 @@ impl F123InsiderCache {
                     _ => unreachable!(),
                 };
 
-                self.set_session_history(encoded_package, car_id).await?
+                self.set_session_history(data, car_id).await
             }
 
             PacketType::EventData => {
@@ -74,19 +75,17 @@ impl F123InsiderCache {
                     _ => unreachable!(),
                 };
 
-                self.cache
-                    .push_event_data(encoded_package, string_code)
-                    .await?
+                self.push_event_data(data, string_code).await
             }
 
             PacketType::FinalClassificationData => {
                 info!("Final classification data");
 
-                self.prune().await?
+                self.prune().await
 
                 // if let Err(e) = self
                 //     .cache
-                //     .set_final_classification_data(&encoded_package)
+                //     .set_final_classification_data(&data)
                 //     .await
                 // {
                 //     warn!("F123 cache: {}", e);
