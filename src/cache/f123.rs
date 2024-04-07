@@ -3,9 +3,16 @@ use deadpool_redis::{
     Connection,
 };
 
-use crate::{config::constants::*, error::AppResult};
+use crate::{
+    config::constants::*, error::AppResult, protos::packet_header::PacketType,
+    structs::OptionalMessage,
+};
 
-// const EVENTS: &str = "events";
+const EVENTS: &str = "events";
+const MOTION: &str = "motion";
+const SESSION: &str = "session";
+const PARTICIPANTS: &str = "participants";
+const SESSION_HISTORY: &str = "session_history";
 
 /// `F123InsiderCache` is a caching structure for storing Formula 123 (F123) championship data using Redis.
 /// It is designed to manage caching for a specific championship, and it provides methods to set various
@@ -21,8 +28,6 @@ pub struct F123InsiderCache {
 }
 
 #[allow(unused)]
-// Todo: Implement constants for redis keys to avoid hard coding
-// TODO: Implement cache with new batching method || Save events data in database (Postgres)
 impl F123InsiderCache {
     /// Creates a new `F123InsiderCache` instance with the provided Redis connection and championship ID.
     ///
@@ -41,6 +46,55 @@ impl F123InsiderCache {
         }
     }
 
+    // Remove inline if this is called more than once
+    #[inline]
+    pub async fn save(
+        &mut self,
+        packet_type: PacketType,
+        data: &[u8],
+        optional_param: Option<OptionalMessage<'_>>,
+    ) -> AppResult<()> {
+        match packet_type {
+            PacketType::CarMotion => self.set_motion_data(encoded_package).await?,
+            PacketType::SessionData => self.set_session_data(encoded_package).await?,
+            PacketType::Participants => self.set_participants_data(encoded_package).await?,
+
+            PacketType::SessionHistoryData => {
+                let car_id = match second_param.unwrap() {
+                    OptionalMessage::Number(car_id) => car_id,
+                    _ => unreachable!(),
+                };
+
+                self.set_session_history(encoded_package, car_id).await?
+            }
+
+            PacketType::EventData => {
+                let string_code = match second_param.unwrap() {
+                    OptionalMessage::Text(string_code) => string_code,
+                    _ => unreachable!(),
+                };
+
+                self.cache
+                    .push_event_data(encoded_package, string_code)
+                    .await?
+            }
+
+            PacketType::FinalClassificationData => {
+                info!("Final classification data");
+
+                self.prune().await?
+
+                // if let Err(e) = self
+                //     .cache
+                //     .set_final_classification_data(&encoded_package)
+                //     .await
+                // {
+                //     warn!("F123 cache: {}", e);
+                // }
+            }
+        }
+    }
+
     /// Sets motion data for the championship in the Redis cache.
     ///
     /// # Arguments
@@ -51,10 +105,11 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of setting motion data in the cache.
     ///
-    pub async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
+    #[inline(always)]
+    async fn set_motion_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
-                &format!("{REDIS_F123_PREFIX}:{}:motion", self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:{MOTION}", self.championship_id),
                 data,
                 REDIS_F123_PERSISTENCE,
             )
@@ -73,10 +128,11 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of setting session data in the cache.
     ///
-    pub async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
+    #[inline(always)]
+    async fn set_session_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
-                &format!("{REDIS_F123_PREFIX}:{}:session", self.championship_id),
+                &format!("{REDIS_F123_PREFIX}:{}:{SESSION}", self.championship_id),
                 data,
                 REDIS_F123_PERSISTENCE,
             )
@@ -95,10 +151,14 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of setting participants data in the cache.
     ///
-    pub async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
+    #[inline(always)]
+    async fn set_participants_data(&mut self, data: &[u8]) -> AppResult<()> {
         self.redis
             .set_ex(
-                &format!("{REDIS_F123_PREFIX}:{}:participants", self.championship_id),
+                &format!(
+                    "{REDIS_F123_PREFIX}:{}:{PARTICIPANTS}",
+                    self.championship_id
+                ),
                 data,
                 REDIS_F123_PERSISTENCE,
             )
@@ -118,11 +178,12 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of pushing event data in the cache.
     ///
-    pub async fn push_event_data(&mut self, data: &[u8], string_code: &str) -> AppResult<()> {
+    #[inline(always)]
+    async fn push_event_data(&mut self, data: &[u8], string_code: &str) -> AppResult<()> {
         self.redis
             .rpush(
                 &format!(
-                    "{REDIS_F123_PREFIX}:{}:events:{}",
+                    "{REDIS_F123_PREFIX}:{}:{EVENTS}:{}",
                     &self.championship_id, string_code
                 ),
                 data,
@@ -142,11 +203,12 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of setting session history data in the cache.
     ///
-    pub async fn set_session_history(&mut self, data: &[u8], car_idx: u8) -> AppResult<()> {
+    #[inline(always)]
+    async fn set_session_history(&mut self, data: &[u8], car_idx: u8) -> AppResult<()> {
         self.redis
             .set_ex(
                 &format!(
-                    "{REDIS_F123_PREFIX}:{}:session_history:{}",
+                    "{REDIS_F123_PREFIX}:{}:{SESSION_HISTORY}:{}",
                     self.championship_id, car_idx
                 ),
                 data,
@@ -163,28 +225,29 @@ impl F123InsiderCache {
     ///
     /// An `AppResult` indicating the success or failure of pruning cached data.
     ///
-    pub async fn prune(&mut self) -> AppResult<()> {
+    #[inline(always)]
+    async fn prune(&mut self) -> AppResult<()> {
         let mut pipe = redis::pipe();
 
         pipe.del(&format!(
-            "{REDIS_F123_PREFIX}:{}:motion",
+            "{REDIS_F123_PREFIX}:{}:{MOTION}",
             &self.championship_id
         ))
         .del(&format!(
-            "{REDIS_F123_PREFIX}:{}:session",
+            "{REDIS_F123_PREFIX}:{}:{SESSION}",
             &self.championship_id
         ))
         .del(&format!(
-            "{REDIS_F123_PREFIX}:{}:participants",
+            "{REDIS_F123_PREFIX}:{}:{PARTICIPANTS}",
             &self.championship_id
         ));
 
         pipe.query_async(&mut self.redis).await?;
 
         let patters = vec![
-            format!("{REDIS_F123_PREFIX}:{}:events:*", &self.championship_id),
+            format!("{REDIS_F123_PREFIX}:{}:{EVENTS}:*", &self.championship_id),
             format!(
-                "{REDIS_F123_PREFIX}:{}:session_history:*",
+                "{REDIS_F123_PREFIX}:{}:{SESSION_HISTORY}:*",
                 &self.championship_id
             ),
         ];

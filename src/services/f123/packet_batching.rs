@@ -178,7 +178,8 @@ impl PacketBatching {
     ) -> AppResult<()> {
         let packet_type = packet.r#type();
 
-        self.save_cache(packet_type, &packet.payload, second_param)
+        self.cache
+            .save(packet_type, &packet.payload, second_param)
             .await?;
 
         self.buf.lock().push(packet);
@@ -226,6 +227,8 @@ impl PacketBatching {
     ///
     /// Note: This example assumes that `buf` and `tx` are appropriately set up and that the asynchronous
     /// context is handled by the caller (e.g., a tokio runtime).
+    ///
+    #[inline(always)]
     async fn send_data(buf: &Arc<Mutex<Vec<PacketHeader>>>, tx: &Sender<Bytes>) -> AppResult<()> {
         let buf = {
             let mut buf = buf.lock();
@@ -253,119 +256,6 @@ impl PacketBatching {
             };
         } else {
             Err(F123ServiceError::BatchedEncoding)?
-        }
-
-        Ok(())
-    }
-
-    /// Asynchronously saves encoded packet data to the cache based on the packet type.
-    ///
-    /// This method updates the cache with the provided `encoded_package` depending on the
-    /// `packet_type`. For `SessionHistoryData` and `EventData`, it uses the `second_param`
-    /// to further refine the caching operation. This method logs a warning if any cache
-    /// update operation fails.
-    ///
-    /// # Parameters
-    ///
-    /// - `packet_type`: The type of packet being saved, determining how the data is processed
-    ///   and stored in the cache.
-    /// - `encoded_package`: A slice of bytes representing the encoded packet data to be stored.
-    /// - `second_param`: An optional parameter used for `SessionHistoryData` (providing the car ID)
-    ///   and `EventData` (providing the event string code). It is ignored for other packet types.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `AppResult<()>` indicating the success or failure of the cache update operation.
-    /// In case of success, it returns `Ok(())`. Errors during cache update operations are logged
-    /// as warnings and do not affect the return value.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use your_crate::{YourStruct, PacketType, OptionalMessage, AppResult};
-    /// # async fn example(mut instance: YourStruct) -> AppResult<()> {
-    /// let packet_type = PacketType::CarMotion;
-    /// let encoded_package = &[1, 2, 3]; // Example encoded data
-    /// let second_param = None; // Not used for this packet type
-    /// instance.save_cache(packet_type, encoded_package, second_param).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// This function logs errors instead of returning them. It always returns `Ok(())` unless
-    /// an unrecoverable error occurs during operations not directly related to cache updating,
-    /// such as a failure in pruning the cache for `FinalClassificationData`.
-    #[inline(always)]
-    async fn save_cache(
-        &mut self,
-        packet_type: PacketType,
-        encoded_package: &[u8],
-        second_param: Option<OptionalMessage<'_>>,
-    ) -> AppResult<()> {
-        match packet_type {
-            PacketType::CarMotion => {
-                if let Err(e) = self.cache.set_motion_data(encoded_package).await {
-                    warn!("F123 cache: {}", e);
-                }
-            }
-
-            PacketType::SessionData => {
-                if let Err(e) = self.cache.set_session_data(encoded_package).await {
-                    warn!("F123 cache: {}", e);
-                }
-            }
-
-            PacketType::SessionHistoryData => {
-                let car_id = match second_param.unwrap() {
-                    OptionalMessage::Number(car_id) => car_id,
-                    _ => unreachable!(),
-                };
-
-                if let Err(e) = self
-                    .cache
-                    .set_session_history(encoded_package, car_id)
-                    .await
-                {
-                    warn!("F123 cache: {}", e);
-                }
-            }
-
-            PacketType::Participants => {
-                if let Err(e) = self.cache.set_participants_data(encoded_package).await {
-                    warn!("F123 cache: {}", e);
-                }
-            }
-
-            PacketType::EventData => {
-                let string_code = match second_param.unwrap() {
-                    OptionalMessage::Text(string_code) => string_code,
-                    _ => unreachable!(),
-                };
-
-                if let Err(e) = self
-                    .cache
-                    .push_event_data(encoded_package, string_code)
-                    .await
-                {
-                    warn!("F123 cache: {}", e);
-                }
-            }
-
-            PacketType::FinalClassificationData => {
-                info!("Final classification data");
-
-                self.cache.prune().await?;
-
-                // if let Err(e) = self
-                //     .cache
-                //     .set_final_classification_data(&encoded_package)
-                //     .await
-                // {
-                //     warn!("F123 cache: {}", e);
-                // }
-            }
         }
 
         Ok(())
