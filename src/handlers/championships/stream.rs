@@ -23,6 +23,7 @@ pub async fn handle_stream(
         Err(F123ServiceError::NotActive)?
     }
 
+    // Todo - Get cache from redis and return it before sending real time data
     let Some(rx) = state.f123_svc.subscribe(path.0).await else {
         Err(F123ServiceError::NotActive)?
     };
