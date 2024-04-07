@@ -152,7 +152,7 @@ impl F123Service {
             };
 
             info!("Listening for F123 data on port: {port}");
-            firewall.open(championship_id, port).await?;
+            // firewall.open(championship_id, port).await?;
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
@@ -226,13 +226,13 @@ impl F123Service {
                             }
 
                             F123Data::Session(session_data) => {
-                                #[cfg(not(debug_assertions))]
-                                if session_data.network_game != 1 {
-                                    error!("Not Online Game, closing service");
+                                // #[cfg(not(debug_assertions))]
+                                // if session_data.network_game != 1 {
+                                //     error!("Not Online Game, closing service");
 
-                                    close_service.await?;
-                                    return Err(F123ServiceError::NotOnlineSession)?;
-                                }
+                                //     close_service.await?;
+                                //     return Err(F123ServiceError::NotOnlineSession)?;
+                                // }
 
                                 let Ok(converted_session_type) =
                                     SessionType::try_from(session_data.session_type)
@@ -261,7 +261,6 @@ impl F123Service {
                             }
 
                             F123Data::Event(event_data) => {
-                                // event_data.event_string_code
                                 let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
                                 };
