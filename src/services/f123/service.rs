@@ -267,8 +267,8 @@ impl F123Service {
                                     continue;
                                 };
 
-                                if session_type
-                                    != SessionType::R | SessionType::R2 | SessionType::R3
+                                if ![SessionType::R, SessionType::R2, SessionType::R3]
+                                    .contains(&session_type)
                                 {
                                     continue;
                                 }
