@@ -80,7 +80,6 @@ impl F123InsiderCache {
 
             PacketType::FinalClassificationData => {
                 info!("Final classification data");
-
                 self.prune().await
 
                 // if let Err(e) = self

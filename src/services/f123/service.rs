@@ -127,6 +127,7 @@ impl F123Service {
         let firewall = self.firewall;
         let services = self.services.clone();
 
+        // TODO - Prune cache on stop
         tokio::spawn(async move {
             let span = info_span!("F123 Service", championship_id = championship_id);
             let _guard = span.enter();
@@ -342,8 +343,10 @@ impl F123Service {
                                 // info!("Car Status: {:?}", car_status);
                             }
 
-                            //TODO Collect All data from redis and save it to the mariadb db
+                            //TODO - Collect All data from redis and save it to the mariadb db
                             F123Data::FinalClassification(classification_data) => {
+                                info!("FinalClassification data received");
+
                                 let packet = classification_data
                                     .convert(PacketType::FinalClassificationData)
                                     .ok_or(F123ServiceError::Encoding)?;
@@ -362,7 +365,7 @@ impl F123Service {
                                 }
 
                                 // If session type is race save all session data in the db and close the service
-                                // Todo: this should be called after saving all data in the db
+                                // Todo - this should be called after saving all data in the db
                                 packet_batching.push(packet).await?;
                             }
                         }
