@@ -32,9 +32,8 @@ async fn main() -> std::io::Result<()> {
     let app_state = {
         let db = Box::leak(Box::from(Database::new().await));
         let redis_cache = Box::leak(Box::new(RedisCache::new(db)));
-        let firewall_svc = FirewallService::new();
 
-        AppState::new(db, firewall_svc, redis_cache).await.unwrap()
+        AppState::new(db, redis_cache).await.unwrap()
     };
 
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();

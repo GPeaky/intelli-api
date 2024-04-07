@@ -20,7 +20,6 @@ struct FirewallRule {
 }
 
 // TODO: Implement the firewall
-#[derive(Clone)]
 pub struct FirewallService {
     rules: Arc<RwLock<AHashMap<i32, FirewallRule>>>,
 }

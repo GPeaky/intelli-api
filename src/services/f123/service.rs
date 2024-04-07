@@ -25,14 +25,16 @@ type Services = Arc<RwLock<AHashMap<i32, F123ServiceData>>>;
 pub struct F123Service {
     db: &'static Database,
     services: Services,
-    firewall: FirewallService,
+    firewall: &'static FirewallService,
 }
 
 impl F123Service {
-    pub fn new(db: &'static Database, firewall_service: FirewallService) -> Self {
+    pub fn new(db: &'static Database) -> Self {
+        let firewall = Box::leak(Box::new(FirewallService::new()));
+
         Self {
             db,
-            firewall: firewall_service,
+            firewall,
             services: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
         }
     }
@@ -62,7 +64,7 @@ impl F123Service {
             return Err(F123ServiceError::AlreadyExists)?;
         }
 
-        let (tx, _) = channel::<Bytes>(100);
+        let (tx, _) = channel::<Bytes>(50);
 
         let service = self
             .create_service_thread(port, championship_id, tx.clone())
@@ -122,7 +124,7 @@ impl F123Service {
         tx: Sender<Bytes>,
     ) -> JoinHandle<AppResult<()>> {
         let db = self.db;
-        let firewall = self.firewall.clone();
+        let firewall = self.firewall;
         let services = self.services.clone();
 
         tokio::spawn(async move {
@@ -135,7 +137,7 @@ impl F123Service {
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
-            let close_service = Self::internal_close(&services, championship_id, &firewall);
+            let close_service = Self::internal_close(&services, championship_id, firewall);
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
