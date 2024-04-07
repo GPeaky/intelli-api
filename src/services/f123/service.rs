@@ -4,7 +4,7 @@ use crate::{
     error::{AppResult, F123ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::packet_batching::PacketBatching,
-    structs::{F123Data, OptionalMessage, PacketIds, SectorsLaps, SessionType},
+    structs::{F123Data, F123ServiceData, OptionalMessage, PacketIds, SectorsLaps, SessionType},
     FirewallService,
 };
 use ahash::AHashMap;
@@ -17,18 +17,14 @@ use tokio::{
     task::JoinHandle,
     time::timeout,
 };
-use tracing::{error, info, info_span};
+use tracing::{error, info, info_span, warn};
 
-type ChanelData = Bytes;
-type F123Channel = Arc<Sender<ChanelData>>;
-type Channels = Arc<RwLock<AHashMap<i32, F123Channel>>>;
-type Services = Arc<RwLock<AHashMap<i32, JoinHandle<AppResult<()>>>>>;
+type Services = Arc<RwLock<AHashMap<i32, F123ServiceData>>>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db: &'static Database,
     services: Services,
-    channels: Channels,
     firewall: FirewallService,
 }
 
@@ -37,7 +33,6 @@ impl F123Service {
         Self {
             db,
             firewall: firewall_service,
-            channels: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
             services: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
         }
     }
@@ -53,54 +48,60 @@ impl F123Service {
     }
 
     #[allow(unused)]
-    pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<ChanelData>> {
-        let channels = self.channels.read();
-        let channel = channels.get(&championship_id)?;
+    pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<Bytes>> {
+        let services = self.services.read();
+        let channel = services.get(&championship_id)?;
 
-        Some(channel.subscribe())
+        Some(channel.channel.subscribe())
     }
 
     pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
         let mut services = self.services.upgradable_read();
 
-        {
-            let channels = self.channels.read();
-
-            if services.contains_key(&championship_id) || channels.contains_key(&championship_id) {
-                error!("Trying to create a new service or channel for an existing championship: {championship_id:?}");
-                return Err(F123ServiceError::AlreadyExists)?;
-            }
+        if services.contains_key(&championship_id) {
+            return Err(F123ServiceError::AlreadyExists)?;
         }
 
-        let service = self.create_service_thread(port, championship_id).await;
+        let (tx, _) = channel::<Bytes>(100);
+
+        let service = self
+            .create_service_thread(port, championship_id, tx.clone())
+            .await;
 
         services.with_upgraded(|services| {
-            services.insert(championship_id, service);
+            services.insert(
+                championship_id,
+                F123ServiceData {
+                    channel: Arc::from(tx),
+                    handler: service,
+                },
+            )
         });
 
         Ok(())
     }
 
     pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
-        let mut channels = self.channels.write();
-        let mut services = self.services.write();
+        let mut services = self.services.upgradable_read();
 
-        if channels.remove(&championship_id).is_none() {
-            Err(F123ServiceError::NotFound)?;
-        };
+        if !services.contains_key(&championship_id) {
+            return Err(F123ServiceError::NotActive)?;
+        }
 
-        if let Some(services) = services.remove(&championship_id) {
-            services.abort();
-        } else {
-            Err(F123ServiceError::NotFound)?;
-        };
+        services.with_upgraded(|services| {
+            if let Some(service) = services.remove(&championship_id) {
+                service.handler.abort()
+            } else {
+                warn!("Trying to remove a not existing service");
+            }
+        });
 
         info!("Service stopped for championship: {}", championship_id);
         Ok(())
     }
 
+    #[inline(always)]
     async fn internal_close(
-        channels: &Channels,
         services: &Services,
         championship_id: i32,
         firewall: &FirewallService,
@@ -108,10 +109,8 @@ impl F123Service {
         firewall.close(championship_id).await?;
 
         let mut services = services.write();
-        let mut channels = channels.write();
 
         services.remove(&championship_id);
-        channels.remove(&championship_id);
 
         Ok(())
     }
@@ -120,11 +119,11 @@ impl F123Service {
         &self,
         port: i32,
         championship_id: i32,
+        tx: Sender<Bytes>,
     ) -> JoinHandle<AppResult<()>> {
         let db = self.db;
         let firewall = self.firewall.clone();
         let services = self.services.clone();
-        let channels = self.channels.clone();
 
         tokio::spawn(async move {
             let span = info_span!("F123 Service", championship_id = championship_id);
@@ -136,16 +135,11 @@ impl F123Service {
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
-            let close_service =
-                Self::internal_close(&channels, &services, championship_id, &firewall);
+            let close_service = Self::internal_close(&services, championship_id, &firewall);
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
             let mut car_lap_sector_data: AHashMap<u8, SectorsLaps> = AHashMap::default();
-
-            // Define channel
-            // Todo: Instead of having an external counter use `tx.receiver_count()` to get the active open connections
-            let (tx, _) = channel::<ChanelData>(100);
 
             let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
@@ -156,12 +150,6 @@ impl F123Service {
             };
 
             info!("Listening for F123 data on port: {port}");
-
-            {
-                let mut channels = channels.write();
-                channels.insert(championship_id, Arc::new(tx));
-            }
-
             firewall.open(championship_id, port).await?;
 
             loop {

@@ -27,7 +27,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@v3
 
       - name: Run cargo check
         run: cargo check
@@ -54,7 +54,7 @@ jobs:
           cargo miri setup
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@master
+        uses: arduino/setup-protoc@v3
 
       - name: Test with Miri
         run: cargo miri test
@@ -78,7 +78,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@v3
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
