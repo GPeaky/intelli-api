@@ -226,6 +226,8 @@ impl F123InsiderCache {
     ///
     #[inline(always)]
     async fn prune(&mut self) -> AppResult<()> {
+        info!("Called prune");
+
         let mut pipe = redis::pipe();
 
         pipe.del(&format!(
