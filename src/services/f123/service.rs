@@ -260,7 +260,21 @@ impl F123Service {
                                 packet_batching.push(packet).await?;
                             }
 
+                            // If the session is not race don't save events
                             F123Data::Event(event_data) => {
+                                let time = Instant::now();
+                                let Some(session_type) = session_type.take() else {
+                                    continue;
+                                };
+
+                                if session_type
+                                    != SessionType::R | SessionType::R2 | SessionType::R3
+                                {
+                                    continue;
+                                }
+                                let time = time.elapsed();
+                                info!("Time to check session: {:?}", time);
+
                                 let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
                                 };
