@@ -262,7 +262,6 @@ impl F123Service {
 
                             // If the session is not race don't save events
                             F123Data::Event(event_data) => {
-                                let time = Instant::now();
                                 let Some(session_type) = session_type.take() else {
                                     continue;
                                 };
@@ -272,8 +271,6 @@ impl F123Service {
                                 {
                                     continue;
                                 }
-                                let time = time.elapsed();
-                                info!("Time to check session: {:?}", time);
 
                                 let Some(packet) = event_data.convert(PacketType::EventData) else {
                                     continue;
