@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, Ipv4Addr},
+    net::IpAddr,
     str::FromStr,
     sync::Arc,
     time::{Duration, Instant},
@@ -31,14 +31,15 @@ impl<S> Middleware<S> for LoginLimit {
         tokio::spawn({
             let visitors = visitors.clone();
             async move {
-                let mut interval = interval(Duration::from_hours(1));
+                let mut interval = interval(Duration::from_secs(3600));
 
                 loop {
                     interval.tick().await;
 
                     let mut visitors = visitors.lock();
-                    visitors
-                        .retain(|_, &mut (_, ref instant)| instant.elapsed() < RATE_LIMIT_DURATION);
+                    visitors.retain(|_, &mut (_, ref instant): &mut (u8, Instant)| {
+                        instant.elapsed() < RATE_LIMIT_DURATION
+                    });
 
                     visitors.shrink_to(DEFAULT_SIZE)
                 }
