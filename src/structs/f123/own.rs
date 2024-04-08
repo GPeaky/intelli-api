@@ -9,14 +9,22 @@ use crate::error::AppResult;
 
 use super::game::*;
 
+pub struct F123GeneralCachedData {
+    pub motion: Option<Vec<u8>>,
+    pub session: Option<Vec<u8>>,
+    pub participants: Option<Vec<u8>>,
+    pub event_keys: Option<Vec<String>>,
+    pub session_history_keys: Option<Vec<String>>
+}
+
 #[allow(unused)]
 #[derive(Debug)]
 pub struct F123CachedData {
-    pub motion: Vec<u8>,
-    pub session: Vec<u8>,
-    pub participants: Vec<u8>,
-    pub session_history: Vec<Vec<u8>>,
-    pub events: Vec<Vec<Vec<u8>>>,
+    pub motion: Option<Vec<u8>>,
+    pub session: Option<Vec<u8>>,
+    pub participants: Option<Vec<u8>>,
+    pub session_history: Option<Vec<Vec<u8>>>,
+    pub events: Option<Vec<Vec<Vec<u8>>>>,
 }
 
 pub struct F123ServiceData {

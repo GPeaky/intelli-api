@@ -143,7 +143,6 @@ pub(crate) async fn forgot_password(
         return Err(UserError::NotFound)?;
     };
 
-    // Todo: Duration::hours(1) should be a constant and Utc::now() should be saved in a variable for a cache of 1 minute
     if Utc::now().signed_duration_since(user.updated_at) > Duration::try_hours(1).unwrap() {
         return Err(UserError::UpdateLimitExceeded)?;
     }

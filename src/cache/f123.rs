@@ -9,11 +9,11 @@ use crate::{
     structs::OptionalMessage,
 };
 
-const EVENTS: &str = "events";
-const MOTION: &str = "motion";
-const SESSION: &str = "session";
-const PARTICIPANTS: &str = "participants";
-const SESSION_HISTORY: &str = "session_history";
+pub const EVENTS: &str = "events";
+pub const MOTION: &str = "motion";
+pub const SESSION: &str = "session";
+pub const PARTICIPANTS: &str = "participants";
+pub const SESSION_HISTORY: &str = "session_history";
 
 /// `F123InsiderCache` is a caching structure for storing Formula 123 (F123) championship data using Redis.
 /// It is designed to manage caching for a specific championship, and it provides methods to set various

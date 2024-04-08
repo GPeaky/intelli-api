@@ -1,12 +1,16 @@
-use crate::config::constants::*;
-use deadpool_redis::redis::{self, AsyncCommands};
+use deadpool_redis::redis;
+use tokio::time::Instant;
 use tracing::info;
 
-use crate::{config::Database, error::AppResult, structs::F123CachedData};
+use crate::{
+    cache::{EVENTS, MOTION, PARTICIPANTS, SESSION, SESSION_HISTORY},
+    config::{constants::*, Database},
+    error::AppResult,
+    structs::{F123CachedData, F123GeneralCachedData},
+};
 
 #[derive(Clone)]
 pub struct F123Repository {
-    #[allow(unused)]
     db: &'static Database,
 }
 
@@ -15,56 +19,95 @@ impl F123Repository {
         Self { db }
     }
 
-    // Todo: finish this integration and try to optimize it :) 2ms is too much
-    // Todo: implement mini cache in memory for last data cached (Interval 3 seconds)
-    #[allow(unused)]
+    // Todo - finish this integration and try to optimize it :) 2ms is too much
+    // Todo - implement mini cache in memory for last data cached (Interval 3 seconds)
     pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
-        let mut conn = self.db.redis.get().await?;
+        let time = Instant::now();
+        let general_data = self.general_data(id).await?;
 
-        // Todo: create a struct for this data
-        #[allow(clippy::type_complexity)]
-        let (motion, session, participants, events_keys, session_history_key): (
-            Vec<u8>,
-            Vec<u8>,
-            Vec<u8>,
-            Vec<String>,
-            Vec<String>,
-        ) = redis::pipe()
-            .atomic()
-            .get(&format!("{REDIS_F123_PREFIX}:{id}:motion"))
-            .get(&format!("{REDIS_F123_PREFIX}:{id}:session"))
-            .get(&format!("{REDIS_F123_PREFIX}:{id}:participants"))
-            .keys(&format!("{REDIS_F123_PREFIX}:{id}:events:*"))
-            .keys(&format!("{REDIS_F123_PREFIX}:{id}:session_history:*"))
-            .query_async(&mut conn)
-            .await
-            .unwrap();
-
-        let session_history: Vec<Vec<u8>> = conn.get(&session_history_key).await?;
-
-        let mut pipe = redis::pipe();
-
-        for key in events_keys {
-            pipe.lrange(&key, 0, -1);
-        }
-
-        let events: Vec<Vec<Vec<u8>>> = pipe.query_async(&mut conn).await.unwrap();
+        let (events, session_history) = tokio::try_join!(
+            self.events_data(general_data.event_keys),
+            self.session_history_data(general_data.session_history_keys)
+        )?;
 
         let cached_data = F123CachedData {
-            motion,
-            session,
-            participants,
-            events,
+            motion: general_data.motion,
+            session: general_data.session,
+            participants: general_data.participants,
             session_history,
+            events,
         };
 
-        info!("F123Repository::get_cache_data {:?}", cached_data);
+        let time = time.elapsed();
+        info!("Cached data: {:?}", cached_data);
+        info!("Time elapsed: {:?}", time);
 
         Ok(cached_data)
     }
 
-    #[allow(unused)]
-    pub async fn events_data(&self, id: i64) -> AppResult<()> {
-        todo!()
+    #[inline(always)]
+    async fn general_data(&self, id: i32) -> AppResult<F123GeneralCachedData> {
+        let mut pipe = redis::pipe();
+        let mut conn = self.db.redis.get().await?;
+
+        let (motion, session, participants, event_keys, session_history_keys): (
+            Option<Vec<u8>>,
+            Option<Vec<u8>>,
+            Option<Vec<u8>>,
+            Option<Vec<String>>,
+            Option<Vec<String>>,
+        ) = pipe
+            .get(&format!("{REDIS_F123_PREFIX}:{id}:{MOTION}"))
+            .get(&format!("{REDIS_F123_PREFIX}:{id}:{SESSION}"))
+            .get(&format!("{REDIS_F123_PREFIX}:{id}:{PARTICIPANTS}"))
+            .keys(&format!("{REDIS_F123_PREFIX}:{id}:{EVENTS}:*"))
+            .keys(&format!("{REDIS_F123_PREFIX}:{id}:{SESSION_HISTORY}:*"))
+            .query_async(&mut conn)
+            .await?;
+
+        Ok(F123GeneralCachedData {
+            motion,
+            session,
+            participants,
+            event_keys,
+            session_history_keys,
+        })
+    }
+
+    #[inline(always)]
+    async fn events_data(&self, keys: Option<Vec<String>>) -> AppResult<Option<Vec<Vec<Vec<u8>>>>> {
+        match keys {
+            None => Ok(None),
+            Some(keys) => {
+                let mut pipe = redis::pipe();
+
+                for key in &keys {
+                    pipe.lrange(key, 0, -1);
+                }
+
+                let mut conn = self.db.redis.get().await?;
+                Ok(pipe.query_async(&mut conn).await?)
+            }
+        }
+    }
+
+    #[inline(always)]
+    async fn session_history_data(
+        &self,
+        keys: Option<Vec<String>>,
+    ) -> AppResult<Option<Vec<Vec<u8>>>> {
+        match keys {
+            None => Ok(None),
+            Some(keys) => {
+                let mut pipe = redis::pipe();
+
+                for key in &keys {
+                    pipe.get(key);
+                }
+
+                let mut conn = self.db.redis.get().await?;
+                Ok(pipe.query_async(&mut conn).await?)
+            }
+        }
     }
 }
