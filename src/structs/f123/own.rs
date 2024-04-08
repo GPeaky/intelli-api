@@ -14,7 +14,7 @@ pub struct F123GeneralCachedData {
     pub session: Option<Vec<u8>>,
     pub participants: Option<Vec<u8>>,
     pub event_keys: Option<Vec<String>>,
-    pub session_history_keys: Option<Vec<String>>
+    pub session_history_keys: Option<Vec<String>>,
 }
 
 #[allow(unused)]
