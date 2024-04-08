@@ -41,10 +41,6 @@ where
         req: WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
-        let Some(state) = req.app_state::<AppState>() else {
-            Err(CommonError::InternalServerError)?
-        };
-
         let Some(header) = req.headers().get("Authorization") else {
             Err(TokenError::MissingToken)?
         };
@@ -59,9 +55,13 @@ where
             &header_str[BEARER_PREFIX.len()..]
         };
 
+        let Some(state) = req.app_state::<AppState>() else {
+            Err(CommonError::InternalServerError)?
+        };
+
         let id = state.token_svc.validate(header)?.claims.sub;
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
-        req.extensions_mut().insert(Arc::new(user));
+        req.extensions_mut().insert(Arc::from(user));
 
         let res = ctx.call(&self.service, req).await?;
         Ok(res)

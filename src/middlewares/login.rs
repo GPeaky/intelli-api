@@ -20,6 +20,8 @@ const RATE_LIMIT: u8 = 5;
 const DEFAULT_SIZE: usize = 1000;
 const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
 
+type VisitorData = (u8, Instant);
+
 pub struct LoginLimit;
 
 impl<S> Middleware<S> for LoginLimit {
@@ -37,7 +39,7 @@ impl<S> Middleware<S> for LoginLimit {
                     interval.tick().await;
 
                     let mut visitors = visitors.lock();
-                    visitors.retain(|_, &mut (_, ref instant): &mut (u8, Instant)| {
+                    visitors.retain(|_, (_, ref instant): &mut VisitorData| {
                         instant.elapsed() < RATE_LIMIT_DURATION
                     });
 
@@ -52,7 +54,7 @@ impl<S> Middleware<S> for LoginLimit {
 
 pub struct LoginLimitMiddleware<S> {
     service: S,
-    visitors: Arc<Mutex<AHashMap<IpAddr, (u8, Instant)>>>,
+    visitors: Arc<Mutex<AHashMap<IpAddr, VisitorData>>>,
 }
 
 impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>

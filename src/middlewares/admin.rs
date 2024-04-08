@@ -5,7 +5,7 @@ use ntex::{
 
 use crate::{
     entity::{Role, UserExtension},
-    error::UserError,
+    error::{CommonError, UserError},
 };
 
 pub struct Admin;
@@ -37,11 +37,13 @@ where
         req: WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
-        let Some(user) = req.extensions().get::<UserExtension>().cloned() else {
-            return Err(UserError::Unauthorized)?;
-        };
+        let role = req
+            .extensions()
+            .get::<UserExtension>()
+            .ok_or(CommonError::InternalServerError)?
+            .role;
 
-        if user.role != Role::Admin {
+        if role != Role::Admin {
             return Err(UserError::Unauthorized)?;
         }
 

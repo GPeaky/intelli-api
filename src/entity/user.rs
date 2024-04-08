@@ -21,7 +21,9 @@ pub enum Provider {
     Google,
 }
 
-#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql)]
+#[derive(
+    Debug, Clone, Copy, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql,
+)]
 #[postgres(name = "user_role")]
 pub enum Role {
     #[postgres(name = "Free")]
