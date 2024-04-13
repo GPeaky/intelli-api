@@ -13,7 +13,6 @@ pub enum CommonError {
     HashingFailed,
     NotValidUpdate,
     LoginRateLimited,
-    InvalidUsedFeature(&'static str),
 }
 
 impl CommonError {
@@ -25,7 +24,6 @@ impl CommonError {
             CommonError::HashingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
             CommonError::LoginRateLimited => StatusCode::TOO_MANY_REQUESTS,
-            CommonError::InvalidUsedFeature(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -37,7 +35,6 @@ impl CommonError {
             CommonError::HashingFailed => "Hashing Failed",
             CommonError::NotValidUpdate => "Not valid Update",
             CommonError::LoginRateLimited => "Rate limited",
-            CommonError::InvalidUsedFeature(feature) => feature,
         }
     }
 }

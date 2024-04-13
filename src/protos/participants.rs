@@ -23,7 +23,7 @@ impl ToProtoMessage for BPacketParticipantsData {
                 my_team: value.my_team as u32,
                 race_number: value.race_number as u32,
                 nationality: value.nationality as u32,
-                name: c_str.to_string_lossy().to_string(),
+                name: c_str.to_str().unwrap().to_owned(),
                 your_telemetry: value.your_telemetry as u32,
                 show_online_names: value.show_online_names as u32,
                 platform: value.platform as u32,

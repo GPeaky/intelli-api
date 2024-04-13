@@ -19,7 +19,7 @@ impl F123Repository {
         Self { db }
     }
 
-    // Todo - finish this integration and try to optimize it :) 2ms is too much
+    // Todo - finish this integration and try to optimize it :) 1ms is too much
     // Todo - implement mini cache in memory for last data cached (Interval 3 seconds)
     pub async fn get_cache_data(&self, id: i32) -> AppResult<F123CachedData> {
         let time = Instant::now();
@@ -50,6 +50,7 @@ impl F123Repository {
         let mut pipe = redis::pipe();
         let mut conn = self.db.redis.get().await?;
 
+        #[allow(clippy::complexity)]
         let (motion, session, participants, event_keys, session_history_keys): (
             Option<Vec<u8>>,
             Option<Vec<u8>>,

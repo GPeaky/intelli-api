@@ -38,7 +38,7 @@ impl TokenCache {
     ///
     /// # Errors
     ///
-    /// If the `token_type` is `RefreshBearer`, an `InvalidUsedFeature` error is returned
+    /// If the `token_type` is `RefreshBearer`, an `InternalServerError` error is returned
     /// as refresh tokens cannot be set.
     ///
     /// # Returns
@@ -47,9 +47,7 @@ impl TokenCache {
     ///
     pub async fn set_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
-            Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set",
-            ))?;
+            Err(CommonError::InternalServerError)?;
         }
 
         let mut conn = self.db.redis.get().await?;
@@ -73,7 +71,7 @@ impl TokenCache {
     ///
     /// # Errors
     ///
-    /// If the `token_type` is `RefreshBearer`, an `InvalidUsedFeature` error is returned
+    /// If the `token_type` is `RefreshBearer`, an `InternalServerError` error is returned
     /// as refresh tokens cannot be set.
     ///
     /// # Returns
@@ -82,9 +80,7 @@ impl TokenCache {
     ///
     pub async fn get_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
-            Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set",
-            ))?;
+            Err(CommonError::InternalServerError)?;
         }
 
         let mut conn = self.db.redis.get().await?;
@@ -104,7 +100,7 @@ impl TokenCache {
     ///
     /// # Errors
     ///
-    /// If the `token_type` is `RefreshBearer`, an `InvalidUsedFeature` error is returned
+    /// If the `token_type` is `RefreshBearer`, an `InternalServerError` error is returned
     /// as refresh tokens cannot be set.
     ///
     /// # Returns
@@ -113,9 +109,7 @@ impl TokenCache {
     ///
     pub async fn remove_token(&self, token: &str, token_type: &TokenType) -> AppResult<()> {
         if token_type == &TokenType::RefreshBearer {
-            Err(CommonError::InvalidUsedFeature(
-                "Refresh token can't be set",
-            ))?;
+            Err(CommonError::InternalServerError)?;
         }
 
         let mut conn = self.db.redis.get().await?;
