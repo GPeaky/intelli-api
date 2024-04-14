@@ -12,7 +12,6 @@ prost-build = "0.12"
 
 [dependencies]
 rkyv = "0.7"
-zstd = "0.13"
 ahash = "0.8"
 ring = "0.17"
 prost = "0.12"
@@ -45,6 +44,7 @@ refinery = { version = "0.8", features = ["tokio-postgres"] }
 zerocopy = { version = "0.8.0-alpha", features = ["simd-nightly"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+async-compression = { version = "0.4.8", features = ["zstd", "tokio"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",

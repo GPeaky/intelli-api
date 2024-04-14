@@ -7,9 +7,11 @@ use crate::{
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
 };
+use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
 use parking_lot::Mutex;
 use tokio::{
+    io::AsyncWriteExt,
     sync::{broadcast::Sender, oneshot},
     time::interval,
 };
@@ -245,7 +247,7 @@ impl PacketBatching {
 
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
-            let encoded_batch = Self::compress(&batch)?;
+            let encoded_batch = Self::compress(&batch).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());
@@ -287,14 +289,13 @@ impl PacketBatching {
     ///
     /// An `AppResult<Bytes>` that contains the compressed data or an error if compression fails.
     #[inline(always)]
-    fn compress(data: &[u8]) -> AppResult<Bytes> {
-        match zstd::stream::encode_all(data, 3) {
-            Ok(compressed_data) => Ok(Bytes::from(compressed_data)),
-            Err(e) => {
-                warn!("Zstd compression: {}", e);
-                Err(F123ServiceError::Compressing)?
-            }
-        }
+    async fn compress(data: &[u8]) -> AppResult<Bytes> {
+        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
+
+        encoder.write_all(data).await.unwrap();
+        encoder.shutdown().await.unwrap();
+
+        Ok(Bytes::from(encoder.into_inner()))
     }
 }
 
