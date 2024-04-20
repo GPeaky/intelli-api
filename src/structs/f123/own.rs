@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ntex::util::Bytes;
-use tokio::{sync::broadcast::Sender, task::JoinHandle};
+use tokio::{sync::broadcast::Receiver, task::JoinHandle};
 use tracing::error;
 use zerocopy::{FromBytes, KnownLayout, NoCell};
 
@@ -28,7 +28,7 @@ pub struct F123CachedData {
 }
 
 pub struct F123ServiceData {
-    pub channel: Arc<Sender<Bytes>>,
+    pub channel: Arc<Receiver<Bytes>>,
     pub handler: JoinHandle<AppResult<()>>,
 }
 

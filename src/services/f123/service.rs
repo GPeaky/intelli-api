@@ -58,7 +58,7 @@ impl F123Service {
     #[allow(unused)]
     pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<Bytes>> {
         let service = self.services.get(&championship_id)?;
-        Some(service.channel.subscribe())
+        Some(service.channel.resubscribe())
     }
 
     pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
@@ -66,17 +66,17 @@ impl F123Service {
             return Err(F123ServiceError::AlreadyExists)?;
         }
 
-        let (tx, _) = channel::<Bytes>(50);
+        let (tx, rx) = channel::<Bytes>(50);
 
-        let service = self
+        let handler = self
             .create_service_thread(port, championship_id, tx.clone())
             .await;
 
         self.services.insert(
             championship_id,
             F123ServiceData {
-                channel: Arc::from(tx),
-                handler: service,
+                handler,
+                channel: Arc::from(rx),
             },
         );
 
@@ -128,14 +128,14 @@ impl F123Service {
             // let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();
-            let mut last_car_motion_update = Instant::now();
-            let mut last_participants_update = Instant::now();
+            let mut last_car_motion_update = last_session_update;
+            let mut last_participants_update = last_session_update;
             let session_type = RefCell::new(None);
             let close_service = Self::internal_close(services, championship_id, firewall);
 
             // Session History Data
-            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
-            let mut car_lap_sector_data: AHashMap<u8, SectorsLaps> = AHashMap::default();
+            let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::with_capacity(20);
+            let mut car_lap_sector_data: AHashMap<u8, SectorsLaps> = AHashMap::with_capacity(20);
 
             let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
