@@ -8,8 +8,8 @@ use crate::{
     FirewallService,
 };
 use ahash::AHashMap;
+use dashmap::DashMap;
 use ntex::util::Bytes;
-use parking_lot::RwLock;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
@@ -19,48 +19,50 @@ use tokio::{
 };
 use tracing::{error, info, info_span, warn};
 
-type Services = Arc<RwLock<AHashMap<i32, F123ServiceData>>>;
+type Services = DashMap<i32, F123ServiceData>;
 
 #[derive(Clone)]
 pub struct F123Service {
     db: &'static Database,
-    services: Services,
+    services: &'static Services,
     firewall: &'static FirewallService,
 }
 
 impl F123Service {
     pub fn new(db: &'static Database) -> Self {
         let firewall = Box::leak(Box::new(FirewallService::new()));
+        let services = Box::leak(Box::new(DashMap::with_capacity(100)));
 
         Self {
             db,
             firewall,
-            services: Arc::new(RwLock::new(AHashMap::with_capacity(10))),
+            services,
         }
     }
 
     pub async fn active_services(&self) -> Vec<i32> {
-        let services = self.services.read();
-        services.keys().cloned().collect()
+        let len = self.services.len();
+        let mut services = Vec::with_capacity(len);
+
+        for item in self.services.iter() {
+            services.push(*item.key())
+        }
+
+        services
     }
 
     pub async fn service_active(&self, id: i32) -> bool {
-        let services = self.services.read();
-        services.contains_key(&id)
+        self.services.contains_key(&id)
     }
 
     #[allow(unused)]
     pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<Bytes>> {
-        let services = self.services.read();
-        let channel = services.get(&championship_id)?;
-
-        Some(channel.channel.subscribe())
+        let service = self.services.get(&championship_id)?;
+        Some(service.channel.subscribe())
     }
 
     pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
-        let mut services = self.services.upgradable_read();
-
-        if services.contains_key(&championship_id) {
+        if self.services.contains_key(&championship_id) {
             return Err(F123ServiceError::AlreadyExists)?;
         }
 
@@ -70,33 +72,27 @@ impl F123Service {
             .create_service_thread(port, championship_id, tx.clone())
             .await;
 
-        services.with_upgraded(|services| {
-            services.insert(
-                championship_id,
-                F123ServiceData {
-                    channel: Arc::from(tx),
-                    handler: service,
-                },
-            )
-        });
+        self.services.insert(
+            championship_id,
+            F123ServiceData {
+                channel: Arc::from(tx),
+                handler: service,
+            },
+        );
 
         Ok(())
     }
 
     pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
-        let mut services = self.services.upgradable_read();
-
-        if !services.contains_key(&championship_id) {
+        if !self.services.contains_key(&championship_id) {
             return Err(F123ServiceError::NotActive)?;
         }
 
-        services.with_upgraded(|services| {
-            if let Some(service) = services.remove(&championship_id) {
-                service.handler.abort()
-            } else {
-                warn!("Trying to remove a not existing service");
-            }
-        });
+        if let Some(service) = self.services.remove(&championship_id) {
+            service.1.handler.abort()
+        } else {
+            warn!("Trying to remove a not existing service");
+        }
 
         info!("Service stopped for championship: {}", championship_id);
         Ok(())
@@ -109,9 +105,6 @@ impl F123Service {
         firewall: &FirewallService,
     ) -> AppResult<()> {
         firewall.close(championship_id).await?;
-
-        let mut services = services.write();
-
         services.remove(&championship_id);
 
         Ok(())
@@ -125,7 +118,7 @@ impl F123Service {
     ) -> JoinHandle<AppResult<()>> {
         let db = self.db;
         let firewall = self.firewall;
-        let services = self.services.clone();
+        let services = self.services;
 
         // TODO - Prune cache on stop
         tokio::spawn(async move {

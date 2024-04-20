@@ -1,23 +1,20 @@
 use std::{
     net::IpAddr,
     str::FromStr,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
-use ahash::AHashMap;
+use dashmap::DashMap;
 use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},
 };
-use parking_lot::Mutex;
 use tokio::time::interval;
 use tracing::warn;
 
 use crate::error::CommonError;
 
 const RATE_LIMIT: u8 = 5;
-const DEFAULT_SIZE: usize = 1000;
 const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
 
 type VisitorData = (u8, Instant);
@@ -28,7 +25,7 @@ impl<S> Middleware<S> for LoginLimit {
     type Service = LoginLimitMiddleware<S>;
 
     fn create(&self, service: S) -> Self::Service {
-        let visitors = Arc::from(Mutex::from(AHashMap::with_capacity(DEFAULT_SIZE)));
+        let visitors = DashMap::with_capacity(10_000);
 
         tokio::spawn({
             let visitors = visitors.clone();
@@ -38,12 +35,9 @@ impl<S> Middleware<S> for LoginLimit {
                 loop {
                     interval.tick().await;
 
-                    let mut visitors = visitors.lock();
                     visitors.retain(|_, (_, ref instant): &mut VisitorData| {
                         instant.elapsed() < RATE_LIMIT_DURATION
                     });
-
-                    visitors.shrink_to(DEFAULT_SIZE)
                 }
             }
         });
@@ -54,7 +48,7 @@ impl<S> Middleware<S> for LoginLimit {
 
 pub struct LoginLimitMiddleware<S> {
     service: S,
-    visitors: Arc<Mutex<AHashMap<IpAddr, VisitorData>>>,
+    visitors: DashMap<IpAddr, VisitorData>,
 }
 
 impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>
@@ -80,11 +74,13 @@ where
             let now = Instant::now();
             let ip = {
                 let ip_str = unsafe { std::str::from_utf8_unchecked(ip.as_ref()) };
-                IpAddr::from_str(ip_str).unwrap()
-            };
+                IpAddr::from_str(ip_str).map_err(|_| CommonError::InternalServerError)
+            }?;
 
-            let mut visitors = self.visitors.lock();
-            let entry = visitors.entry(ip).or_insert((0, now + RATE_LIMIT_DURATION));
+            let mut entry = self
+                .visitors
+                .entry(ip)
+                .or_insert((0, now + RATE_LIMIT_DURATION));
 
             if now > entry.1 {
                 *entry = (0, now + RATE_LIMIT_DURATION);

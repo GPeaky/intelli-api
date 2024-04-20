@@ -14,6 +14,7 @@ prost-build = "0.12"
 rkyv = "0.7"
 ahash = "0.8"
 ring = "0.17"
+dashmap = "5"
 prost = "0.12"
 tracing = "0.1"
 base64 = "0.22"
@@ -59,7 +60,6 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "builder",
 ] }
-
 
 [profile.release]
 debug = false           # Added Debug for trying to get hot spots in the code
