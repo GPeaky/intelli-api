@@ -131,7 +131,7 @@ impl F123Service {
             let mut last_car_motion_update = Instant::now();
             let mut last_participants_update = Instant::now();
             let session_type = RefCell::new(None);
-            let close_service = Self::internal_close(&services, championship_id, firewall);
+            let close_service = Self::internal_close(services, championship_id, firewall);
 
             // Session History Data
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::default();
