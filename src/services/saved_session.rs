@@ -11,7 +11,6 @@ pub struct SavedSessionService {
     db: &'static Database,
     #[allow(unused)]
     saved_session_repo: SavedSessionRepository,
-
     ids_generator: IdsGenerator<SavedSessionRepository>,
 }
 

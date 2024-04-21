@@ -8,7 +8,7 @@ use ntex::{
 use tracing::error;
 
 use super::{
-    user::UserError, CacheError, ChampionshipError, CommonError, F123ServiceError, FirewallError,
+    user::UserError, CacheError, ChampionshipError, CommonError, F1ServiceError, FirewallError,
     TokenError,
 };
 
@@ -22,7 +22,7 @@ pub enum AppError {
     Token(TokenError),
     Common(CommonError),
     Cache(CacheError),
-    F123(F123ServiceError),
+    F1(F1ServiceError),
     Firewall(FirewallError),
     PgError(PgError),
     PgPool,
@@ -86,7 +86,7 @@ impl AppError {
             AppError::Token(e) => e.status_code(),
             AppError::Common(e) => e.status_code(),
             AppError::Cache(e) => e.status_code(),
-            AppError::F123(e) => e.status_code(),
+            AppError::F1(e) => e.status_code(),
             AppError::Firewall(e) => e.status_code(),
             AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool => StatusCode::INTERNAL_SERVER_ERROR,
@@ -105,7 +105,7 @@ impl AppError {
             AppError::Token(e) => e.error_message(),
             AppError::Common(e) => e.error_message(),
             AppError::Cache(e) => e.error_message(),
-            AppError::F123(e) => e.error_message(),
+            AppError::F1(e) => e.error_message(),
             AppError::Firewall(e) => e.error_message(),
             AppError::PgError(_) => "Database error",
             AppError::PgPool => "Pool error",

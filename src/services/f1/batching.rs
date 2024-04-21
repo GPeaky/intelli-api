@@ -1,19 +1,22 @@
 use std::{cell::Cell, sync::Arc};
 
 use crate::{
-    cache::F123InsiderCache,
     config::constants::BATCHING_INTERVAL,
-    error::{AppResult, F123ServiceError},
+    error::{AppResult, F1ServiceError},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
 };
+use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use tokio::{
+    io::AsyncWriteExt,
     sync::{broadcast::Sender, oneshot},
     time::interval,
 };
 use tracing::warn;
+
+use super::caching::PacketCaching;
 
 const BATCHING_VECTOR_CAPACITY: usize = 2048;
 
@@ -33,7 +36,7 @@ const BATCHING_VECTOR_CAPACITY: usize = 2048;
 ///   batching process. Once a shutdown signal is received, no more packets are accepted,
 ///   and the current batch is processed and sent.
 ///
-/// - `cache`: `F123InsiderCache` is used to store packets as they arrive. This allows for
+/// - `cache`: `PacketCaching` is used to store packets as they arrive. This allows for
 ///   caching of individual packets alongside the batching process, enabling both immediate
 ///   and batched packet processing.
 ///
@@ -47,7 +50,7 @@ const BATCHING_VECTOR_CAPACITY: usize = 2048;
 pub struct PacketBatching {
     buf: Arc<Mutex<Vec<PacketHeader>>>,
     shutdown: Option<oneshot::Sender<()>>,
-    cache: F123InsiderCache,
+    cache: Arc<RwLock<PacketCaching>>,
 }
 
 impl PacketBatching {
@@ -62,7 +65,7 @@ impl PacketBatching {
     /// # Parameters
     ///
     /// - `tx`: A `Sender<Bytes>` used to send the batched data to a receiver.
-    /// - `cache`: `F123InsiderCache`, a cache used for storing or further processing of packets.
+    /// - `cache`: `PacketCaching`, a cache used for storing or further processing of packets.
     ///
     /// # Returns
     ///
@@ -72,7 +75,7 @@ impl PacketBatching {
     ///
     /// ```ignore
     /// let (tx, rx) = tokio::sync::mpsc::channel(100);
-    /// let cache = F123InsiderCache::new(); // Assuming F123InsiderCache::new is defined
+    /// let cache = PacketCaching::new(); // Assuming PacketCaching::new is defined
     /// let packet_batches = PacketBatching::new(tx, cache);
     /// ```
     ///
@@ -81,7 +84,7 @@ impl PacketBatching {
     /// The background task for sending batched data operates until a shutdown signal is received.
     /// Ensure to send a shutdown signal through the `shutdown` channel when the `PacketBatching`
     /// instance is no longer needed to properly clean up resources.
-    pub fn new(tx: Sender<Bytes>, cache: F123InsiderCache) -> Self {
+    pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
         let (otx, orx) = oneshot::channel::<()>();
         let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_VECTOR_CAPACITY)));
 
@@ -174,13 +177,12 @@ impl PacketBatching {
     pub async fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
-        second_param: Option<OptionalMessage<'_>>,
+        second_param: Option<OptionalMessage>,
     ) -> AppResult<()> {
         let packet_type = packet.r#type();
 
-        self.cache
-            .save(packet_type, &packet.payload, second_param)
-            .await?;
+        let mut cache = self.cache.write();
+        cache.save(packet_type, &packet.payload, second_param);
 
         self.buf.lock().push(packet);
         Ok(())
@@ -245,7 +247,7 @@ impl PacketBatching {
 
         // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
-            let encoded_batch = Self::compress(&batch)?;
+            let encoded_batch = Self::compress(&batch).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());
@@ -255,7 +257,7 @@ impl PacketBatching {
                 warn!("Broadcast channel: {}", e);
             };
         } else {
-            Err(F123ServiceError::BatchedEncoding)?
+            Err(F1ServiceError::BatchedEncoding)?
         }
 
         Ok(())
@@ -265,7 +267,7 @@ impl PacketBatching {
     ///
     /// This function takes a slice of bytes `data` as input and returns an `AppResult<Bytes>`
     /// containing the compressed data. In case of an error during compression, the error is logged,
-    /// and `F123ServiceError::Compressing` is returned.
+    /// and `F1ServiceError::Compressing` is returned.
     ///
     /// # Examples
     ///
@@ -277,7 +279,7 @@ impl PacketBatching {
     ///
     /// # Errors
     ///
-    /// If compression fails, this function returns an `Err` with `F123ServiceError::Compressing`.
+    /// If compression fails, this function returns an `Err` with `F1ServiceError::Compressing`.
     ///
     /// # Parameters
     ///
@@ -287,14 +289,13 @@ impl PacketBatching {
     ///
     /// An `AppResult<Bytes>` that contains the compressed data or an error if compression fails.
     #[inline(always)]
-    fn compress(data: &[u8]) -> AppResult<Bytes> {
-        match zstd::stream::encode_all(data, 3) {
-            Ok(compressed_data) => Ok(Bytes::from(compressed_data)),
-            Err(e) => {
-                warn!("Zstd compression: {}", e);
-                Err(F123ServiceError::Compressing)?
-            }
-        }
+    async fn compress(data: &[u8]) -> AppResult<Bytes> {
+        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
+
+        encoder.write_all(data).await.unwrap();
+        encoder.shutdown().await.unwrap();
+
+        Ok(Bytes::from(encoder.into_inner()))
     }
 }
 
