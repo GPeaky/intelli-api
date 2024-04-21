@@ -4,6 +4,7 @@ use ntex::web::{
     HttpResponse, Responder,
 };
 use tokio_stream::wrappers::BroadcastStream;
+use tracing::info;
 
 use crate::{
     error::{AppResult, CommonError, F1ServiceError},
@@ -23,8 +24,8 @@ pub async fn handle_stream(
         Err(F1ServiceError::NotActive)?
     }
 
-    let _x = state.f1_svc.service_cache(path.0).await?;
-    // let _x = state.f1_svc.get_cache_data(path.0).await?;
+    let x = state.f1_svc.service_cache(path.0).await?;
+    info!("Cache Size: {}", x.unwrap().len());
 
     // Todo - Get cache from redis and return it before sending real time data
     let Some(rx) = state.f1_svc.subscribe(path.0).await else {

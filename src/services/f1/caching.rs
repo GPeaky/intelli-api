@@ -1,10 +1,11 @@
-use std::time::Instant;
-
 use ahash::AHashMap;
+use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
-use tracing::{error, info};
+use tokio::io::AsyncWriteExt;
+use tracing::error;
 
 use crate::{
+    error::AppResult,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
 };
@@ -14,6 +15,7 @@ pub struct PacketCaching {
     session_data: Option<Vec<u8>>,
     participants: Option<Vec<u8>>,
     history_data: AHashMap<u8, Vec<u8>>,
+    // Todo - Probably is not necessary, because we don't use it. AHashSet could be a better impl
     event_data: AHashMap<[u8; 4], Vec<Vec<u8>>>,
 }
 
@@ -28,7 +30,8 @@ impl PacketCaching {
         }
     }
 
-    pub fn get(&self) -> Option<Bytes> {
+    // Todo - Add Mini Cache to avoid compressing multiple times in a second
+    pub async fn get(&self) -> AppResult<Option<Bytes>> {
         let mut headers = Vec::with_capacity(self.total_headers());
 
         if let Some(header) = self.get_car_motion() {
@@ -51,7 +54,13 @@ impl PacketCaching {
             headers.append(&mut events_headers)
         };
 
-        ToProtoMessageBatched::batched_encoded(headers)
+        match ToProtoMessageBatched::batched_encoded(headers) {
+            None => Ok(None),
+            Some(bytes) => {
+                let compressed = Self::compress(&bytes).await?;
+                Ok(Some(compressed))
+            }
+        }
     }
 
     pub fn save(
@@ -234,5 +243,15 @@ impl PacketCaching {
     #[inline(always)]
     fn push_event(&mut self, payload: Vec<u8>, code: [u8; 4]) {
         self.event_data.entry(code).or_default().push(payload);
+    }
+
+    #[inline(always)]
+    async fn compress(data: &[u8]) -> AppResult<Bytes> {
+        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
+
+        encoder.write_all(data).await.unwrap();
+        encoder.shutdown().await.unwrap();
+
+        Ok(Bytes::from(encoder.into_inner()))
     }
 }
