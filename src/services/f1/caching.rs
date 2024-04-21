@@ -1,7 +1,13 @@
-use ahash::AHashMap;
-use tracing::error;
+use std::time::Instant;
 
-use crate::{protos::packet_header::PacketType, structs::OptionalMessage};
+use ahash::AHashMap;
+use ntex::util::Bytes;
+use tracing::{error, info};
+
+use crate::{
+    protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
+    structs::OptionalMessage,
+};
 
 pub struct PacketCaching {
     car_motion: Option<Vec<u8>>,
@@ -11,7 +17,6 @@ pub struct PacketCaching {
     event_data: AHashMap<[u8; 4], Vec<Vec<u8>>>,
 }
 
-// Todo - Create a method that returns a batched packed with all the latest information with a mini cache of 3 seconds
 impl PacketCaching {
     pub fn new() -> Self {
         Self {
@@ -23,9 +28,30 @@ impl PacketCaching {
         }
     }
 
-    // Todo - This returns all the packets batched
-    pub fn get(&self) -> Vec<u8> {
-        Vec::new()
+    pub fn get(&self) -> Option<Bytes> {
+        let mut headers = Vec::with_capacity(self.total_headers());
+
+        if let Some(header) = self.get_car_motion() {
+            headers.push(header);
+        }
+
+        if let Some(header) = self.get_session_data() {
+            headers.push(header)
+        };
+
+        if let Some(header) = self.get_participants() {
+            headers.push(header)
+        };
+
+        if let Some(mut history_headers) = self.get_history_data() {
+            headers.append(&mut history_headers)
+        };
+
+        if let Some(mut events_headers) = self.get_events_data() {
+            headers.append(&mut events_headers)
+        };
+
+        ToProtoMessageBatched::batched_encoded(headers)
     }
 
     pub fn save(
@@ -65,6 +91,93 @@ impl PacketCaching {
                 todo!()
             }
         }
+    }
+
+    fn total_headers(&self) -> usize {
+        let base_count = 3;
+        let history_estimate = self.history_data.len();
+        let mut events_estimate = 0;
+
+        for (_, events) in &self.event_data {
+            events_estimate += events.len();
+        }
+
+        base_count + history_estimate + events_estimate
+    }
+
+    #[inline(always)]
+    fn get_car_motion(&self) -> Option<PacketHeader> {
+        match &self.car_motion {
+            None => None,
+            Some(car_motion_data) => Some(PacketHeader {
+                r#type: PacketType::CarMotion.into(),
+                payload: car_motion_data.clone(),
+            }),
+        }
+    }
+
+    #[inline(always)]
+    fn get_participants(&self) -> Option<PacketHeader> {
+        match &self.participants {
+            None => None,
+            Some(participants) => Some(PacketHeader {
+                r#type: PacketType::Participants.into(),
+                payload: participants.clone(),
+            }),
+        }
+    }
+
+    #[inline(always)]
+    fn get_session_data(&self) -> Option<PacketHeader> {
+        match &self.session_data {
+            None => None,
+            Some(session_data) => Some(PacketHeader {
+                r#type: PacketType::SessionData.into(),
+                payload: session_data.clone(),
+            }),
+        }
+    }
+
+    #[inline(always)]
+    fn get_history_data(&self) -> Option<Vec<PacketHeader>> {
+        let len = self.history_data.len();
+        if len == 0 {
+            return None;
+        }
+
+        let mut vec = Vec::with_capacity(len);
+        for (_, session_history) in &self.history_data {
+            vec.push(PacketHeader {
+                r#type: PacketType::SessionHistoryData.into(),
+                payload: session_history.clone(),
+            })
+        }
+
+        Some(vec)
+    }
+
+    #[inline(always)]
+    fn get_events_data(&self) -> Option<Vec<PacketHeader>> {
+        if self.event_data.is_empty() {
+            return None;
+        }
+
+        let mut total_capacity = 0;
+        for (_, events) in &self.event_data {
+            total_capacity += events.len();
+        }
+
+        let mut vec = Vec::with_capacity(total_capacity);
+        for (_, events_data) in &self.event_data {
+            for event in events_data {
+                vec.push(PacketHeader {
+                    r#type: PacketType::EventData.into(),
+                    payload: event.clone(),
+                })
+            }
+        }
+
+        Some(vec)
     }
 
     #[inline(always)]
