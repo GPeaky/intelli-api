@@ -4,12 +4,10 @@ use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
     error::AppResult,
 };
-pub(crate) use f123::*;
 
 use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
 
 mod championship;
-mod f123;
 mod token;
 mod user;
 

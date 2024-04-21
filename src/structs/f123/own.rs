@@ -1,39 +1,23 @@
 use std::sync::Arc;
 
 use ntex::util::Bytes;
+use parking_lot::RwLock;
 use tokio::{sync::broadcast::Receiver, task::JoinHandle};
 use tracing::error;
 use zerocopy::{FromBytes, KnownLayout, NoCell};
 
-use crate::error::AppResult;
+use crate::{error::AppResult, services::PacketCaching};
 
 use super::game::*;
 
-pub struct F123GeneralCachedData {
-    pub motion: Option<Vec<u8>>,
-    pub session: Option<Vec<u8>>,
-    pub participants: Option<Vec<u8>>,
-    pub event_keys: Option<Vec<String>>,
-    pub session_history_keys: Option<Vec<String>>,
-}
-
-#[allow(unused)]
-#[derive(Debug)]
-pub struct F123CachedData {
-    pub motion: Option<Vec<u8>>,
-    pub session: Option<Vec<u8>>,
-    pub participants: Option<Vec<u8>>,
-    pub session_history: Option<Vec<Vec<u8>>>,
-    pub events: Option<Vec<Vec<Vec<u8>>>>,
-}
-
 pub struct F123ServiceData {
+    pub cache: Arc<RwLock<PacketCaching>>,
     pub channel: Arc<Receiver<Bytes>>,
     pub handler: JoinHandle<AppResult<()>>,
 }
 
-pub enum OptionalMessage<'a> {
-    Text(&'a str),
+pub enum OptionalMessage {
+    Code([u8; 4]),
     Number(u8),
 }
 

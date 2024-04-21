@@ -1,7 +1,6 @@
 use std::{cell::Cell, sync::Arc};
 
 use crate::{
-    cache::F123InsiderCache,
     config::constants::BATCHING_INTERVAL,
     error::{AppResult, F123ServiceError},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
@@ -9,13 +8,15 @@ use crate::{
 };
 use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     io::AsyncWriteExt,
     sync::{broadcast::Sender, oneshot},
     time::interval,
 };
 use tracing::warn;
+
+use super::caching::PacketCaching;
 
 const BATCHING_VECTOR_CAPACITY: usize = 2048;
 
@@ -35,7 +36,7 @@ const BATCHING_VECTOR_CAPACITY: usize = 2048;
 ///   batching process. Once a shutdown signal is received, no more packets are accepted,
 ///   and the current batch is processed and sent.
 ///
-/// - `cache`: `F123InsiderCache` is used to store packets as they arrive. This allows for
+/// - `cache`: `PacketCaching` is used to store packets as they arrive. This allows for
 ///   caching of individual packets alongside the batching process, enabling both immediate
 ///   and batched packet processing.
 ///
@@ -49,7 +50,7 @@ const BATCHING_VECTOR_CAPACITY: usize = 2048;
 pub struct PacketBatching {
     buf: Arc<Mutex<Vec<PacketHeader>>>,
     shutdown: Option<oneshot::Sender<()>>,
-    cache: F123InsiderCache,
+    cache: Arc<RwLock<PacketCaching>>,
 }
 
 impl PacketBatching {
@@ -64,7 +65,7 @@ impl PacketBatching {
     /// # Parameters
     ///
     /// - `tx`: A `Sender<Bytes>` used to send the batched data to a receiver.
-    /// - `cache`: `F123InsiderCache`, a cache used for storing or further processing of packets.
+    /// - `cache`: `PacketCaching`, a cache used for storing or further processing of packets.
     ///
     /// # Returns
     ///
@@ -74,7 +75,7 @@ impl PacketBatching {
     ///
     /// ```ignore
     /// let (tx, rx) = tokio::sync::mpsc::channel(100);
-    /// let cache = F123InsiderCache::new(); // Assuming F123InsiderCache::new is defined
+    /// let cache = PacketCaching::new(); // Assuming PacketCaching::new is defined
     /// let packet_batches = PacketBatching::new(tx, cache);
     /// ```
     ///
@@ -83,7 +84,7 @@ impl PacketBatching {
     /// The background task for sending batched data operates until a shutdown signal is received.
     /// Ensure to send a shutdown signal through the `shutdown` channel when the `PacketBatching`
     /// instance is no longer needed to properly clean up resources.
-    pub fn new(tx: Sender<Bytes>, cache: F123InsiderCache) -> Self {
+    pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
         let (otx, orx) = oneshot::channel::<()>();
         let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_VECTOR_CAPACITY)));
 
@@ -176,13 +177,12 @@ impl PacketBatching {
     pub async fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
-        second_param: Option<OptionalMessage<'_>>,
+        second_param: Option<OptionalMessage>,
     ) -> AppResult<()> {
         let packet_type = packet.r#type();
 
-        self.cache
-            .save(packet_type, &packet.payload, second_param)
-            .await?;
+        let mut cache = self.cache.write();
+        cache.save(packet_type, &packet.payload, second_param);
 
         self.buf.lock().push(packet);
         Ok(())

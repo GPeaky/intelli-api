@@ -1,15 +1,15 @@
 use crate::{
-    cache::F123InsiderCache,
-    config::{constants::*, Database},
+    config::constants::*,
     error::{AppResult, F123ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
-    services::f123::packet_batching::PacketBatching,
+    services::f123::{batching::PacketBatching, caching::PacketCaching},
     structs::{F123Data, F123ServiceData, OptionalMessage, PacketIds, SectorsLaps, SessionType},
     FirewallService,
 };
 use ahash::AHashMap;
 use dashmap::DashMap;
 use ntex::util::Bytes;
+use parking_lot::RwLock;
 use std::{cell::RefCell, sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
@@ -23,21 +23,16 @@ type Services = DashMap<i32, F123ServiceData>;
 
 #[derive(Clone)]
 pub struct F123Service {
-    db: &'static Database,
     services: &'static Services,
     firewall: &'static FirewallService,
 }
 
 impl F123Service {
-    pub fn new(db: &'static Database) -> Self {
+    pub fn new() -> Self {
         let firewall = Box::leak(Box::new(FirewallService::new()));
         let services = Box::leak(Box::new(DashMap::with_capacity(100)));
 
-        Self {
-            db,
-            firewall,
-            services,
-        }
+        Self { firewall, services }
     }
 
     pub async fn active_services(&self) -> Vec<i32> {
@@ -55,7 +50,13 @@ impl F123Service {
         self.services.contains_key(&id)
     }
 
-    #[allow(unused)]
+    // Todo - Finish this implementation
+    pub async fn service_cache(&self, championship_id: i32) -> AppResult<Vec<u8>> {
+        let service = self.services.get(&championship_id).unwrap();
+        let cache = service.cache.read();
+        Ok(cache.get())
+    }
+
     pub async fn subscribe(&self, championship_id: i32) -> Option<Receiver<Bytes>> {
         let service = self.services.get(&championship_id)?;
         Some(service.channel.resubscribe())
@@ -66,16 +67,18 @@ impl F123Service {
             return Err(F123ServiceError::AlreadyExists)?;
         }
 
+        let cache = Arc::from(RwLock::from(PacketCaching::new()));
         let (tx, rx) = channel::<Bytes>(50);
 
         let handler = self
-            .create_service_thread(port, championship_id, tx.clone())
+            .create_service_thread(port, championship_id, tx.clone(), cache.clone())
             .await;
 
         self.services.insert(
             championship_id,
             F123ServiceData {
                 handler,
+                cache,
                 channel: Arc::from(rx),
             },
         );
@@ -115,8 +118,8 @@ impl F123Service {
         port: i32,
         championship_id: i32,
         tx: Sender<Bytes>,
+        cache: Arc<RwLock<PacketCaching>>,
     ) -> JoinHandle<AppResult<()>> {
-        let db = self.db;
         let firewall = self.firewall;
         let services = self.services;
 
@@ -137,7 +140,6 @@ impl F123Service {
             let mut last_car_lap_update: AHashMap<u8, Instant> = AHashMap::with_capacity(20);
             let mut car_lap_sector_data: AHashMap<u8, SectorsLaps> = AHashMap::with_capacity(20);
 
-            let cache = F123InsiderCache::new(db.redis.get().await.unwrap(), championship_id);
             let mut packet_batching = PacketBatching::new(tx.clone(), cache);
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
@@ -270,14 +272,10 @@ impl F123Service {
                                     continue;
                                 };
 
-                                let string_code = unsafe {
-                                    std::str::from_utf8_unchecked(&event_data.event_string_code)
-                                };
-
                                 packet_batching
                                     .push_with_optional_parameter(
                                         packet,
-                                        Some(OptionalMessage::Text(string_code)),
+                                        Some(OptionalMessage::Code(event_data.event_string_code)),
                                     )
                                     .await?;
                             }

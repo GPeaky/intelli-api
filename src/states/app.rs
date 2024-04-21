@@ -2,9 +2,7 @@ use crate::{
     cache::RedisCache,
     config::Database,
     error::AppResult,
-    repositories::{
-        ChampionshipRepository, F123Repository, GoogleRepository, ServerRepository, UserRepository,
-    },
+    repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
     services::{
         ChampionshipService, EmailService, F123Service, SavedSessionService, TokenService,
         UserService,
@@ -21,8 +19,6 @@ pub struct AppState {
     pub email_svc: EmailService,
     pub f123_svc: F123Service,
     #[allow(unused)]
-    pub f123_repo: F123Repository,
-    #[allow(unused)]
     pub saved_session_svc: &'static SavedSessionService,
     pub google_repo: &'static GoogleRepository,
     pub server_repo: ServerRepository,
@@ -31,7 +27,6 @@ pub struct AppState {
 impl AppState {
     pub async fn new(db: &'static Database, cache: &'static RedisCache) -> AppResult<Self> {
         // Repositories
-        let f123_repo = F123Repository::new(db);
         let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
         let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
         let google_repo = Box::leak(Box::new(GoogleRepository::new()));
@@ -48,8 +43,7 @@ impl AppState {
 
         Ok(Self {
             user_svc,
-            f123_svc: F123Service::new(db),
-            f123_repo,
+            f123_svc: F123Service::new(),
             user_repo,
             token_svc,
             championship_svc,
