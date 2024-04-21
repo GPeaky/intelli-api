@@ -2,7 +2,7 @@ use std::{cell::Cell, sync::Arc};
 
 use crate::{
     config::constants::BATCHING_INTERVAL,
-    error::{AppResult, F123ServiceError},
+    error::{AppResult, F1ServiceError},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
 };
@@ -257,7 +257,7 @@ impl PacketBatching {
                 warn!("Broadcast channel: {}", e);
             };
         } else {
-            Err(F123ServiceError::BatchedEncoding)?
+            Err(F1ServiceError::BatchedEncoding)?
         }
 
         Ok(())
@@ -267,7 +267,7 @@ impl PacketBatching {
     ///
     /// This function takes a slice of bytes `data` as input and returns an `AppResult<Bytes>`
     /// containing the compressed data. In case of an error during compression, the error is logged,
-    /// and `F123ServiceError::Compressing` is returned.
+    /// and `F1ServiceError::Compressing` is returned.
     ///
     /// # Examples
     ///
@@ -279,7 +279,7 @@ impl PacketBatching {
     ///
     /// # Errors
     ///
-    /// If compression fails, this function returns an `Err` with `F123ServiceError::Compressing`.
+    /// If compression fails, this function returns an `Err` with `F1ServiceError::Compressing`.
     ///
     /// # Parameters
     ///

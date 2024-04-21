@@ -4,7 +4,7 @@ use crate::{
     error::AppResult,
     repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
     services::{
-        ChampionshipService, EmailService, F123Service, SavedSessionService, TokenService,
+        ChampionshipService, EmailService, F1Service, SavedSessionService, TokenService,
         UserService,
     },
 };
@@ -17,7 +17,7 @@ pub struct AppState {
     pub championship_svc: &'static ChampionshipService,
     pub championship_repo: &'static ChampionshipRepository,
     pub email_svc: EmailService,
-    pub f123_svc: F123Service,
+    pub f1_svc: F1Service,
     #[allow(unused)]
     pub saved_session_svc: &'static SavedSessionService,
     pub google_repo: &'static GoogleRepository,
@@ -43,7 +43,7 @@ impl AppState {
 
         Ok(Self {
             user_svc,
-            f123_svc: F123Service::new(),
+            f1_svc: F1Service::new(),
             user_repo,
             token_svc,
             championship_svc,

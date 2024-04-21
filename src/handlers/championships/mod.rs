@@ -7,7 +7,6 @@ use ntex::web::{
 pub(crate) use admin::*;
 pub(crate) use service::*;
 pub(crate) use stream::*;
-// pub(crate) use socket::*;
 
 use crate::{
     entity::{Role, UserExtension},

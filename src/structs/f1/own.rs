@@ -10,7 +10,7 @@ use crate::{error::AppResult, services::PacketCaching};
 
 use super::game::*;
 
-pub struct F123ServiceData {
+pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     pub channel: Arc<Receiver<Bytes>>,
     pub handler: JoinHandle<AppResult<()>>,
@@ -21,7 +21,7 @@ pub enum OptionalMessage {
     Number(u8),
 }
 
-pub enum F123Data<'a> {
+pub enum F1Data<'a> {
     Motion(&'a PacketMotionData),
     Session(&'a PacketSessionData),
     Event(&'a PacketEventData),
@@ -33,44 +33,44 @@ pub enum F123Data<'a> {
     CarTelemetry(&'a PacketCarTelemetryData),
 }
 
-impl<'a> F123Data<'a> {
-    pub fn try_deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F123Data> {
+impl<'a> F1Data<'a> {
+    pub fn try_deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F1Data> {
         match packet_id {
             PacketIds::Motion => {
-                Self::try_deserialize_packet::<PacketMotionData>(data).map(F123Data::Motion)
+                Self::try_deserialize_packet::<PacketMotionData>(data).map(F1Data::Motion)
             }
 
             PacketIds::Session => {
-                Self::try_deserialize_packet::<PacketSessionData>(data).map(F123Data::Session)
+                Self::try_deserialize_packet::<PacketSessionData>(data).map(F1Data::Session)
             }
 
             PacketIds::Participants => Self::try_deserialize_packet::<PacketParticipantsData>(data)
-                .map(F123Data::Participants),
+                .map(F1Data::Participants),
 
             PacketIds::FinalClassification => {
                 Self::try_deserialize_packet::<PacketFinalClassificationData>(data)
-                    .map(F123Data::FinalClassification)
+                    .map(F1Data::FinalClassification)
             }
 
             PacketIds::SessionHistory => {
                 Self::try_deserialize_packet::<PacketSessionHistoryData>(data)
-                    .map(F123Data::SessionHistory)
+                    .map(F1Data::SessionHistory)
             }
 
             PacketIds::Event => {
-                Self::try_deserialize_packet::<PacketEventData>(data).map(F123Data::Event)
+                Self::try_deserialize_packet::<PacketEventData>(data).map(F1Data::Event)
             }
 
             PacketIds::CarDamage => {
-                Self::try_deserialize_packet::<PacketCarDamageData>(data).map(F123Data::CarDamage)
+                Self::try_deserialize_packet::<PacketCarDamageData>(data).map(F1Data::CarDamage)
             }
 
             PacketIds::CarStatus => {
-                Self::try_deserialize_packet::<PacketCarStatusData>(data).map(F123Data::CarStatus)
+                Self::try_deserialize_packet::<PacketCarStatusData>(data).map(F1Data::CarStatus)
             }
 
             PacketIds::CarTelemetry => Self::try_deserialize_packet::<PacketCarTelemetryData>(data)
-                .map(F123Data::CarTelemetry),
+                .map(F1Data::CarTelemetry),
 
             _ => None,
         }

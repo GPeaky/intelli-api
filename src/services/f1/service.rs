@@ -1,9 +1,9 @@
 use crate::{
     config::constants::*,
-    error::{AppResult, F123ServiceError},
+    error::{AppResult, F1ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
-    services::f123::{batching::PacketBatching, caching::PacketCaching},
-    structs::{F123Data, F123ServiceData, OptionalMessage, PacketIds, SectorsLaps, SessionType},
+    services::f1::{batching::PacketBatching, caching::PacketCaching},
+    structs::{F1Data, F1ServiceData, OptionalMessage, PacketIds, SectorsLaps, SessionType},
 };
 use ahash::AHashMap;
 use dashmap::DashMap;
@@ -20,15 +20,15 @@ use tracing::{error, info, info_span, warn};
 
 use super::firewall::FirewallService;
 
-type Services = DashMap<i32, F123ServiceData>;
+type Services = DashMap<i32, F1ServiceData>;
 
 #[derive(Clone)]
-pub struct F123Service {
+pub struct F1Service {
     services: &'static Services,
     firewall: &'static FirewallService,
 }
 
-impl F123Service {
+impl F1Service {
     pub fn new() -> Self {
         let firewall = Box::leak(Box::new(FirewallService::new()));
         let services = Box::leak(Box::new(DashMap::with_capacity(100)));
@@ -65,7 +65,7 @@ impl F123Service {
 
     pub async fn start_service(&self, port: i32, championship_id: i32) -> AppResult<()> {
         if self.services.contains_key(&championship_id) {
-            return Err(F123ServiceError::AlreadyExists)?;
+            return Err(F1ServiceError::AlreadyExists)?;
         }
 
         let cache = Arc::from(RwLock::from(PacketCaching::new()));
@@ -77,7 +77,7 @@ impl F123Service {
 
         self.services.insert(
             championship_id,
-            F123ServiceData {
+            F1ServiceData {
                 handler,
                 cache,
                 channel: Arc::from(rx),
@@ -89,7 +89,7 @@ impl F123Service {
 
     pub async fn stop_service(&self, championship_id: i32) -> AppResult<()> {
         if !self.services.contains_key(&championship_id) {
-            return Err(F123ServiceError::NotActive)?;
+            return Err(F1ServiceError::NotActive)?;
         }
 
         if let Some(service) = self.services.remove(&championship_id) {
@@ -126,7 +126,7 @@ impl F123Service {
 
         // TODO - Prune cache on stop
         tokio::spawn(async move {
-            let span = info_span!("F123 Service", championship_id = championship_id);
+            let span = info_span!("F1 Service", championship_id = championship_id);
             let _guard = span.enter();
 
             // let mut port_partial_open = false;
@@ -145,10 +145,10 @@ impl F123Service {
 
             let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
                 error!("There was an error binding to the socket");
-                return Err(F123ServiceError::UdpSocket)?;
+                return Err(F1ServiceError::UdpSocket)?;
             };
 
-            info!("Listening for F123 data on port: {port}");
+            info!("Listening for F1 data on port: {port}");
             // firewall.open(championship_id, port).await?;
 
             loop {
@@ -164,14 +164,14 @@ impl F123Service {
                         //     port_partial_open = true;
                         // }
 
-                        let Some(header) = F123Data::try_deserialize_header(buf) else {
-                            error!("Error deserializing F123 header");
+                        let Some(header) = F1Data::try_deserialize_header(buf) else {
+                            error!("Error deserializing F1 header");
                             continue;
                         };
 
                         if header.packet_format != 2023 {
                             close_service.await?;
-                            return Err(F123ServiceError::UnsupportedPacketFormat)?;
+                            return Err(F1ServiceError::UnsupportedPacketFormat)?;
                         };
 
                         let session_id = header.session_uid;
@@ -181,7 +181,7 @@ impl F123Service {
 
                         let now = Instant::now();
                         let Ok(packet_id) = PacketIds::try_from(header.packet_id) else {
-                            error!("Error deserializing F123 packet id");
+                            error!("Error deserializing F1 packet id");
                             continue;
                         };
 
@@ -208,33 +208,33 @@ impl F123Service {
                             _ => {}
                         }
 
-                        let Some(packet) = F123Data::try_deserialize(packet_id, buf) else {
+                        let Some(packet) = F1Data::try_deserialize(packet_id, buf) else {
                             continue;
                         };
 
                         match packet {
-                            F123Data::Motion(motion_data) => {
+                            F1Data::Motion(motion_data) => {
                                 let packet = motion_data
                                     .convert(PacketType::CarMotion)
-                                    .ok_or(F123ServiceError::Encoding)?;
+                                    .ok_or(F1ServiceError::Encoding)?;
 
                                 last_car_motion_update = now;
                                 packet_batching.push(packet).await?;
                             }
 
-                            F123Data::Session(session_data) => {
+                            F1Data::Session(session_data) => {
                                 // #[cfg(not(debug_assertions))]
                                 // if session_data.network_game != 1 {
                                 //     error!("Not Online Game, closing service");
 
                                 //     close_service.await?;
-                                //     return Err(F123ServiceError::NotOnlineSession)?;
+                                //     return Err(F1ServiceError::NotOnlineSession)?;
                                 // }
 
                                 let Ok(converted_session_type) =
                                     SessionType::try_from(session_data.session_type)
                                 else {
-                                    error!("Error deserializing F123 session type");
+                                    error!("Error deserializing F1 session type");
                                     continue;
                                 };
 
@@ -242,23 +242,23 @@ impl F123Service {
 
                                 let packet = session_data
                                     .convert(PacketType::SessionData)
-                                    .ok_or(F123ServiceError::Encoding)?;
+                                    .ok_or(F1ServiceError::Encoding)?;
 
                                 last_session_update = now;
                                 packet_batching.push(packet).await?;
                             }
 
-                            F123Data::Participants(participants_data) => {
+                            F1Data::Participants(participants_data) => {
                                 let packet = participants_data
                                     .convert(PacketType::Participants)
-                                    .ok_or(F123ServiceError::Encoding)?;
+                                    .ok_or(F1ServiceError::Encoding)?;
 
                                 last_participants_update = now;
                                 packet_batching.push(packet).await?;
                             }
 
                             // If the session is not race don't save events
-                            F123Data::Event(event_data) => {
+                            F1Data::Event(event_data) => {
                                 let Some(session_type) = session_type.take() else {
                                     continue;
                                 };
@@ -281,7 +281,7 @@ impl F123Service {
                                     .await?;
                             }
 
-                            F123Data::SessionHistory(session_history) => {
+                            F1Data::SessionHistory(session_history) => {
                                 let last_update = last_car_lap_update
                                     .entry(session_history.car_idx)
                                     .or_insert(now);
@@ -309,7 +309,7 @@ impl F123Service {
 
                                     let packet = session_history
                                         .convert(PacketType::SessionHistoryData)
-                                        .ok_or(F123ServiceError::Encoding)?;
+                                        .ok_or(F1ServiceError::Encoding)?;
 
                                     *last_update = now;
                                     *last_sectors = sectors;
@@ -323,25 +323,25 @@ impl F123Service {
                                 }
                             }
 
-                            F123Data::CarDamage(_car_damage_data) => {
+                            F1Data::CarDamage(_car_damage_data) => {
                                 // info!("Car Damage: {:?}", car_damage_data);
                             }
 
-                            F123Data::CarTelemetry(_car_telemetry) => {
+                            F1Data::CarTelemetry(_car_telemetry) => {
                                 // info!("Car Telemetry: {:?}", car_telemetry);
                             }
 
-                            F123Data::CarStatus(_car_status) => {
+                            F1Data::CarStatus(_car_status) => {
                                 // info!("Car Status: {:?}", car_status);
                             }
 
                             //TODO - Collect All data from redis and save it to the mariadb db
-                            F123Data::FinalClassification(classification_data) => {
+                            F1Data::FinalClassification(classification_data) => {
                                 info!("FinalClassification data received");
 
                                 let packet = classification_data
                                     .convert(PacketType::FinalClassificationData)
-                                    .ok_or(F123ServiceError::Encoding)?;
+                                    .ok_or(F1ServiceError::Encoding)?;
 
                                 // Only for testing purposes, in the future this should close the service when the race is finished
                                 {
@@ -367,7 +367,7 @@ impl F123Service {
                         error!("Error receiving data from udp socket: {}", e);
                         info!("Stopping socket");
                         close_service.await?;
-                        return Err(F123ServiceError::ReceivingData)?;
+                        return Err(F1ServiceError::ReceivingData)?;
                     }
 
                     Err(_) => {

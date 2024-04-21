@@ -17,7 +17,7 @@ pub const REDIS_USER_PREFIX: &str = "user";
 pub const REDIS_CACHE_EXPIRATION: u64 = 60 * 60 * 24;
 pub const REDIS_CHAMPIONSHIP_PREFIX: &str = "championship";
 
-// F123 Service
+// F1 Service
 pub const BUFFER_SIZE: usize = 1460;
 pub const SOCKET_HOST: &str = "0.0.0.0";
 pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);

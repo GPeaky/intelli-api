@@ -6,7 +6,7 @@ use ntex::web::{
 use tokio_stream::wrappers::BroadcastStream;
 
 use crate::{
-    error::{AppResult, CommonError, F123ServiceError},
+    error::{AppResult, CommonError, F1ServiceError},
     states::AppState,
     structs::ChampionshipIdPath,
 };
@@ -19,16 +19,16 @@ pub async fn handle_stream(
         Err(CommonError::ValidationFailed)?
     }
 
-    if !state.f123_svc.service_active(path.0).await {
-        Err(F123ServiceError::NotActive)?
+    if !state.f1_svc.service_active(path.0).await {
+        Err(F1ServiceError::NotActive)?
     }
 
-    let _x = state.f123_svc.service_cache(path.0).await?;
-    // let _x = state.f123_repo.get_cache_data(path.0).await?;
+    let _x = state.f1_svc.service_cache(path.0).await?;
+    // let _x = state.f1_svc.get_cache_data(path.0).await?;
 
     // Todo - Get cache from redis and return it before sending real time data
-    let Some(rx) = state.f123_svc.subscribe(path.0).await else {
-        Err(F123ServiceError::NotActive)?
+    let Some(rx) = state.f1_svc.subscribe(path.0).await else {
+        Err(F1ServiceError::NotActive)?
     };
 
     let stream = BroadcastStream::new(rx);
