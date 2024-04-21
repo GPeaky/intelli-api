@@ -18,7 +18,6 @@ use dotenvy::{dotenv, var};
 use ntex::{http::header, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use services::FirewallService;
 use states::AppState;
 
 #[cfg(not(test))]

@@ -4,7 +4,6 @@ use crate::{
     protos::{packet_header::PacketType, ToProtoMessage},
     services::f123::{batching::PacketBatching, caching::PacketCaching},
     structs::{F123Data, F123ServiceData, OptionalMessage, PacketIds, SectorsLaps, SessionType},
-    FirewallService,
 };
 use ahash::AHashMap;
 use dashmap::DashMap;
@@ -18,6 +17,8 @@ use tokio::{
     time::timeout,
 };
 use tracing::{error, info, info_span, warn};
+
+use super::firewall::FirewallService;
 
 type Services = DashMap<i32, F123ServiceData>;
 
