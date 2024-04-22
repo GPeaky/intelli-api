@@ -9,7 +9,6 @@ use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},
 };
-use tokio::time::interval;
 use tracing::warn;
 
 use crate::error::CommonError;
@@ -17,38 +16,32 @@ use crate::error::CommonError;
 const RATE_LIMIT: u8 = 5;
 const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
 
-type VisitorData = (u8, Instant);
+pub type VisitorData = (u8, Instant);
 
-pub struct LoginLimit;
+pub struct LoginLimit {
+    visitors: &'static DashMap<IpAddr, VisitorData>,
+}
+
+impl LoginLimit {
+    pub fn new(visitors: &'static DashMap<IpAddr, VisitorData>) -> Self {
+        LoginLimit { visitors }
+    }
+}
 
 impl<S> Middleware<S> for LoginLimit {
     type Service = LoginLimitMiddleware<S>;
 
     fn create(&self, service: S) -> Self::Service {
-        let visitors = DashMap::with_capacity(10_000);
-
-        tokio::spawn({
-            let visitors = visitors.clone();
-            async move {
-                let mut interval = interval(Duration::from_secs(3600));
-
-                loop {
-                    interval.tick().await;
-
-                    visitors.retain(|_, (_, ref instant): &mut VisitorData| {
-                        instant.elapsed() < RATE_LIMIT_DURATION
-                    });
-                }
-            }
-        });
-
-        LoginLimitMiddleware { service, visitors }
+        LoginLimitMiddleware {
+            service,
+            visitors: self.visitors,
+        }
     }
 }
 
 pub struct LoginLimitMiddleware<S> {
     service: S,
-    visitors: DashMap<IpAddr, VisitorData>,
+    visitors: &'static DashMap<IpAddr, VisitorData>,
 }
 
 impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>
