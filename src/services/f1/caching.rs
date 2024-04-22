@@ -116,35 +116,28 @@ impl PacketCaching {
 
     #[inline(always)]
     fn get_car_motion(&self) -> Option<PacketHeader> {
-        match &self.car_motion {
-            None => None,
-            Some(car_motion_data) => Some(PacketHeader {
+        self.car_motion
+            .as_ref()
+            .map(|car_motion_data| PacketHeader {
                 r#type: PacketType::CarMotion.into(),
                 payload: car_motion_data.clone(),
-            }),
-        }
+            })
     }
 
     #[inline(always)]
     fn get_participants(&self) -> Option<PacketHeader> {
-        match &self.participants {
-            None => None,
-            Some(participants) => Some(PacketHeader {
-                r#type: PacketType::Participants.into(),
-                payload: participants.clone(),
-            }),
-        }
+        self.participants.as_ref().map(|participants| PacketHeader {
+            r#type: PacketType::Participants.into(),
+            payload: participants.clone(),
+        })
     }
 
     #[inline(always)]
     fn get_session_data(&self) -> Option<PacketHeader> {
-        match &self.session_data {
-            None => None,
-            Some(session_data) => Some(PacketHeader {
-                r#type: PacketType::SessionData.into(),
-                payload: session_data.clone(),
-            }),
-        }
+        self.session_data.as_ref().map(|session_data| PacketHeader {
+            r#type: PacketType::SessionData.into(),
+            payload: session_data.clone(),
+        })
     }
 
     #[inline(always)]

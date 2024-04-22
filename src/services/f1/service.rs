@@ -54,7 +54,7 @@ impl F1Service {
     // Todo - Finish this implementation
     pub async fn service_cache(&self, championship_id: i32) -> AppResult<Option<Bytes>> {
         let service = self.services.get(&championship_id).unwrap();
-        let cache = service.cache.read();
+        let cache = service.cache.read_arc();
         cache.get().await
     }
 
