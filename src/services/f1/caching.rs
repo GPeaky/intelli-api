@@ -54,6 +54,7 @@ impl PacketCaching {
             headers.append(&mut events_headers)
         };
 
+        // TODO - Fix if all are none avoid calling the encoder
         match ToProtoMessageBatched::batched_encoded(headers) {
             None => Ok(None),
             Some(bytes) => {
