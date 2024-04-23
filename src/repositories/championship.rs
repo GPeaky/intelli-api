@@ -1,5 +1,5 @@
 use ahash::AHashSet;
-use tokio_postgres::Row;
+use deadpool_postgres::tokio_postgres::Row;
 
 use crate::{
     cache::{EntityCache, RedisCache},
