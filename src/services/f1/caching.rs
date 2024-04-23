@@ -25,8 +25,8 @@ impl PacketCaching {
             car_motion: None,
             session_data: None,
             participants: None,
-            history_data: AHashMap::with_capacity(20),
-            event_data: AHashMap::with_capacity(5),
+            history_data: AHashMap::new(),
+            event_data: AHashMap::new(),
         }
     }
 
