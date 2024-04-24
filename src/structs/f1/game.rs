@@ -1,11 +1,11 @@
 use zerocopy_derive::{FromBytes, KnownLayout, NoCell};
 
-/// ---------------------------------------------
-/// -------------- ORIGINAL GAME ----------------
-/// ---------------------------------------------
+// ---------------------------------------------
+// -------------- ORIGINAL GAME ----------------
+// ---------------------------------------------
 
-/// Clone and Copy trait are only implemented for debugging purposes
-/// and should not be used in production code
+// Clone and Copy trait are only implemented for debugging purposes
+// and should not be used in production code
 
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy, FromBytes, NoCell, KnownLayout)]
@@ -428,9 +428,9 @@ pub struct CarDamageData {
     pub engine_seized: u8,           // Engine seized, 0 = OK, 1 = fault
 }
 
-/// ---------------------------------------------
-/// ------------ CUSTOM GAME TYPES --------------
-/// ---------------------------------------------
+// ---------------------------------------------
+// ------------ CUSTOM GAME TYPES --------------
+// ---------------------------------------------
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SectorsLaps {

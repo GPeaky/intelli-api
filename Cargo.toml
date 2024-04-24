@@ -1,7 +1,7 @@
 [package]
 name = "intelli-api"
 edition = "2021"
-version = "0.4.77"
+version = "0.5.0"
 readme = "README.md"
 description = "F1 Championship Tool"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
@@ -23,9 +23,7 @@ dotenvy = "0.15"
 sailfish = "0.8"
 mimalloc = "0.1"
 serde_trim = "1"
-serde_derive = "1"
 jsonwebtoken = "9"
-compact_str = "0.7"
 async-trait = "0.1"
 deadpool-redis = "0.15"
 postgres-derive = "0.4"
@@ -38,13 +36,11 @@ tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
 ntex = { version = "1", features = ["tokio", "openssl"] }
-once_cell = { version = "1", features = ["parking_lot"] }
 chrono = { version = "0.4", features = ["serde", "rkyv"] }
 garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 zerocopy = { version = "0.8.0-alpha", features = ["simd-nightly"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
-tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 async-compression = { version = "0.4.8", features = ["zstd", "tokio"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",

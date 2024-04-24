@@ -3,7 +3,7 @@ use ntex::web::{
     types::{Path, State},
     HttpResponse, Responder,
 };
-use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
 use crate::{
     error::{AppResult, CommonError, F1ServiceError},
@@ -23,17 +23,26 @@ pub async fn handle_stream(
         Err(F1ServiceError::NotActive)?
     }
 
-    let _x = state.f1_svc.service_cache(path.0).await?;
-    // let _x = state.f1_svc.get_cache_data(path.0).await?;
+    let cached_data = state.f1_svc.service_cache(path.0).await?;
 
-    // Todo - Get cache from redis and return it before sending real time data
     let Some(rx) = state.f1_svc.subscribe(path.0).await else {
         Err(F1ServiceError::NotActive)?
     };
 
     let stream = BroadcastStream::new(rx);
 
-    Ok(HttpResponse::Ok()
-        .content_type("application/octet-stream")
-        .streaming(stream))
+    match cached_data {
+        None => Ok(HttpResponse::Ok()
+            .content_type("application/octet-stream")
+            .streaming(stream)),
+
+        Some(data) => {
+            let cache_steam = tokio_stream::once(Ok(data));
+            let combined_stream = cache_steam.chain(stream);
+
+            Ok(HttpResponse::Ok()
+                .content_type("application/octet-stream")
+                .streaming(combined_stream))
+        }
+    }
 }

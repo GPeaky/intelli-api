@@ -245,7 +245,6 @@ impl PacketBatching {
             taken_buf
         };
 
-        // TODO: Implement another cache method for events
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
             let encoded_batch = Self::compress(&batch).await?;
 

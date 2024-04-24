@@ -1,17 +1,34 @@
-use ahash::AHashMap;
+use std::time::Duration;
+
+use ahash::{AHashMap, AHashSet};
+use async_compression::{tokio::write::ZstdEncoder, Level};
+use ntex::util::Bytes;
+use parking_lot::RwLock;
+use tokio::{io::AsyncWriteExt, time::Instant};
 use tracing::error;
 
-use crate::{protos::packet_header::PacketType, structs::OptionalMessage};
+use crate::{
+    error::AppResult,
+    protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
+    structs::OptionalMessage,
+};
+
+const CACHE_DURATION: Duration = Duration::from_secs(1);
+
+struct CachedData {
+    last_updated: Instant,
+    data: Bytes,
+}
 
 pub struct PacketCaching {
     car_motion: Option<Vec<u8>>,
     session_data: Option<Vec<u8>>,
     participants: Option<Vec<u8>>,
     history_data: AHashMap<u8, Vec<u8>>,
-    event_data: AHashMap<[u8; 4], Vec<Vec<u8>>>,
+    event_data: AHashSet<Vec<u8>>,
+    cache: RwLock<Option<CachedData>>,
 }
 
-// Todo - Create a method that returns a batched packed with all the latest information with a mini cache of 3 seconds
 impl PacketCaching {
     pub fn new() -> Self {
         Self {
@@ -19,13 +36,60 @@ impl PacketCaching {
             session_data: None,
             participants: None,
             history_data: AHashMap::with_capacity(20),
-            event_data: AHashMap::with_capacity(5),
+            event_data: AHashSet::with_capacity(10),
+            cache: RwLock::new(None),
         }
     }
 
-    // Todo - This returns all the packets batched
-    pub fn get(&self) -> Vec<u8> {
-        Vec::new()
+    pub async fn get(&self) -> AppResult<Option<Bytes>> {
+        {
+            let cache_read = self.cache.read();
+            if let Some(cached) = &*cache_read {
+                if cached.last_updated.elapsed() < CACHE_DURATION {
+                    return Ok(Some(cached.data.clone()));
+                }
+            }
+        }
+
+        let mut headers = Vec::with_capacity(self.total_headers());
+
+        if let Some(header) = self.get_car_motion() {
+            headers.push(header);
+        }
+
+        if let Some(header) = self.get_session_data() {
+            headers.push(header)
+        };
+
+        if let Some(header) = self.get_participants() {
+            headers.push(header)
+        };
+
+        if let Some(mut history_headers) = self.get_history_data() {
+            headers.append(&mut history_headers)
+        };
+
+        if let Some(mut events_headers) = self.get_events_data() {
+            headers.append(&mut events_headers)
+        };
+
+        if headers.is_empty() {
+            return Ok(None);
+        }
+
+        match ToProtoMessageBatched::batched_encoded(headers) {
+            None => Ok(None),
+            Some(bytes) => {
+                let compressed = Self::compress(&bytes).await?;
+                let mut cache_write = self.cache.write();
+
+                *cache_write = Some(CachedData {
+                    last_updated: Instant::now(),
+                    data: compressed.clone(),
+                });
+                Ok(Some(compressed))
+            }
+        }
     }
 
     pub fn save(
@@ -65,6 +129,77 @@ impl PacketCaching {
                 todo!()
             }
         }
+    }
+
+    fn total_headers(&self) -> usize {
+        let base_count = 3;
+        let history_estimate = self.history_data.len();
+        let events_estimate = self.event_data.len();
+
+        base_count + history_estimate + events_estimate
+    }
+
+    #[inline(always)]
+    fn get_car_motion(&self) -> Option<PacketHeader> {
+        self.car_motion
+            .as_ref()
+            .map(|car_motion_data| PacketHeader {
+                r#type: PacketType::CarMotion.into(),
+                payload: car_motion_data.clone(),
+            })
+    }
+
+    #[inline(always)]
+    fn get_participants(&self) -> Option<PacketHeader> {
+        self.participants.as_ref().map(|participants| PacketHeader {
+            r#type: PacketType::Participants.into(),
+            payload: participants.clone(),
+        })
+    }
+
+    #[inline(always)]
+    fn get_session_data(&self) -> Option<PacketHeader> {
+        self.session_data.as_ref().map(|session_data| PacketHeader {
+            r#type: PacketType::SessionData.into(),
+            payload: session_data.clone(),
+        })
+    }
+
+    #[inline(always)]
+    fn get_history_data(&self) -> Option<Vec<PacketHeader>> {
+        let len = self.history_data.len();
+        if len == 0 {
+            return None;
+        }
+
+        let mut vec = Vec::with_capacity(len);
+        for (_, session_history) in &self.history_data {
+            vec.push(PacketHeader {
+                r#type: PacketType::SessionHistoryData.into(),
+                payload: session_history.clone(),
+            })
+        }
+
+        Some(vec)
+    }
+
+    #[inline(always)]
+    fn get_events_data(&self) -> Option<Vec<PacketHeader>> {
+        let len = self.event_data.len();
+
+        if len == 0 {
+            return None;
+        }
+
+        let mut vec = Vec::with_capacity(len);
+        for event in &self.event_data {
+            vec.push(PacketHeader {
+                r#type: PacketType::EventData.into(),
+                payload: event.clone(),
+            })
+        }
+
+        Some(vec)
     }
 
     #[inline(always)]
@@ -119,7 +254,17 @@ impl PacketCaching {
     }
 
     #[inline(always)]
-    fn push_event(&mut self, payload: Vec<u8>, code: [u8; 4]) {
-        self.event_data.entry(code).or_default().push(payload);
+    fn push_event(&mut self, payload: Vec<u8>, _code: [u8; 4]) {
+        self.event_data.insert(payload);
+    }
+
+    #[inline(always)]
+    async fn compress(data: &[u8]) -> AppResult<Bytes> {
+        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
+
+        encoder.write_all(data).await.unwrap();
+        encoder.shutdown().await.unwrap();
+
+        Ok(Bytes::from(encoder.into_inner()))
     }
 }

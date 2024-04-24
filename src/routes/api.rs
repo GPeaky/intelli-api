@@ -1,3 +1,6 @@
+use std::net::IpAddr;
+
+use dashmap::DashMap;
 use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
 
 use crate::{
@@ -13,14 +16,18 @@ use crate::{
         heartbeat,
         user::{update_user, user_data},
     },
-    middlewares::{Authentication, LoginLimit},
+    middlewares::{Authentication, LoginLimit, VisitorData},
 };
 
 #[inline(always)]
-pub(crate) fn api_routes(cfg: &mut ServiceConfig) {
+pub(crate) fn api_routes(cfg: &mut ServiceConfig, visitors: &'static DashMap<IpAddr, VisitorData>) {
     cfg.service(
         scope("/auth")
-            .service(resource("/login").route(post().to(login)).wrap(LoginLimit))
+            .service(
+                resource("/login")
+                    .route(post().to(login))
+                    .wrap(LoginLimit::new(visitors)),
+            )
             .service(
                 resource("/logout")
                     .route(get().to(logout))
