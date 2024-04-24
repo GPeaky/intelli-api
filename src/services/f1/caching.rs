@@ -1,7 +1,10 @@
-use ahash::AHashMap;
+use std::time::Duration;
+
+use ahash::{AHashMap, AHashSet};
 use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
-use tokio::io::AsyncWriteExt;
+use parking_lot::RwLock;
+use tokio::{io::AsyncWriteExt, time::Instant};
 use tracing::error;
 
 use crate::{
@@ -10,13 +13,20 @@ use crate::{
     structs::OptionalMessage,
 };
 
+const CACHE_DURATION: Duration = Duration::from_secs(1);
+
+struct CachedData {
+    last_updated: Instant,
+    data: Bytes,
+}
+
 pub struct PacketCaching {
     car_motion: Option<Vec<u8>>,
     session_data: Option<Vec<u8>>,
     participants: Option<Vec<u8>>,
     history_data: AHashMap<u8, Vec<u8>>,
-    // Todo - Probably is not necessary, because we don't use it. AHashSet could be a better impl
-    event_data: AHashMap<[u8; 4], Vec<Vec<u8>>>,
+    event_data: AHashSet<Vec<u8>>,
+    cache: RwLock<Option<CachedData>>,
 }
 
 impl PacketCaching {
@@ -25,13 +35,22 @@ impl PacketCaching {
             car_motion: None,
             session_data: None,
             participants: None,
-            history_data: AHashMap::new(),
-            event_data: AHashMap::new(),
+            history_data: AHashMap::with_capacity(20),
+            event_data: AHashSet::with_capacity(10),
+            cache: RwLock::new(None),
         }
     }
 
-    // Todo - Add Mini Cache to avoid compressing multiple times in a second
     pub async fn get(&self) -> AppResult<Option<Bytes>> {
+        {
+            let cache_read = self.cache.read();
+            if let Some(cached) = &*cache_read {
+                if cached.last_updated.elapsed() < CACHE_DURATION {
+                    return Ok(Some(cached.data.clone()));
+                }
+            }
+        }
+
         let mut headers = Vec::with_capacity(self.total_headers());
 
         if let Some(header) = self.get_car_motion() {
@@ -54,11 +73,20 @@ impl PacketCaching {
             headers.append(&mut events_headers)
         };
 
-        // TODO - Fix if all are none avoid calling the encoder
+        if headers.is_empty() {
+            return Ok(None);
+        }
+
         match ToProtoMessageBatched::batched_encoded(headers) {
             None => Ok(None),
             Some(bytes) => {
                 let compressed = Self::compress(&bytes).await?;
+                let mut cache_write = self.cache.write();
+
+                *cache_write = Some(CachedData {
+                    last_updated: Instant::now(),
+                    data: compressed.clone(),
+                });
                 Ok(Some(compressed))
             }
         }
@@ -106,11 +134,7 @@ impl PacketCaching {
     fn total_headers(&self) -> usize {
         let base_count = 3;
         let history_estimate = self.history_data.len();
-        let mut events_estimate = 0;
-
-        for (_, events) in &self.event_data {
-            events_estimate += events.len();
-        }
+        let events_estimate = self.event_data.len();
 
         base_count + history_estimate + events_estimate
     }
@@ -161,23 +185,18 @@ impl PacketCaching {
 
     #[inline(always)]
     fn get_events_data(&self) -> Option<Vec<PacketHeader>> {
-        if self.event_data.is_empty() {
+        let len = self.event_data.len();
+
+        if len == 0 {
             return None;
         }
 
-        let mut total_capacity = 0;
-        for (_, events) in &self.event_data {
-            total_capacity += events.len();
-        }
-
-        let mut vec = Vec::with_capacity(total_capacity);
-        for (_, events_data) in &self.event_data {
-            for event in events_data {
-                vec.push(PacketHeader {
-                    r#type: PacketType::EventData.into(),
-                    payload: event.clone(),
-                })
-            }
+        let mut vec = Vec::with_capacity(len);
+        for event in &self.event_data {
+            vec.push(PacketHeader {
+                r#type: PacketType::EventData.into(),
+                payload: event.clone(),
+            })
         }
 
         Some(vec)
@@ -235,8 +254,8 @@ impl PacketCaching {
     }
 
     #[inline(always)]
-    fn push_event(&mut self, payload: Vec<u8>, code: [u8; 4]) {
-        self.event_data.entry(code).or_default().push(payload);
+    fn push_event(&mut self, payload: Vec<u8>, _code: [u8; 4]) {
+        self.event_data.insert(payload);
     }
 
     #[inline(always)]
