@@ -75,8 +75,9 @@ impl FirewallService {
         match rules.get(&id) {
             None => Err(FirewallError::RuleNotFound)?,
             Some(rule) => {
-                let ruleset = Self::ruleset().await?;
                 let search_pattern = format!("udp dport {}", rule.port);
+                drop(rules);
+                let ruleset = Self::ruleset().await?;
 
                 if let Some(start) = ruleset.find(&search_pattern) {
                     let remainder = &ruleset[start..];
