@@ -9,6 +9,8 @@ pub enum FirewallError {
     RuleNotFound,
     OpeningPort,
     ClosingPort,
+    ExecutionError,
+    ParseError,
 }
 
 impl std::error::Error for FirewallError {}
@@ -27,6 +29,8 @@ impl FirewallError {
             FirewallError::CreatingChain => StatusCode::INTERNAL_SERVER_ERROR,
             FirewallError::OpeningPort => StatusCode::INTERNAL_SERVER_ERROR,
             FirewallError::ClosingPort => StatusCode::INTERNAL_SERVER_ERROR,
+            FirewallError::ExecutionError => StatusCode::INTERNAL_SERVER_ERROR,
+            FirewallError::ParseError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -37,6 +41,8 @@ impl FirewallError {
             FirewallError::CreatingChain => "Failed to create chain",
             FirewallError::OpeningPort => "Failed to open port",
             FirewallError::ClosingPort => "Failed to close port",
+            FirewallError::ExecutionError => "Failed to execute command",
+            FirewallError::ParseError => "Failed to parse",
         }
     }
 }

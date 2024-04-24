@@ -93,7 +93,8 @@ impl F1Service {
         }
 
         if let Some(service) = self.services.remove(&championship_id) {
-            service.1.handler.abort()
+            service.1.handler.abort();
+            self.firewall.close(championship_id).await?;
         } else {
             warn!("Trying to remove a not existing service");
         }
@@ -149,7 +150,7 @@ impl F1Service {
             };
 
             info!("Listening for F1 data on port: {port}");
-            // firewall.open(championship_id, port).await?;
+            firewall.open(championship_id, port as u16).await?;
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
