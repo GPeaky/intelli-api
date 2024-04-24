@@ -8,6 +8,7 @@ use tracing::{error, warn};
 #[derive(Clone, Copy)]
 enum FirewallType {
     Open,
+    #[allow(unused)]
     PartiallyClosed,
 }
 
