@@ -112,6 +112,22 @@ impl FirewallService {
         }
     }
 
+    #[allow(unused)]
+    // Todo - Run this function when the server closes
+    pub async fn close_all(&self) -> AppResult<()> {
+        let ids = {
+            let rules = self.rules.read();
+            rules.keys().copied().collect::<Vec<_>>()
+        };
+
+        // Not concurrency need it because its only for stopping
+        for id in ids {
+            self.close(id).await?;
+        }
+
+        Ok(())
+    }
+
     fn rule_exists(&self, id: i32) -> bool {
         let rules = self.rules.read();
         rules.contains_key(&id)
