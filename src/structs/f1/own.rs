@@ -4,7 +4,7 @@ use ntex::util::Bytes;
 use parking_lot::RwLock;
 use tokio::{sync::broadcast::Receiver, task::JoinHandle};
 use tracing::error;
-use zerocopy::{FromBytes, KnownLayout, NoCell};
+use zerocopy::{FromBytes, Immutable, KnownLayout};
 
 use crate::{error::AppResult, services::PacketCaching};
 
@@ -81,9 +81,9 @@ impl<'a> F1Data<'a> {
     }
 
     #[inline(always)]
-    fn try_deserialize_packet<T: FromBytes + NoCell + KnownLayout>(bytes: &[u8]) -> Option<&T> {
+    fn try_deserialize_packet<T: FromBytes + KnownLayout + Immutable>(bytes: &[u8]) -> Option<&T> {
         match T::ref_from_prefix(bytes) {
-            Some(packet) => Some(packet),
+            Some(packet) => Some(packet.0),
             None => {
                 error!("Failed to deserialize packet");
                 None
