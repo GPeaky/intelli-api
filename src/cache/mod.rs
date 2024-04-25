@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
     error::AppResult,
@@ -51,7 +49,6 @@ impl RedisCache {
 /// and deleting entities in the cache.
 ///
 /// Implementors must specify the entity type and can override the default cache expiration.
-#[async_trait]
 pub trait EntityCache {
     /// The type of entity being cached.
     type Entity;

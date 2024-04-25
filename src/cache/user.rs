@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use deadpool_redis::redis::{self, AsyncCommands};
 use rkyv::{Deserialize, Infallible};
 use tracing::error;
@@ -74,7 +73,6 @@ impl UserCache {
     }
 }
 
-#[async_trait]
 impl EntityCache for UserCache {
     type Entity = User;
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;

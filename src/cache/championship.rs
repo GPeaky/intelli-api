@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use deadpool_redis::redis::{self, AsyncCommands};
 use rkyv::{Deserialize, Infallible};
 use tracing::error;
@@ -218,7 +217,6 @@ impl ChampionshipCache {
     }
 }
 
-#[async_trait]
 impl EntityCache for ChampionshipCache {
     type Entity = Championship;
     const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
