@@ -14,14 +14,14 @@ mod utils;
 
 use std::net::IpAddr;
 
-use cache::RedisCache;
+use cache::ServiceCache;
 use config::{initialize_tracing_subscriber, Database};
 use dashmap::DashMap;
 use dotenvy::{dotenv, var};
 use middlewares::VisitorData;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
-// use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use states::AppState;
 
 #[cfg(not(test))]
@@ -34,19 +34,19 @@ async fn main() -> std::io::Result<()> {
     initialize_tracing_subscriber();
     let app_state = {
         let db = Box::leak(Box::from(Database::new().await));
-        let redis_cache = Box::leak(Box::new(RedisCache::new(db)));
-        AppState::new(db, redis_cache).await.unwrap()
+        let service_cache = Box::leak(Box::new(ServiceCache::new()));
+        AppState::new(db, service_cache).await.unwrap()
     };
 
-    // let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
 
-    // builder
-    //     .set_private_key_file("certs/key.pem", SslFiletype::PEM)
-    //     .unwrap();
+    builder
+        .set_private_key_file("certs/key.pem", SslFiletype::PEM)
+        .unwrap();
 
-    // builder
-    //     .set_certificate_chain_file("certs/cert.pem")
-    //     .unwrap();
+    builder
+        .set_certificate_chain_file("certs/cert.pem")
+        .unwrap();
 
     // Todo - Make an recycle function to delete all unused data
     let login_limit_visitors: &'static DashMap<IpAddr, VisitorData> =
@@ -72,8 +72,7 @@ async fn main() -> std::io::Result<()> {
                     .finish(),
             )
     })
-    .bind(var("HOST").unwrap())?
-    // .bind_openssl(var("HOST").unwrap(), builder)?
+    .bind_openssl(var("HOST").unwrap(), builder)?
     .run()
     .await
 }

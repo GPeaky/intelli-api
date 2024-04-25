@@ -4,7 +4,7 @@ use ahash::AHashSet;
 use deadpool_postgres::tokio_postgres::Row;
 
 use crate::{
-    cache::{EntityCache, RedisCache},
+    cache::{EntityCache, ServiceCache},
     config::Database,
     entity::User,
     error::{AppResult, UserError},
@@ -18,7 +18,7 @@ use crate::{
 /// and a caching layer to optimize data retrieval and reduce db load.
 pub struct UserRepository {
     db: &'static Database,
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
 }
 
 impl UsedIds for &'static UserRepository {
@@ -51,11 +51,11 @@ impl UserRepository {
     ///
     /// # Arguments
     /// - `db`: A reference to a `Database` connection.
-    /// - `cache`: A reference to a `RedisCache`.
+    /// - `cache`: A reference to a `ServiceCache`.
     ///
     /// # Returns
     /// A new instance of `UserRepository`.
-    pub fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         Self { cache, db }
     }
 

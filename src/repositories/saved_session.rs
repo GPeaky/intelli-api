@@ -1,12 +1,12 @@
 use ahash::AHashSet;
 
-use crate::{cache::RedisCache, config::Database, error::AppResult, utils::UsedIds};
+use crate::{cache::ServiceCache, config::Database, error::AppResult, utils::UsedIds};
 
 #[derive(Clone)]
 pub struct SavedSessionRepository {
     db: &'static Database,
     #[allow(unused)]
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
 }
 
 impl UsedIds for SavedSessionRepository {
@@ -34,7 +34,7 @@ impl UsedIds for SavedSessionRepository {
 }
 
 impl SavedSessionRepository {
-    pub fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         Self { db, cache }
     }
 }

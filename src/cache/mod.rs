@@ -1,10 +1,5 @@
 use std::sync::Arc;
 
-use crate::{
-    config::{constants::REDIS_CACHE_EXPIRATION, Database},
-    error::AppResult,
-};
-
 use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
 
 mod championship;
@@ -20,9 +15,9 @@ mod user;
 ///
 /// ```
 /// let db = Database::connect(...); // Assume `Database::connect` is a method that returns a database connection.
-/// let cache = RedisCache::new(&db);
+/// let cache = ServiceCache::new(&db);
 /// ```
-pub struct RedisCache {
+pub struct ServiceCache {
     /// Cache for user-related data.
     pub user: UserCache,
     /// Cache for championship-related data.
@@ -31,18 +26,18 @@ pub struct RedisCache {
     pub token: TokenCache,
 }
 
-impl RedisCache {
-    /// Creates a new `RedisCache` instance with caches initialized for users,
+impl ServiceCache {
+    /// Creates a new `ServiceCache` instance with caches initialized for users,
     /// championships, and tokens.
     ///
     /// # Arguments
     ///
     /// * `db` - A reference to a `Database` instance to be used for cache initialization.
-    pub fn new(db: &'static Database) -> Self {
+    pub fn new() -> Self {
         Self {
             user: UserCache::new(),
             championship: ChampionshipCache::new(),
-            token: TokenCache::new(db),
+            token: TokenCache::new(),
         }
     }
 }

@@ -3,7 +3,7 @@ use postgres_types::ToSql;
 use tracing::{error, info};
 
 use crate::{
-    cache::{EntityCache, RedisCache},
+    cache::{EntityCache, ServiceCache},
     config::Database,
     entity::{Provider, UserExtension},
     error::{AppResult, TokenError, UserError},
@@ -21,7 +21,7 @@ use super::TokenService;
 /// efficiency, leveraging both a direct db connection and a Redis cache.
 pub struct UserService {
     /// Redis cache for temporarily storing user data.
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
     /// Database connection for persistent storage.
     db: &'static Database,
     /// Repository for user-specific db operations.
@@ -43,7 +43,7 @@ impl UserService {
     /// A new `UserService` instance.
     pub async fn new(
         db: &'static Database,
-        cache: &'static RedisCache,
+        cache: &'static ServiceCache,
         user_repo: &'static UserRepository,
         token_svc: &'static TokenService,
     ) -> Self {
@@ -225,10 +225,7 @@ impl UserService {
     /// # Returns
     /// The ID of the user whose password was reset if successful.
     pub async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
-        self.cache
-            .token
-            .get_token(token, &TokenType::ResetPassword)
-            .await?;
+        self.cache.token.get_token(token, TokenType::ResetPassword);
 
         let user_id = {
             let token_data = self.token_svc.validate(token)?;
@@ -243,8 +240,7 @@ impl UserService {
         self.reset_password(user_id, password).await?;
         self.cache
             .token
-            .remove_token(token, &TokenType::ResetPassword)
-            .await?;
+            .remove_token(token, TokenType::ResetPassword);
 
         Ok(user_id)
     }
@@ -285,7 +281,7 @@ impl UserService {
     /// # Returns
     /// The ID of the user activated if successful.
     pub async fn activate_with_token(&self, token: &str) -> AppResult<i32> {
-        self.cache.token.get_token(token, &TokenType::Email).await?;
+        self.cache.token.get_token(token, TokenType::Email);
         let user_id = {
             let token_data = self.token_svc.validate(token)?;
             if token_data.claims.token_type != TokenType::Email {
@@ -296,10 +292,7 @@ impl UserService {
         };
 
         self.activate(user_id).await?;
-        self.cache
-            .token
-            .remove_token(token, &TokenType::Email)
-            .await?;
+        self.cache.token.remove_token(token, TokenType::Email);
 
         Ok(user_id)
     }

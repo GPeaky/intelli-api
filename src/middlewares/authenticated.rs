@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},

@@ -3,7 +3,7 @@ use postgres_types::ToSql;
 use tracing::info;
 
 use crate::{
-    cache::RedisCache,
+    cache::ServiceCache,
     config::Database,
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository},
@@ -20,7 +20,7 @@ pub struct ChampionshipService {
     /// Database connection for persistent storage of championship data.
     db: &'static Database,
     /// Redis cache for temporarily storing championship-related data.
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
     /// A shared, thread-safe set of available ports for championships.
     ports: MachinePorts,
     /// Repository for user-specific db operations.
@@ -46,7 +46,7 @@ impl ChampionshipService {
     /// A new `ChampionshipService` instance.
     pub async fn new(
         db: &'static Database,
-        cache: &'static RedisCache,
+        cache: &'static ServiceCache,
         user_repo: &'static UserRepository,
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
@@ -136,8 +136,7 @@ impl ChampionshipService {
                 .await?;
         }
 
-        self.cache.championship.delete_by_user_id(user_id);
-
+        self.cache.championship.delete_by_user(user_id);
         Ok(())
     }
 
@@ -212,7 +211,7 @@ impl ChampionshipService {
         }
 
         let users = self.championship_repo.users(id).await?;
-        self.cache.championship.delete_all(id, users);
+        self.cache.championship.prune(id, users);
 
         Ok(())
     }
@@ -260,7 +259,7 @@ impl ChampionshipService {
             .await?;
 
         conn.execute(&add_user_stmt, &[&new_user_id, &id]).await?;
-        self.cache.championship.delete_by_user_id(new_user_id);
+        self.cache.championship.delete_by_user(new_user_id);
         Ok(())
     }
 
@@ -307,7 +306,7 @@ impl ChampionshipService {
 
         conn.execute(&remove_user_stmt, &[&remove_user_id, &id])
             .await?;
-        self.cache.championship.delete_by_user_id(remove_user_id);
+        self.cache.championship.delete_by_user(remove_user_id);
 
         Ok(())
     }
@@ -344,7 +343,7 @@ impl ChampionshipService {
         let users = self.championship_repo.users(id).await?;
         conn.execute(&delete_championship_relations_stmt, &[&id])
             .await?;
-        self.cache.championship.delete_all(id, users);
+        self.cache.championship.prune(id, users);
 
         conn.execute(&delete_championship_stmt, &[&id]).await?;
         info!("Championship deleted with success: {id}");

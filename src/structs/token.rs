@@ -1,8 +1,9 @@
 use chrono::{Duration, Local, TimeDelta};
 use serde::{Deserialize, Serialize};
+use tokio::time::Instant;
 
 //* Token Type Enum
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 pub enum TokenType {
     Bearer,
     Email,
@@ -19,6 +20,10 @@ pub struct TokenClaim {
 
 // Token Type Implementation
 impl TokenType {
+    pub fn expiry(&self) -> Instant {
+        Instant::now() + self.minutes().unwrap().to_std().unwrap()
+    }
+
     pub fn set_expiration(&self) -> usize {
         let minutes = self.minutes().unwrap();
 
@@ -26,15 +31,6 @@ impl TokenType {
             .checked_add_signed(minutes)
             .unwrap()
             .timestamp() as usize
-    }
-
-    pub const fn base_key(&self) -> &'static str {
-        match self {
-            TokenType::Email => "tokens:email",
-            TokenType::ResetPassword => "tokens:reset_password",
-            TokenType::RefreshBearer => "tokens:refresh_access",
-            _ => panic!("Invalid token type"),
-        }
     }
 
     const fn minutes(&self) -> Option<TimeDelta> {

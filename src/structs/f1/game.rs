@@ -1,4 +1,4 @@
-use zerocopy_derive::{FromBytes, KnownLayout, Immutable};
+use zerocopy_derive::{FromBytes, Immutable, KnownLayout};
 
 // ---------------------------------------------
 // -------------- ORIGINAL GAME ----------------
