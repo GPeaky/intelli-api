@@ -171,14 +171,9 @@ impl UserService {
 
         let conn = self.db.pg.get().await?;
         let update_user_stmt = conn.prepare_cached(&query).await?;
+        conn.execute(&update_user_stmt, &params[..]).await?;
+        self.cache.user.delete(user.id);
 
-        let delete_cache_fut = self.cache.user.delete(user.id);
-        let update_user_fut = async {
-            conn.execute(&update_user_stmt, &params[..]).await?;
-            Ok(())
-        };
-
-        tokio::try_join!(update_user_fut, delete_cache_fut)?;
         Ok(())
     }
 
@@ -213,13 +208,9 @@ impl UserService {
         let binding: [&(dyn ToSql + Sync); 1] = [&id];
         conn.execute(&delete_users_relations_stmt, &binding).await?;
 
-        let user_deletion_fut = async {
-            conn.execute(&delete_user_stmt, &binding).await?;
-            Ok(())
-        };
-        let cache_del_fut = self.cache.user.delete(id);
+        conn.execute(&delete_user_stmt, &binding).await?;
+        self.cache.user.delete(id);
 
-        tokio::try_join!(user_deletion_fut, cache_del_fut)?;
         info!("User deleted with success: {}", id);
 
         Ok(())
@@ -278,14 +269,8 @@ impl UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
-        let activate_user_fut = async {
-            conn.execute(&activate_user_stmt, &bindings).await?;
-            Ok(())
-        };
-        let delete_cache_fut = self.cache.user.delete(id);
-
-        tokio::try_join!(activate_user_fut, delete_cache_fut)?;
+        conn.execute(&activate_user_stmt, &[&id]).await?;
+        self.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
 
@@ -338,14 +323,9 @@ impl UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
-        let delete_cache_fut = self.cache.user.delete(id);
-        let deactivate_user_fut = async {
-            conn.execute(&deactivate_user_stmt, &bindings).await?;
-            Ok(())
-        };
+        conn.execute(&deactivate_user_stmt, &[&id]).await?;
+        self.cache.user.delete(id);
 
-        tokio::try_join!(deactivate_user_fut, delete_cache_fut)?;
         info!("User activated with success: {}", id);
         Ok(())
     }
@@ -379,16 +359,12 @@ impl UserService {
             .await?;
 
         let hashed_password = hash_password(password)?;
-        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
-        let update_user_fut = async {
-            conn.execute(&reset_password_stmt, &bindings).await?;
-            Ok(())
-        };
-        let remove_cache_fut = self.cache.user.delete(id);
+        conn.execute(&reset_password_stmt, &[&hashed_password, &id])
+            .await?;
 
-        tokio::try_join!(update_user_fut, remove_cache_fut)?;
+        self.cache.user.delete(id);
+
         info!("User password reseated with success: {}", id);
-
         Ok(())
     }
 }

@@ -21,7 +21,7 @@ use dotenvy::{dotenv, var};
 use middlewares::VisitorData;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+// use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use states::AppState;
 
 #[cfg(not(test))]
@@ -38,15 +38,15 @@ async fn main() -> std::io::Result<()> {
         AppState::new(db, redis_cache).await.unwrap()
     };
 
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    // let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
 
-    builder
-        .set_private_key_file("certs/key.pem", SslFiletype::PEM)
-        .unwrap();
+    // builder
+    //     .set_private_key_file("certs/key.pem", SslFiletype::PEM)
+    //     .unwrap();
 
-    builder
-        .set_certificate_chain_file("certs/cert.pem")
-        .unwrap();
+    // builder
+    //     .set_certificate_chain_file("certs/cert.pem")
+    //     .unwrap();
 
     // Todo - Make an recycle function to delete all unused data
     let login_limit_visitors: &'static DashMap<IpAddr, VisitorData> =
@@ -72,7 +72,8 @@ async fn main() -> std::io::Result<()> {
                     .finish(),
             )
     })
-    .bind_openssl(var("HOST").unwrap(), builder)?
+    .bind(var("HOST").unwrap())?
+    // .bind_openssl(var("HOST").unwrap(), builder)?
     .run()
     .await
 }

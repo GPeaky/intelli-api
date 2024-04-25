@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     config::{constants::REDIS_CACHE_EXPIRATION, Database},
     error::AppResult,
@@ -38,8 +40,8 @@ impl RedisCache {
     /// * `db` - A reference to a `Database` instance to be used for cache initialization.
     pub fn new(db: &'static Database) -> Self {
         Self {
-            user: UserCache::new(db),
-            championship: ChampionshipCache::new(db),
+            user: UserCache::new(),
+            championship: ChampionshipCache::new(),
             token: TokenCache::new(db),
         }
     }
@@ -53,9 +55,6 @@ pub trait EntityCache {
     /// The type of entity being cached.
     type Entity;
 
-    /// Default expiration time for cache entries, in seconds.
-    const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
-
     // Retrieves an entity by its ID.
     ///
     /// # Arguments
@@ -65,7 +64,7 @@ pub trait EntityCache {
     /// # Returns
     ///
     /// A result containing an option with the entity if found, or a none if not.
-    async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>>;
+    fn get(&self, id: i32) -> Option<Arc<Self::Entity>>;
 
     /// Stores an entity in the cache.
     ///
@@ -76,7 +75,7 @@ pub trait EntityCache {
     /// # Returns
     ///
     /// A result indicating success or failure.
-    async fn set(&self, entity: &Self::Entity) -> AppResult<()>;
+    fn set(&self, entity: Arc<Self::Entity>);
 
     /// Removes an entity from the cache by its ID.
     ///
@@ -87,5 +86,5 @@ pub trait EntityCache {
     /// # Returns
     ///
     /// A result indicating success or failure.
-    async fn delete(&self, id: i32) -> AppResult<()>;
+    fn delete(&self, id: i32);
 }

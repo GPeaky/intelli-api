@@ -74,7 +74,7 @@ pub(crate) async fn login(
 
     if !state
         .user_repo
-        .validate_password(&form.password, &user.password.unwrap())?
+        .validate_password(&form.password, user.password.as_ref().unwrap())?
     {
         return Err(UserError::InvalidCredentials)?;
     }

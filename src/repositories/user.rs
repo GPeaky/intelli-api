@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ahash::AHashSet;
 use deadpool_postgres::tokio_postgres::Row;
 
@@ -64,8 +66,8 @@ impl UserRepository {
     ///
     /// # Returns
     /// An `AppResult` containing the user if found, or `None`.
-    pub async fn find(&self, id: i32) -> AppResult<Option<User>> {
-        if let Some(user) = self.cache.user.get(id).await? {
+    pub async fn find(&self, id: i32) -> AppResult<Option<Arc<User>>> {
+        if let Some(user) = self.cache.user.get(id) {
             return Ok(Some(user));
         };
 
@@ -84,7 +86,7 @@ impl UserRepository {
             conn.query_opt(&find_user_stmt, &[&id]).await?
         };
 
-        self.convert_to_user(row).await
+        self.convert_to_user(row)
     }
 
     /// Checks if a user exists by their email.
@@ -154,8 +156,8 @@ impl UserRepository {
     ///
     /// # Returns
     /// An `AppResult` containing the user if found, or `None`.
-    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
-        if let Some(user) = self.cache.user.get_by_email(email).await? {
+    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<Arc<User>>> {
+        if let Some(user) = self.cache.user.get_by_email(email) {
             return Ok(Some(user));
         };
 
@@ -174,7 +176,7 @@ impl UserRepository {
             conn.query_opt(&find_by_email_stmt, &[&email]).await?
         };
 
-        self.convert_to_user(row).await
+        self.convert_to_user(row)
     }
 
     /// Converts a db row into a `User` object.
@@ -191,15 +193,15 @@ impl UserRepository {
     /// - `Ok(None)` if the row is `None`.
     /// - `Err(UserError::NotVerified)` if the user is not active.
     #[inline]
-    async fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<User>> {
+    fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<Arc<User>>> {
         if let Some(row) = row {
-            let user = User::try_from(&row)?;
+            let user = Arc::new(User::try_from(&row)?);
 
             if !user.active {
                 Err(UserError::NotVerified)?
             }
 
-            self.cache.user.set(&user).await?;
+            self.cache.user.set(user.clone());
             return Ok(Some(user));
         }
 

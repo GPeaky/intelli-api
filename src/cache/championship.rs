@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use deadpool_redis::redis::{self, AsyncCommands};
+use quick_cache::sync::Cache;
 use rkyv::{Deserialize, Infallible};
 use tracing::error;
 
@@ -10,17 +13,12 @@ use crate::{
 
 use super::EntityCache;
 
-const ID: &str = "id";
-const NAME: &str = "name";
-const USER_ID: &str = "user_id";
-
 /// `ChampionshipCache` is a caching structure for storing and retrieving championship data using Redis.
 /// It provides methods to interact with a Redis cache to retrieve championships by user ID or by name,
 /// as well as methods to set, delete, and manage championship data in the cache.
 ///
-#[derive(Clone)]
 pub struct ChampionshipCache {
-    db: &'static Database,
+    cache: Cache<i32, Arc<Championship>>,
 }
 
 impl ChampionshipCache {
@@ -33,8 +31,10 @@ impl ChampionshipCache {
     /// # Returns
     ///
     /// A new `ChampionshipCache` instance.
-    pub fn new(db: &'static Database) -> Self {
-        Self { db }
+    pub fn new() -> Self {
+        Self {
+            cache: Cache::new(100_000),
+        }
     }
 
     /// Retrieves all championships associated with a user by their user ID from the Redis cache.
@@ -54,27 +54,27 @@ impl ChampionshipCache {
     /// data, this function returns an `AppError` indicating the issue.
     ///
     #[allow(unused)]
-    pub async fn get_all(&self, user_id: i32) -> AppResult<Option<Vec<Championship>>> {
-        let entities: Option<Vec<u8>> = {
-            let mut conn = self.db.redis.get().await?;
+    pub fn get_all(&self, user_id: i32) -> AppResult<Option<Vec<Championship>>> {
+        // let entities: Option<Vec<u8>> = {
+        //     let mut conn = self.db.redis.get().await?;
 
-            conn.get(&format!(
-                "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
-                user_id
-            ))
-            .await?
-        };
+        //     conn.get(&format!(
+        //         "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
+        //         user_id
+        //     ))
+        //     .await?
+        // };
 
-        if let Some(entities) = entities {
-            let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
+        // if let Some(entities) = entities {
+        //     let archived = unsafe { rkyv::archived_root::<Vec<Championship>>(&entities) };
 
-            let Ok(entities) = archived.deserialize(&mut Infallible) else {
-                error!("Failed to deserialize championships from cache");
-                Err(CacheError::Deserialize)?
-            };
+        //     let Ok(entities) = archived.deserialize(&mut Infallible) else {
+        //         error!("Failed to deserialize championships from cache");
+        //         Err(CacheError::Deserialize)?
+        //     };
 
-            return Ok(Some(entities));
-        }
+        //     return Ok(Some(entities));
+        // }
 
         Ok(None)
     }
@@ -96,25 +96,25 @@ impl ChampionshipCache {
     /// data, this function returns an `AppError` indicating the issue.
     ///
     #[allow(unused)]
-    pub async fn get_by_name(&self, name: &str) -> AppResult<Option<Championship>> {
-        let bytes: Option<Vec<u8>> = {
-            let mut conn = self.db.redis.get().await?;
-            conn.get(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}", name))
-                .await?
-        };
+    pub fn get_by_name(&self, name: &str) -> AppResult<Option<Arc<Championship>>> {
+        // let bytes: Option<Vec<u8>> = {
+        //     let mut conn = self.db.redis.get().await?;
+        //     conn.get(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}", name))
+        //         .await?
+        // };
 
-        if let Some(bytes) = bytes {
-            let archived = unsafe { rkyv::archived_root::<Championship>(&bytes) };
+        // if let Some(bytes) = bytes {
+        //     let archived = unsafe { rkyv::archived_root::<Championship>(&bytes) };
 
-            let Ok(entity): Result<Championship, std::convert::Infallible> =
-                archived.deserialize(&mut Infallible)
-            else {
-                error!("Failed to deserialize championship from cache");
-                Err(CacheError::Deserialize)?
-            };
+        //     let Ok(entity): Result<Championship, std::convert::Infallible> =
+        //         archived.deserialize(&mut Infallible)
+        //     else {
+        //         error!("Failed to deserialize championship from cache");
+        //         Err(CacheError::Deserialize)?
+        //     };
 
-            return Ok(Some(entity));
-        }
+        //     return Ok(Some(entity));
+        // }
 
         Ok(None)
     }
@@ -136,20 +136,20 @@ impl ChampionshipCache {
     /// returns an `AppError` indicating the issue.
     ///
     #[allow(unused)]
-    pub async fn set_all(&self, user_id: i32, championships: &Vec<Championship>) -> AppResult<()> {
-        let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
-            error!("Failed to serialize championships to cache");
-            Err(CacheError::Serialize)?
-        };
+    pub fn set_all(&self, user_id: i32, championships: &Vec<Championship>) -> AppResult<()> {
+        // let Ok(bytes) = rkyv::to_bytes::<_, 256>(championships) else {
+        //     error!("Failed to serialize championships to cache");
+        //     Err(CacheError::Serialize)?
+        // };
 
-        let mut conn = self.db.redis.get().await?;
+        // let mut conn = self.db.redis.get().await?;
 
-        conn.set_ex(
-            &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user_id),
-            &bytes[..],
-            Self::EXPIRATION,
-        )
-        .await?;
+        // conn.set_ex(
+        //     &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user_id),
+        //     &bytes[..],
+        //     Self::EXPIRATION,
+        // )
+        // .await?;
 
         Ok(())
     }
@@ -169,16 +169,14 @@ impl ChampionshipCache {
     /// If there is an error while interacting with the Redis cache, this function returns an
     /// `AppError` indicating the issue.
     ///
-    pub async fn delete_by_user_id(&self, user_id: i32) -> AppResult<()> {
-        let mut conn = self.db.redis.get().await?;
+    pub fn delete_by_user_id(&self, user_id: i32) {
+        // let mut conn = self.db.redis.get().await?;
 
-        conn.del(&format!(
-            "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
-            user_id
-        ))
-        .await?;
-
-        Ok(())
+        // conn.del(&format!(
+        //     "{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}",
+        //     user_id
+        // ))
+        // .await?;
     }
 
     /// Deletes all championships associated with a list of users from the Redis cache.
@@ -201,17 +199,17 @@ impl ChampionshipCache {
     ///
     /// This method requires testing to ensure its functionality.
     ///
-    pub async fn delete_all(&self, id: i32, users: Vec<i32>) -> AppResult<()> {
-        let mut pipe = redis::pipe();
+    pub fn delete_all(&self, id: i32, users: Vec<i32>) -> AppResult<()> {
+        // let mut pipe = redis::pipe();
 
-        for user in users {
-            pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user));
-        }
+        // for user in users {
+        //     pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{USER_ID}:{}", user));
+        // }
 
-        pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id));
+        // pipe.del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id));
 
-        let mut conn = self.db.redis.get().await?;
-        pipe.query_async(&mut conn).await?;
+        // let mut conn = self.db.redis.get().await?;
+        // pipe.query_async(&mut conn).await?;
 
         Ok(())
     }
@@ -219,108 +217,73 @@ impl ChampionshipCache {
 
 impl EntityCache for ChampionshipCache {
     type Entity = Championship;
-    const EXPIRATION: u64 = REDIS_CACHE_EXPIRATION;
 
-    async fn get(&self, id: i32) -> AppResult<Option<Self::Entity>> {
-        let bytes: Option<Vec<u8>> = {
-            let mut conn = self.db.redis.get().await?;
-            conn.get(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{id}"))
-                .await?
-        };
+    fn get(&self, id: i32) -> Option<Arc<Self::Entity>> {
+        // let bytes: Option<Vec<u8>> = {
+        //     let mut conn = self.db.redis.get().await?;
+        //     conn.get(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{id}"))
+        //         .await?
+        // };
 
-        if let Some(bytes) = bytes {
-            let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };
+        // if let Some(bytes) = bytes {
+        //     let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };
 
-            let Ok(entity) = archived.deserialize(&mut Infallible) else {
-                error!("Error deserializing championship from cache");
-                return Err(CacheError::Deserialize)?;
-            };
+        //     let Ok(entity) = archived.deserialize(&mut Infallible) else {
+        //         error!("Error deserializing championship from cache");
+        //         return Err(CacheError::Deserialize)?;
+        //     };
 
-            return Ok(Some(entity));
-        }
+        //     return Ok(Some(entity));
+        // }
 
-        Ok(None)
+        None
     }
 
-    async fn set(&self, entity: &Self::Entity) -> AppResult<()> {
-        let Ok(bytes) = rkyv::to_bytes::<_, 72>(entity) else {
-            error!("Failed to serialize championship to cache");
-            Err(CacheError::Serialize)?
-        };
+    fn set(&self, entity: Arc<Self::Entity>) {
+        // let Ok(bytes) = rkyv::to_bytes::<_, 72>(entity) else {
+        //     error!("Failed to serialize championship to cache");
+        //     Err(CacheError::Serialize)?
+        // };
 
-        let mut conn = self.db.redis.get().await?;
+        // let mut conn = self.db.redis.get().await?;
 
-        redis::pipe()
-            .set_ex(
-                &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", entity.id),
-                &bytes[..],
-                Self::EXPIRATION,
-            )
-            .set_ex(
-                &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}", entity.name),
-                &bytes[..],
-                Self::EXPIRATION,
-            )
-            .query_async(&mut conn)
-            .await?;
-
-        Ok(())
+        // redis::pipe()
+        //     .set_ex(
+        //         &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", entity.id),
+        //         &bytes[..],
+        //         Self::EXPIRATION,
+        //     )
+        //     .set_ex(
+        //         &format!("{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}", entity.name),
+        //         &bytes[..],
+        //         Self::EXPIRATION,
+        //     )
+        //     .query_async(&mut conn)
+        //     .await?;
     }
 
-    async fn delete(&self, id: i32) -> AppResult<()> {
-        let mut conn = self.db.redis.get().await?;
+    fn delete(&self, id: i32) {
+        // let mut conn = self.db.redis.get().await?;
 
-        let bytes: Option<Vec<u8>> = conn
-            .get_del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id))
-            .await?;
+        // let bytes: Option<Vec<u8>> = conn
+        //     .get_del(&format!("{REDIS_CHAMPIONSHIP_PREFIX}:{ID}:{}", id))
+        //     .await?;
 
-        if let Some(bytes) = bytes {
-            let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };
+        // if let Some(bytes) = bytes {
+        //     let archived = unsafe { rkyv::archived_root::<Self::Entity>(&bytes) };
 
-            let Ok(entity): Result<Championship, std::convert::Infallible> =
-                archived.deserialize(&mut Infallible)
-            else {
-                error!("Failed to deserialize championship from cache");
-                Err(CacheError::Deserialize)?
-            };
+        //     let Ok(entity): Result<Championship, std::convert::Infallible> =
+        //         archived.deserialize(&mut Infallible)
+        //     else {
+        //         error!("Failed to deserialize championship from cache");
+        //         Err(CacheError::Deserialize)?
+        //     };
 
-            conn.del(&format!(
-                "{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}",
-                entity.name
-            ))
-            .await?;
-        }
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::error::AppResult;
-
-    #[ntex::test]
-    async fn test_get() -> AppResult<()> {
-        Ok(())
-    }
-
-    #[ntex::test]
-    async fn test_set() -> AppResult<()> {
-        Ok(())
-    }
-
-    #[ntex::test]
-    async fn test_get_all() -> AppResult<()> {
-        Ok(())
-    }
-
-    #[ntex::test]
-    async fn test_set_all() -> AppResult<()> {
-        Ok(())
-    }
-
-    #[ntex::test]
-    async fn test_delete() -> AppResult<()> {
-        Ok(())
+        //     conn.del(&format!(
+        //         "{REDIS_CHAMPIONSHIP_PREFIX}:{NAME}:{}",
+        //         entity.name
+        //     ))
+        //     .await?;
+        // }
     }
 }

@@ -61,7 +61,7 @@ where
 
         let id = state.token_svc.validate(header)?.claims.sub;
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
-        req.extensions_mut().insert(Arc::from(user));
+        req.extensions_mut().insert(user);
 
         let res = ctx.call(&self.service, req).await?;
         Ok(res)

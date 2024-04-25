@@ -136,7 +136,7 @@ impl ChampionshipService {
                 .await?;
         }
 
-        self.cache.championship.delete_by_user_id(user_id).await?;
+        self.cache.championship.delete_by_user_id(user_id);
 
         Ok(())
     }
@@ -212,7 +212,7 @@ impl ChampionshipService {
         }
 
         let users = self.championship_repo.users(id).await?;
-        self.cache.championship.delete_all(id, users).await?;
+        self.cache.championship.delete_all(id, users);
 
         Ok(())
     }
@@ -259,14 +259,8 @@ impl ChampionshipService {
             )
             .await?;
 
-        let add_user_fut = async {
-            let bindings: [&(dyn ToSql + Sync); 2] = [&new_user_id, &id];
-            conn.execute(&add_user_stmt, &bindings).await?;
-            Ok(())
-        };
-
-        let delete_user_cache_fut = self.cache.championship.delete_by_user_id(new_user_id);
-        tokio::try_join!(add_user_fut, delete_user_cache_fut)?;
+        conn.execute(&add_user_stmt, &[&new_user_id, &id]).await?;
+        self.cache.championship.delete_by_user_id(new_user_id);
         Ok(())
     }
 
@@ -311,14 +305,10 @@ impl ChampionshipService {
             )
             .await?;
 
-        let remove_user_fut = async {
-            let bindings: [&(dyn ToSql + Sync); 2] = [&remove_user_id, &id];
-            conn.execute(&remove_user_stmt, &bindings).await?;
-            Ok(())
-        };
-        let remove_user_cache_fut = self.cache.championship.delete_by_user_id(remove_user_id);
+        conn.execute(&remove_user_stmt, &[&remove_user_id, &id])
+            .await?;
+        self.cache.championship.delete_by_user_id(remove_user_id);
 
-        tokio::try_join!(remove_user_fut, remove_user_cache_fut)?;
         Ok(())
     }
 
@@ -346,22 +336,17 @@ impl ChampionshipService {
             "#,
         );
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
         let (delete_championship_relations_stmt, delete_championship_stmt) = tokio::try_join!(
             delete_championship_relations_stmt_fut,
             delete_championship_stmt_fut
         )?;
 
         let users = self.championship_repo.users(id).await?;
-        let remove_championship_users_fut = async {
-            conn.execute(&delete_championship_relations_stmt, &bindings)
-                .await?;
-            Ok(())
-        };
-        let delete_champ_cache_fut = self.cache.championship.delete_all(id, users);
+        conn.execute(&delete_championship_relations_stmt, &[&id])
+            .await?;
+        self.cache.championship.delete_all(id, users);
 
-        tokio::try_join!(remove_championship_users_fut, delete_champ_cache_fut)?;
-        conn.execute(&delete_championship_stmt, &bindings).await?;
+        conn.execute(&delete_championship_stmt, &[&id]).await?;
         info!("Championship deleted with success: {id}");
 
         Ok(())

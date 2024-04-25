@@ -1,5 +1,4 @@
-use core::panic;
-use std::{collections::VecDeque, ops::Range, ptr, sync::Arc};
+use std::{collections::VecDeque, ops::Range, panic, ptr, sync::Arc};
 
 use ahash::AHashSet;
 use parking_lot::Mutex;

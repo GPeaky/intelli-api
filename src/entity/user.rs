@@ -3,16 +3,13 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
-use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, AppResult};
 
 pub type UserExtension = Arc<User>;
 
-#[derive(
-    Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql,
-)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql)]
 #[postgres(name = "user_provider")]
 pub enum Provider {
     #[postgres(name = "Local")]
@@ -21,9 +18,7 @@ pub enum Provider {
     Google,
 }
 
-#[derive(
-    Debug, Clone, Copy, Archive, RDeserialize, RSerialize, Serialize, PartialEq, Eq, FromSql, ToSql,
-)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, FromSql, ToSql)]
 #[postgres(name = "user_role")]
 pub enum Role {
     #[postgres(name = "Free")]
@@ -36,7 +31,7 @@ pub enum Role {
     Admin,
 }
 
-#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
+#[derive(Debug, Serialize)]
 pub struct User {
     pub id: i32,
     pub email: String,
