@@ -3,7 +3,7 @@ use std::fs;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 
 use crate::{
-    cache::RedisCache,
+    cache::ServiceCache,
     error::{AppResult, TokenError},
     structs::{TokenClaim, TokenType},
 };
@@ -18,7 +18,7 @@ pub struct TokenService {
     /// JWT header configuration.
     header: Header,
     /// Redis cache for storing and retrieving tokens.
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
     /// Token validation configurations.
     validation: Validation,
     /// Encoding key for generating tokens.
@@ -35,7 +35,7 @@ impl TokenService {
     ///
     /// # Returns
     /// A new `TokenService` instance.
-    pub fn new(cache: &'static RedisCache) -> Self {
+    pub fn new(cache: &'static ServiceCache) -> Self {
         Self {
             cache,
             header: Header::new(jsonwebtoken::Algorithm::RS256),
@@ -70,11 +70,8 @@ impl TokenService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub async fn save_reset_password_token(&self, token: &str) -> AppResult<()> {
-        self.cache
-            .token
-            .set_token(token, &TokenType::ResetPassword)
-            .await
+    pub fn save_reset_password_token(&self, token: String) {
+        self.cache.token.set_token(token, TokenType::ResetPassword);
     }
 
     /// Saves an email verification token to the cache.
@@ -85,8 +82,8 @@ impl TokenService {
     /// # Returns
     /// An empty result indicating success or failure.
     #[inline]
-    pub async fn save_email_token(&self, token: &str) -> AppResult<()> {
-        self.cache.token.set_token(token, &TokenType::Email).await
+    pub fn save_email_token(&self, token: String) {
+        self.cache.token.set_token(token, TokenType::Email);
     }
 
     /// Generates a new token with specified subject and type.
@@ -97,7 +94,7 @@ impl TokenService {
     ///
     /// # Returns
     /// A new token as a string if successful.
-    pub async fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
+    pub fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
         let token_claim = TokenClaim {
             sub,
             exp: token_type.set_expiration(),
@@ -116,11 +113,8 @@ impl TokenService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub async fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<()> {
-        self.cache
-            .token
-            .remove_refresh_token(user_id, fingerprint)
-            .await
+    pub fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) {
+        self.cache.token.remove_refresh_token(user_id, fingerprint);
     }
 
     /// Generates a new refresh token for a user.
@@ -131,19 +125,12 @@ impl TokenService {
     ///
     /// # Returns
     /// A new refresh token as a string if successful.
-    pub async fn generate_refresh_token(
-        &self,
-        user_id: i32,
-        fingerprint: &str,
-    ) -> AppResult<String> {
-        let token = self
-            .generate_token(user_id, TokenType::RefreshBearer)
-            .await?;
+    pub fn generate_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
+        let token = self.generate_token(user_id, TokenType::RefreshBearer)?;
 
         self.cache
             .token
-            .set_refresh_token(&token, fingerprint)
-            .await?;
+            .set_refresh_token(user_id, fingerprint.to_owned(), token.clone());
 
         Ok(token)
     }
@@ -156,7 +143,7 @@ impl TokenService {
     ///
     /// # Returns
     /// A new access token as a string if successful.
-    pub async fn refresh_access_token(
+    pub fn refresh_access_token(
         &self,
         refresh_token: &str,
         fingerprint: &str,
@@ -171,12 +158,14 @@ impl TokenService {
             token.claims.sub
         };
 
-        let db_token = self.cache.token.get_refresh_token(id, fingerprint).await?;
+        let Some(db_token) = self.cache.token.get_refresh_token(id, fingerprint) else {
+            Err(TokenError::MissingToken)?
+        };
 
         if db_token != refresh_token {
             Err(TokenError::InvalidToken)?
         }
 
-        self.generate_token(id, TokenType::Bearer).await
+        self.generate_token(id, TokenType::Bearer)
     }
 }

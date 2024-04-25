@@ -1,5 +1,5 @@
 use crate::{
-    cache::RedisCache,
+    cache::ServiceCache,
     config::Database,
     error::AppResult,
     repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
@@ -25,7 +25,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(db: &'static Database, cache: &'static RedisCache) -> AppResult<Self> {
+    pub async fn new(db: &'static Database, cache: &'static ServiceCache) -> AppResult<Self> {
         // Repositories
         let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
         let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));

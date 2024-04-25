@@ -3,7 +3,7 @@ use postgres_types::ToSql;
 use tracing::{error, info};
 
 use crate::{
-    cache::{EntityCache, RedisCache},
+    cache::{EntityCache, ServiceCache},
     config::Database,
     entity::{Provider, UserExtension},
     error::{AppResult, TokenError, UserError},
@@ -21,7 +21,7 @@ use super::TokenService;
 /// efficiency, leveraging both a direct db connection and a Redis cache.
 pub struct UserService {
     /// Redis cache for temporarily storing user data.
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
     /// Database connection for persistent storage.
     db: &'static Database,
     /// Repository for user-specific db operations.
@@ -43,7 +43,7 @@ impl UserService {
     /// A new `UserService` instance.
     pub async fn new(
         db: &'static Database,
-        cache: &'static RedisCache,
+        cache: &'static ServiceCache,
         user_repo: &'static UserRepository,
         token_svc: &'static TokenService,
     ) -> Self {
@@ -171,14 +171,9 @@ impl UserService {
 
         let conn = self.db.pg.get().await?;
         let update_user_stmt = conn.prepare_cached(&query).await?;
+        conn.execute(&update_user_stmt, &params[..]).await?;
+        self.cache.user.delete(user.id);
 
-        let delete_cache_fut = self.cache.user.delete(user.id);
-        let update_user_fut = async {
-            conn.execute(&update_user_stmt, &params[..]).await?;
-            Ok(())
-        };
-
-        tokio::try_join!(update_user_fut, delete_cache_fut)?;
         Ok(())
     }
 
@@ -213,13 +208,9 @@ impl UserService {
         let binding: [&(dyn ToSql + Sync); 1] = [&id];
         conn.execute(&delete_users_relations_stmt, &binding).await?;
 
-        let user_deletion_fut = async {
-            conn.execute(&delete_user_stmt, &binding).await?;
-            Ok(())
-        };
-        let cache_del_fut = self.cache.user.delete(id);
+        conn.execute(&delete_user_stmt, &binding).await?;
+        self.cache.user.delete(id);
 
-        tokio::try_join!(user_deletion_fut, cache_del_fut)?;
         info!("User deleted with success: {}", id);
 
         Ok(())
@@ -234,10 +225,7 @@ impl UserService {
     /// # Returns
     /// The ID of the user whose password was reset if successful.
     pub async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
-        self.cache
-            .token
-            .get_token(token, &TokenType::ResetPassword)
-            .await?;
+        self.cache.token.get_token(token, TokenType::ResetPassword);
 
         let user_id = {
             let token_data = self.token_svc.validate(token)?;
@@ -252,8 +240,7 @@ impl UserService {
         self.reset_password(user_id, password).await?;
         self.cache
             .token
-            .remove_token(token, &TokenType::ResetPassword)
-            .await?;
+            .remove_token(token, TokenType::ResetPassword);
 
         Ok(user_id)
     }
@@ -278,14 +265,8 @@ impl UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
-        let activate_user_fut = async {
-            conn.execute(&activate_user_stmt, &bindings).await?;
-            Ok(())
-        };
-        let delete_cache_fut = self.cache.user.delete(id);
-
-        tokio::try_join!(activate_user_fut, delete_cache_fut)?;
+        conn.execute(&activate_user_stmt, &[&id]).await?;
+        self.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
 
@@ -300,7 +281,7 @@ impl UserService {
     /// # Returns
     /// The ID of the user activated if successful.
     pub async fn activate_with_token(&self, token: &str) -> AppResult<i32> {
-        self.cache.token.get_token(token, &TokenType::Email).await?;
+        self.cache.token.get_token(token, TokenType::Email);
         let user_id = {
             let token_data = self.token_svc.validate(token)?;
             if token_data.claims.token_type != TokenType::Email {
@@ -311,10 +292,7 @@ impl UserService {
         };
 
         self.activate(user_id).await?;
-        self.cache
-            .token
-            .remove_token(token, &TokenType::Email)
-            .await?;
+        self.cache.token.remove_token(token, TokenType::Email);
 
         Ok(user_id)
     }
@@ -338,14 +316,9 @@ impl UserService {
             )
             .await?;
 
-        let bindings: [&(dyn ToSql + Sync); 1] = [&id];
-        let delete_cache_fut = self.cache.user.delete(id);
-        let deactivate_user_fut = async {
-            conn.execute(&deactivate_user_stmt, &bindings).await?;
-            Ok(())
-        };
+        conn.execute(&deactivate_user_stmt, &[&id]).await?;
+        self.cache.user.delete(id);
 
-        tokio::try_join!(deactivate_user_fut, delete_cache_fut)?;
         info!("User activated with success: {}", id);
         Ok(())
     }
@@ -379,16 +352,12 @@ impl UserService {
             .await?;
 
         let hashed_password = hash_password(password)?;
-        let bindings: [&(dyn ToSql + Sync); 2] = [&hashed_password, &id];
-        let update_user_fut = async {
-            conn.execute(&reset_password_stmt, &bindings).await?;
-            Ok(())
-        };
-        let remove_cache_fut = self.cache.user.delete(id);
+        conn.execute(&reset_password_stmt, &[&hashed_password, &id])
+            .await?;
 
-        tokio::try_join!(update_user_fut, remove_cache_fut)?;
+        self.cache.user.delete(id);
+
         info!("User password reseated with success: {}", id);
-
         Ok(())
     }
 }

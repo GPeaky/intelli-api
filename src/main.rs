@@ -14,7 +14,7 @@ mod utils;
 
 use std::net::IpAddr;
 
-use cache::RedisCache;
+use cache::ServiceCache;
 use config::{initialize_tracing_subscriber, Database};
 use dashmap::DashMap;
 use dotenvy::{dotenv, var};
@@ -34,8 +34,8 @@ async fn main() -> std::io::Result<()> {
     initialize_tracing_subscriber();
     let app_state = {
         let db = Box::leak(Box::from(Database::new().await));
-        let redis_cache = Box::leak(Box::new(RedisCache::new(db)));
-        AppState::new(db, redis_cache).await.unwrap()
+        let service_cache = Box::leak(Box::new(ServiceCache::new()));
+        AppState::new(db, service_cache).await.unwrap()
     };
 
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();

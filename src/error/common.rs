@@ -9,7 +9,6 @@ use super::AppError;
 pub enum CommonError {
     ValidationFailed,
     InternalServerError,
-    SendMail,
     HashingFailed,
     NotValidUpdate,
     LoginRateLimited,
@@ -20,7 +19,6 @@ impl CommonError {
         match self {
             CommonError::ValidationFailed => StatusCode::BAD_REQUEST,
             CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CommonError::SendMail => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::HashingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
             CommonError::LoginRateLimited => StatusCode::TOO_MANY_REQUESTS,
@@ -31,7 +29,6 @@ impl CommonError {
         match self {
             CommonError::ValidationFailed => "Form validation failed",
             CommonError::InternalServerError => "Internal Server Error",
-            CommonError::SendMail => "Error to send mail",
             CommonError::HashingFailed => "Hashing Failed",
             CommonError::NotValidUpdate => "Not valid Update",
             CommonError::LoginRateLimited => "Rate limited",
