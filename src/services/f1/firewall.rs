@@ -70,12 +70,8 @@ impl FirewallService {
         let handle =
             Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {} accept", port))?;
 
-        info!("Open Handle: {:?}", handle);
-
         let mut rules = self.rules.write().await;
         rules.insert(id, FirewallRule::new(port, FirewallType::Open, handle));
-
-        info!("Open Get Rule: {:?}", rules.get(&id));
 
         Ok(())
     }
@@ -143,11 +139,7 @@ impl FirewallService {
         let rules = self.rules.read().await;
 
         match rules.get(&id) {
-            None => {
-                error!("Not Founded Id");
-                Err(FirewallError::RuleNotFound)?
-            }
-
+            None => Err(FirewallError::RuleNotFound)?,
             Some(rule) => {
                 Self::nft_command(&[
                     "delete",
@@ -220,10 +212,7 @@ impl FirewallService {
     }
 
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
-        info!("Ruleset: {}", ruleset);
-        info!("Search Pattern: {}", search_pattern);
-
-        let pattern = format!(r"{}\s*#\s*handle\s+(\d+)", regex::escape(search_pattern));
+        let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
 
         if let Some(caps) = re.captures(ruleset) {
@@ -232,7 +221,6 @@ impl FirewallService {
             }
         }
 
-        error!("Error extracting handler");
         Err(FirewallError::RuleNotFound)?
     }
 }
