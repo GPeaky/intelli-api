@@ -1,12 +1,12 @@
 use crate::{
-    cache::RedisCache, config::Database, error::AppResult, repositories::SavedSessionRepository,
+    cache::ServiceCache, config::Database, error::AppResult, repositories::SavedSessionRepository,
     utils::IdsGenerator,
 };
 
 #[derive(Clone)]
 pub struct SavedSessionService {
     #[allow(unused)]
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
     #[allow(unused)]
     db: &'static Database,
     #[allow(unused)]
@@ -15,7 +15,7 @@ pub struct SavedSessionService {
 }
 
 impl SavedSessionService {
-    pub async fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+    pub async fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         let saved_session_repo = SavedSessionRepository::new(db, cache);
         let ids_generator =
             IdsGenerator::new(800000000..900000000, saved_session_repo.clone()).await;

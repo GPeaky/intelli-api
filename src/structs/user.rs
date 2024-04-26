@@ -26,7 +26,7 @@ pub struct AddUser {
 #[derive(Debug, Serialize)]
 pub struct UserData {
     pub user: Arc<User>,
-    pub championships: Vec<Championship>,
+    pub championships: Vec<Arc<Championship>>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

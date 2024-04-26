@@ -11,10 +11,8 @@ pub enum F1ServiceError {
     ReceivingData,
     Encoding,
     BatchedEncoding,
-    Compressing,
     AlreadyExists,
     NotActive,
-    NotFound,
 }
 
 impl F1ServiceError {
@@ -26,10 +24,8 @@ impl F1ServiceError {
             F1ServiceError::ReceivingData => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::Encoding => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
-            F1ServiceError::Compressing => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::AlreadyExists => StatusCode::CONFLICT,
             F1ServiceError::NotActive => StatusCode::INTERNAL_SERVER_ERROR,
-            F1ServiceError::NotFound => StatusCode::NOT_FOUND,
         }
     }
 
@@ -41,10 +37,8 @@ impl F1ServiceError {
             F1ServiceError::ReceivingData => "Receiving data from udp socket",
             F1ServiceError::Encoding => "Error to encode packet data",
             F1ServiceError::BatchedEncoding => "Error to encode batched data",
-            F1ServiceError::Compressing => "Error to compress batched data",
             F1ServiceError::AlreadyExists => "Already Exists",
             F1ServiceError::NotActive => "Service not active",
-            F1ServiceError::NotFound => "Service not found",
         }
     }
 }

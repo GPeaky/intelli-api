@@ -1,12 +1,13 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
-use rkyv::{Archive, Deserialize as RDeserialize, Serialize as RSerialize};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, AppResult};
 
-#[derive(Debug, Archive, RDeserialize, RSerialize, Serialize, Deserialize, FromSql, ToSql)]
+#[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
 pub enum Category {
     #[postgres(name = "F1")]
@@ -15,7 +16,7 @@ pub enum Category {
     F2,
 }
 
-#[derive(Debug, Serialize, Archive, RDeserialize, RSerialize)]
+#[derive(Debug, Serialize)]
 pub struct Championship {
     pub id: i32,
     pub port: i32,
@@ -29,11 +30,11 @@ pub struct Championship {
 }
 
 impl Championship {
-    pub fn try_from_rows(rows: &Vec<Row>) -> AppResult<Vec<Championship>> {
+    pub fn try_from_rows(rows: &Vec<Row>) -> AppResult<Vec<Arc<Championship>>> {
         let mut championships = Vec::with_capacity(rows.len());
 
         for row in rows {
-            championships.push(Championship::try_from(row)?);
+            championships.push(Arc::new(Championship::try_from(row)?));
         }
 
         Ok(championships)

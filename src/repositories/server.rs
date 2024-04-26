@@ -37,12 +37,8 @@ impl ServerRepository {
     ///
     /// A `DatabasesStatus` struct containing the status information for the Redis and PostgreSQL pools.
     pub fn active_pools(&self) -> DatabasesStatus {
-        let redis_pool = self.db.redis.status();
         let pg_pool = self.db.pg.status();
 
-        DatabasesStatus {
-            redis: redis_pool.into(),
-            pg: pg_pool.into(),
-        }
+        DatabasesStatus { pg: pg_pool.into() }
     }
 }

@@ -4,7 +4,6 @@ use deadpool_postgres::{
     tokio_postgres::{Config, NoTls},
     Pool,
 };
-use deadpool_redis::{Config as RedisConfig, PoolConfig, Runtime};
 use dotenvy::var;
 use refinery::embed_migrations;
 use tracing::info;
@@ -13,8 +12,6 @@ embed_migrations!("migrations");
 
 /// Represents the application's database connections, encapsulating both Redis and Postgres pools.
 pub struct Database {
-    /// The Redis connection pool for caching or other Redis operations.
-    pub redis: deadpool_redis::Pool,
     /// The PostgreSQL connection pool for database operations.
     pub pg: deadpool_postgres::Pool,
 }
@@ -54,19 +51,7 @@ impl Database {
 
         Self::migrations(&pg).await;
 
-        let redis = {
-            let mut config =
-                RedisConfig::from_url(var("REDIS_URL").expect("Environment REDIS_URL not found"));
-
-            config.pool = Some(PoolConfig::new(300)); // Set the pool size
-            config
-                .create_pool(Some(Runtime::Tokio1))
-                .expect("Failed to create Redis pool")
-        };
-
-        // Redis connection
-
-        Self { redis, pg }
+        Self { pg }
     }
 
     /// Executes database migrations for the Postgres database.

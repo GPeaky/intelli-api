@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use ahash::AHashSet;
 use deadpool_postgres::tokio_postgres::Row;
 
 use crate::{
-    cache::{EntityCache, RedisCache},
+    cache::{EntityCache, ServiceCache},
     config::Database,
     entity::Championship,
     error::AppResult,
@@ -18,7 +20,7 @@ pub struct ChampionshipRepository {
     /// The db connection used for querying championship data.
     db: &'static Database,
     /// The cache layer used for storing and retrieving cached championship data.
-    cache: &'static RedisCache,
+    cache: &'static ServiceCache,
 }
 
 impl UsedIds for &'static ChampionshipRepository {
@@ -56,7 +58,7 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// A new `ChampionshipRepository` instance.
-    pub fn new(db: &'static Database, cache: &'static RedisCache) -> Self {
+    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         Self { db, cache }
     }
 
@@ -99,8 +101,8 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// An optional `Championship` instance if found.
-    pub async fn find(&self, id: i32) -> AppResult<Option<Championship>> {
-        if let Some(championship) = self.cache.championship.get(id).await? {
+    pub async fn find(&self, id: i32) -> AppResult<Option<Arc<Championship>>> {
+        if let Some(championship) = self.cache.championship.get(id) {
             return Ok(Some(championship));
         };
 
@@ -119,7 +121,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_championship_stmt, &[&id]).await?
         };
 
-        self.convert_to_championship(row).await
+        self.convert_to_championship(row)
     }
 
     /// Finds a championship by its name.
@@ -131,8 +133,8 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// An optional `Championship` instance if found.
-    pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Championship>> {
-        if let Some(championship) = self.cache.championship.get_by_name(name).await? {
+    pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Arc<Championship>>> {
+        if let Some(championship) = self.cache.championship.get_by_name(name) {
             return Ok(Some(championship));
         };
 
@@ -151,7 +153,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_by_name_stmt, &[&name]).await?
         };
 
-        self.convert_to_championship(row).await
+        self.convert_to_championship(row)
     }
 
     /// Retrieves all championships associated with a user ID.
@@ -163,8 +165,8 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// A vector of `Championship` instances associated with the user.
-    pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Championship>> {
-        if let Some(championships) = self.cache.championship.get_all(user_id).await? {
+    pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Arc<Championship>>> {
+        if let Some(championships) = self.cache.championship.get_user_championships(user_id) {
             return Ok(championships);
         };
 
@@ -189,8 +191,7 @@ impl ChampionshipRepository {
 
         self.cache
             .championship
-            .set_all(user_id, &championships)
-            .await?;
+            .set_user_championships(user_id, championships.clone());
 
         Ok(championships)
     }
@@ -274,10 +275,10 @@ impl ChampionshipRepository {
     ///
     /// An optional `Championship` instance if the row is present.
     #[inline]
-    async fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Championship>> {
+    fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Arc<Championship>>> {
         if let Some(row) = row {
-            let championship = Championship::try_from(&row)?;
-            self.cache.championship.set(&championship).await?;
+            let championship = Arc::new(Championship::try_from(&row)?);
+            self.cache.championship.set(championship.clone());
             return Ok(Some(championship));
         }
 

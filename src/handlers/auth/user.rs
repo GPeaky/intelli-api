@@ -28,12 +28,8 @@ pub(crate) async fn register(
 
     let user_id = state.user_svc.create(&form).await?;
 
-    let token = state
-        .token_svc
-        .generate_token(user_id, TokenType::Email)
-        .await?;
-
-    state.token_svc.save_email_token(&token).await?;
+    let token = state.token_svc.generate_token(user_id, TokenType::Email)?;
+    state.token_svc.save_email_token(token.clone());
 
     let template = VerifyEmail {
         verification_link: &format!(
@@ -74,18 +70,16 @@ pub(crate) async fn login(
 
     if !state
         .user_repo
-        .validate_password(&form.password, &user.password.unwrap())?
+        .validate_password(&form.password, user.password.as_ref().unwrap())?
     {
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token_fut = state.token_svc.generate_token(user.id, TokenType::Bearer);
+    let access_token = state.token_svc.generate_token(user.id, TokenType::Bearer)?;
 
-    let refresh_token_fut = state
+    let refresh_token = state
         .token_svc
-        .generate_refresh_token(user.id, &query.fingerprint);
-
-    let (access_token, refresh_token) = tokio::try_join!(access_token_fut, refresh_token_fut)?;
+        .generate_refresh_token(user.id, &query.fingerprint)?;
 
     let auth_response = &AuthResponse {
         access_token,
@@ -102,8 +96,7 @@ pub(crate) async fn refresh_token(
 ) -> AppResult<impl Responder> {
     let access_token = state
         .token_svc
-        .refresh_access_token(&query.refresh_token, &query.fingerprint)
-        .await?;
+        .refresh_access_token(&query.refresh_token, &query.fingerprint)?;
 
     let refresh_response = &RefreshResponse { access_token };
 
@@ -124,8 +117,7 @@ pub(crate) async fn logout(
 
     state
         .token_svc
-        .remove_refresh_token(user_id, &query.fingerprint)
-        .await?;
+        .remove_refresh_token(user_id, &query.fingerprint);
 
     Ok(HttpResponse::Ok())
 }
@@ -149,8 +141,7 @@ pub(crate) async fn forgot_password(
 
     let token = state
         .token_svc
-        .generate_token(user.id, TokenType::ResetPassword)
-        .await?;
+        .generate_token(user.id, TokenType::ResetPassword)?;
 
     let template = ResetPassword {
         reset_password_link: &format!(
@@ -159,7 +150,7 @@ pub(crate) async fn forgot_password(
         ),
     };
 
-    state.token_svc.save_reset_password_token(&token).await?;
+    state.token_svc.save_reset_password_token(token);
 
     state
         .email_svc

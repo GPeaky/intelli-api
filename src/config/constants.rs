@@ -8,15 +8,6 @@ pub const GOOGLE_REDIRECT: &str = "https://intellitelemetry.live/auth/google/cal
 // Email
 pub const MAX_CONCURRENT_EMAILS: usize = 10;
 
-// Tokens
-pub const GENERIC_TOKEN_EXPIRATION: u64 = 15 * 60;
-pub const REFRESH_TOKEN_EXPIRATION: u64 = 15 * 60 * 24 * 30;
-
-// Redis
-pub const REDIS_USER_PREFIX: &str = "user";
-pub const REDIS_CACHE_EXPIRATION: u64 = 60 * 60 * 24;
-pub const REDIS_CHAMPIONSHIP_PREFIX: &str = "championship";
-
 // F1 Service
 pub const BUFFER_SIZE: usize = 1460;
 pub const SOCKET_HOST: &str = "0.0.0.0";

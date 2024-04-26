@@ -1,5 +1,4 @@
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
-use deadpool_redis::{redis::RedisError, PoolError as RedisPoolError};
 use ntex::{
     http::StatusCode,
     web::{error::WebResponseError, HttpRequest, HttpResponse},
@@ -8,8 +7,7 @@ use ntex::{
 use tracing::error;
 
 use super::{
-    user::UserError, CacheError, ChampionshipError, CommonError, F1ServiceError, FirewallError,
-    TokenError,
+    user::UserError, ChampionshipError, CommonError, F1ServiceError, FirewallError, TokenError,
 };
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -21,21 +19,19 @@ pub enum AppError {
     Championship(ChampionshipError),
     Token(TokenError),
     Common(CommonError),
-    Cache(CacheError),
     F1(F1ServiceError),
     Firewall(FirewallError),
-    PgError(PgError),
+    PgError,
     PgPool,
-    Redis,
-    RedisPool,
-    Handshake(HandshakeError),
-    Reqwest(reqwest::Error),
+    Handshake,
+    Reqwest,
     Sailfish,
 }
 
 impl From<PgError> for AppError {
     fn from(value: PgError) -> Self {
-        AppError::PgError(value)
+        error!("PgError: {}", value);
+        AppError::PgError
     }
 }
 
@@ -46,28 +42,17 @@ impl From<PoolError> for AppError {
     }
 }
 
-impl From<RedisError> for AppError {
-    fn from(value: RedisError) -> Self {
-        error!("Redis Error: {:?}", value);
-        AppError::Redis
-    }
-}
-
-impl From<RedisPoolError> for AppError {
-    fn from(_: RedisPoolError) -> Self {
-        AppError::RedisPool
-    }
-}
-
 impl From<HandshakeError> for AppError {
     fn from(value: HandshakeError) -> Self {
-        AppError::Handshake(value)
+        error!("HandshakeError: {}", value);
+        AppError::Handshake
     }
 }
 
 impl From<reqwest::Error> for AppError {
     fn from(value: reqwest::Error) -> Self {
-        AppError::Reqwest(value)
+        error!("ReqwestError: {}", value);
+        AppError::Reqwest
     }
 }
 
@@ -85,15 +70,12 @@ impl AppError {
             AppError::Championship(e) => e.status_code(),
             AppError::Token(e) => e.status_code(),
             AppError::Common(e) => e.status_code(),
-            AppError::Cache(e) => e.status_code(),
             AppError::F1(e) => e.status_code(),
             AppError::Firewall(e) => e.status_code(),
-            AppError::PgError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::PgError => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Redis => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::RedisPool => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Handshake(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Handshake => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Reqwest => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Sailfish => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -104,15 +86,12 @@ impl AppError {
             AppError::Championship(e) => e.error_message(),
             AppError::Token(e) => e.error_message(),
             AppError::Common(e) => e.error_message(),
-            AppError::Cache(e) => e.error_message(),
             AppError::F1(e) => e.error_message(),
             AppError::Firewall(e) => e.error_message(),
-            AppError::PgError(_) => "Database error",
+            AppError::PgError => "Database error",
             AppError::PgPool => "Pool error",
-            AppError::Redis => "Cache error",
-            AppError::RedisPool => "Cache pool error",
-            AppError::Handshake(_) => "Handshake error",
-            AppError::Reqwest(_) => "Reqwest error",
+            AppError::Handshake => "Handshake error",
+            AppError::Reqwest => "Reqwest error",
             AppError::Sailfish => "Email Render Error",
         }
     }

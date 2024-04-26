@@ -1,4 +1,4 @@
-use deadpool_redis::Status as DeadPoolStatus;
+use deadpool_postgres::Status as DeadPoolStatus;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -22,6 +22,5 @@ impl From<DeadPoolStatus> for Status {
 
 #[derive(Serialize)]
 pub struct DatabasesStatus {
-    pub redis: Status,
     pub pg: Status,
 }
