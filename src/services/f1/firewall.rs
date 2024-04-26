@@ -43,6 +43,7 @@ impl FirewallService {
         }
     }
 
+    #[allow(unused)]
     pub async fn open(&self, id: i32, port: u16) -> AppResult<()> {
         if cfg!(target_os = "windows") {
             warn!("Firewall not supported on this platform");
@@ -75,6 +76,7 @@ impl FirewallService {
         Ok(())
     }
 
+    #[allow(unused)]
     pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
         if cfg!(target_os = "windows") {
             warn!("Firewall not supported on this platform");
