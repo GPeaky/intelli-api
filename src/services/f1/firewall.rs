@@ -67,7 +67,8 @@ impl FirewallService {
         .await?;
 
         let ruleset = Self::ruleset().await?;
-        let handle = Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {}", port))?;
+        let handle =
+            Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {} accept", port))?;
 
         info!("Open Handle: {:?}", handle);
 
@@ -121,7 +122,7 @@ impl FirewallService {
                 let ruleset = Self::ruleset().await?;
                 let new_handle = Self::extract_handle_from_ruleset(
                     &ruleset,
-                    &format!("ip saddr {} udp dport {}", ip_address, rule.port),
+                    &format!("ip saddr {} udp dport {} accept", ip_address, rule.port),
                 )?;
 
                 rule.handle = new_handle;
