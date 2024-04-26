@@ -1,9 +1,9 @@
 use crate::error::{AppResult, FirewallError};
 use ahash::AHashMap;
-use parking_lot::RwLock;
 use regex::Regex;
 use std::{str, sync::Arc};
 use tokio::process::Command;
+use tokio::sync::RwLock;
 use tracing::{error, warn};
 
 #[derive(Clone, Copy)]
@@ -49,7 +49,7 @@ impl FirewallService {
             return Ok(());
         }
 
-        if self.rule_exists(id) {
+        if self.rule_exists(id).await {
             Err(FirewallError::RuleExists)?
         }
 
@@ -69,14 +69,19 @@ impl FirewallService {
         let ruleset = Self::ruleset().await?;
         let handle = Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {}", port))?;
 
-        let mut rules = self.rules.write();
+        let mut rules = self.rules.write().await;
         rules.insert(id, FirewallRule::new(port, FirewallType::Open, handle));
 
         Ok(())
     }
 
     pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
-        let mut rules = self.rules.write_arc();
+        if cfg!(target_os = "windows") {
+            warn!("Firewall not supported on this platform");
+            return Ok(());
+        }
+
+        let mut rules = self.rules.write().await;
 
         match rules.get_mut(&id) {
             None => Err(FirewallError::RuleNotFound)?,
@@ -129,7 +134,7 @@ impl FirewallService {
             return Ok(());
         }
 
-        let rules = self.rules.read_arc();
+        let rules = self.rules.read().await;
 
         match rules.get(&id) {
             None => Err(FirewallError::RuleNotFound)?,
@@ -146,7 +151,7 @@ impl FirewallService {
                 .await?;
 
                 drop(rules);
-                let mut rules = self.rules.write();
+                let mut rules = self.rules.write().await;
                 rules.remove(&id);
                 Ok(())
             }
@@ -156,7 +161,7 @@ impl FirewallService {
     #[allow(unused)]
     pub async fn close_all(&self) -> AppResult<()> {
         let ids = {
-            let rules = self.rules.read();
+            let rules = self.rules.read().await;
             rules.keys().copied().collect::<Vec<_>>()
         };
 
@@ -168,8 +173,8 @@ impl FirewallService {
         Ok(())
     }
 
-    fn rule_exists(&self, id: i32) -> bool {
-        let rules = self.rules.read();
+    async fn rule_exists(&self, id: i32) -> bool {
+        let rules = self.rules.read().await;
         rules.contains_key(&id)
     }
 
