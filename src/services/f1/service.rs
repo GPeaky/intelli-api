@@ -130,7 +130,7 @@ impl F1Service {
             let span = info_span!("F1 Service", championship_id = championship_id);
             let _guard = span.enter();
 
-            // let mut port_partial_open = false;
+            let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = last_session_update;
@@ -150,7 +150,7 @@ impl F1Service {
             };
 
             info!("Listening for F1 data on port: {port}");
-            // firewall.open(championship_id, port as u16).await?;
+            firewall.open(championship_id, port as u16).await?;
 
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
@@ -159,17 +159,17 @@ impl F1Service {
 
                         let buf = &buf[..size];
 
-                        // if !port_partial_open {
-                        //     info!("Closing Partially");
+                        if !port_partial_open {
+                            info!("Closing Partially");
 
-                        //     firewall
-                        //         .restrict_to_ip(championship_id, address.ip().to_string())
-                        //         .await?;
+                            firewall
+                                .restrict_to_ip(championship_id, address.ip().to_string())
+                                .await?;
 
-                        //     info!("Closed Partially");
+                            info!("Closed Partially");
 
-                        //     port_partial_open = true;
-                        // }
+                            port_partial_open = true;
+                        }
 
                         let Some(header) = F1Data::try_deserialize_header(buf) else {
                             error!("Error deserializing F1 header");
