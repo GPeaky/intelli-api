@@ -219,6 +219,9 @@ impl FirewallService {
     }
 
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
+        info!("Ruleset: {}", ruleset);
+        info!("Search Pattern: {}", search_pattern);
+
         let pattern = format!(r"{}\s+#\s*handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
 
