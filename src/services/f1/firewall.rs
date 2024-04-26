@@ -4,7 +4,7 @@ use regex::Regex;
 use std::{str, sync::Arc};
 use tokio::process::Command;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{error, warn};
 
 #[derive(Clone, Copy, Debug)]
 enum FirewallType {
