@@ -222,7 +222,7 @@ impl FirewallService {
         info!("Ruleset: {}", ruleset);
         info!("Search Pattern: {}", search_pattern);
 
-        let pattern = format!(r"{}\s+#\s*handle\s+(\d+)", regex::escape(search_pattern));
+        let pattern = format!(r"{}\s*#\s*handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
 
         if let Some(caps) = re.captures(ruleset) {
