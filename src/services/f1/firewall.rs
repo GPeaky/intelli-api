@@ -4,16 +4,15 @@ use regex::Regex;
 use std::{str, sync::Arc};
 use tokio::process::Command;
 use tokio::sync::RwLock;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum FirewallType {
     Open,
-    #[allow(unused)]
     PartiallyClosed,
 }
 
-#[allow(unused)]
+#[derive(Debug)]
 struct FirewallRule {
     port: u16,
     r#type: FirewallType,
@@ -70,8 +69,12 @@ impl FirewallService {
         let ruleset = Self::ruleset().await?;
         let handle = Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {}", port))?;
 
+        info!("Open Handle: {:?}", handle);
+
         let mut rules = self.rules.write().await;
         rules.insert(id, FirewallRule::new(port, FirewallType::Open, handle));
+
+        info!("Open Get Rule: {:?}", rules.get(&id));
 
         Ok(())
     }
@@ -139,7 +142,11 @@ impl FirewallService {
         let rules = self.rules.read().await;
 
         match rules.get(&id) {
-            None => Err(FirewallError::RuleNotFound)?,
+            None => {
+                error!("Not Founded Id");
+                Err(FirewallError::RuleNotFound)?
+            }
+
             Some(rule) => {
                 Self::nft_command(&[
                     "delete",
@@ -221,6 +228,7 @@ impl FirewallService {
             }
         }
 
+        error!("Error extracting handler");
         Err(FirewallError::RuleNotFound)?
     }
 }
