@@ -155,12 +155,18 @@ impl F1Service {
             loop {
                 match timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)).await {
                     Ok(Ok((size, address))) => {
+                        info!("Received Packet from: {:?}", address);
+
                         let buf = &buf[..size];
 
                         if !port_partial_open {
+                            info!("Closing Partially");
+
                             firewall
                                 .restrict_to_ip(championship_id, address.ip().to_string())
                                 .await?;
+
+                            info!("Closed Partially");
 
                             port_partial_open = true;
                         }
