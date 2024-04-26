@@ -11,6 +11,7 @@ repository = "https://github.com/Intelli-Telemetry/api"
 prost-build = "0.12"
 
 [dependencies]
+regex = "1"
 ahash = "0.8"
 ring = "0.17"
 dashmap = "5"

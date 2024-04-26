@@ -1,6 +1,7 @@
 use crate::error::{AppResult, FirewallError};
 use ahash::AHashMap;
 use parking_lot::RwLock;
+use regex::Regex;
 use std::{str, sync::Arc};
 use tokio::process::Command;
 use tracing::{error, warn};
@@ -16,11 +17,18 @@ enum FirewallType {
 struct FirewallRule {
     port: u16,
     r#type: FirewallType,
+    handle: String,
+    ip_address: Option<String>,
 }
 
 impl FirewallRule {
-    pub fn new(port: u16, r#type: FirewallType) -> Self {
-        FirewallRule { port, r#type }
+    pub fn new(port: u16, r#type: FirewallType, handle: String) -> Self {
+        FirewallRule {
+            port,
+            r#type,
+            handle,
+            ip_address: None,
+        }
     }
 }
 
@@ -58,10 +66,61 @@ impl FirewallService {
         ])
         .await?;
 
+        let ruleset = Self::ruleset().await?;
+        let handle = Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {}", port))?;
+
         let mut rules = self.rules.write();
-        rules.insert(id, FirewallRule::new(port, FirewallType::Open));
+        rules.insert(id, FirewallRule::new(port, FirewallType::Open, handle));
 
         Ok(())
+    }
+
+    pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
+        let mut rules = self.rules.write_arc();
+
+        match rules.get_mut(&id) {
+            None => Err(FirewallError::RuleNotFound)?,
+            Some(rule) => {
+                Self::nft_command(&[
+                    "delete",
+                    "rule",
+                    "inet",
+                    "nftables_svc",
+                    "allow",
+                    "handle",
+                    &rule.handle,
+                ])
+                .await?;
+
+                Self::nft_command(&[
+                    "add",
+                    "rule",
+                    "inet",
+                    "nftables_svc",
+                    "allow",
+                    "ip",
+                    "saddr",
+                    &ip_address,
+                    "udp",
+                    "dport",
+                    &rule.port.to_string(),
+                    "accept",
+                ])
+                .await?;
+
+                let ruleset = Self::ruleset().await?;
+                let new_handle = Self::extract_handle_from_ruleset(
+                    &ruleset,
+                    &format!("ip saddr {} udp dport {}", ip_address, rule.port),
+                )?;
+
+                rule.handle = new_handle;
+                rule.ip_address = Some(ip_address);
+                rule.r#type = FirewallType::PartiallyClosed;
+
+                Ok(())
+            }
+        }
     }
 
     pub async fn close(&self, id: i32) -> AppResult<()> {
@@ -75,45 +134,26 @@ impl FirewallService {
         match rules.get(&id) {
             None => Err(FirewallError::RuleNotFound)?,
             Some(rule) => {
-                let search_pattern = format!("udp dport {}", rule.port);
+                Self::nft_command(&[
+                    "delete",
+                    "rule",
+                    "inet",
+                    "nftables_svc",
+                    "allow",
+                    "handle",
+                    &rule.handle,
+                ])
+                .await?;
+
                 drop(rules);
-                let ruleset = Self::ruleset().await?;
-
-                if let Some(start) = ruleset.find(&search_pattern) {
-                    let remainder = &ruleset[start..];
-                    if let Some(handler_index) = remainder.find("handle ") {
-                        let handle = &remainder[handler_index + 7..]
-                            .split_whitespace()
-                            .next()
-                            .ok_or(FirewallError::ParseError)?;
-
-                        Self::nft_command(&[
-                            "delete",
-                            "rule",
-                            "inet",
-                            "nftables_svc",
-                            "allow",
-                            "handle",
-                            handle,
-                        ])
-                        .await?;
-
-                        let mut rules = self.rules.write();
-                        rules.remove(&id);
-
-                        Ok(())
-                    } else {
-                        Err(FirewallError::ParseError)?
-                    }
-                } else {
-                    Err(FirewallError::RuleNotFound)?
-                }
+                let mut rules = self.rules.write();
+                rules.remove(&id);
+                Ok(())
             }
         }
     }
 
     #[allow(unused)]
-    // Todo - Run this function when the server closes
     pub async fn close_all(&self) -> AppResult<()> {
         let ids = {
             let rules = self.rules.read();
@@ -133,7 +173,6 @@ impl FirewallService {
         rules.contains_key(&id)
     }
 
-    #[inline(always)]
     async fn ruleset() -> AppResult<String> {
         let output = Command::new("nft")
             .args(["-a", "list", "ruleset"])
@@ -163,5 +202,18 @@ impl FirewallService {
             error!("{:?}", std::str::from_utf8(&output.stderr));
             Err(FirewallError::ExecutionError)?
         }
+    }
+
+    fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
+        let pattern = format!(r"{}\s+#\s*handle\s+(\d+)", regex::escape(search_pattern));
+        let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
+
+        if let Some(caps) = re.captures(ruleset) {
+            if let Some(handle) = caps.get(1) {
+                return Ok(handle.as_str().to_string());
+            }
+        }
+
+        Err(FirewallError::RuleNotFound)?
     }
 }
