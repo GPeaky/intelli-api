@@ -186,7 +186,6 @@ impl F1Service {
                             continue;
                         };
 
-                        // TODO: Try to implement this in a more elegant way
                         match packet_id {
                             PacketIds::Motion => {
                                 if now.duration_since(last_car_motion_update) < MOTION_INTERVAL {
@@ -220,7 +219,7 @@ impl F1Service {
                                     .ok_or(F1ServiceError::Encoding)?;
 
                                 last_car_motion_update = now;
-                                packet_batching.push(packet).await?;
+                                packet_batching.push(packet)?;
                             }
 
                             F1Data::Session(session_data) => {
@@ -246,7 +245,7 @@ impl F1Service {
                                     .ok_or(F1ServiceError::Encoding)?;
 
                                 last_session_update = now;
-                                packet_batching.push(packet).await?;
+                                packet_batching.push(packet)?;
                             }
 
                             F1Data::Participants(participants_data) => {
@@ -255,7 +254,7 @@ impl F1Service {
                                     .ok_or(F1ServiceError::Encoding)?;
 
                                 last_participants_update = now;
-                                packet_batching.push(packet).await?;
+                                packet_batching.push(packet)?;
                             }
 
                             // If the session is not race don't save events
@@ -274,12 +273,10 @@ impl F1Service {
                                     continue;
                                 };
 
-                                packet_batching
-                                    .push_with_optional_parameter(
-                                        packet,
-                                        Some(OptionalMessage::Code(event_data.event_string_code)),
-                                    )
-                                    .await?;
+                                packet_batching.push_with_optional_parameter(
+                                    packet,
+                                    Some(OptionalMessage::Code(event_data.event_string_code)),
+                                )?;
                             }
 
                             F1Data::SessionHistory(session_history) => {
@@ -315,12 +312,10 @@ impl F1Service {
                                     *last_update = now;
                                     *last_sectors = sectors;
 
-                                    packet_batching
-                                        .push_with_optional_parameter(
-                                            packet,
-                                            Some(OptionalMessage::Number(session_history.car_idx)),
-                                        )
-                                        .await?;
+                                    packet_batching.push_with_optional_parameter(
+                                        packet,
+                                        Some(OptionalMessage::Number(session_history.car_idx)),
+                                    )?;
                                 }
                             }
 
@@ -359,7 +354,7 @@ impl F1Service {
 
                                 // If session type is race save all session data in the db and close the service
                                 // Todo - this should be called after saving all data in the db
-                                packet_batching.push(packet).await?;
+                                packet_batching.push(packet)?;
                             }
                         }
                     }

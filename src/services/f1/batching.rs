@@ -141,8 +141,8 @@ impl PacketBatching {
     ///
     /// This function returns an error if encoding the packet or caching it fails.
     #[inline(always)]
-    pub async fn push(&mut self, packet: PacketHeader) -> AppResult<()> {
-        self.push_with_optional_parameter(packet, None).await
+    pub fn push(&mut self, packet: PacketHeader) -> AppResult<()> {
+        self.push_with_optional_parameter(packet, None)
     }
 
     /// Asynchronously pushes a `PacketHeader` into the internal buffer with an optional parameter,
@@ -174,7 +174,7 @@ impl PacketBatching {
     /// # Errors
     ///
     /// This function returns an error if encoding the packet, determining its type, or caching it fails.
-    pub async fn push_with_optional_parameter(
+    pub fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
         second_param: Option<OptionalMessage>,
