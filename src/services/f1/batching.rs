@@ -1,4 +1,4 @@
-use std::{cell::Cell, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     config::constants::BATCHING_INTERVAL,
@@ -85,7 +85,7 @@ impl PacketBatching {
     /// Ensure to send a shutdown signal through the `shutdown` channel when the `PacketBatching`
     /// instance is no longer needed to properly clean up resources.
     pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
-        let (otx, orx) = oneshot::channel::<()>();
+        let (otx, mut orx) = oneshot::channel::<()>();
         let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_VECTOR_CAPACITY)));
 
         let instance = Self {
@@ -94,7 +94,6 @@ impl PacketBatching {
             cache,
         };
 
-        let mut orx = Cell::from(orx);
         let mut interval_timer = interval(BATCHING_INTERVAL);
         tokio::spawn(async move {
             loop {
@@ -105,7 +104,7 @@ impl PacketBatching {
                         }
                     }
 
-                    _ = orx.get_mut() => {
+                    _ = (&mut orx) => {
                         break;
                     }
                 }
@@ -181,8 +180,10 @@ impl PacketBatching {
     ) {
         let packet_type = packet.r#type();
 
-        let mut cache = self.cache.write();
-        cache.save(packet_type, &packet.payload, second_param);
+        {
+            let mut cache = self.cache.write();
+            cache.save(packet_type, &packet.payload, second_param);
+        }
 
         self.buf.lock().push(packet);
     }

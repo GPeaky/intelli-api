@@ -21,7 +21,7 @@ use crate::{
 pub(crate) async fn register(
     state: State<AppState>,
     form: Form<RegisterUserDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -43,7 +43,7 @@ pub(crate) async fn register(
         .send_mail((&*form).into(), "Verify Email", template)
         .await?;
 
-    Ok(HttpResponse::Created())
+    Ok(HttpResponse::Created().finish())
 }
 
 #[inline(always)]
@@ -51,7 +51,7 @@ pub(crate) async fn login(
     state: State<AppState>,
     query: Query<FingerprintQuery>,
     form: Form<LoginUserDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -93,7 +93,7 @@ pub(crate) async fn login(
 pub(crate) async fn refresh_token(
     state: State<AppState>,
     query: Query<RefreshTokenQuery>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let access_token = state
         .token_svc
         .refresh_access_token(&query.refresh_token, &query.fingerprint)?;
@@ -108,7 +108,7 @@ pub(crate) async fn logout(
     req: HttpRequest,
     state: State<AppState>,
     query: Query<FingerprintQuery>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let user_id = req
         .extensions()
         .get::<UserExtension>()
@@ -119,14 +119,14 @@ pub(crate) async fn logout(
         .token_svc
         .remove_refresh_token(user_id, &query.fingerprint);
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
     form: Form<ForgotPasswordDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -164,7 +164,7 @@ pub(crate) async fn forgot_password(
         )
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 // Todo: Add rate limiting to the reset password endpoint
@@ -173,7 +173,7 @@ pub async fn reset_password(
     query: Query<ResetPasswordQuery>,
     state: State<AppState>,
     form: Form<ResetPasswordDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -201,5 +201,5 @@ pub async fn reset_password(
         )
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }

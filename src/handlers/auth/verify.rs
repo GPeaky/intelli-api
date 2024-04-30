@@ -1,6 +1,6 @@
 use ntex::web::{
     types::{Query, State},
-    HttpResponse, Responder,
+    HttpResponse,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
 pub async fn verify_email(
     state: State<AppState>,
     query: Query<VerifyEmailParams>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let user_id = state.user_svc.activate_with_token(&query.token).await?;
     let user = state.user_repo.find(user_id).await?.unwrap();
 
@@ -28,5 +28,5 @@ pub async fn verify_email(
         .send_mail(email_user, "Email Verified", template)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }

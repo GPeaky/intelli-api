@@ -1,5 +1,8 @@
 use garde::Validate;
-use ntex::web::{types, HttpRequest, HttpResponse, Responder};
+use ntex::web::{
+    types::{Form, State},
+    HttpRequest, HttpResponse,
+};
 
 pub(crate) use admin::*;
 
@@ -13,10 +16,7 @@ use crate::{
 mod admin;
 
 #[inline(always)]
-pub(crate) async fn user_data(
-    req: HttpRequest,
-    state: types::State<AppState>,
-) -> AppResult<impl Responder> {
+pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
     let user = req
         .extensions()
         .get::<UserExtension>()
@@ -34,9 +34,9 @@ pub(crate) async fn user_data(
 #[inline(always)]
 pub(crate) async fn update_user(
     req: HttpRequest,
-    state: types::State<AppState>,
-    form: types::Form<UpdateUser>,
-) -> AppResult<impl Responder> {
+    state: State<AppState>,
+    form: Form<UpdateUser>,
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     };
@@ -48,5 +48,5 @@ pub(crate) async fn update_user(
         .ok_or(CommonError::InternalServerError)?;
 
     state.user_svc.update(&user, &form).await?;
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }

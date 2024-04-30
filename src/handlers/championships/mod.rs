@@ -1,7 +1,7 @@
 use garde::Validate;
 use ntex::web::{
     types::{Form, Path, State},
-    HttpRequest, HttpResponse, Responder,
+    HttpRequest, HttpResponse,
 };
 
 pub(crate) use admin::*;
@@ -27,7 +27,7 @@ pub async fn create_championship(
     req: HttpRequest,
     state: State<AppState>,
     form: Form<CreateChampionshipDto>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
@@ -67,7 +67,7 @@ pub async fn create_championship(
         .create(form.into_inner(), user.id)
         .await?;
 
-    Ok(HttpResponse::Created())
+    Ok(HttpResponse::Created().finish())
 }
 
 #[inline(always)]
@@ -76,7 +76,7 @@ pub async fn update(
     state: State<AppState>,
     form: Form<UpdateChampionship>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() || path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -92,7 +92,7 @@ pub async fn update(
         .update(path.0, user_id, &form)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
@@ -101,7 +101,7 @@ pub async fn add_user(
     state: State<AppState>,
     form: Form<AddUser>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() || path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -117,7 +117,7 @@ pub async fn add_user(
         .add_user(path.0, user_id, &form.email)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
@@ -125,7 +125,7 @@ pub async fn remove_user(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<ChampionshipAndUserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -141,14 +141,14 @@ pub async fn remove_user(
         .remove_user(path.id, user_id, path.user_id)
         .await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
 pub async fn get_championship(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -164,7 +164,7 @@ pub async fn get_championship(
 pub async fn all_championships(
     req: HttpRequest,
     state: State<AppState>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let user_id = req
         .extensions()
         .get::<UserExtension>()

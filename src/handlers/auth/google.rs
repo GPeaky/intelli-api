@@ -14,7 +14,7 @@ use crate::{
 pub async fn callback(
     state: State<AppState>,
     query: Query<GoogleCallbackQuery>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let google_user = state.google_repo.account_info(&query.code).await?;
     let user = state.user_repo.find_by_email(&google_user.email).await?;
 

@@ -1,7 +1,7 @@
 use garde::Validate;
 use ntex::web::{
     types::{Path, State},
-    HttpResponse, Responder,
+    HttpResponse,
 };
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
@@ -14,7 +14,7 @@ use crate::{
 pub async fn handle_stream(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }

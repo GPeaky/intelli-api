@@ -1,7 +1,7 @@
 use garde::Validate;
 use ntex::web::{
     types::{Path, State},
-    HttpResponse, Responder,
+    HttpResponse,
 };
 
 use crate::{
@@ -10,10 +10,8 @@ use crate::{
     structs::{ChampionshipIdPath, ServiceStatus},
 };
 
-// use super::counter::get;
-
 #[inline(always)]
-pub async fn active_services(state: State<AppState>) -> AppResult<impl Responder> {
+pub async fn active_services(state: State<AppState>) -> AppResult<HttpResponse> {
     let services = state.f1_svc.active_services().await;
     Ok(HttpResponse::Ok().json(&services))
 }
@@ -22,7 +20,7 @@ pub async fn active_services(state: State<AppState>) -> AppResult<impl Responder
 pub async fn start_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -36,14 +34,14 @@ pub async fn start_service(
         .start_service(championship.port, championship.id)
         .await?;
 
-    Ok(HttpResponse::Created())
+    Ok(HttpResponse::Created().finish())
 }
 
 #[inline(always)]
 pub async fn service_status(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -73,12 +71,12 @@ pub async fn service_status(
 pub async fn stop_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
     state.f1_svc.stop_service(path.0).await?;
 
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }

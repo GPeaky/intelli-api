@@ -1,7 +1,7 @@
 use garde::Validate;
 use ntex::web::{
     types::{Path, State},
-    HttpRequest, HttpResponse, Responder,
+    HttpRequest, HttpResponse,
 };
 
 use crate::{
@@ -16,7 +16,7 @@ pub async fn delete_user(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -36,7 +36,7 @@ pub async fn delete_user(
     }
 
     state.user_svc.delete(path.0).await?;
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
@@ -44,7 +44,7 @@ pub async fn disable_user(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -68,7 +68,7 @@ pub async fn disable_user(
     }
 
     state.user_svc.deactivate(path.0).await?;
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[inline(always)]
@@ -76,7 +76,7 @@ pub async fn enable_user(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -100,5 +100,5 @@ pub async fn enable_user(
     }
 
     state.user_svc.activate(path.0).await?;
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }

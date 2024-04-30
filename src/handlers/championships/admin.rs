@@ -1,7 +1,7 @@
 use garde::Validate;
 use ntex::web::{
     types::{Path, State},
-    HttpResponse, Responder,
+    HttpResponse,
 };
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 pub async fn user_championships(
     state: State<AppState>,
     path: Path<UserIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     if path.validate(&()).is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -27,11 +27,11 @@ pub async fn user_championships(
 pub async fn delete_championship(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
-) -> AppResult<impl Responder> {
+) -> AppResult<HttpResponse> {
     let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?
     };
 
     state.championship_svc.delete(championship.id).await?;
-    Ok(HttpResponse::Ok())
+    Ok(HttpResponse::Ok().finish())
 }
