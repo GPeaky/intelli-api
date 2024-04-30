@@ -2,18 +2,21 @@ use std::sync::Arc;
 
 use ntex::util::Bytes;
 use parking_lot::RwLock;
-use tokio::{sync::broadcast::Receiver, task::JoinHandle};
+use tokio::{
+    sync::{broadcast::Receiver, oneshot},
+    task::JoinHandle,
+};
 use tracing::error;
 use zerocopy::{FromBytes, Immutable, KnownLayout};
 
-use crate::{error::AppResult, services::PacketCaching};
+use crate::services::PacketCaching;
 
 use super::game::*;
 
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     pub channel: Arc<Receiver<Bytes>>,
-    pub handler: JoinHandle<AppResult<()>>,
+    pub shutdown_tx: oneshot::Sender<()>,
 }
 
 pub enum OptionalMessage {

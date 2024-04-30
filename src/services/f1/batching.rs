@@ -141,7 +141,7 @@ impl PacketBatching {
     ///
     /// This function returns an error if encoding the packet or caching it fails.
     #[inline(always)]
-    pub fn push(&mut self, packet: PacketHeader) -> AppResult<()> {
+    pub fn push(&mut self, packet: PacketHeader) {
         self.push_with_optional_parameter(packet, None)
     }
 
@@ -178,14 +178,13 @@ impl PacketBatching {
         &mut self,
         packet: PacketHeader,
         second_param: Option<OptionalMessage>,
-    ) -> AppResult<()> {
+    ) {
         let packet_type = packet.r#type();
 
         let mut cache = self.cache.write();
         cache.save(packet_type, &packet.payload, second_param);
 
         self.buf.lock().push(packet);
-        Ok(())
     }
 
     /// Sends batched packet headers from the buffer to the specified sender asynchronously.
