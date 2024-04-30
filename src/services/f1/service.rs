@@ -75,15 +75,14 @@ impl F1Service {
         let (tx, rx) = channel::<Bytes>(50);
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
-        let handler = self
-            .create_service_thread(
-                port,
-                championship_id,
-                tx.clone(),
-                shutdown_rx,
-                cache.clone(),
-            )
-            .await;
+        self.create_service_thread(
+            port,
+            championship_id,
+            tx.clone(),
+            shutdown_rx,
+            cache.clone(),
+        )
+        .await;
 
         self.services.insert(
             championship_id,
@@ -103,7 +102,7 @@ impl F1Service {
         }
 
         if let Some((_, service)) = self.services.remove(&championship_id) {
-            service.shutdown_tx.send(());
+            let _ = service.shutdown_tx.send(());
         } else {
             warn!("Trying to remove a not existing service");
         }
@@ -114,7 +113,7 @@ impl F1Service {
 
     #[inline(always)]
     async fn internal_close(services: &Services, championship_id: i32, firewall: &FirewallService) {
-        if let Err(_) = firewall.close(championship_id).await {
+        if firewall.close(championship_id).await.is_err() {
             error!("Error closing port in firewall");
         }
         services.remove(&championship_id);
@@ -125,7 +124,7 @@ impl F1Service {
         port: i32,
         championship_id: i32,
         tx: Sender<Bytes>,
-        shutdown_rx: oneshot::Receiver<()>,
+        mut shutdown_rx: oneshot::Receiver<()>,
         cache: Arc<RwLock<PacketCaching>>,
     ) -> JoinHandle<()> {
         let firewall = self.firewall;
@@ -156,7 +155,7 @@ impl F1Service {
                 return;
             };
 
-            if let Err(_) = firewall.open(championship_id, port as u16).await {
+            if firewall.open(championship_id, port as u16).await.is_err() {
                 error!("Error opening port in firewall");
                 close_service.await;
                 return;
@@ -178,9 +177,9 @@ impl F1Service {
                                 let buf = &buf[..size];
 
                                 if !port_partial_open {
-                                    if let Err(_) = firewall
+                                    if firewall
                                         .restrict_to_ip(championship_id, address.ip().to_string())
-                                        .await
+                                        .await.is_err()
                                     {
                                         error!("Error restricting port to ip");
                                         close_service.await;

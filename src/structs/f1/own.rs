@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use ntex::util::Bytes;
 use parking_lot::RwLock;
-use tokio::{
-    sync::{broadcast::Receiver, oneshot},
-    task::JoinHandle,
-};
+use tokio::sync::{broadcast::Receiver, oneshot};
 use tracing::error;
 use zerocopy::{FromBytes, Immutable, KnownLayout};
 
