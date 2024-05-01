@@ -1,6 +1,6 @@
 use ntex::web::{
     types::{Query, State},
-    HttpResponse, Responder,
+    HttpResponse,
 };
 
 use crate::{
