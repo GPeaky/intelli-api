@@ -10,8 +10,6 @@ use super::AppError;
 #[derive(Debug)]
 pub enum ChampionshipError {
     AlreadyExists,
-    #[allow(unused)]
-    NotChampionships,
     NotFound,
     LimitReached,
     NotOwner,
@@ -32,7 +30,6 @@ impl ChampionshipError {
     pub const fn status_code(&self) -> StatusCode {
         match self {
             ChampionshipError::AlreadyExists => StatusCode::CONFLICT,
-            ChampionshipError::NotChampionships => StatusCode::NOT_FOUND,
             ChampionshipError::NotFound => StatusCode::NOT_FOUND,
             ChampionshipError::LimitReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NotOwner => StatusCode::UNAUTHORIZED,
@@ -45,7 +42,6 @@ impl ChampionshipError {
     pub const fn error_message(&self) -> &'static str {
         match self {
             ChampionshipError::AlreadyExists => "Championship already exists",
-            ChampionshipError::NotChampionships => "Not Championships",
             ChampionshipError::NotFound => "Championship not found",
             ChampionshipError::LimitReached => "Championship limit reached",
             ChampionshipError::NotOwner => "Not Owner of Championship",

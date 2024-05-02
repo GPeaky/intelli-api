@@ -40,7 +40,7 @@ garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 zerocopy = { version = "0.8.0-alpha", features = ["simd-nightly"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
-async-compression = { version = "0.4.8", features = ["zstd", "tokio"] }
+async-compression = { version = "0.4", features = ["zstd", "tokio"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
