@@ -8,7 +8,7 @@ use crate::{
     config::Database,
     entity::User,
     error::{AppResult, UserError},
-    utils::{verify_password, UsedIds},
+    utils::{PasswordHasher, UsedIds},
 };
 
 /// A repository for managing user data within a db and cache.
@@ -19,6 +19,7 @@ use crate::{
 pub struct UserRepository {
     db: &'static Database,
     cache: &'static ServiceCache,
+    hasher: PasswordHasher,
 }
 
 impl UsedIds for &'static UserRepository {
@@ -56,7 +57,8 @@ impl UserRepository {
     /// # Returns
     /// A new instance of `UserRepository`.
     pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
-        Self { cache, db }
+        let hasher = PasswordHasher::new(11);
+        Self { cache, db, hasher }
     }
 
     /// Finds a user by ID.
@@ -208,6 +210,11 @@ impl UserRepository {
         Ok(None)
     }
 
+    #[inline]
+    pub async fn hash_password(&self, password: String) -> AppResult<String> {
+        self.hasher.hash_password(password).await
+    }
+
     /// Validates a user's password against a stored hash.
     ///
     /// # Arguments
@@ -217,7 +224,7 @@ impl UserRepository {
     /// # Returns
     /// `true` if the password matches the hash, otherwise `false`.
     #[inline]
-    pub fn validate_password(&self, pwd: &str, hash: &str) -> AppResult<bool> {
-        verify_password(hash, pwd)
+    pub async fn validate_password(&self, pwd: String, hash: String) -> AppResult<bool> {
+        self.hasher.verify_password(hash, pwd).await
     }
 }

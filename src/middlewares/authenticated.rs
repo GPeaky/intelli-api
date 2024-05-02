@@ -28,8 +28,8 @@ impl<S, Err> Service<WebRequest<Err>> for AuthenticationMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {
-    type Response = WebResponse;
     type Error = Error;
+    type Response = WebResponse;
 
     ntex::forward_poll_ready!(service);
     ntex::forward_poll_shutdown!(service);

@@ -50,7 +50,7 @@ pub(crate) async fn register(
 pub(crate) async fn login(
     state: State<AppState>,
     query: Query<FingerprintQuery>,
-    form: Form<LoginUserDto>,
+    Form(form): Form<LoginUserDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -70,7 +70,8 @@ pub(crate) async fn login(
 
     if !state
         .user_repo
-        .validate_password(&form.password, user.password.as_ref().unwrap())?
+        .validate_password(form.password, user.password.clone().unwrap())
+        .await?
     {
         return Err(UserError::InvalidCredentials)?;
     }
@@ -172,7 +173,7 @@ pub(crate) async fn forgot_password(
 pub async fn reset_password(
     query: Query<ResetPasswordQuery>,
     state: State<AppState>,
-    form: Form<ResetPasswordDto>,
+    Form(form): Form<ResetPasswordDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -180,7 +181,7 @@ pub async fn reset_password(
 
     let user_id = state
         .user_svc
-        .reset_password_with_token(&query.token, &form.password)
+        .reset_password_with_token(&query.token, form.password)
         .await?;
 
     let Some(user) = state.user_repo.find(user_id).await? else {

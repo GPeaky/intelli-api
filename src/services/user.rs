@@ -9,7 +9,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepository,
     structs::{RegisterUserDto, TokenType, UpdateUser},
-    utils::{hash_password, write, IdsGenerator},
+    utils::{write, IdsGenerator},
 };
 
 use super::TokenService;
@@ -100,7 +100,10 @@ impl UserService {
             }
 
             None => {
-                let hashed_password = hash_password(register.password.as_ref().unwrap())?;
+                let hashed_password = self
+                    .user_repo
+                    .hash_password(register.password.clone().unwrap())
+                    .await?;
 
                 let create_google_user_stmt = conn
                     .prepare_cached(
@@ -224,7 +227,7 @@ impl UserService {
     ///
     /// # Returns
     /// The ID of the user whose password was reset if successful.
-    pub async fn reset_password_with_token(&self, token: &str, password: &str) -> AppResult<i32> {
+    pub async fn reset_password_with_token(&self, token: &str, password: String) -> AppResult<i32> {
         self.cache.token.get_token(token, TokenType::ResetPassword);
 
         let user_id = {
@@ -331,7 +334,7 @@ impl UserService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    async fn reset_password(&self, id: i32, password: &str) -> AppResult<()> {
+    async fn reset_password(&self, id: i32, password: String) -> AppResult<()> {
         let Some(user) = self.user_repo.find(id).await? else {
             Err(UserError::NotFound)?
         };
@@ -351,7 +354,7 @@ impl UserService {
             )
             .await?;
 
-        let hashed_password = hash_password(password)?;
+        let hashed_password = self.user_repo.hash_password(password).await?;
         conn.execute(&reset_password_stmt, &[&hashed_password, &id])
             .await?;
 
