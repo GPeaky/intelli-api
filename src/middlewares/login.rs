@@ -67,7 +67,8 @@ where
             let now = Instant::now();
 
             let ip = {
-                let ip_str = unsafe { std::str::from_utf8_unchecked(ip.as_ref()) }; // This should be okay in prod because 
+                // This should be okay in prod because
+                let ip_str = unsafe { std::str::from_utf8_unchecked(ip.as_ref()) };
                 IpAddr::from_str(ip_str).map_err(|_| CommonError::InternalServerError)
             }?;
 
