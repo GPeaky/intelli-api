@@ -121,7 +121,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_championship_stmt, &[&id]).await?
         };
 
-        Ok(self.into_championship(row.as_ref()))
+        Ok(self.row_into_championship(row.as_ref()))
     }
 
     /// Finds a championship by its name.
@@ -153,7 +153,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_by_name_stmt, &[&name]).await?
         };
 
-        Ok(self.into_championship(row.as_ref()))
+        Ok(self.row_into_championship(row.as_ref()))
     }
 
     /// Retrieves all championships associated with a user ID.
@@ -275,7 +275,7 @@ impl ChampionshipRepository {
     ///
     /// An optional `Championship` instance if the row is present.
     // Todo - Separate setting the cache from the conversion or make it more explicit.
-    fn into_championship(&self, row: Option<&Row>) -> Option<Arc<Championship>> {
+    fn row_into_championship(&self, row: Option<&Row>) -> Option<Arc<Championship>> {
         row.map(|r| {
             let champ = Arc::new(Championship::from(r));
             self.cache.championship.set(champ.clone());

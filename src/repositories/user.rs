@@ -88,7 +88,7 @@ impl UserRepository {
             conn.query_opt(&find_user_stmt, &[&id]).await?
         };
 
-        Ok(self.into_user(row.as_ref()))
+        Ok(self.row_into_user(row.as_ref()))
     }
 
     /// Checks if a user exists by their email.
@@ -178,7 +178,7 @@ impl UserRepository {
             conn.query_opt(&find_by_email_stmt, &[&email]).await?
         };
 
-        Ok(self.into_user(row.as_ref()))
+        Ok(self.row_into_user(row.as_ref()))
     }
 
     /// Converts a db row into a `User` object.
@@ -194,7 +194,7 @@ impl UserRepository {
     /// - `Some(User)` if the user is found and active.
     /// - `None` if the row is `None`.
     // Todo - Separate setting the cache from the conversion or make it more explicit.
-    fn into_user(&self, row: Option<&Row>) -> Option<Arc<User>> {
+    fn row_into_user(&self, row: Option<&Row>) -> Option<Arc<User>> {
         row.map(|r| {
             let user = Arc::new(User::from(r));
             self.cache.user.set(user.clone());
