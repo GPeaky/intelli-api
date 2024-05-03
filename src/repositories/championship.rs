@@ -121,7 +121,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_championship_stmt, &[&id]).await?
         };
 
-        self.convert_to_championship(row)
+        Ok(self.into_championship(row.as_ref()))
     }
 
     /// Finds a championship by its name.
@@ -153,7 +153,7 @@ impl ChampionshipRepository {
             conn.query_opt(&find_by_name_stmt, &[&name]).await?
         };
 
-        self.convert_to_championship(row)
+        Ok(self.into_championship(row.as_ref()))
     }
 
     /// Retrieves all championships associated with a user ID.
@@ -274,14 +274,12 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// An optional `Championship` instance if the row is present.
-    #[inline]
-    fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Arc<Championship>>> {
-        if let Some(row) = row {
-            let championship = Arc::new(Championship::from(&row));
-            self.cache.championship.set(championship.clone());
-            return Ok(Some(championship));
-        }
-
-        Ok(None)
+    // Todo - Separate setting the cache from the conversion or make it more explicit.
+    fn into_championship(&self, row: Option<&Row>) -> Option<Arc<Championship>> {
+        row.map(|r| {
+            let champ = Arc::new(Championship::from(r));
+            self.cache.championship.set(champ.clone());
+            champ
+        })
     }
 }

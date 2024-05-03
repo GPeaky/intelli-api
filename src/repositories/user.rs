@@ -7,7 +7,7 @@ use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
     entity::User,
-    error::{AppResult, UserError},
+    error::AppResult,
     utils::{PasswordHasher, UsedIds},
 };
 
@@ -88,7 +88,7 @@ impl UserRepository {
             conn.query_opt(&find_user_stmt, &[&id]).await?
         };
 
-        self.convert_to_user(row)
+        Ok(self.into_user(row.as_ref()))
     }
 
     /// Checks if a user exists by their email.
@@ -178,7 +178,7 @@ impl UserRepository {
             conn.query_opt(&find_by_email_stmt, &[&email]).await?
         };
 
-        self.convert_to_user(row)
+        Ok(self.into_user(row.as_ref()))
     }
 
     /// Converts a db row into a `User` object.
@@ -191,23 +191,15 @@ impl UserRepository {
     /// - `row`: An optional db row that may contain user data.
     ///
     /// # Returns
-    /// - `Ok(Some(User))` if the user is found and active.
-    /// - `Ok(None)` if the row is `None`.
-    /// - `Err(UserError::NotVerified)` if the user is not active.
-    #[inline]
-    fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<Arc<User>>> {
-        if let Some(row) = row {
-            let user = Arc::new(User::from(&row));
-
-            if !user.active {
-                Err(UserError::NotVerified)?
-            }
-
+    /// - `Some(User)` if the user is found and active.
+    /// - `None` if the row is `None`.
+    // Todo - Separate setting the cache from the conversion or make it more explicit.
+    fn into_user(&self, row: Option<&Row>) -> Option<Arc<User>> {
+        row.map(|r| {
+            let user = Arc::new(User::from(r));
             self.cache.user.set(user.clone());
-            return Ok(Some(user));
-        }
-
-        Ok(None)
+            user
+        })
     }
 
     #[inline]

@@ -55,7 +55,7 @@ impl From<&Row> for User {
             password: row.get(3),
             avatar: row.get(4),
             provider: row.get(5),
-            role: row.try_get(6),
+            role: row.get(6),
             active: row.get(7),
             created_at: row.get(8),
             updated_at: row.get(9),
