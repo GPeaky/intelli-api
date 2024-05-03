@@ -36,9 +36,9 @@ pub struct User {
     pub username: String,
     #[serde(skip_serializing)]
     pub password: Option<String>,
+    pub avatar: String,
     #[serde(skip_serializing)]
     pub provider: Provider,
-    pub avatar: String,
     pub role: Role,
     #[serde(skip_serializing)]
     pub active: bool,
@@ -53,9 +53,9 @@ impl From<&Row> for User {
             email: row.get(1),
             username: row.get(2),
             password: row.get(3),
-            provider: row.try_get(4).unwrap(),
-            avatar: row.get(5),
-            role: row.try_get(6).unwrap(),
+            avatar: row.get(4),
+            provider: row.get(5),
+            role: row.try_get(6),
             active: row.get(7),
             created_at: row.get(8),
             updated_at: row.get(9),
