@@ -45,12 +45,12 @@ impl From<&Row> for Championship {
             id: value.get(0),
             port: value.get(1),
             name: value.get(2),
-            category: value.get(4),
-            season: value.get(5),
-            driver_count: value.get(6),
-            owner_id: value.get(7),
-            created_at: value.get(8),
-            updated_at: value.get(9),
+            category: value.get(3),
+            season: value.get(4),
+            driver_count: value.get(5),
+            owner_id: value.get(6),
+            created_at: value.get(7),
+            updated_at: value.get(8),
         }
     }
 }
