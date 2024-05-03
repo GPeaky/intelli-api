@@ -197,7 +197,7 @@ impl UserRepository {
     #[inline]
     fn convert_to_user(&self, row: Option<Row>) -> AppResult<Option<Arc<User>>> {
         if let Some(row) = row {
-            let user = Arc::new(User::try_from(&row)?);
+            let user = Arc::new(User::from(&row));
 
             if !user.active {
                 Err(UserError::NotVerified)?

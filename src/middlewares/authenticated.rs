@@ -46,11 +46,9 @@ where
         let header = {
             let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
 
-            if !header_str.starts_with(BEARER_PREFIX) {
-                return Err(TokenError::InvalidToken)?;
-            }
-
-            &header_str[BEARER_PREFIX.len()..]
+            header_str
+                .strip_prefix(BEARER_PREFIX)
+                .ok_or(TokenError::InvalidToken)?
         };
 
         let Some(state) = req.app_state::<AppState>() else {

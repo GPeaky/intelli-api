@@ -5,8 +5,6 @@ use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 
-use crate::error::{AppError, AppResult};
-
 pub type UserExtension = Arc<User>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSql, ToSql)]
@@ -48,22 +46,19 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-impl TryFrom<&Row> for User {
-    type Error = AppError;
-
-    #[inline]
-    fn try_from(row: &Row) -> AppResult<User> {
-        Ok(User {
-            id: row.try_get("id")?,
-            email: row.try_get("email")?,
-            username: row.try_get("username")?,
-            password: row.try_get("password")?,
-            provider: row.try_get("provider")?,
-            avatar: row.try_get("avatar")?,
-            role: row.try_get("role")?,
-            active: row.try_get("active")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
+impl From<&Row> for User {
+    fn from(row: &Row) -> Self {
+        User {
+            id: row.get(0),
+            email: row.get(1),
+            username: row.get(2),
+            password: row.get(3),
+            provider: row.get(4),
+            avatar: row.get(5),
+            role: row.get(6),
+            active: row.get(7),
+            created_at: row.get(8),
+            updated_at: row.get(9),
+        }
     }
 }

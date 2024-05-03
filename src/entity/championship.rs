@@ -5,8 +5,6 @@ use deadpool_postgres::tokio_postgres::Row;
 use postgres_derive::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 
-use crate::error::{AppError, AppResult};
-
 #[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
 pub enum Category {
@@ -30,32 +28,29 @@ pub struct Championship {
 }
 
 impl Championship {
-    pub fn try_from_rows(rows: &Vec<Row>) -> AppResult<Vec<Arc<Championship>>> {
+    pub fn from_rows(rows: &Vec<Row>) -> Vec<Arc<Championship>> {
         let mut championships = Vec::with_capacity(rows.len());
 
         for row in rows {
-            championships.push(Arc::new(Championship::try_from(row)?));
+            championships.push(Arc::new(Championship::from(row)));
         }
 
-        Ok(championships)
+        championships
     }
 }
 
-impl TryFrom<&Row> for Championship {
-    type Error = AppError;
-
-    #[inline]
-    fn try_from(value: &Row) -> AppResult<Championship> {
-        Ok(Championship {
-            id: value.try_get("id")?,
-            port: value.try_get("port")?,
-            name: value.try_get("name")?,
-            category: value.try_get("category")?,
-            season: value.try_get("season")?,
-            driver_count: value.try_get("driver_count")?,
-            owner_id: value.try_get("owner_id")?,
-            created_at: value.try_get("created_at")?,
-            updated_at: value.try_get("updated_at")?,
-        })
+impl From<&Row> for Championship {
+    fn from(value: &Row) -> Self {
+        Self {
+            id: value.get(0),
+            port: value.get(1),
+            name: value.get(2),
+            category: value.get(4),
+            season: value.get(5),
+            driver_count: value.get(6),
+            owner_id: value.get(7),
+            created_at: value.get(8),
+            updated_at: value.get(9),
+        }
     }
 }

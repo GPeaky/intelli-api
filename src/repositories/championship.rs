@@ -187,7 +187,7 @@ impl ChampionshipRepository {
             conn.query(&find_all_stmt, &[&user_id]).await?
         };
 
-        let championships = Championship::try_from_rows(&rows)?;
+        let championships = Championship::from_rows(&rows);
 
         self.cache
             .championship
@@ -277,7 +277,7 @@ impl ChampionshipRepository {
     #[inline]
     fn convert_to_championship(&self, row: Option<Row>) -> AppResult<Option<Arc<Championship>>> {
         if let Some(row) = row {
-            let championship = Arc::new(Championship::try_from(&row)?);
+            let championship = Arc::new(Championship::from(&row));
             self.cache.championship.set(championship.clone());
             return Ok(Some(championship));
         }
