@@ -6,7 +6,10 @@ use tokio::sync::{broadcast::Receiver, oneshot};
 use tracing::error;
 use zerocopy::{FromBytes, Immutable, KnownLayout};
 
-use crate::services::PacketCaching;
+use crate::{
+    error::{AppResult, CommonError, F1ServiceError},
+    services::PacketCaching,
+};
 
 use super::game::*;
 
@@ -34,7 +37,7 @@ pub enum F1Data<'a> {
 }
 
 impl<'a> F1Data<'a> {
-    pub fn try_deserialize(packet_id: PacketIds, data: &[u8]) -> Option<F1Data> {
+    pub fn try_deserialize(packet_id: PacketIds, data: &[u8]) -> AppResult<F1Data> {
         match packet_id {
             PacketIds::Motion => {
                 Self::try_deserialize_packet::<PacketMotionData>(data).map(F1Data::Motion)
@@ -72,21 +75,23 @@ impl<'a> F1Data<'a> {
             PacketIds::CarTelemetry => Self::try_deserialize_packet::<PacketCarTelemetryData>(data)
                 .map(F1Data::CarTelemetry),
 
-            _ => None,
+            _ => Err(F1ServiceError::InvalidPacketType)?,
         }
     }
 
-    pub fn try_deserialize_header(data: &'a [u8]) -> Option<&'a PacketHeader> {
+    pub fn try_deserialize_header(data: &'a [u8]) -> AppResult<&'a PacketHeader> {
         Self::try_deserialize_packet::<PacketHeader>(data)
     }
 
     #[inline(always)]
-    fn try_deserialize_packet<T: FromBytes + KnownLayout + Immutable>(bytes: &[u8]) -> Option<&T> {
+    fn try_deserialize_packet<T: FromBytes + KnownLayout + Immutable>(
+        bytes: &[u8],
+    ) -> AppResult<&T> {
         match T::ref_from_prefix(bytes) {
-            Some(packet) => Some(packet.0),
-            None => {
-                error!("Failed to deserialize packet");
-                None
+            Ok(packet) => Ok(packet.0),
+            Err(err) => {
+                error!("Error Deserializing Packet: {}", err);
+                Err(CommonError::InternalServerError)?
             }
         }
     }

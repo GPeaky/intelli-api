@@ -189,8 +189,7 @@ impl F1Service {
                                     port_partial_open = true;
                                 }
 
-                                let Some(header) = F1Data::try_deserialize_header(buf) else {
-                                    error!("Error deserializing F1 header");
+                                let Ok(header) = F1Data::try_deserialize_header(buf) else {
                                     continue;
                                 };
 
@@ -233,7 +232,7 @@ impl F1Service {
                                     _ => {}
                                 }
 
-                                let Some(packet) = F1Data::try_deserialize(packet_id, buf) else {
+                                let Ok(packet) = F1Data::try_deserialize(packet_id, buf) else {
                                     continue;
                                 };
 

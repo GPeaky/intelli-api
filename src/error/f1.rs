@@ -7,6 +7,7 @@ pub enum F1ServiceError {
     BatchedEncoding,
     AlreadyExists,
     NotActive,
+    InvalidPacketType,
 }
 
 impl F1ServiceError {
@@ -15,6 +16,7 @@ impl F1ServiceError {
             F1ServiceError::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::AlreadyExists => StatusCode::CONFLICT,
             F1ServiceError::NotActive => StatusCode::INTERNAL_SERVER_ERROR,
+            F1ServiceError::InvalidPacketType => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -23,6 +25,7 @@ impl F1ServiceError {
             F1ServiceError::BatchedEncoding => "Error to encode batched data",
             F1ServiceError::AlreadyExists => "Already Exists",
             F1ServiceError::NotActive => "Service not active",
+            F1ServiceError::InvalidPacketType => "Invalid packet type",
         }
     }
 }
