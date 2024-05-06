@@ -9,7 +9,7 @@ use ahash::AHashMap;
 use dashmap::DashMap;
 use ntex::util::Bytes;
 use parking_lot::RwLock;
-use std::{cell::RefCell, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tokio::{
     net::UdpSocket,
     sync::{
@@ -71,18 +71,12 @@ impl F1Service {
             return Err(F1ServiceError::AlreadyExists)?;
         }
 
-        let cache = Arc::from(RwLock::from(PacketCaching::new()));
         let (tx, rx) = channel::<Bytes>(50);
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let cache = Arc::from(RwLock::from(PacketCaching::new()));
 
-        self.create_service_thread(
-            port,
-            championship_id,
-            tx.clone(),
-            shutdown_rx,
-            cache.clone(),
-        )
-        .await;
+        self.create_service_thread(port, championship_id, tx, shutdown_rx, cache.clone())
+            .await;
 
         self.services.insert(
             championship_id,
@@ -102,7 +96,9 @@ impl F1Service {
         }
 
         if let Some((_, service)) = self.services.remove(&championship_id) {
-            let _ = service.shutdown_tx.send(());
+            if service.shutdown_tx.send(()).is_err() {
+                return Err(F1ServiceError::Shutdown)?;
+            };
         } else {
             warn!("Trying to remove a not existing service");
         }
@@ -137,10 +133,10 @@ impl F1Service {
 
             let mut port_partial_open = false;
             let mut buf = [0u8; BUFFER_SIZE];
+            let mut session_type = None;
             let mut last_session_update = Instant::now();
             let mut last_car_motion_update = last_session_update;
             let mut last_participants_update = last_session_update;
-            let session_type = RefCell::new(None);
             let close_service = Self::internal_close(services, championship_id, firewall);
 
             // Session History Data
@@ -260,7 +256,8 @@ impl F1Service {
                                             continue;
                                         };
 
-                                        let _ = session_type.borrow_mut().insert(converted_session_type);
+
+                                        session_type = Some(converted_session_type);
                                         let packet = session_data.convert(PacketType::SessionData).unwrap();
                                         last_session_update = now;
                                         packet_batching.push(packet);
@@ -276,12 +273,12 @@ impl F1Service {
 
                                     // If the session is not race don't save events
                                     F1Data::Event(event_data) => {
-                                        let Some(session_type) = session_type.take() else {
+                                        let Some(session_type) = &session_type else {
                                             continue;
                                         };
 
                                         if ![SessionType::R, SessionType::R2, SessionType::R3]
-                                            .contains(&session_type)
+                                            .contains(session_type)
                                         {
                                             continue;
                                         }
@@ -358,8 +355,6 @@ impl F1Service {
 
                                         // Only for testing purposes, in the future this should close the service when the race is finished
                                         {
-                                            let session_type = session_type.borrow();
-
                                             info!("Session type: {:?}", session_type);
 
                                             if let SessionType::R | SessionType::R2 | SessionType::R3 =
