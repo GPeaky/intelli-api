@@ -46,6 +46,12 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
+impl User {
+    pub fn from_row(row: &Row) -> Arc<Self> {
+        Arc::new(Self::from(row))
+    }
+}
+
 impl From<&Row> for User {
     fn from(row: &Row) -> Self {
         User {
