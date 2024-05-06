@@ -432,7 +432,7 @@ pub struct CarDamageData {
 // ------------ CUSTOM GAME TYPES --------------
 // ---------------------------------------------
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct SectorsLaps {
     pub sector1: u16,
     pub sector2: u16,
@@ -458,7 +458,7 @@ pub enum PacketIds {
     MotionEx,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum EventCode {
     SessionStarted,
     SessionEnded,
@@ -481,7 +481,7 @@ pub enum EventCode {
     Overtake,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum SessionType {
     P1,
     P2,
