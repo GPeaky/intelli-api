@@ -167,6 +167,7 @@ impl F1Service {
                         return;
                     }
 
+                    // Todo - Verify the necessity of rejecting packets from addresses other than the initial sender's, currently enforced by the firewall. Consider adding this as an additional security layer in the code.
                     result = timeout(SOCKET_TIMEOUT, socket.recv_from(&mut buf)) => {
                         match result {
                             Ok(Ok((size, address))) => {
