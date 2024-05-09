@@ -171,6 +171,7 @@ impl F1Service {
                         match result {
                             Ok(Ok((size, address))) => {
                                 let buf = &buf[..size];
+                                let now = Instant::now();
 
                                 if !port_partial_open {
                                     if firewall
@@ -185,7 +186,7 @@ impl F1Service {
                                     port_partial_open = true;
                                 }
 
-                                let Ok(header) = F1Data::try_cast_header(buf) else {
+                                let Ok((packet_id, header, packet)) = F1Data::try_cast(buf) else {
                                     continue;
                                 };
 
@@ -199,12 +200,6 @@ impl F1Service {
                                 if session_id == 0 {
                                     continue;
                                 }
-
-                                let now = Instant::now();
-                                let Ok(packet_id) = PacketIds::try_from(header.packet_id) else {
-                                    error!("Error deserializing F1 packet id");
-                                    continue;
-                                };
 
                                 match packet_id {
                                     PacketIds::Motion => {
@@ -227,10 +222,6 @@ impl F1Service {
 
                                     _ => {}
                                 }
-
-                                let Ok(packet) = F1Data::try_cast(packet_id, buf) else {
-                                    continue;
-                                };
 
                                 match packet {
                                     F1Data::Motion(motion_data) => {

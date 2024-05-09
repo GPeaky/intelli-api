@@ -428,12 +428,6 @@ pub struct CarDamageData {
 // ------------ CUSTOM GAME TYPES --------------
 // ---------------------------------------------
 
-// Todo - implement this trait for all packet types
-#[allow(unused)]
-trait Header {
-    fn header(&self) -> &PacketHeader;
-}
-
 #[derive(Clone, Copy, PartialEq)]
 pub struct SectorsLaps {
     pub sector1: u16,

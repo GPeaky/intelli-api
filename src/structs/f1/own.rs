@@ -35,10 +35,12 @@ pub enum F1Data<'a> {
     CarTelemetry(&'a PacketCarTelemetryData),
 }
 
-// Todo - Implement only one method that return F1Data with Header Trait to get access to header data
 impl<'a> F1Data<'a> {
-    pub fn try_cast(packet_id: PacketIds, data: &[u8]) -> AppResult<F1Data> {
-        match packet_id {
+    pub fn try_cast(data: &[u8]) -> AppResult<(PacketIds, &PacketHeader, F1Data)> {
+        let header = Self::unsafe_cast::<PacketHeader>(data)?;
+
+        let packet_id = PacketIds::try_from(header.packet_id).unwrap();
+        let packet = match packet_id {
             PacketIds::Motion => Self::unsafe_cast::<PacketMotionData>(data).map(F1Data::Motion),
 
             PacketIds::Session => Self::unsafe_cast::<PacketSessionData>(data).map(F1Data::Session),
@@ -71,11 +73,9 @@ impl<'a> F1Data<'a> {
             }
 
             _ => Err(F1ServiceError::InvalidPacketType)?,
-        }
-    }
+        }?;
 
-    pub fn try_cast_header(data: &[u8]) -> AppResult<&PacketHeader> {
-        Self::unsafe_cast::<PacketHeader>(data)
+        Ok((packet_id, header, packet))
     }
 
     #[inline(always)]
