@@ -185,7 +185,7 @@ impl F1Service {
                                     port_partial_open = true;
                                 }
 
-                                let Ok(header) = F1Data::try_deserialize_header(buf) else {
+                                let Ok(header) = F1Data::try_cast_header(buf) else {
                                     continue;
                                 };
 
@@ -228,7 +228,7 @@ impl F1Service {
                                     _ => {}
                                 }
 
-                                let Ok(packet) = F1Data::try_deserialize(packet_id, buf) else {
+                                let Ok(packet) = F1Data::try_cast(packet_id, buf) else {
                                     continue;
                                 };
 

@@ -8,6 +8,7 @@ pub enum F1ServiceError {
     AlreadyExists,
     NotActive,
     InvalidPacketType,
+    CastingError,
     Shutdown,
 }
 
@@ -19,6 +20,7 @@ impl F1ServiceError {
             F1ServiceError::NotActive => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::InvalidPacketType => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::Shutdown => StatusCode::INTERNAL_SERVER_ERROR,
+            F1ServiceError::CastingError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -29,6 +31,7 @@ impl F1ServiceError {
             F1ServiceError::NotActive => "Service not active",
             F1ServiceError::InvalidPacketType => "Invalid packet type",
             F1ServiceError::Shutdown => "Error shutting down service",
+            F1ServiceError::CastingError => "Error casting data",
         }
     }
 }
