@@ -227,11 +227,17 @@ impl UserService {
     ///
     /// # Returns
     /// The ID of the user whose password was reset if successful.
-    pub async fn reset_password_with_token(&self, token: &str, password: String) -> AppResult<i32> {
-        self.cache.token.get_token(token, TokenType::ResetPassword);
+    pub async fn reset_password_with_token(
+        &self,
+        token: String,
+        password: String,
+    ) -> AppResult<i32> {
+        self.cache
+            .token
+            .get_token(token.clone(), TokenType::ResetPassword);
 
         let user_id = {
-            let token_data = self.token_svc.validate(token)?;
+            let token_data = self.token_svc.validate(&token)?;
             if token_data.claims.token_type != TokenType::ResetPassword {
                 error!("Token type is not ResetPassword");
                 Err(TokenError::InvalidToken)?
@@ -283,10 +289,11 @@ impl UserService {
     ///
     /// # Returns
     /// The ID of the user activated if successful.
-    pub async fn activate_with_token(&self, token: &str) -> AppResult<i32> {
-        self.cache.token.get_token(token, TokenType::Email);
+    pub async fn activate_with_token(&self, token: String) -> AppResult<i32> {
+        self.cache.token.get_token(token.clone(), TokenType::Email);
+
         let user_id = {
-            let token_data = self.token_svc.validate(token)?;
+            let token_data = self.token_svc.validate(&token)?;
             if token_data.claims.token_type != TokenType::Email {
                 Err(TokenError::InvalidToken)?
             }

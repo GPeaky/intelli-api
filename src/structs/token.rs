@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 
 //* Token Type Enum
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 pub enum TokenType {
     Bearer,
     Email,

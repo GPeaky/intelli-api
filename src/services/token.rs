@@ -113,7 +113,7 @@ impl TokenService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) {
+    pub fn remove_refresh_token(&self, user_id: i32, fingerprint: String) {
         self.cache.token.remove_refresh_token(user_id, fingerprint);
     }
 
@@ -146,7 +146,7 @@ impl TokenService {
     pub fn refresh_access_token(
         &self,
         refresh_token: &str,
-        fingerprint: &str,
+        fingerprint: String,
     ) -> AppResult<String> {
         let id = {
             let token = self.validate(refresh_token)?;

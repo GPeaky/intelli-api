@@ -26,12 +26,13 @@ impl TokenCache {
 
     pub fn set_refresh_token(&self, user_id: i32, fingerprint: String, token: String) {
         let expiry = Instant::now() + Duration::from_secs(86400);
+
         self.refresh_tokens
             .insert((user_id, fingerprint), (expiry, token));
     }
 
-    pub fn get_token(&self, token: &str, token_type: TokenType) -> bool {
-        if let Some(expiry) = self.cache.get(&(token.to_owned(), token_type.clone())) {
+    pub fn get_token(&self, token: String, token_type: TokenType) -> bool {
+        if let Some(expiry) = self.cache.get(&(token.clone(), token_type)) {
             if Instant::now() < expiry {
                 return true;
             } else {
@@ -42,26 +43,23 @@ impl TokenCache {
         false
     }
 
-    pub fn get_refresh_token(&self, user_id: i32, fingerprint: &str) -> Option<String> {
-        if let Some((expiry, token)) = self.refresh_tokens.get(&(user_id, fingerprint.to_string()))
-        {
+    pub fn get_refresh_token(&self, user_id: i32, fingerprint: String) -> Option<String> {
+        if let Some((expiry, token)) = self.refresh_tokens.get(&(user_id, fingerprint.clone())) {
             if Instant::now() < expiry {
                 return Some(token);
             } else {
-                self.refresh_tokens
-                    .remove(&(user_id, fingerprint.to_string()));
+                self.refresh_tokens.remove(&(user_id, fingerprint));
             }
         }
 
         None
     }
 
-    pub fn remove_token(&self, token: &str, token_type: TokenType) {
-        self.cache.remove(&(token.to_owned(), token_type));
+    pub fn remove_token(&self, token: String, token_type: TokenType) {
+        self.cache.remove(&(token, token_type));
     }
 
-    pub fn remove_refresh_token(&self, user_id: i32, fingerprint: &str) {
-        self.refresh_tokens
-            .remove(&(user_id, fingerprint.to_string()));
+    pub fn remove_refresh_token(&self, user_id: i32, fingerprint: String) {
+        self.refresh_tokens.remove(&(user_id, fingerprint));
     }
 }

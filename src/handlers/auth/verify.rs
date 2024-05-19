@@ -12,9 +12,9 @@ use crate::{
 #[inline(always)]
 pub async fn verify_email(
     state: State<AppState>,
-    query: Query<VerifyEmailParams>,
+    Query(query): Query<VerifyEmailParams>,
 ) -> AppResult<HttpResponse> {
-    let user_id = state.user_svc.activate_with_token(&query.token).await?;
+    let user_id = state.user_svc.activate_with_token(query.token).await?;
     let user = state.user_repo.find(user_id).await?.unwrap();
 
     let template = EmailVerified {};

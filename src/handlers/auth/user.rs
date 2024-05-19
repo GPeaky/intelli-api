@@ -93,11 +93,11 @@ pub(crate) async fn login(
 #[inline(always)]
 pub(crate) async fn refresh_token(
     state: State<AppState>,
-    query: Query<RefreshTokenQuery>,
+    Query(query): Query<RefreshTokenQuery>,
 ) -> AppResult<HttpResponse> {
     let access_token = state
         .token_svc
-        .refresh_access_token(&query.refresh_token, &query.fingerprint)?;
+        .refresh_access_token(&query.refresh_token, query.fingerprint)?;
 
     let refresh_response = &RefreshResponse { access_token };
 
@@ -108,7 +108,7 @@ pub(crate) async fn refresh_token(
 pub(crate) async fn logout(
     req: HttpRequest,
     state: State<AppState>,
-    query: Query<FingerprintQuery>,
+    Query(query): Query<RefreshTokenQuery>,
 ) -> AppResult<HttpResponse> {
     let user_id = req
         .extensions()
@@ -118,7 +118,7 @@ pub(crate) async fn logout(
 
     state
         .token_svc
-        .remove_refresh_token(user_id, &query.fingerprint);
+        .remove_refresh_token(user_id, query.fingerprint);
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -171,8 +171,8 @@ pub(crate) async fn forgot_password(
 // Todo: Add rate limiting to the reset password endpoint
 #[inline(always)]
 pub async fn reset_password(
-    query: Query<ResetPasswordQuery>,
     state: State<AppState>,
+    Query(query): Query<ResetPasswordQuery>,
     Form(form): Form<ResetPasswordDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
@@ -181,7 +181,7 @@ pub async fn reset_password(
 
     let user_id = state
         .user_svc
-        .reset_password_with_token(&query.token, form.password)
+        .reset_password_with_token(query.token, form.password)
         .await?;
 
     let Some(user) = state.user_repo.find(user_id).await? else {
