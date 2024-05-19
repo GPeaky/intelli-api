@@ -90,7 +90,7 @@ impl EmailService {
 
         let message = MessageBuilder::new()
             .from(Mailbox::new(
-                Some("Intelli Telemetry".to_owned()),
+                Some(String::from("Intelli Telemetry")),
                 Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
             ))
             .to(Mailbox::new(

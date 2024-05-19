@@ -23,7 +23,7 @@ impl SavedSessionService {
         Self {
             cache,
             db,
-            saved_session_repo: saved_session_repo.clone(),
+            saved_session_repo,
             ids_generator,
         }
     }

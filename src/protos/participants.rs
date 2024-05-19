@@ -13,7 +13,14 @@ impl ToProtoMessage for BPacketParticipantsData {
         let mut participants = Vec::with_capacity(self.participants.len());
 
         for participant in &self.participants {
-            let c_str = CStr::from_bytes_until_nul(&participant.name).unwrap();
+            let name = match CStr::from_bytes_until_nul(&participant.name) {
+                Ok(c_str) => match c_str.to_str() {
+                    Ok(valid_str) => valid_str.to_owned(),
+                    Err(_) => String::new(),
+                },
+
+                Err(_) => String::new(),
+            };
 
             participants.push(ParticipantData {
                 ai_controlled: participant.ai_controlled as u32,
@@ -23,7 +30,7 @@ impl ToProtoMessage for BPacketParticipantsData {
                 my_team: participant.my_team as u32,
                 race_number: participant.race_number as u32,
                 nationality: participant.nationality as u32,
-                name: c_str.to_str().unwrap().to_owned(),
+                name,
                 your_telemetry: participant.your_telemetry as u32,
                 show_online_names: participant.show_online_names as u32,
                 platform: participant.platform as u32,

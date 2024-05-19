@@ -49,7 +49,7 @@ pub(crate) async fn register(
 #[inline(always)]
 pub(crate) async fn login(
     state: State<AppState>,
-    query: Query<FingerprintQuery>,
+    Query(query): Query<FingerprintQuery>,
     Form(form): Form<LoginUserDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate(&()).is_err() {
@@ -80,7 +80,7 @@ pub(crate) async fn login(
 
     let refresh_token = state
         .token_svc
-        .generate_refresh_token(user.id, &query.fingerprint)?;
+        .generate_refresh_token(user.id, query.fingerprint)?;
 
     let auth_response = &AuthResponse {
         access_token,

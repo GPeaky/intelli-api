@@ -125,12 +125,12 @@ impl TokenService {
     ///
     /// # Returns
     /// A new refresh token as a string if successful.
-    pub fn generate_refresh_token(&self, user_id: i32, fingerprint: &str) -> AppResult<String> {
+    pub fn generate_refresh_token(&self, user_id: i32, fingerprint: String) -> AppResult<String> {
         let token = self.generate_token(user_id, TokenType::RefreshBearer)?;
 
         self.cache
             .token
-            .set_refresh_token(user_id, fingerprint.to_owned(), token.clone());
+            .set_refresh_token(user_id, fingerprint, token.clone());
 
         Ok(token)
     }
