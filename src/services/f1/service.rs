@@ -43,7 +43,7 @@ impl F1Service {
         let len = self.services.len();
         let mut services = Vec::with_capacity(len);
 
-        for item in self.services.iter() {
+        for item in self.services {
             services.push(*item.key())
         }
 
@@ -126,7 +126,7 @@ impl F1Service {
         let firewall = self.firewall;
         let services = self.services;
 
-        // TODO - Prune cache on stop
+        // Todo - Implement all this logic in a structure
         tokio::spawn(async move {
             let span = info_span!("F1 Service", championship_id = championship_id);
             let _guard = span.enter();

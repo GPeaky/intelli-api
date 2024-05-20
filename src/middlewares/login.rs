@@ -54,7 +54,6 @@ where
     ntex::forward_poll_ready!(service);
     ntex::forward_poll_shutdown!(service);
 
-    // Todo: Optimize this method to reduce the number of locks
     async fn call(
         &self,
         req: WebRequest<Err>,
@@ -67,7 +66,7 @@ where
             let now = Instant::now();
 
             let ip = {
-                // This should be okay in prod because
+                // This should be okay in prod because only cloudflare can put the header
                 let ip_str = unsafe { std::str::from_utf8_unchecked(ip.as_ref()) };
                 IpAddr::from_str(ip_str).map_err(|_| CommonError::InternalServerError)
             }?;
