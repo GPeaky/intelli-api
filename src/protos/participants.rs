@@ -10,7 +10,7 @@ impl ToProtoMessage for BPacketParticipantsData {
     type ProtoType = PacketParticipantsData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
-        let mut participants = Vec::with_capacity(self.participants.len());
+        let mut participants = Vec::with_capacity(22);
 
         for participant in &self.participants {
             let name = match CStr::from_bytes_until_nul(&participant.name) {
