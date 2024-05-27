@@ -63,7 +63,7 @@ impl EmailService {
     /// - `user`: The recipient of the email. Contains username and email address.
     /// - `subject`: The subject line of the email.
     /// - `body`: The body of the email. This parameter is expected to be a type that implements
-    /// the `TemplateOnce` trait, allowing for dynamic content generation.
+    ///     the `TemplateOnce` trait, allowing for dynamic content generation.
     ///
     /// # Returns
     /// An `AppResult<()>` indicating the outcome of the operation. On success, it returns `Ok(())`.
