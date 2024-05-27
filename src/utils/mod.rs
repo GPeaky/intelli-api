@@ -1,9 +1,10 @@
 use core::fmt::Write;
 
-pub(crate) use ids_generator::{IdsGenerator, UsedIds};
+pub(crate) use ids_generator::IdsGenerator;
 pub(crate) use password_hash::*;
 pub(crate) use ports::MachinePorts;
 
+mod bitset;
 mod ids_generator;
 mod password_hash;
 mod ports;

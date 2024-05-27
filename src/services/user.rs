@@ -29,7 +29,7 @@ pub struct UserService {
     /// Service for managing authentication tokens.
     token_svc: &'static TokenService,
     /// Service for generating unique IDs.
-    ids_generator: IdsGenerator<&'static UserRepository>,
+    ids_generator: IdsGenerator,
 }
 
 impl UserService {
@@ -47,7 +47,10 @@ impl UserService {
         user_repo: &'static UserRepository,
         token_svc: &'static TokenService,
     ) -> Self {
-        let ids_generator = IdsGenerator::new(600000000..699999999, user_repo).await;
+        let ids_generator = {
+            let used_ids = user_repo.used_ids().await.unwrap();
+            IdsGenerator::new(600000000..699999999, used_ids)
+        };
 
         Self {
             cache,
@@ -72,7 +75,7 @@ impl UserService {
             Err(UserError::AlreadyExists)?
         }
 
-        let id = self.ids_generator.next().await;
+        let id = self.ids_generator.next();
         let conn = self.db.pg.get().await?;
 
         match &register.provider {

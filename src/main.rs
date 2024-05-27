@@ -1,3 +1,4 @@
+#![feature(portable_simd)]
 mod cache;
 mod config;
 mod entity;

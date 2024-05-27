@@ -28,7 +28,7 @@ pub struct ChampionshipService {
     /// Repository for championship-specific db operations.
     championship_repo: &'static ChampionshipRepository,
     /// Id generator for championship ids
-    ids_generator: IdsGenerator<&'static ChampionshipRepository>,
+    ids_generator: IdsGenerator,
 }
 
 //TODO: Create a common trait for the entities and implement the common methods there
@@ -51,7 +51,11 @@ impl ChampionshipService {
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
         let machine_port = MachinePorts::new(championship_repo).await?;
-        let ids_generator = IdsGenerator::new(700000000..799999999, championship_repo).await;
+
+        let ids_generator = {
+            let used_ids = championship_repo.used_ids().await?;
+            IdsGenerator::new(700000000..799999999, used_ids)
+        };
 
         Ok(Self {
             db,
@@ -106,7 +110,7 @@ impl ChampionshipService {
                 relate_user_with_championship_stmt_fut
             )?;
 
-            let id = self.ids_generator.next().await;
+            let id = self.ids_generator.next();
 
             let port = self
                 .ports

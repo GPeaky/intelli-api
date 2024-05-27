@@ -7,7 +7,6 @@ use crate::{
     config::Database,
     entity::Championship,
     error::AppResult,
-    utils::UsedIds,
 };
 
 /// A repository for managing championship data, with support for caching.
@@ -20,30 +19,6 @@ pub struct ChampionshipRepository {
     db: &'static Database,
     /// The cache layer used for storing and retrieving cached championship data.
     cache: &'static ServiceCache,
-}
-
-impl UsedIds for &'static ChampionshipRepository {
-    async fn used_ids(&self) -> AppResult<AHashSet<i32>> {
-        let conn = self.db.pg.get().await?;
-
-        let championship_ids_stmt = conn
-            .prepare_cached(
-                r#"
-                    SELECT id FROM championship
-                "#,
-            )
-            .await?;
-
-        let rows = conn.query(&championship_ids_stmt, &[]).await?;
-        let mut championships_ids = AHashSet::with_capacity(rows.len());
-
-        for row in rows {
-            let id: i32 = row.get("id");
-            championships_ids.insert(id);
-        }
-
-        Ok(championships_ids)
-    }
 }
 
 impl ChampionshipRepository {
@@ -278,5 +253,28 @@ impl ChampionshipRepository {
         };
 
         Ok(rows.len())
+    }
+
+    /// This method should only be called once
+    pub async fn used_ids(&self) -> AppResult<Vec<i32>> {
+        let conn = self.db.pg.get().await?;
+
+        let championship_ids_stmt = conn
+            .prepare_cached(
+                r#"
+                    SELECT id FROM championship
+                "#,
+            )
+            .await?;
+
+        let rows = conn.query(&championship_ids_stmt, &[]).await?;
+        let mut championships_ids = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            let id: i32 = row.get(0);
+            championships_ids.push(id);
+        }
+
+        Ok(championships_ids)
     }
 }

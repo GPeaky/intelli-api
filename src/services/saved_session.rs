@@ -11,14 +11,17 @@ pub struct SavedSessionService {
     db: &'static Database,
     #[allow(unused)]
     saved_session_repo: SavedSessionRepository,
-    ids_generator: IdsGenerator<SavedSessionRepository>,
+    ids_generator: IdsGenerator,
 }
 
 impl SavedSessionService {
     pub async fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         let saved_session_repo = SavedSessionRepository::new(db, cache);
-        let ids_generator =
-            IdsGenerator::new(800000000..900000000, saved_session_repo.clone()).await;
+
+        let ids_generator = {
+            let used_ids = saved_session_repo.used_ids().await.unwrap();
+            IdsGenerator::new(800000000..900000000, used_ids)
+        };
 
         Self {
             cache,
@@ -30,7 +33,7 @@ impl SavedSessionService {
 
     #[allow(unused)]
     pub async fn create(&self) -> AppResult<()> {
-        let id = self.ids_generator.next().await;
+        let id = self.ids_generator.next();
 
         let conn = self.db.pg.get().await?;
         let save_session_stmt = conn

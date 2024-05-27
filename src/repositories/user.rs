@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use ahash::AHashSet;
-
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
     entity::User,
     error::AppResult,
-    utils::{PasswordHasher, UsedIds},
+    utils::PasswordHasher,
 };
 
 /// A repository for managing user data within a db and cache.
@@ -19,30 +17,6 @@ pub struct UserRepository {
     db: &'static Database,
     cache: &'static ServiceCache,
     hasher: PasswordHasher,
-}
-
-impl UsedIds for &'static UserRepository {
-    async fn used_ids(&self) -> AppResult<AHashSet<i32>> {
-        let conn = self.db.pg.get().await?;
-
-        let user_ids_stmt = conn
-            .prepare_cached(
-                r#"
-                    SELECT id FROM users
-                "#,
-            )
-            .await?;
-
-        let rows = conn.query(&user_ids_stmt, &[]).await?;
-        let mut user_ids = AHashSet::with_capacity(rows.len());
-
-        for row in rows {
-            let id: i32 = row.get(0);
-            user_ids.insert(id);
-        }
-
-        Ok(user_ids)
-    }
 }
 
 impl UserRepository {
@@ -193,6 +167,29 @@ impl UserRepository {
         }
 
         Ok(None)
+    }
+
+    /// This method should only be called once
+    pub async fn used_ids(&self) -> AppResult<Vec<i32>> {
+        let conn = self.db.pg.get().await?;
+
+        let user_ids_stmt = conn
+            .prepare_cached(
+                r#"
+                    SELECT id FROM users
+                "#,
+            )
+            .await?;
+
+        let rows = conn.query(&user_ids_stmt, &[]).await?;
+        let mut user_ids = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            let id: i32 = row.get(0);
+            user_ids.push(id);
+        }
+
+        Ok(user_ids)
     }
 
     #[inline]
