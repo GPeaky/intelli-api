@@ -34,7 +34,7 @@ openssl = { version = "0.10", features = ["v110"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
-ntex = { version = "1", features = ["tokio", "openssl"] }
+ntex = { version = "2", features = ["tokio", "openssl"] }
 garde = { version = "0.18", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
