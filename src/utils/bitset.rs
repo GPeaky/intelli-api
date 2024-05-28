@@ -26,6 +26,28 @@ impl Bitset {
         }
     }
 
+    /// Checks if the bit corresponding to the given value is set.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check the bit for.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the bit is set, `false` otherwise.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as unsafe because it uses unchecked indexing
+    /// (`get_unchecked`). It assumes that the value is always within the
+    /// range provided during the creation of the Bitset. The parent structure
+    /// (IdsGenerator) must ensure that only valid values are used.
+    pub unsafe fn check(&self, value: i32) -> bool {
+        let index = (value - self.range.start) as usize;
+        let byte = self.bits.get_unchecked(index / 8);
+        (*byte & (1 << (index % 8))) != 0
+    }
+
     /// Sets the bit corresponding to the given value.
     ///
     /// # Arguments
@@ -61,27 +83,5 @@ impl Bitset {
         let index = (value - self.range.start) as usize;
         let byte = self.bits.get_unchecked_mut(index / 8);
         *byte &= !(1 << (index % 8));
-    }
-
-    /// Checks if the bit corresponding to the given value is set.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - The value to check the bit for.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the bit is set, `false` otherwise.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as unsafe because it uses unchecked indexing
-    /// (`get_unchecked`). It assumes that the value is always within the
-    /// range provided during the creation of the Bitset. The parent structure
-    /// (IdsGenerator) must ensure that only valid values are used.
-    pub unsafe fn check(&self, value: i32) -> bool {
-        let index = (value - self.range.start) as usize;
-        let byte = self.bits.get_unchecked(index / 8);
-        (*byte & (1 << (index % 8))) != 0
     }
 }
