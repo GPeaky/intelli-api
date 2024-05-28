@@ -26,11 +26,10 @@ impl<S, Err> Service<WebRequest<Err>> for AdminMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {
-    type Error = Error;
     type Response = WebResponse;
+    type Error = Error;
 
     ntex::forward_ready!(service);
-    ntex::forward_shutdown!(service);
 
     async fn call(
         &self,

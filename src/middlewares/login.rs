@@ -52,7 +52,6 @@ where
     type Response = WebResponse;
 
     ntex::forward_ready!(service);
-    ntex::forward_shutdown!(service);
 
     async fn call(
         &self,
