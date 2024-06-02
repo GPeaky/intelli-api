@@ -10,12 +10,87 @@ use ring::rand::{SecureRandom, SystemRandom};
 
 use super::bitset::Bitset;
 
-const POOL_SIZE: usize = 1000;
+const POOL_SIZE: usize = 1024;
 
-/// Enum for manage HashSet or Bitset;
+/// `IdContainer` holds IDs using either a `HashSet` or a `Bitset`.
+/// Automatically switches based on a threshold for efficient storage.
 pub enum IdContainer {
-    HashSet(AHashSet<i32>),
+    HashSet(AHashSet<i32>, Range<i32>, usize), // Range & Threshold
     Bitset(Bitset),
+}
+
+impl IdContainer {
+    /// Creates a new `IdContainer` based on the range and existing IDs.
+    ///
+    /// # Arguments
+    ///
+    /// * `range` - The range from which IDs are generated.
+    /// * `in_use_ids` - IDs that are currently in use.
+    /// * `threshold` - The threshold to determine the storage type.
+    pub fn new(range: Range<i32>, in_use_ids: Vec<i32>, valid_range: i32) -> Self {
+        let threshold = (valid_range as usize + 7) / 8;
+
+        if in_use_ids.len() * 9 > threshold {
+            let mut bitset = Bitset::new(range.clone());
+
+            for id in in_use_ids {
+                unsafe {
+                    bitset.set(id);
+                }
+            }
+
+            IdContainer::Bitset(bitset)
+        } else {
+            let mut hashset = AHashSet::with_capacity(in_use_ids.len());
+
+            for id in in_use_ids {
+                hashset.insert(id);
+            }
+
+            IdContainer::HashSet(hashset, range, threshold)
+        }
+    }
+
+    /// Checks if the threshold is exceeded and converts to `Bitset` if needed.
+    pub fn check_threshold(&mut self) {
+        if let IdContainer::HashSet(ref hashset, range, threshold) = self {
+            if hashset.len() * 9 > *threshold {
+                let mut bitset = Bitset::new(range.clone());
+
+                for id in hashset {
+                    unsafe {
+                        bitset.set(*id);
+                    }
+                }
+
+                *self = IdContainer::Bitset(bitset)
+            }
+        }
+    }
+
+    /// Inserts an ID if it is not already present.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID to insert.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the ID was inserted, `false` if it was already present.
+    pub fn insert(&mut self, id: i32) -> bool {
+        match self {
+            IdContainer::Bitset(bitset) => unsafe {
+                if !bitset.check(id) {
+                    bitset.set(id);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            IdContainer::HashSet(hashset, _, _) => hashset.insert(id),
+        }
+    }
 }
 
 /// Struct for generating unique IDs within a specific range.
@@ -40,7 +115,6 @@ pub struct IdsGenerator {
     container: Arc<Mutex<IdContainer>>,
     range: Range<i32>,
     valid_range: i32,
-    threshold: usize,
 }
 
 impl IdsGenerator {
@@ -52,32 +126,13 @@ impl IdsGenerator {
     /// * `size` - Optional `usize` specifying the pool size. Uses a default if None.
     pub fn new(range: Range<i32>, in_use_ids: Vec<i32>) -> Self {
         let valid_range = range.end - range.start;
-        let threshold = (valid_range as usize + 7) / 8;
-
-        let container = if in_use_ids.len() * 9 > threshold {
-            let mut bitset = Bitset::new(range.clone());
-            for id in in_use_ids {
-                unsafe {
-                    bitset.set(id);
-                }
-            }
-
-            IdContainer::Bitset(bitset)
-        } else {
-            let mut hashset = AHashSet::with_capacity(in_use_ids.len());
-            for id in in_use_ids {
-                hashset.insert(id);
-            }
-
-            IdContainer::HashSet(hashset)
-        };
+        let container = IdContainer::new(range.clone(), in_use_ids, valid_range);
 
         let generator = IdsGenerator {
             ids: Arc::new(Mutex::new(Vec::with_capacity(POOL_SIZE))),
             container: Arc::new(Mutex::new(container)),
             range,
             valid_range,
-            threshold,
         };
 
         {
@@ -88,15 +143,15 @@ impl IdsGenerator {
         generator
     }
 
-    /// Refills the ID pool asynchronously when it becomes empty.
+    /// Refills the ID pool by generating new unique IDs.
     ///
-    /// This method generates unique IDs within the specified range, ensuring that
-    /// each ID is not already present in the pool or among previously used IDs.
-    /// It's designed to be called automatically, maintaining a sufficient supply
-    /// of unique IDs for the application's needs.
+    /// This method generates unique IDs within the specified range, ensuring
+    /// that each ID is not already present in the pool or the underlying
+    /// container. It uses SIMD for efficient random number generation and
+    /// checks if the container needs to be converted based on a threshold.
     ///
-    /// Note: `refill` is not intended to be called directly; it is triggered
-    /// internally when the pool of available IDs is depleted.
+    /// Note: `refill` is designed to be called internally to maintain a
+    /// sufficient supply of unique IDs.
     fn refill(&self, ids: &mut Vec<i32>) {
         let rng = SystemRandom::new();
         let mut buf = [0i32; POOL_SIZE];
@@ -114,19 +169,7 @@ impl IdsGenerator {
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);
 
-        if let IdContainer::HashSet(ref hashset) = *container {
-            if hashset.len() * 9 > self.threshold {
-                let mut bitset = Bitset::new(self.range.clone());
-
-                for id in hashset {
-                    unsafe {
-                        bitset.set(*id);
-                    }
-                }
-
-                *container = IdContainer::Bitset(bitset);
-            }
-        }
+        container.check_threshold();
 
         for chunk in buf.chunks_exact(16) {
             let nums = i32x16::from_slice(chunk).saturating_abs();
@@ -135,20 +178,8 @@ impl IdsGenerator {
             for i in 0..ids_simd.len() {
                 let id = ids_simd[i];
 
-                match &mut *container {
-                    IdContainer::Bitset(bitset) => unsafe {
-                        if !bitset.check(id) {
-                            bitset.set(id);
-                            ids.push(id);
-                        }
-                    },
-
-                    IdContainer::HashSet(hashset) => {
-                        if !hashset.contains(&id) {
-                            hashset.insert(id);
-                            ids.push(id);
-                        }
-                    }
+                if container.insert(id) {
+                    ids.push(id);
                 }
             }
         }
@@ -168,7 +199,9 @@ impl IdsGenerator {
             Some(id) => id,
             None => {
                 self.refill(&mut ids);
-                ids.pop().unwrap() // Safe to unwrap because we just refilled the queue
+                ids.pop().unwrap_or_else(|| {
+                    panic!("Failed to generate a unique ID: No more unique IDs available")
+                })
             }
         }
     }

@@ -17,8 +17,8 @@ pub struct CreateChampionshipDto {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateChampionship {
-    #[serde(default, deserialize_with = "option_string_trim")]
     #[garde(ascii, length(min = 3, max = 20))]
+    #[serde(default, deserialize_with = "option_string_trim")]
     pub name: Option<String>,
     #[garde(skip)]
     pub category: Option<Category>,
