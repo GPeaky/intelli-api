@@ -19,7 +19,7 @@ pub struct Database {
 impl Database {
     /// Initializes and returns a new `Database` instance by setting up connection to Postgres databases.
     ///
-    /// It reads database URL from the environment, creates connection pools for POstgres,
+    /// It reads database URL from the environment, creates connection pools for Postgres,
     /// and performs database migrations.
     ///
     /// # Panics
