@@ -5,6 +5,7 @@ use tokio::time::Instant;
 
 use crate::structs::TokenType;
 
+// Todo: Make this impl a bit more legible
 pub struct TokenCache {
     cache: Cache<(String, TokenType), Instant>,
     refresh_tokens: Cache<(i32, String), (Instant, String)>,

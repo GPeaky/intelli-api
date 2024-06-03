@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    config::constants::BATCHING_INTERVAL,
+    config::constants::{BATCHING_CAPACITY, BATCHING_INTERVAL},
     error::{AppResult, F1ServiceError},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
@@ -17,8 +17,6 @@ use tokio::{
 use tracing::warn;
 
 use super::caching::PacketCaching;
-
-const BATCHING_VECTOR_CAPACITY: usize = 2048;
 
 /// `PacketBatching` is responsible for collecting packets over a period of 700ms,
 /// batching them together, and then sending a single batched packet. It serves
@@ -86,7 +84,7 @@ impl PacketBatching {
     /// instance is no longer needed to properly clean up resources.
     pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
         let (otx, mut orx) = oneshot::channel::<()>();
-        let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_VECTOR_CAPACITY)));
+        let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_CAPACITY)));
 
         let instance = Self {
             buf: buf.clone(),
@@ -239,7 +237,7 @@ impl PacketBatching {
                 return Ok(());
             }
 
-            let mut taken_buf = Vec::with_capacity(BATCHING_VECTOR_CAPACITY);
+            let mut taken_buf = Vec::with_capacity(BATCHING_CAPACITY);
             std::mem::swap(&mut taken_buf, &mut *buf);
 
             taken_buf

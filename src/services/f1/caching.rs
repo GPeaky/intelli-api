@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use ahash::{AHashMap, AHashSet};
 use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
@@ -8,12 +6,11 @@ use tokio::{io::AsyncWriteExt, time::Instant};
 use tracing::error;
 
 use crate::{
+    config::constants::F1_CACHING_DUR,
     error::AppResult,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
 };
-
-const CACHE_DURATION: Duration = Duration::from_secs(1);
 
 struct CachedData {
     last_updated: Instant,
@@ -45,7 +42,7 @@ impl PacketCaching {
         {
             let cache_read = self.cache.read();
             if let Some(cached) = &*cache_read {
-                if cached.last_updated.elapsed() < CACHE_DURATION {
+                if cached.last_updated.elapsed() < F1_CACHING_DUR {
                     return Ok(Some(cached.data.clone()));
                 }
             }

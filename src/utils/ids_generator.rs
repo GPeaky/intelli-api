@@ -8,9 +8,9 @@ use ahash::AHashSet;
 use parking_lot::Mutex;
 use ring::rand::{SecureRandom, SystemRandom};
 
-use super::bitset::Bitset;
+use crate::config::constants::IDS_POOL_SIZE;
 
-const POOL_SIZE: usize = 1024;
+use super::bitset::Bitset;
 
 /// `IdContainer` holds IDs using either a `HashSet` or a `Bitset`.
 /// Automatically switches based on a threshold for efficient storage.
@@ -129,7 +129,7 @@ impl IdsGenerator {
         let container = IdContainer::new(range.clone(), in_use_ids, valid_range);
 
         let generator = IdsGenerator {
-            ids: Arc::new(Mutex::new(Vec::with_capacity(POOL_SIZE))),
+            ids: Arc::new(Mutex::new(Vec::with_capacity(IDS_POOL_SIZE))),
             container: Arc::new(Mutex::new(container)),
             range,
             valid_range,
@@ -154,7 +154,7 @@ impl IdsGenerator {
     /// sufficient supply of unique IDs.
     fn refill(&self, ids: &mut Vec<i32>) {
         let rng = SystemRandom::new();
-        let mut buf = [0i32; POOL_SIZE];
+        let mut buf = [0i32; IDS_POOL_SIZE];
         let mut container = self.container.lock();
 
         let byte_buf = unsafe {

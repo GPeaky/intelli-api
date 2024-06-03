@@ -1,8 +1,4 @@
-use std::{
-    net::IpAddr,
-    str::FromStr,
-    time::{Duration, Instant},
-};
+use std::{net::IpAddr, str::FromStr, time::Instant};
 
 use dashmap::DashMap;
 use ntex::{
@@ -11,10 +7,10 @@ use ntex::{
 };
 use tracing::warn;
 
-use crate::error::CommonError;
-
-const RATE_LIMIT: u8 = 5;
-const RATE_LIMIT_DURATION: Duration = Duration::from_secs(120);
+use crate::{
+    config::constants::{LOGIN_RATE_LIMIT, LOGIN_RATE_LIMIT_DUR},
+    error::CommonError,
+};
 
 pub type VisitorData = (u8, Instant);
 
@@ -73,11 +69,11 @@ where
             let mut entry = self
                 .visitors
                 .entry(ip)
-                .or_insert((0, now + RATE_LIMIT_DURATION));
+                .or_insert((0, now + LOGIN_RATE_LIMIT_DUR));
 
             if now > entry.1 {
-                *entry = (0, now + RATE_LIMIT_DURATION);
-            } else if entry.0 > RATE_LIMIT {
+                *entry = (0, now + LOGIN_RATE_LIMIT_DUR);
+            } else if entry.0 > LOGIN_RATE_LIMIT {
                 return Err(CommonError::LoginRateLimited)?;
             }
 

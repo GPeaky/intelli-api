@@ -4,11 +4,10 @@ use ntex::{
 };
 
 use crate::{
+    config::constants::BEARER_PREFIX,
     error::{CommonError, TokenError, UserError},
     states::AppState,
 };
-
-const BEARER_PREFIX: &str = "Bearer ";
 
 pub struct Authentication;
 
