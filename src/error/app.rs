@@ -1,8 +1,10 @@
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use ntex::{
-    http::StatusCode,
+    http::{
+        header::{HeaderValue, CONTENT_TYPE},
+        StatusCode,
+    },
     web::{error::WebResponseError, HttpRequest, HttpResponse},
-    ws::error::HandshakeError,
 };
 use tracing::error;
 
@@ -23,7 +25,6 @@ pub enum AppError {
     Firewall(FirewallError),
     PgError,
     PgPool,
-    Handshake,
     Reqwest,
     Sailfish,
 }
@@ -39,13 +40,6 @@ impl From<PoolError> for AppError {
     fn from(value: PoolError) -> Self {
         error!("PgPool Error: {:?}", value);
         AppError::PgPool
-    }
-}
-
-impl From<HandshakeError> for AppError {
-    fn from(value: HandshakeError) -> Self {
-        error!("HandshakeError: {}", value);
-        AppError::Handshake
     }
 }
 
@@ -74,7 +68,6 @@ impl AppError {
             AppError::Firewall(e) => e.status_code(),
             AppError::PgError => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::PgPool => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Handshake => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Reqwest => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Sailfish => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -90,7 +83,6 @@ impl AppError {
             AppError::Firewall(e) => e.error_message(),
             AppError::PgError => "Database error",
             AppError::PgPool => "Pool error",
-            AppError::Handshake => "Handshake error",
             AppError::Reqwest => "Reqwest error",
             AppError::Sailfish => "Email Render Error",
         }
@@ -108,7 +100,10 @@ impl std::fmt::Display for AppError {
 impl WebResponseError for AppError {
     fn error_response(&self, _: &HttpRequest) -> HttpResponse {
         HttpResponse::build(self.error_status())
-            .set_header("content-type", "text/plain; charset=utf-8")
+            .header(
+                CONTENT_TYPE,
+                HeaderValue::from_static("text/plain; charset=utf-8"),
+            )
             .body(self.error_message())
     }
 }

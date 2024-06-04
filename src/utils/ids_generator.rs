@@ -97,6 +97,8 @@ impl IdContainer {
 ///
 /// Maintains a buffer of available IDs to minimize on-demand generation. Automatically refills
 /// when half of the buffer is consumed.
+/// This implementation is only suitable for 1 server instance. Because it uses a `HashSet` or a `Bitset` to store IDs,
+/// it is not suitable for distributed systems.
 ///
 /// # Examples
 ///
@@ -106,7 +108,7 @@ impl IdContainer {
 /// let generator = IdsGenerator::new(1..=100, Some(100));
 ///
 /// // Generate an ID.
-/// let id = generator.gen_id();
+/// let id = generator.next();
 /// assert!(id >= 1 && id <= 100);
 /// ```
 #[derive(Clone)]
@@ -166,10 +168,10 @@ impl IdsGenerator {
 
         rng.fill(byte_buf).expect("Failed to generate random byte");
 
+        container.check_threshold();
+
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);
-
-        container.check_threshold();
 
         for chunk in buf.chunks_exact(16) {
             let nums = i32x16::from_slice(chunk).saturating_abs();
@@ -193,7 +195,7 @@ impl IdsGenerator {
     ///
     /// Returns an `i32` as the generated ID.
     pub fn next(&self) -> i32 {
-        let mut ids = self.ids.lock();
+        let mut ids = self.ids.lock(); 
 
         match ids.pop() {
             Some(id) => id,

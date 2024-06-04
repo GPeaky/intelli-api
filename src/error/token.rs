@@ -1,5 +1,8 @@
 use ntex::{
-    http::StatusCode,
+    http::{
+        header::{HeaderValue, CONTENT_TYPE},
+        StatusCode,
+    },
     web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 
@@ -47,10 +50,14 @@ impl From<TokenError> for AppError {
     }
 }
 
+// Added for middlewares
 impl WebResponseError for TokenError {
     fn error_response(&self, _: &HttpRequest) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .set_header("content-type", "text/plain; charset=utf-8")
+            .header(
+                CONTENT_TYPE,
+                HeaderValue::from_static("text/plain; charset=utf-8"),
+            )
             .body(self.error_message())
     }
 }
