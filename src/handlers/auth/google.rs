@@ -11,6 +11,7 @@ use crate::{
     structs::{GoogleCallbackQuery, TokenType},
 };
 
+#[inline(always)]
 pub async fn callback(
     state: State<AppState>,
     query: Query<GoogleCallbackQuery>,

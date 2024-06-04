@@ -11,6 +11,7 @@ use crate::{
     structs::ChampionshipIdPath,
 };
 
+#[inline(always)]
 pub async fn handle_stream(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,

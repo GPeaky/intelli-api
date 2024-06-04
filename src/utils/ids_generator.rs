@@ -195,7 +195,7 @@ impl IdsGenerator {
     ///
     /// Returns an `i32` as the generated ID.
     pub fn next(&self) -> i32 {
-        let mut ids = self.ids.lock(); 
+        let mut ids = self.ids.lock();
 
         match ids.pop() {
             Some(id) => id,
