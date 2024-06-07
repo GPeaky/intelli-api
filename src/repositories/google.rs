@@ -82,6 +82,8 @@ impl GoogleRepository {
                 .json()
                 .await?;
 
+            println!("X");
+
             response.access_token
         };
 
@@ -93,6 +95,8 @@ impl GoogleRepository {
             .await?
             .json()
             .await?;
+
+        println!("Y");
 
         Ok(user_info)
     }
