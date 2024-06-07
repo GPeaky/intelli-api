@@ -22,10 +22,10 @@ pub struct GoogleTokenRequest<'a> {
 #[derive(Debug, Deserialize)]
 pub struct GoogleAuthResponse {
     pub access_token: String,
-    pub expires_in: i64,
-    pub scope: String,
     pub token_type: String,
-    pub id_token: String,
+    pub expires_in: i64,
+    pub refresh_token: String,
+    pub scope: String,
 }
 
 #[allow(unused)]
