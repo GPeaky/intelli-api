@@ -9,7 +9,7 @@ pub const LOGIN_RATE_LIMIT_DUR: Duration = Duration::from_secs(120);
 
 // Google auth
 pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
-pub const GOOGLE_USER_INFO: &str = "https://openidconnect.googleapis.com/v1/userinfo";
+pub const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
 pub const GOOGLE_REDIRECT: &str = "https://intellitelemetry.live/auth/google/callback";
 
 // Email
