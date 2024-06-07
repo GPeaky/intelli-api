@@ -87,7 +87,7 @@ impl GoogleRepository {
             response.access_token
         };
 
-        let user_info: GoogleUserInfo = self
+        let test: serde_json::Value = self
             .reqwest_client
             .get(GOOGLE_USER_INFO)
             .bearer_auth(access_token)
@@ -97,7 +97,9 @@ impl GoogleRepository {
             .await?;
 
         println!("Y");
+        println!("Response Value: {:#?}", test);
 
-        Ok(user_info)
+        todo!("Testing")
+        // Ok(user_info)
     }
 }
