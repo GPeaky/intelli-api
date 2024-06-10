@@ -22,7 +22,7 @@ pub(crate) async fn register(
     state: State<AppState>,
     form: Form<RegisterUserDto>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
@@ -52,7 +52,7 @@ pub(crate) async fn login(
     Query(query): Query<FingerprintQuery>,
     Form(form): Form<LoginUserDto>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
@@ -128,7 +128,7 @@ pub(crate) async fn forgot_password(
     state: State<AppState>,
     form: Form<ForgotPasswordDto>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
@@ -175,7 +175,7 @@ pub async fn reset_password(
     Query(query): Query<ResetPasswordQuery>,
     Form(form): Form<ResetPasswordDto>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 

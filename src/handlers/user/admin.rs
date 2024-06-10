@@ -17,7 +17,7 @@ pub async fn delete_user(
     state: State<AppState>,
     path: Path<UserIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -45,7 +45,7 @@ pub async fn disable_user(
     state: State<AppState>,
     path: Path<UserIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -77,7 +77,7 @@ pub async fn enable_user(
     state: State<AppState>,
     path: Path<UserIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 

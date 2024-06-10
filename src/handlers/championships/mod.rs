@@ -28,7 +28,7 @@ pub async fn create_championship(
     state: State<AppState>,
     form: Form<CreateChampionshipDto>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
@@ -77,7 +77,7 @@ pub async fn update(
     form: Form<UpdateChampionship>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() || path.validate(&()).is_err() {
+    if form.validate().is_err() || path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -102,7 +102,7 @@ pub async fn add_user(
     form: Form<AddUser>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() || path.validate(&()).is_err() {
+    if form.validate().is_err() || path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -126,7 +126,7 @@ pub async fn remove_user(
     state: State<AppState>,
     path: Path<ChampionshipAndUserIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -149,7 +149,7 @@ pub async fn get_championship(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 

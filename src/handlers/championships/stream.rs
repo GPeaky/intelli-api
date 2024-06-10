@@ -16,7 +16,7 @@ pub async fn handle_stream(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
