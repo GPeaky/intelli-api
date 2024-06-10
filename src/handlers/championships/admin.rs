@@ -15,7 +15,7 @@ pub async fn user_championships(
     state: State<AppState>,
     path: Path<UserIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 

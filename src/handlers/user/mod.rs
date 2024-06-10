@@ -37,7 +37,7 @@ pub(crate) async fn update_user(
     state: State<AppState>,
     form: Form<UpdateUser>,
 ) -> AppResult<HttpResponse> {
-    if form.validate(&()).is_err() {
+    if form.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     };
 

@@ -21,7 +21,7 @@ pub async fn start_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -42,7 +42,7 @@ pub async fn service_status(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
@@ -72,7 +72,7 @@ pub async fn stop_service(
     state: State<AppState>,
     path: Path<ChampionshipIdPath>,
 ) -> AppResult<HttpResponse> {
-    if path.validate(&()).is_err() {
+    if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
 
