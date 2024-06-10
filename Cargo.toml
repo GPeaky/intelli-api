@@ -35,7 +35,7 @@ tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
 ntex = { version = "2", features = ["tokio", "openssl"] }
-garde = { version = "0.18", features = ["derive", "email"] }
+garde = { version = "0.19", features = ["derive", "email"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 async-compression = { version = "0.4", features = ["zstd", "tokio"] }
