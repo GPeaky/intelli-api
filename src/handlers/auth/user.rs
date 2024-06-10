@@ -20,7 +20,7 @@ use crate::{
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
-    form: Form<RegisterUserDto>,
+    Form(form): Form<RegisterUserDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -40,7 +40,7 @@ pub(crate) async fn register(
 
     state
         .email_svc
-        .send_mail((&*form).into(), "Verify Email", template)
+        .send_mail((&form).into(), "Verify Email", template)
         .await?;
 
     Ok(HttpResponse::Created().finish())

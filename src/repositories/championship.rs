@@ -59,7 +59,7 @@ impl ChampionshipRepository {
         let mut ports = AHashSet::with_capacity(rows.len());
 
         for row in rows {
-            let port: i32 = row.get("port");
+            let port: i32 = row.get(0);
             ports.insert(port);
         }
 
@@ -214,7 +214,7 @@ impl ChampionshipRepository {
         let mut users = Vec::with_capacity(rows.len());
 
         for row in rows {
-            let user_id: i32 = row.get("user_id");
+            let user_id: i32 = row.get(0);
             users.push(user_id);
         }
 

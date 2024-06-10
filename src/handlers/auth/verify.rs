@@ -4,7 +4,7 @@ use ntex::web::{
 };
 
 use crate::{
-    error::AppResult,
+    error::{AppResult, UserError},
     states::AppState,
     structs::{EmailUser, EmailVerified, VerifyEmailParams},
 };
@@ -15,7 +15,11 @@ pub async fn verify_email(
     Query(query): Query<VerifyEmailParams>,
 ) -> AppResult<HttpResponse> {
     let user_id = state.user_svc.activate_with_token(query.token).await?;
-    let user = state.user_repo.find(user_id).await?.unwrap();
+    let user = state
+        .user_repo
+        .find(user_id)
+        .await?
+        .ok_or(UserError::NotFound)?;
 
     let template = EmailVerified {};
     let email_user = EmailUser {
