@@ -162,15 +162,15 @@ impl ChampionshipService {
                 Err(ChampionshipError::NotFound)?
             };
 
+            if championship.owner_id != user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+
             if Utc::now().signed_duration_since(championship.updated_at)
                 <= Duration::try_days(7).unwrap()
             {
                 Err(ChampionshipError::IntervalNotReached)?
             };
-
-            if championship.owner_id != user_id {
-                Err(ChampionshipError::NotOwner)?
-            }
         }
 
         let (query, params) = {

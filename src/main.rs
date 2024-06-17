@@ -62,13 +62,13 @@ async fn main() -> std::io::Result<()> {
                 Cors::new()
                     .allowed_origin("https://intellitelemetry.live")
                     .allowed_origin("http://localhost:5173")
-                    .allowed_methods(vec!["GET", "POST", "DELETE"])
-                    .allowed_headers(vec![
-                        header::AUTHORIZATION,
+                    .allowed_methods(["GET", "POST", "DELETE"])
+                    .allowed_headers([
                         header::ACCEPT,
+                        header::CONTENT_TYPE,
+                        header::AUTHORIZATION,
                         header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
                     ])
-                    .allowed_header(header::CONTENT_TYPE)
                     .max_age(3600)
                     .finish(),
             )
