@@ -29,7 +29,7 @@ impl UserRepository {
     /// # Returns
     /// A new instance of `UserRepository`.
     pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
-        let hasher = PasswordHasher::new(11);
+        let hasher = PasswordHasher::new(30);
         Self { cache, db, hasher }
     }
 
