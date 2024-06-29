@@ -20,6 +20,5 @@ message FinalClassificationData {
 
 message PacketFinalClassificationData {
   uint32 numCars = 1; // Number of cars in the final classification
-  repeated FinalClassificationData classificationData =
-      2; // Classification data for each car
+  repeated FinalClassificationData classificationData = 2; // Classification data for each car
 }

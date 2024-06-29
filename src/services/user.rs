@@ -9,7 +9,7 @@ use crate::{
     error::{AppResult, TokenError, UserError},
     repositories::UserRepository,
     structs::{RegisterUserDto, TokenType, UpdateUser},
-    utils::{write, IdsGenerator},
+    utils::IdsGenerator,
 };
 
 use super::TokenService;
@@ -150,34 +150,37 @@ impl UserService {
             Err(UserError::UpdateLimitExceeded)?
         }
 
+        // Todo: Check security in building this query on runtime & Improve performance
         let (query, params) = {
-            let mut counter = 1u8;
-            let mut query = String::from("UPDATE users SET");
+            let mut params_counter = 1u8;
+            let mut clauses = Vec::with_capacity(2);
             let mut params: Vec<&(dyn ToSql + Sync)> = Vec::with_capacity(3);
 
             if let Some(username) = &form.username {
-                write(&mut query, &mut counter, "username");
+                clauses.push(format!("name = ${}", params_counter));
                 params.push(username);
+                params_counter += 1;
             }
 
             if let Some(avatar) = &form.avatar {
-                write(&mut query, &mut counter, "avatar");
+                clauses.push(format!("avatar = ${}", params_counter));
                 params.push(avatar);
+                params_counter += 1;
             }
 
-            if counter == 1 {
+            if clauses.is_empty() {
                 Err(UserError::InvalidUpdate)?
             }
 
-            write(&mut query, &mut counter, "WHERE id");
+            let clause = clauses.join(", ");
+            let query = format!("UPDATE users {} WHERE id = ${}", clause, params_counter);
             params.push(&user.id);
 
             (query, params)
         };
 
         let conn = self.db.pg.get().await?;
-        let update_user_stmt = conn.prepare_cached(&query).await?;
-        conn.execute(&update_user_stmt, &params[..]).await?;
+        conn.execute(&query, &params[..]).await?;
         self.cache.user.delete(user.id);
 
         Ok(())

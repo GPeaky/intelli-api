@@ -40,7 +40,7 @@ impl UserError {
             UserError::InvalidProvider => StatusCode::BAD_REQUEST,
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
             UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
-            UserError::UpdateLimitExceeded => StatusCode::BAD_REQUEST,
+            UserError::UpdateLimitExceeded => StatusCode::UNAUTHORIZED,
         }
     }
 

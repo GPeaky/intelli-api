@@ -8,7 +8,7 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository},
     structs::{CreateChampionshipDto, UpdateChampionship},
-    utils::{write, IdsGenerator, MachinePorts},
+    utils::{IdsGenerator, MachinePorts},
 };
 
 /// Manages championship-related operations, including creation, update, and user management.
@@ -173,35 +173,43 @@ impl ChampionshipService {
             };
         }
 
+        // Todo: Check security in building this query on runtime & Improve performance
         let (query, params) = {
-            let mut counter = 1u8;
+            let mut params_counter = 1u8;
+            let mut clauses = Vec::with_capacity(3);
             let mut params: Vec<&(dyn ToSql + Sync)> = Vec::with_capacity(5);
-            let mut query = String::from("UPDATE championship SET ");
 
             if let Some(name) = &form.name {
-                write(&mut query, &mut counter, "name");
+                clauses.push(format!("name = ${}", params_counter));
                 params.push(name);
+                params_counter += 1;
             }
 
             if let Some(category) = &form.category {
-                write(&mut query, &mut counter, "category");
+                clauses.push(format!("category = ${}", params_counter));
                 params.push(category);
+                params_counter += 1;
             }
 
             if let Some(season) = &form.season {
-                write(&mut query, &mut counter, "season");
+                clauses.push(format!("season = ${}", params_counter));
                 params.push(season);
+                params_counter += 1;
             }
 
-            if counter == 1 {
+            if clauses.is_empty() {
                 Err(CommonError::NotValidUpdate)?
             }
 
-            write(&mut query, &mut counter, "WHERE id");
-            params.push(&id);
+            let clause = clauses.join(", ");
+            let query = format!(
+                "UPDATE championship SET {} WHERE id = ${} AND owner_id = ${}",
+                clause,
+                params_counter,
+                params_counter + 1
+            );
 
-            // Check if owner_id is the same as user_id
-            write(&mut query, &mut counter, "AND owner_id");
+            params.push(&id);
             params.push(&user_id);
 
             (query, params)
@@ -210,8 +218,7 @@ impl ChampionshipService {
         // Scope to update championship
         {
             let conn = self.db.pg.get().await?;
-            let update_championship_stmt = conn.prepare_cached(&query).await?;
-            conn.execute(&update_championship_stmt, &params).await?;
+            conn.execute(&query, &params).await?;
         }
 
         let users = self.championship_repo.users(id).await?;

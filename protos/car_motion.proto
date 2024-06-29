@@ -2,7 +2,9 @@ syntax = "proto3";
 package protos.car_motion_data;
 
 // Main packet
-message PacketMotionData { repeated CarMotionData car_motion_data = 1; }
+message PacketMotionData {
+  repeated CarMotionData car_motion_data = 1;
+}
 
 message CarMotionData {
   float worldPositionX = 1;

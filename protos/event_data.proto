@@ -4,8 +4,7 @@ package protos.event_data;
 // Main Message
 message PacketEventData {
   bytes eventStringCode = 1; // Event string code, see below
-  EventDataDetails eventDetails =
-      2; // Event details - should be interpreted differently for each type
+  EventDataDetails eventDetails = 2; // Event details - should be interpreted differently for each type
 }
 
 // Event Details
