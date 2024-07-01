@@ -44,8 +44,8 @@ impl<S, Err> Service<WebRequest<Err>> for LoginLimitMiddleware<S>
 where
     S: Service<WebRequest<Err>, Response = WebResponse, Error = Error>,
 {
-    type Error = Error;
     type Response = WebResponse;
+    type Error = Error;
 
     ntex::forward_ready!(service);
 

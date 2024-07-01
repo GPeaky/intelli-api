@@ -12,7 +12,7 @@ embed_migrations!("migrations");
 
 /// Represents the application's database connections, encapsulating both Redis and Postgres pools.
 pub struct Database {
-    /// The PostgreSQL connection pool for database operations.
+    /// The PostgresSQL connection pool for database operations.
     pub pg: Pool,
 }
 

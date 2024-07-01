@@ -44,7 +44,7 @@ impl FirewallService {
 
     #[allow(unused)]
     pub async fn open(&self, id: i32, port: u16) -> AppResult<()> {
-        if cfg!(target_os = "windows") {
+        if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
             return Ok(());
         }
@@ -78,7 +78,7 @@ impl FirewallService {
 
     #[allow(unused)]
     pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
-        if cfg!(target_os = "windows") {
+        if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
             return Ok(());
         }
@@ -131,7 +131,7 @@ impl FirewallService {
     }
 
     pub async fn close(&self, id: i32) -> AppResult<()> {
-        if cfg!(target_os = "windows") {
+        if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
             return Ok(());
         }
@@ -162,12 +162,17 @@ impl FirewallService {
 
     #[allow(unused)]
     pub async fn close_all(&self) -> AppResult<()> {
+        if cfg!(not(target_os = "linux")) {
+            warn!("Firewall not supported on this platform");
+            return Ok(());
+        }
+
         let ids = {
             let rules = self.rules.read().await;
             rules.keys().copied().collect::<Vec<_>>()
         };
 
-        // Not concurrency need it because its only for stopping
+        // Not concurrency need it because it's only for stopping
         for id in ids {
             self.close(id).await?;
         }

@@ -12,10 +12,7 @@ use crate::{
     structs::OptionalMessage,
 };
 
-struct CachedData {
-    last_updated: Instant,
-    data: Bytes,
-}
+struct CachedData(Bytes, Instant);
 
 pub struct PacketCaching {
     car_motion: Option<Vec<u8>>,
@@ -42,8 +39,8 @@ impl PacketCaching {
         {
             let cache_read = self.cache.read();
             if let Some(cached) = &*cache_read {
-                if cached.last_updated.elapsed() < F1_CACHING_DUR {
-                    return Ok(Some(cached.data.clone()));
+                if cached.1.elapsed() < F1_CACHING_DUR {
+                    return Ok(Some(cached.0.clone()));
                 }
             }
         }
@@ -80,10 +77,7 @@ impl PacketCaching {
                 let compressed = Self::compress(&bytes).await?;
                 let mut cache_write = self.cache.write();
 
-                *cache_write = Some(CachedData {
-                    last_updated: Instant::now(),
-                    data: compressed.clone(),
-                });
+                *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
                 Ok(Some(compressed))
             }
         }

@@ -248,7 +248,6 @@ impl F1Service {
                                             continue;
                                         };
 
-
                                         session_type = Some(converted_session_type);
                                         let packet = session_data.convert(PacketType::SessionData).unwrap();
                                         last_session_update = now;

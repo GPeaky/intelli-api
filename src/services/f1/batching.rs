@@ -47,8 +47,8 @@ use super::caching::PacketCaching;
 
 pub struct PacketBatching {
     buf: Arc<Mutex<Vec<PacketHeader>>>,
-    shutdown: Option<oneshot::Sender<()>>,
     cache: Arc<RwLock<PacketCaching>>,
+    shutdown: Option<oneshot::Sender<()>>,
 }
 
 impl PacketBatching {

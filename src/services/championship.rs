@@ -27,7 +27,7 @@ pub struct ChampionshipService {
     user_repo: &'static UserRepository,
     /// Repository for championship-specific db operations.
     championship_repo: &'static ChampionshipRepository,
-    /// Id generator for championship ids
+    /// Ids generator for championship ids
     ids_generator: IdsGenerator,
 }
 

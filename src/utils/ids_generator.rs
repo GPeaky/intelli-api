@@ -162,7 +162,7 @@ impl IdsGenerator {
         let byte_buf = unsafe {
             std::slice::from_raw_parts_mut(
                 buf.as_mut_ptr() as *mut u8,
-                buf.len() * std::mem::size_of::<i32>(),
+                buf.len() * size_of::<i32>(),
             )
         };
 

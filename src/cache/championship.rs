@@ -37,6 +37,7 @@ impl ChampionshipCache {
         self.user_championships.insert(user_id, championships);
     }
 
+    #[inline]
     pub fn delete_by_user(&self, user_id: i32) {
         self.user_championships.remove(&user_id);
     }
