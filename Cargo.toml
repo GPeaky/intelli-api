@@ -39,7 +39,7 @@ ntex = { version = "2", features = ["tokio", "openssl"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 async-compression = { version = "0.4", features = ["zstd", "tokio"] }
-garde = { version = "0.19", features = ["derive", "email", "email-idna"] }
+garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
