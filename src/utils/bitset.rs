@@ -46,6 +46,7 @@ impl Bitset {
         let index = (value - self.range.start) as usize;
         let byte = self.bits.get_unchecked_mut(index / 8);
         let mask = 1 << (index % 8);
+        
         if *byte & mask == 0 {
             *byte |= mask;
             true

@@ -47,21 +47,17 @@ impl<'a> F1Data<'a> {
             PacketIds::Session => cast::<PacketSessionData>(data).map(F1Data::Session),
             PacketIds::CarDamage => cast::<PacketCarDamageData>(data).map(F1Data::CarDamage),
             PacketIds::CarStatus => cast::<PacketCarStatusData>(data).map(F1Data::CarStatus),
-
+            PacketIds::CarTelemetry => {
+                cast::<PacketCarTelemetryData>(data).map(F1Data::CarTelemetry)
+            }
             PacketIds::Participants => {
                 cast::<PacketParticipantsData>(data).map(F1Data::Participants)
             }
-
-            PacketIds::FinalClassification => {
-                cast::<PacketFinalClassificationData>(data).map(F1Data::FinalClassification)
-            }
-
             PacketIds::SessionHistory => {
                 cast::<PacketSessionHistoryData>(data).map(F1Data::SessionHistory)
             }
-
-            PacketIds::CarTelemetry => {
-                cast::<PacketCarTelemetryData>(data).map(F1Data::CarTelemetry)
+            PacketIds::FinalClassification => {
+                cast::<PacketFinalClassificationData>(data).map(F1Data::FinalClassification)
             }
 
             _ => Err(F1ServiceError::InvalidPacketType)?,

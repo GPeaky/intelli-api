@@ -3,7 +3,6 @@ use ring::{
     pbkdf2,
     rand::{SecureRandom, SystemRandom},
 };
-use std::sync::Arc;
 use tokio::sync::Semaphore;
 
 use crate::{
@@ -12,13 +11,13 @@ use crate::{
 };
 
 pub struct PasswordHasher {
-    semaphore: Arc<Semaphore>,
+    semaphore: Semaphore,
 }
 
 impl PasswordHasher {
     pub fn new(max_concurrent: usize) -> PasswordHasher {
         PasswordHasher {
-            semaphore: Arc::new(Semaphore::new(max_concurrent)),
+            semaphore: Semaphore::new(max_concurrent),
         }
     }
 
