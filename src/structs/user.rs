@@ -4,7 +4,7 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
 
-use crate::entity::{Championship, User};
+use crate::entity::{Championship, SharedUser};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateUser {
@@ -25,7 +25,7 @@ pub struct AddUser {
 
 #[derive(Debug, Serialize)]
 pub struct UserData {
-    pub user: Arc<User>,
+    pub user: SharedUser,
     pub championships: Vec<Arc<Championship>>,
 }
 

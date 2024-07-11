@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use quick_cache::sync::Cache;
 
-use crate::entity::User;
+use crate::entity::{SharedUser, User};
 
 use super::EntityCache;
 
 pub struct UserCache {
-    cache: Cache<i32, Arc<User>>,
+    cache: Cache<i32, SharedUser>,
     email_to_id: Cache<String, i32>,
 }
 
@@ -20,7 +20,7 @@ impl UserCache {
     }
 
     /// Retrieves a user by their email address.
-    pub fn get_by_email(&self, email: &str) -> Option<Arc<User>> {
+    pub fn get_by_email(&self, email: &str) -> Option<SharedUser> {
         if let Some(id) = self.email_to_id.get(email) {
             return self.get(id);
         }

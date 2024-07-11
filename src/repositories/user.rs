@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::User,
+    entity::{SharedUser, User},
     error::AppResult,
     utils::PasswordHasher,
 };
@@ -40,7 +38,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// An `AppResult` containing the user if found, or `None`.
-    pub async fn find(&self, id: i32) -> AppResult<Option<Arc<User>>> {
+    pub async fn find(&self, id: i32) -> AppResult<Option<SharedUser>> {
         if let Some(user) = self.cache.user.get(id) {
             return Ok(Some(user));
         };
@@ -78,7 +76,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// An `AppResult` containing the user if found, or `None`.
-    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<Arc<User>>> {
+    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<SharedUser>> {
         if let Some(user) = self.cache.user.get_by_email(email) {
             return Ok(Some(user));
         };
