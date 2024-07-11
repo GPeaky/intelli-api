@@ -45,6 +45,7 @@ impl std::fmt::Display for F1ServiceError {
 }
 
 impl From<F1ServiceError> for AppError {
+    #[inline]
     fn from(e: F1ServiceError) -> Self {
         AppError::F1(e)
     }

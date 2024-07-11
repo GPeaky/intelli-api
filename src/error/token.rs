@@ -45,6 +45,7 @@ impl TokenError {
 }
 
 impl From<TokenError> for AppError {
+    #[inline]
     fn from(e: TokenError) -> Self {
         AppError::Token(e)
     }

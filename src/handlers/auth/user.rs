@@ -82,12 +82,12 @@ pub(crate) async fn login(
         .token_svc
         .generate_refresh_token(user.id, query.fingerprint)?;
 
-    let auth_response = &AuthResponse {
+    let auth_response = AuthResponse {
         access_token,
         refresh_token,
     };
 
-    Ok(HttpResponse::Ok().json(auth_response))
+    Ok(HttpResponse::Ok().json(&auth_response))
 }
 
 #[inline(always)]
@@ -99,9 +99,9 @@ pub(crate) async fn refresh_token(
         .token_svc
         .refresh_access_token(&query.refresh_token, query.fingerprint)?;
 
-    let refresh_response = &RefreshResponse { access_token };
+    let refresh_response = RefreshResponse { access_token };
 
-    Ok(HttpResponse::Ok().json(refresh_response))
+    Ok(HttpResponse::Ok().json(&refresh_response))
 }
 
 #[inline(always)]

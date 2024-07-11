@@ -39,6 +39,7 @@ impl FirewallError {
 }
 
 impl From<FirewallError> for AppError {
+    #[inline]
     fn from(value: FirewallError) -> Self {
         AppError::Firewall(value)
     }

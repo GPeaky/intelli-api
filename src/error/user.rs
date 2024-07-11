@@ -72,6 +72,7 @@ impl std::fmt::Display for UserError {
 }
 
 impl From<UserError> for AppError {
+    #[inline]
     fn from(e: UserError) -> Self {
         AppError::User(e)
     }

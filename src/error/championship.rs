@@ -61,6 +61,7 @@ impl WebResponseError for ChampionshipError {
 }
 
 impl From<ChampionshipError> for AppError {
+    #[inline]
     fn from(error: ChampionshipError) -> Self {
         AppError::Championship(error)
     }

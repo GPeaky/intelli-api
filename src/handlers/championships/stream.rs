@@ -3,6 +3,7 @@ use ntex::web::{
     types::{Path, State},
     HttpResponse,
 };
+use reqwest::header::HeaderValue;
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
 use crate::{
@@ -31,19 +32,18 @@ pub async fn handle_stream(
     };
 
     let stream = BroadcastStream::new(rx);
+    let mut response = HttpResponse::Ok();
+
+    response.content_type(HeaderValue::from_static("application/octet-stream"));
 
     match cached_data {
-        None => Ok(HttpResponse::Ok()
-            .content_type("application/octet-stream")
-            .streaming(stream)),
+        None => Ok(response.streaming(stream)),
 
         Some(data) => {
             let cache_steam = tokio_stream::once(Ok(data));
             let combined_stream = cache_steam.chain(stream);
 
-            Ok(HttpResponse::Ok()
-                .content_type("application/octet-stream")
-                .streaming(combined_stream))
+            Ok(response.streaming(combined_stream))
         }
     }
 }

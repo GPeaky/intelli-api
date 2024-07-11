@@ -45,6 +45,7 @@ impl std::fmt::Display for CommonError {
 }
 
 impl From<CommonError> for AppError {
+    #[inline]
     fn from(e: CommonError) -> Self {
         AppError::Common(e)
     }
