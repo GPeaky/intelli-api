@@ -2,10 +2,13 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
+use ntex::web::HttpRequest;
 use postgres_derive::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 
-pub type UserExtension = Arc<User>;
+use crate::error::{AppError, AppResult, CommonError};
+
+pub type SharedUser = Arc<User>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, FromSql, ToSql)]
 #[postgres(name = "user_provider")]
@@ -66,5 +69,26 @@ impl From<&Row> for User {
             created_at: row.get(8),
             updated_at: row.get(9),
         }
+    }
+}
+
+pub trait UserExtension {
+    fn user(&self) -> AppResult<SharedUser>;
+    fn user_id(&self) -> AppResult<i32>;
+}
+
+impl UserExtension for HttpRequest {
+    fn user(&self) -> AppResult<SharedUser> {
+        self.extensions()
+            .get::<SharedUser>()
+            .cloned()
+            .ok_or(AppError::Common(CommonError::InternalServerError))
+    }
+
+    fn user_id(&self) -> AppResult<i32> {
+        self.extensions()
+            .get::<SharedUser>()
+            .map(|user| user.id)
+            .ok_or(AppError::Common(CommonError::InternalServerError))
     }
 }

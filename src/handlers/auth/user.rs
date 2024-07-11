@@ -110,11 +110,7 @@ pub(crate) async fn logout(
     state: State<AppState>,
     Query(query): Query<RefreshTokenQuery>,
 ) -> AppResult<HttpResponse> {
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
+    let user_id = req.user_id()?;
 
     state
         .token_svc

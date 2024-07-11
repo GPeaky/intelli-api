@@ -26,18 +26,13 @@ mod stream;
 pub async fn create_championship(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<CreateChampionshipDto>,
+    Form(form): Form<CreateChampionshipDto>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
-
+    let user = req.user()?;
     let championships_len = state.championship_repo.championship_len(user.id).await?;
 
     match user.role {
@@ -62,11 +57,7 @@ pub async fn create_championship(
         Role::Admin => {}
     }
 
-    state
-        .championship_svc
-        .create(form.into_inner(), user.id)
-        .await?;
-
+    state.championship_svc.create(form, user.id).await?;
     Ok(HttpResponse::Created().finish())
 }
 
@@ -81,12 +72,7 @@ pub async fn update(
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
+    let user_id = req.user_id()?;
     state
         .championship_svc
         .update(path.0, user_id, &form)
@@ -106,12 +92,7 @@ pub async fn add_user(
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
+    let user_id = req.user_id()?;
     state
         .championship_svc
         .add_user(path.0, user_id, &form.email)
@@ -130,12 +111,7 @@ pub async fn remove_user(
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
+    let user_id = req.user_id()?;
     state
         .championship_svc
         .remove_user(path.id, user_id, path.user_id)
@@ -165,12 +141,7 @@ pub async fn all_championships(
     req: HttpRequest,
     state: State<AppState>,
 ) -> AppResult<HttpResponse> {
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
-
+    let user_id = req.user_id()?;
     let championships = state.championship_repo.find_all(user_id).await?;
 
     Ok(HttpResponse::Ok().json(&championships))

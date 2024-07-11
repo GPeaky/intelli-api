@@ -4,7 +4,7 @@ use ntex::{
 };
 
 use crate::{
-    entity::{Role, UserExtension},
+    entity::{Role, SharedUser},
     error::{CommonError, UserError},
 };
 
@@ -38,7 +38,7 @@ where
     ) -> Result<Self::Response, Self::Error> {
         let role = req
             .extensions()
-            .get::<UserExtension>()
+            .get::<SharedUser>()
             .ok_or(CommonError::InternalServerError)?
             .role;
 

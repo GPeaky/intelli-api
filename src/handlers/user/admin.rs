@@ -21,11 +21,7 @@ pub async fn delete_user(
         Err(CommonError::ValidationFailed)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
+    let user_id = req.user_id()?;
 
     if state.user_repo.find(path.0).await?.is_none() {
         Err(UserError::NotFound)?
@@ -57,11 +53,7 @@ pub async fn disable_user(
         Err(UserError::AlreadyInactive)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
+    let user_id = req.user_id()?;
 
     if path.0 == user_id {
         Err(UserError::AutoDelete)?
@@ -89,11 +81,7 @@ pub async fn enable_user(
         Err(UserError::AlreadyActive)?
     }
 
-    let user_id = req
-        .extensions()
-        .get::<UserExtension>()
-        .ok_or(CommonError::InternalServerError)?
-        .id;
+    let user_id = req.user_id()?;
 
     if path.0 == user_id {
         Err(UserError::AutoDelete)?

@@ -5,7 +5,7 @@ use tracing::{error, info};
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::{Provider, UserExtension},
+    entity::{Provider, SharedUser},
     error::{AppResult, TokenError, UserError},
     repositories::UserRepository,
     structs::{RegisterUserDto, TokenType, UpdateUser},
@@ -145,7 +145,7 @@ impl UserService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub async fn update(&self, user: &UserExtension, form: &UpdateUser) -> AppResult<()> {
+    pub async fn update(&self, user: &SharedUser, form: &UpdateUser) -> AppResult<()> {
         if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_days(7).unwrap() {
             Err(UserError::UpdateLimitExceeded)?
         }

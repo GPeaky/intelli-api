@@ -17,12 +17,7 @@ mod admin;
 
 #[inline(always)]
 pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
-
+    let user = req.user()?;
     let championships = state.championship_repo.find_all(user.id).await?;
 
     Ok(HttpResponse::Ok().json(&UserData {
@@ -41,12 +36,7 @@ pub(crate) async fn update_user(
         Err(CommonError::ValidationFailed)?
     };
 
-    let user = req
-        .extensions()
-        .get::<UserExtension>()
-        .cloned()
-        .ok_or(CommonError::InternalServerError)?;
-
+    let user = req.user()?;
     state.user_svc.update(&user, &form).await?;
     Ok(HttpResponse::Ok().finish())
 }
