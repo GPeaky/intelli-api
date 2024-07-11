@@ -16,9 +16,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Update Dependencies
+        run: cargo update
+
       - name: Build the Project
-        run:
-          cargo build --release
+        run: cargo build --release
 
       - name: Deploy to Server
         run: |
@@ -30,4 +32,3 @@ jobs:
 
           # Start the service
           sudo systemctl start intelli-api
-
