@@ -68,15 +68,6 @@ impl PacketBatching {
     /// # Returns
     ///
     /// Returns an instance of `PacketBatching` ready to receive packets and handle batching operations.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let (tx, rx) = tokio::sync::mpsc::channel(100);
-    /// let cache = PacketCaching::new(); // Assuming PacketCaching::new is defined
-    /// let packet_batches = PacketBatching::new(tx, cache);
-    /// ```
-    ///
     /// # Note
     ///
     /// The background task for sending batched data operates until a shutdown signal is received.
@@ -126,14 +117,6 @@ impl PacketBatching {
     ///
     /// Returns an `AppResult<()>` indicating the success or failure of the operation.
     ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let mut batching = PacketBatching::new(); // Assuming a constructor for PacketBatching
-    /// let packet = PacketHeader::new(); // Assuming a constructor for PacketHeader
-    /// batching.push(packet).await?;
-    /// ```
-    ///
     /// # Errors
     ///
     /// This function returns an error if encoding the packet or caching it fails.
@@ -158,15 +141,6 @@ impl PacketBatching {
     /// # Returns
     ///
     /// Returns an `AppResult<()>` indicating the success or failure of the operation.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let mut batching = PacketBatching::new(); // Assuming a constructor for PacketBatching
-    /// let packet = PacketHeader::new(); // Assuming a constructor for PacketHeader
-    /// let optional_message = Some(OptionalMessage::Text("Example text")); // Example of an optional parameter
-    /// batching.push_with_optional_parameter(packet, optional_message).await?;
-    /// ```
     ///
     /// # Errors
     ///
@@ -213,18 +187,6 @@ impl PacketBatching {
     /// `PacketBatching::new`. Calling this function from other contexts may result in unexpected behavior
     /// or race conditions due to its reliance on shared state and specific timing.
     ///
-    /// # Examples
-    ///
-    /// Assuming `buf` and `tx` have been properly initialized and a `PacketBatching` instance is managing the call:
-    ///
-    /// ```ignore
-    /// tokio::spawn(async {
-    ///     if let Err(e) = send_data(&buf, &tx).await {
-    ///         warn!("Error sending batched data: {}", e);
-    ///     }
-    /// });
-    /// ```
-    ///
     /// Note: This example assumes that `buf` and `tx` are appropriately set up and that the asynchronous
     /// context is handled by the caller (e.g., a tokio runtime).
     ///
@@ -265,14 +227,6 @@ impl PacketBatching {
     /// This function takes a slice of bytes `data` as input and returns an `AppResult<Bytes>`
     /// containing the compressed data. In case of an error during compression, the error is logged,
     /// and `F1ServiceError::Compressing` is returned.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let data = b"data to compress";
-    /// let compressed_data = compress(data).unwrap();
-    /// println!("Compressed data: {:?}", compressed_data);
-    /// ```
     ///
     /// # Errors
     ///
