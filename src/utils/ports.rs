@@ -3,9 +3,7 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use tracing_log::log::error;
 
-use crate::{
-    config::constants::PORTS_RANGE, error::AppResult, repositories::ChampionshipRepository,
-};
+use crate::{config::constants::PORTS_RANGE, error::AppResult};
 
 #[derive(Clone)]
 pub struct MachinePorts {
@@ -13,13 +11,12 @@ pub struct MachinePorts {
 }
 
 impl MachinePorts {
-    pub async fn new(championship_repo: &ChampionshipRepository) -> AppResult<Self> {
-        let ports_used = championship_repo.ports_in_use().await?;
-        let estimated_len = PORTS_RANGE.len() - ports_used.len();
+    pub async fn new(used_ports: Vec<i32>) -> AppResult<Self> {
+        let estimated_len = PORTS_RANGE.len() - used_ports.len();
         let mut ports = Vec::with_capacity(estimated_len);
 
         for port in PORTS_RANGE {
-            if !ports_used.contains(&port) {
+            if !used_ports.contains(&port) {
                 ports.push(port);
             }
         }

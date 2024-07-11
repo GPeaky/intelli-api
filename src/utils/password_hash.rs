@@ -44,7 +44,7 @@ impl PasswordHasher {
             salt_hash.extend_from_slice(&salt);
             salt_hash.extend_from_slice(&hash);
 
-            Ok(STANDARD.encode(&salt_hash))
+            Ok(STANDARD.encode(salt_hash))
         })
         .await
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
@@ -54,11 +54,11 @@ impl PasswordHasher {
         let _permit = self.semaphore.acquire().await.unwrap();
 
         tokio::task::spawn_blocking(move || {
-            let salt_and_hash = STANDARD
+            let combined = STANDARD
                 .decode(encoded)
                 .map_err(|_| CommonError::HashingFailed)?;
 
-            let (salt, hash) = salt_and_hash.split_at(PASS_SALT_LEN);
+            let (salt, hash) = combined.split_at(PASS_SALT_LEN);
 
             Ok(pbkdf2::verify(PASS_ALG, PASS_ITERATIONS, salt, password.as_bytes(), hash).is_ok())
         })

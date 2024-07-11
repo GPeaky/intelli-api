@@ -22,7 +22,7 @@ pub struct ChampionshipService {
     /// Redis cache for temporarily storing championship-related data.
     cache: &'static ServiceCache,
     /// A shared, thread-safe set of available ports for championships.
-    ports: MachinePorts,
+    machine_ports: MachinePorts,
     /// Repository for user-specific db operations.
     user_repo: &'static UserRepository,
     /// Repository for championship-specific db operations.
@@ -50,7 +50,10 @@ impl ChampionshipService {
         user_repo: &'static UserRepository,
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
-        let machine_port = MachinePorts::new(championship_repo).await?;
+        let machine_ports = {
+            let used_ports = championship_repo.ports_in_use().await?;
+            MachinePorts::new(used_ports).await?
+        };
 
         let ids_generator = {
             let used_ids = championship_repo.used_ids().await?;
@@ -62,7 +65,7 @@ impl ChampionshipService {
             cache,
             user_repo,
             championship_repo,
-            ports: machine_port,
+            machine_ports,
             ids_generator,
         })
     }
@@ -113,7 +116,7 @@ impl ChampionshipService {
             let id = self.ids_generator.next();
 
             let port = self
-                .ports
+                .machine_ports
                 .next()
                 .ok_or(ChampionshipError::NoPortsAvailable)?;
 
@@ -132,7 +135,7 @@ impl ChampionshipService {
                 .await;
 
             if let Err(e) = result {
-                self.ports.return_port(port);
+                self.machine_ports.return_port(port);
                 return Err(e.into());
             }
 

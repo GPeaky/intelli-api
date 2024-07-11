@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use ahash::AHashSet;
-
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
@@ -41,7 +39,7 @@ impl ChampionshipRepository {
     /// # Returns
     ///
     /// A vector of integers representing the ports in use.
-    pub async fn ports_in_use(&self) -> AppResult<AHashSet<i32>> {
+    pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
         let rows = {
             let conn = self.db.pg.get().await?;
 
@@ -56,11 +54,11 @@ impl ChampionshipRepository {
             conn.query(&ports_in_use_stmt, &[]).await?
         };
 
-        let mut ports = AHashSet::with_capacity(rows.len());
+        let mut ports = Vec::with_capacity(rows.len());
 
         for row in rows {
             let port: i32 = row.get(0);
-            ports.insert(port);
+            ports.push(port)
         }
 
         Ok(ports)
