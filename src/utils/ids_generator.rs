@@ -1,7 +1,6 @@
 use std::{
     ops::Range,
     simd::{i32x16, num::SimdInt, Simd},
-    sync::Arc,
 };
 
 use crate::config::constants::IDS_POOL_SIZE;
@@ -12,7 +11,7 @@ use ring::rand::{SecureRandom, SystemRandom};
 /// Generates unique IDs within a specified range.
 #[derive(Clone)]
 pub struct IdsGenerator {
-    data: Arc<Mutex<IdsData>>,
+    data: &'static Mutex<IdsData>,
     range: Range<i32>,
     valid_range: i32,
 }
@@ -41,11 +40,13 @@ impl IdsGenerator {
             used_ids.insert(id as usize);
         }
 
+        let data = Box::leak(Box::new(Mutex::new(IdsData {
+            ids: Vec::with_capacity(IDS_POOL_SIZE),
+            used_ids: BitSet::new(),
+        })));
+
         let generator = IdsGenerator {
-            data: Arc::new(Mutex::new(IdsData {
-                ids: Vec::with_capacity(IDS_POOL_SIZE),
-                used_ids: BitSet::new(),
-            })),
+            data,
             range,
             valid_range,
         };

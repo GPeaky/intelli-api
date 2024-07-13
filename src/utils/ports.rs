@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use parking_lot::Mutex;
 use tracing_log::log::error;
 
@@ -7,7 +5,7 @@ use crate::{config::constants::PORTS_RANGE, error::AppResult};
 
 #[derive(Clone)]
 pub struct MachinePorts {
-    ports: Arc<Mutex<Vec<i32>>>,
+    ports: &'static Mutex<Vec<i32>>,
 }
 
 impl MachinePorts {
@@ -21,7 +19,7 @@ impl MachinePorts {
             }
         }
 
-        let ports = Arc::new(Mutex::new(ports));
+        let ports = Box::leak(Box::new(Mutex::new(ports)));
 
         Ok(MachinePorts { ports })
     }

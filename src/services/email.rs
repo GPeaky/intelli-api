@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 
 use lettre::{
     message::{header::ContentType, Mailbox, MessageBuilder},
@@ -18,7 +18,10 @@ use crate::{config::constants::MAX_CONCURRENT_EMAILS, error::AppResult, structs:
 /// operations do not block the main execution thread. The service is designed to handle
 /// potentially high volumes of email sending tasks with resilience.
 #[derive(Clone)]
-pub struct EmailService(Arc<AsyncSmtpTransport<Tokio1Executor>>, Arc<Semaphore>);
+pub struct EmailService(
+    &'static AsyncSmtpTransport<Tokio1Executor>,
+    &'static Semaphore,
+);
 
 impl EmailService {
     /// Constructs a new `EmailService`.
@@ -36,7 +39,7 @@ impl EmailService {
     /// let email_svc = EmailService::new();
     /// ```
     pub fn new() -> Self {
-        let mailer = Arc::from(
+        let mailer = Box::leak(Box::new(
             AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(
                 dotenvy::var("EMAIL_HOST").unwrap().as_str(),
             )
@@ -47,9 +50,9 @@ impl EmailService {
                 dotenvy::var("EMAIL_PASS").unwrap(),
             ))
             .build(),
-        );
+        ));
 
-        let semaphore = Arc::from(Semaphore::new(MAX_CONCURRENT_EMAILS));
+        let semaphore = Box::leak(Box::new(Semaphore::new(MAX_CONCURRENT_EMAILS)));
 
         Self(mailer, semaphore)
     }
@@ -86,7 +89,7 @@ impl EmailService {
         subject: &'a str,
         body: T,
     ) -> AppResult<()> {
-        let permit = self.1.clone().acquire_owned().await.unwrap();
+        let permit = self.1.acquire().await.unwrap();
 
         let message = MessageBuilder::new()
             .from(Mailbox::new(
@@ -102,7 +105,7 @@ impl EmailService {
             .body(body.render_once()?)
             .expect("Message builder error");
 
-        let mailer = self.0.clone();
+        let mailer = self.0;
 
         ntex::rt::spawn(async move {
             let res = mailer.send(message).await;
