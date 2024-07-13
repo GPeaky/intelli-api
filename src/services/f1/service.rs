@@ -127,7 +127,7 @@ impl F1Service {
         let services = self.services;
 
         // Todo - Implement all this logic in a structure
-        tokio::spawn(async move {
+        ntex::rt::spawn(async move {
             let span = info_span!("F1 Service", championship_id = championship_id);
             let _guard = span.enter();
 

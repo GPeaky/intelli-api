@@ -103,7 +103,8 @@ impl EmailService {
             .expect("Message builder error");
 
         let mailer = self.0.clone();
-        tokio::spawn(async move {
+
+        ntex::rt::spawn(async move {
             let res = mailer.send(message).await;
 
             if let Err(e) = res {

@@ -84,7 +84,7 @@ impl PacketBatching {
         };
 
         let mut interval_timer = interval(BATCHING_INTERVAL);
-        tokio::spawn(async move {
+        ntex::rt::spawn(async move {
             loop {
                 tokio::select! {
                     _ = interval_timer.tick() => {
