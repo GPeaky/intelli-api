@@ -12,10 +12,14 @@ use ring::rand::{SecureRandom, SystemRandom};
 /// Generates unique IDs within a specified range.
 #[derive(Clone)]
 pub struct IdsGenerator {
-    ids: Arc<Mutex<Vec<i32>>>,
-    used_ids: Arc<Mutex<BitSet>>,
+    data: Arc<Mutex<IdsData>>,
     range: Range<i32>,
     valid_range: i32,
+}
+
+struct IdsData {
+    ids: Vec<i32>,
+    used_ids: BitSet,
 }
 
 impl IdsGenerator {
@@ -38,15 +42,17 @@ impl IdsGenerator {
         }
 
         let generator = IdsGenerator {
-            ids: Arc::new(Mutex::new(Vec::with_capacity(IDS_POOL_SIZE))),
-            used_ids: Arc::new(Mutex::new(BitSet::new())),
+            data: Arc::new(Mutex::new(IdsData {
+                ids: Vec::with_capacity(IDS_POOL_SIZE),
+                used_ids: BitSet::new(),
+            })),
             range,
             valid_range,
         };
 
         {
-            let mut ids = generator.ids.lock();
-            generator.refill(&mut ids);
+            let mut data = generator.data.lock();
+            generator.refill(&mut data);
         }
 
         generator
@@ -62,13 +68,13 @@ impl IdsGenerator {
     ///
     /// Panics if no unique ID can be generated.
     pub fn next(&self) -> i32 {
-        let mut ids = self.ids.lock();
+        let mut data = self.data.lock();
 
-        match ids.pop() {
+        match data.ids.pop() {
             Some(id) => id,
             None => {
-                self.refill(&mut ids);
-                ids.pop().unwrap_or_else(|| {
+                self.refill(&mut data);
+                data.ids.pop().unwrap_or_else(|| {
                     panic!("Failed to generate a unique ID: No more unique IDs available")
                 })
             }
@@ -80,10 +86,9 @@ impl IdsGenerator {
     /// # Arguments
     ///
     /// * `ids` - A mutable reference to a vector of IDs to be refilled.
-    fn refill(&self, ids: &mut Vec<i32>) {
+    fn refill(&self, data: &mut IdsData) {
         let rng = SystemRandom::new();
         let mut buf = [0i32; IDS_POOL_SIZE];
-        let mut used_ids = self.used_ids.lock();
 
         let byte_buf = unsafe {
             std::slice::from_raw_parts_mut(
@@ -97,8 +102,8 @@ impl IdsGenerator {
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);
 
-        let new_capacity = used_ids.capacity() + buf.len();
-        used_ids.reserve_len(new_capacity);
+        let new_capacity = data.used_ids.capacity() + buf.len();
+        data.used_ids.reserve_len(new_capacity);
 
         for chunk in buf.chunks_exact(16) {
             let nums = i32x16::from_slice(chunk).saturating_abs();
@@ -107,8 +112,8 @@ impl IdsGenerator {
             for i in 0..ids_simd.len() {
                 let id = ids_simd[i];
 
-                if used_ids.insert(id as usize) {
-                    ids.push(id);
+                if data.used_ids.insert(id as usize) {
+                    data.ids.push(id);
                 }
             }
         }
@@ -125,7 +130,7 @@ mod tests {
         let in_use_ids = vec![1, 2, 3];
         let generator = IdsGenerator::new(range, in_use_ids);
 
-        assert!(!generator.ids.lock().is_empty());
+        assert!(!generator.data.lock().ids.is_empty());
     }
 
     #[test]
