@@ -4,9 +4,8 @@ use std::{
     sync::Arc,
 };
 
-use super::bitset::Bitset;
 use crate::config::constants::IDS_POOL_SIZE;
-use ahash::AHashSet;
+use bit_set::BitSet;
 use parking_lot::Mutex;
 use ring::rand::{SecureRandom, SystemRandom};
 
@@ -14,8 +13,9 @@ use ring::rand::{SecureRandom, SystemRandom};
 #[derive(Clone)]
 pub struct IdsGenerator {
     ids: Arc<Mutex<Vec<i32>>>,
-    container: Arc<Mutex<IdContainer>>,
-    simd: (Simd<i32, 16>, Simd<i32, 16>),
+    used_ids: Arc<Mutex<BitSet>>,
+    range: Range<i32>,
+    valid_range: i32,
 }
 
 impl IdsGenerator {
@@ -31,15 +31,17 @@ impl IdsGenerator {
     /// A new instance of `IdsGenerator`.
     pub fn new(range: Range<i32>, in_use_ids: Vec<i32>) -> Self {
         let valid_range = range.end - range.start;
-        let container = IdContainer::new(range.clone(), in_use_ids, valid_range);
+        let mut used_ids = BitSet::with_capacity(in_use_ids.len());
 
-        let range_start_simd = Simd::splat(range.start);
-        let valid_range_simd = Simd::splat(valid_range);
+        for id in in_use_ids {
+            used_ids.insert(id as usize);
+        }
 
         let generator = IdsGenerator {
             ids: Arc::new(Mutex::new(Vec::with_capacity(IDS_POOL_SIZE))),
-            container: Arc::new(Mutex::new(container)),
-            simd: (range_start_simd, valid_range_simd),
+            used_ids: Arc::new(Mutex::new(BitSet::new())),
+            range,
+            valid_range,
         };
 
         {
@@ -73,10 +75,6 @@ impl IdsGenerator {
         }
     }
 
-    pub fn container_type(&self) -> ContainerType {
-        self.container.lock().container_type()
-    }
-
     /// Refills the pool of available IDs.
     ///
     /// # Arguments
@@ -85,7 +83,7 @@ impl IdsGenerator {
     fn refill(&self, ids: &mut Vec<i32>) {
         let rng = SystemRandom::new();
         let mut buf = [0i32; IDS_POOL_SIZE];
-        let mut container = self.container.lock();
+        let mut used_ids = self.used_ids.lock();
 
         let byte_buf = unsafe {
             std::slice::from_raw_parts_mut(
@@ -96,112 +94,23 @@ impl IdsGenerator {
 
         rng.fill(byte_buf).expect("Failed to generate random byte");
 
-        container.check_threshold();
+        let valid_range_simd = Simd::splat(self.valid_range);
+        let range_start_simd = Simd::splat(self.range.start);
+
+        let new_capacity = used_ids.capacity() + buf.len();
+        used_ids.reserve_len(new_capacity);
 
         for chunk in buf.chunks_exact(16) {
             let nums = i32x16::from_slice(chunk).saturating_abs();
-            let ids_simd = self.simd.0 + (nums % self.simd.1);
+            let ids_simd = range_start_simd + (nums % valid_range_simd);
 
             for i in 0..ids_simd.len() {
                 let id = ids_simd[i];
 
-                if container.insert(id) {
+                if used_ids.insert(id as usize) {
                     ids.push(id);
                 }
             }
-        }
-    }
-}
-
-/// Container Type
-#[derive(Debug, PartialEq)]
-pub enum ContainerType {
-    HashSet,
-    BitSet,
-}
-
-/// Container for managing used and available IDs.
-
-enum IdContainer {
-    HashSet(AHashSet<i32>, Range<i32>, usize),
-    BitSet(Bitset),
-}
-
-impl IdContainer {
-    /// Creates a new `IdContainer`.
-    ///
-    /// # Arguments
-    ///
-    /// * `range` - The range of valid IDs.
-    /// * `in_use_ids` - A vector of IDs already in use.
-    /// * `valid_range` - The range of valid IDs.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `IdContainer`.
-    pub fn new(range: Range<i32>, in_use_ids: Vec<i32>, valid_range: i32) -> Self {
-        let threshold = (valid_range as usize + 7) / 8;
-
-        if in_use_ids.len() * 9 > threshold {
-            let mut bitset = Bitset::new(range.clone());
-
-            for id in in_use_ids {
-                unsafe {
-                    bitset.insert(id);
-                }
-            }
-
-            IdContainer::BitSet(bitset)
-        } else {
-            let mut hashset = AHashSet::with_capacity(in_use_ids.len());
-
-            for id in in_use_ids {
-                hashset.insert(id);
-            }
-
-            IdContainer::HashSet(hashset, range, threshold)
-        }
-    }
-
-    /// Checks if the number of used IDs exceeds a threshold.
-    #[inline]
-    pub fn check_threshold(&mut self) {
-        if let IdContainer::HashSet(ref hashset, range, threshold) = self {
-            if hashset.len() * 9 > *threshold {
-                let mut bitset = Bitset::new(range.clone());
-
-                for id in hashset {
-                    unsafe {
-                        bitset.insert(*id);
-                    }
-                }
-
-                *self = IdContainer::BitSet(bitset)
-            }
-        }
-    }
-
-    /// Inserts a new ID into the container.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ID to insert.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the ID was successfully inserted, `false` otherwise.
-    #[inline]
-    pub fn insert(&mut self, id: i32) -> bool {
-        match self {
-            IdContainer::BitSet(bitset) => unsafe { bitset.insert(id) },
-            IdContainer::HashSet(hashset, _, _) => hashset.insert(id),
-        }
-    }
-
-    pub fn container_type(&self) -> ContainerType {
-        match self {
-            IdContainer::HashSet(..) => ContainerType::HashSet,
-            IdContainer::BitSet(..) => ContainerType::BitSet,
         }
     }
 }

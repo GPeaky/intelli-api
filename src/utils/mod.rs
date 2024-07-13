@@ -4,7 +4,6 @@ pub(crate) use password_hash::*;
 pub(crate) use ports::MachinePorts;
 use std::mem;
 
-mod bitset;
 mod ids_generator;
 mod password_hash;
 mod ports;
