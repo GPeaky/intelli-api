@@ -24,7 +24,7 @@ impl PasswordHasher {
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
         let _permit = self.semaphore.acquire().await.unwrap();
 
-        tokio::task::spawn_blocking(move || {
+        ntex::rt::spawn_blocking(move || {
             let mut salt = [0u8; PASS_SALT_LEN];
             let rng = SystemRandom::new();
 
@@ -40,11 +40,11 @@ impl PasswordHasher {
                 &mut hash,
             );
 
-            let mut salt_hash = Vec::with_capacity(salt.len() + hash.len());
-            salt_hash.extend_from_slice(&salt);
-            salt_hash.extend_from_slice(&hash);
+            let mut hashed_password = [0u8; PASS_SALT_LEN + PASS_CREDENTIAL_LEN];
+            hashed_password[..PASS_SALT_LEN].copy_from_slice(&salt);
+            hashed_password[PASS_SALT_LEN..].copy_from_slice(&hash);
 
-            Ok(STANDARD.encode(salt_hash))
+            Ok(STANDARD.encode(hashed_password))
         })
         .await
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
@@ -53,9 +53,11 @@ impl PasswordHasher {
     pub async fn verify_password(&self, encoded: String, password: String) -> AppResult<bool> {
         let _permit = self.semaphore.acquire().await.unwrap();
 
-        tokio::task::spawn_blocking(move || {
-            let combined = STANDARD
-                .decode(encoded)
+        ntex::rt::spawn_blocking(move || {
+            let mut combined = [0u8; PASS_SALT_LEN + PASS_CREDENTIAL_LEN];
+
+            STANDARD
+                .decode_slice_unchecked(encoded, &mut combined) // Unchecked because the size of the hash is static
                 .map_err(|_| CommonError::HashingFailed)?;
 
             let (salt, hash) = combined.split_at(PASS_SALT_LEN);
