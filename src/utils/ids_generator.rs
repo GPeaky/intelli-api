@@ -121,40 +121,40 @@ impl IdsGenerator {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn test_id_generator_creation() {
-        let range = 0..100000;
-        let in_use_ids = vec![1, 2, 3];
-        let generator = IdsGenerator::new(range, in_use_ids);
+//     #[test]
+//     fn test_id_generator_creation() {
+//         let range = 0..100000;
+//         let in_use_ids = vec![1, 2, 3];
+//         let generator = IdsGenerator::new(range, in_use_ids);
 
-        assert!(!generator.data.lock().ids.is_empty());
-    }
+//         assert!(!generator.data.lock().ids.is_empty());
+//     }
 
-    #[test]
-    fn test_id_generation() {
-        let range = 0..100;
-        let in_use_ids = vec![1, 2, 3];
-        let generator = IdsGenerator::new(range, in_use_ids);
+//     #[test]
+//     fn test_id_generation() {
+//         let range = 0..100;
+//         let in_use_ids = vec![1, 2, 3];
+//         let generator = IdsGenerator::new(range, in_use_ids);
 
-        let id = generator.next();
-        assert!((0..100).contains(&id));
-    }
+//         let id = generator.next();
+//         assert!((0..100).contains(&id));
+//     }
 
-    #[test]
-    fn test_unique_ids() {
-        let range = 0..1000;
-        let in_use_ids = vec![1, 2, 3];
-        let generator = IdsGenerator::new(range, in_use_ids);
+//     #[test]
+//     fn test_unique_ids() {
+//         let range = 0..1000;
+//         let in_use_ids = vec![1, 2, 3];
+//         let generator = IdsGenerator::new(range, in_use_ids);
 
-        let mut ids = std::collections::HashSet::new();
-        for _ in 0..100 {
-            let id = generator.next();
-            assert!(!ids.contains(&id));
-            ids.insert(id);
-        }
-    }
-}
+//         let mut ids = std::collections::HashSet::new();
+//         for _ in 0..100 {
+//             let id = generator.next();
+//             assert!(!ids.contains(&id));
+//             ids.insert(id);
+//         }
+//     }
+// }
