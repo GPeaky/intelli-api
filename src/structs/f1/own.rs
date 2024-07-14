@@ -18,6 +18,7 @@ pub struct F1ServiceData {
     pub shutdown_tx: oneshot::Sender<()>,
 }
 
+// Todo: Change this to a more idiomatic name
 pub enum OptionalMessage {
     Code([u8; 4]),
     Number(u8),
@@ -36,7 +37,6 @@ pub enum F1Data<'a> {
 }
 
 impl<'a> F1Data<'a> {
-    // Todo: Change this function name to one more idiomatic
     pub fn try_cast(data: &[u8]) -> AppResult<(PacketIds, &PacketHeader, F1Data)> {
         let header = cast::<PacketHeader>(data)?;
         let packet_id = PacketIds::try_from(header.packet_id).unwrap();

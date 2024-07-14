@@ -15,9 +15,9 @@ pub struct PasswordHasher {
 }
 
 impl PasswordHasher {
-    pub fn new(max_concurrent: usize) -> PasswordHasher {
+    pub fn new(max_concurrents: usize) -> PasswordHasher {
         PasswordHasher {
-            semaphore: Semaphore::new(max_concurrent),
+            semaphore: Semaphore::new(max_concurrents),
         }
     }
 

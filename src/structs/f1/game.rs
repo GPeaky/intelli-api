@@ -2,9 +2,6 @@
 // -------------- ORIGINAL GAME ----------------
 // ---------------------------------------------
 
-// Clone and Copy trait are only implemented for debugging purposes
-// and should not be used in production code
-
 #[repr(C, packed)]
 pub struct PacketHeader {
     pub packet_format: u16,             // 2023
