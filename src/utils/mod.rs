@@ -14,11 +14,15 @@ pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
         Err(F1ServiceError::CastingError)?;
     }
 
-    let alignment = mem::align_of::<T>();
     let ptr = bytes.as_ptr();
+    let alignment = mem::align_of::<T>();
 
     if (ptr as usize) % alignment != 0 {
-        Err(F1ServiceError::CastingError)?;
+        panic!(
+            "Error: Unable to cast because the alignment of type '{}' is {} bytes, but the pointer address is not properly aligned.",
+            std::any::type_name::<T>(),
+            alignment
+        );
     }
 
     Ok(unsafe { &*(ptr.cast()) })
