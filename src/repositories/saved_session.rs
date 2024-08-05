@@ -1,4 +1,6 @@
-use crate::{cache::ServiceCache, config::Database, error::AppResult};
+use tokio_stream::StreamExt;
+
+use crate::{cache::ServiceCache, config::Database, error::AppResult, utils::slice_iter};
 
 #[derive(Clone)]
 pub struct SavedSessionRepository {
@@ -24,12 +26,17 @@ impl SavedSessionRepository {
             )
             .await?;
 
-        let rows = conn.query(&saved_session_ids_stmt, &[]).await?;
-        let mut saved_session_ids = Vec::with_capacity(rows.len());
+        let stream = conn
+            .query_raw(&saved_session_ids_stmt, slice_iter(&[]))
+            .await?;
 
-        for row in rows {
-            let id: i32 = row.get(0);
-            saved_session_ids.push(id);
+        tokio::pin!(stream);
+
+        let mut saved_session_ids =
+            Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        while let Some(row) = stream.try_next().await? {
+            saved_session_ids.push(row.get(0));
         }
 
         Ok(saved_session_ids)

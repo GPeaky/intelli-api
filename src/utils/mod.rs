@@ -2,6 +2,7 @@ use crate::error::{AppResult, F1ServiceError};
 pub(crate) use ids_generator::IdsGenerator;
 pub(crate) use password_hash::*;
 pub(crate) use ports::MachinePorts;
+use postgres_types::ToSql;
 use std::mem;
 
 mod ids_generator;
@@ -26,4 +27,11 @@ pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
     }
 
     Ok(unsafe { &*(ptr.cast()) })
+}
+
+#[inline]
+pub fn slice_iter<'a>(
+    s: &'a [&'a (dyn ToSql + Sync)],
+) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
+    s.iter().map(|s| *s as _)
 }

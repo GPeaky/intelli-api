@@ -82,12 +82,15 @@ impl EmailService {
     ///     println!("Failed to send email");
     /// }
     /// ```
-    pub async fn send_mail<'a, T: TemplateOnce>(
+    pub async fn send_mail<'a, T>(
         &self,
         user: SharedUser,
         subject: &'a str,
         body: T,
-    ) -> AppResult<()> {
+    ) -> AppResult<()>
+    where
+        T: TemplateOnce,
+    {
         let permit = self.1.acquire().await.unwrap();
 
         let message = MessageBuilder::new()

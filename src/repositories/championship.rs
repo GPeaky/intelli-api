@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
+use tokio_stream::StreamExt;
+
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
     entity::Championship,
     error::AppResult,
+    utils::slice_iter,
 };
 
 /// A repository for managing championship data, with support for caching.
@@ -40,7 +43,7 @@ impl ChampionshipRepository {
     ///
     /// A vector of integers representing the ports in use.
     pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
-        let rows = {
+        let stream = {
             let conn = self.db.pg.get().await?;
 
             let ports_in_use_stmt = conn
@@ -51,14 +54,15 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&ports_in_use_stmt, &[]).await?
+            conn.query_raw(&ports_in_use_stmt, slice_iter(&[])).await?
         };
 
-        let mut ports = Vec::with_capacity(rows.len());
+        let mut ports = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
 
-        for row in rows {
-            let port: i32 = row.get(0);
-            ports.push(port)
+        tokio::pin!(stream);
+
+        while let Some(row) = stream.try_next().await? {
+            ports.push(row.get(0));
         }
 
         Ok(ports)
@@ -158,7 +162,7 @@ impl ChampionshipRepository {
             return Ok(championships);
         };
 
-        let rows = {
+        let stream = {
             let conn = self.db.pg.get().await?;
 
             let find_all_stmt = conn
@@ -172,16 +176,10 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&find_all_stmt, &[&user_id]).await?
+            conn.query_raw(&find_all_stmt, &[&user_id]).await?
         };
 
-        let championships = Championship::from_rows(&rows);
-
-        self.cache
-            .championship
-            .set_user_championships(user_id, championships.clone());
-
-        Ok(championships)
+        Championship::from_row_stream(stream).await
     }
 
     /// Retrieves a list of user IDs associated with a championship ID.
@@ -194,7 +192,7 @@ impl ChampionshipRepository {
     ///
     /// A vector of integers representing the user IDs.
     pub async fn users(&self, id: i32) -> AppResult<Vec<i32>> {
-        let rows = {
+        let stream = {
             let conn = self.db.pg.get().await?;
 
             let championship_users_stmt = conn
@@ -206,14 +204,15 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&championship_users_stmt, &[&id]).await?
+            conn.query_raw(&championship_users_stmt, &[&id]).await?
         };
 
-        let mut users = Vec::with_capacity(rows.len());
+        let mut users = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
 
-        for row in rows {
-            let user_id: i32 = row.get(0);
-            users.push(user_id);
+        tokio::pin!(stream);
+
+        while let Some(row) = stream.try_next().await? {
+            users.push(row.get(0));
         }
 
         Ok(users)
@@ -229,7 +228,7 @@ impl ChampionshipRepository {
     ///
     /// The number of championships associated with the user.
     pub async fn championship_len(&self, user_id: i32) -> AppResult<usize> {
-        let rows = {
+        let stream = {
             let conn = self.db.pg.get().await?;
 
             let championship_len_stmt = conn
@@ -247,10 +246,10 @@ impl ChampionshipRepository {
                 )
                 .await?;
 
-            conn.query(&championship_len_stmt, &[&user_id]).await?
+            conn.query_raw(&championship_len_stmt, &[&user_id]).await?
         };
 
-        Ok(rows.len())
+        Ok(stream.rows_affected().unwrap_or(0) as usize)
     }
 
     /// This method should only be called once
@@ -265,14 +264,18 @@ impl ChampionshipRepository {
             )
             .await?;
 
-        let rows = conn.query(&championship_ids_stmt, &[]).await?;
-        let mut championships_ids = Vec::with_capacity(rows.len());
+        let stream = conn
+            .query_raw(&championship_ids_stmt, slice_iter(&[]))
+            .await?;
 
-        for row in rows {
-            let id: i32 = row.get(0);
-            championships_ids.push(id);
+        let mut championships = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        tokio::pin!(stream);
+
+        while let Some(row) = stream.try_next().await? {
+            championships.push(row.get(0));
         }
 
-        Ok(championships_ids)
+        Ok(championships)
     }
 }

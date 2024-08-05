@@ -37,6 +37,6 @@ pub(crate) async fn update_user(
     };
 
     let user = req.user()?;
-    state.user_svc.update(&user, &form).await?;
+    state.user_svc.update(user, &form).await?;
     Ok(HttpResponse::Ok().finish())
 }

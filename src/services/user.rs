@@ -145,7 +145,7 @@ impl UserService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub async fn update(&self, user: &SharedUser, form: &UpdateUser) -> AppResult<()> {
+    pub async fn update(&self, user: SharedUser, form: &UpdateUser) -> AppResult<()> {
         if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_days(7).unwrap() {
             Err(UserError::UpdateLimitExceeded)?
         }

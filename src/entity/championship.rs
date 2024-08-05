@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use deadpool_postgres::tokio_postgres::Row;
+use deadpool_postgres::tokio_postgres::{Row, RowStream};
 use postgres_derive::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
+use tokio_stream::StreamExt;
+
+use crate::error::AppResult;
 
 #[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
@@ -28,18 +31,21 @@ pub struct Championship {
 }
 
 impl Championship {
+    #[inline(always)]
     pub fn from_row(row: &Row) -> Arc<Championship> {
         Arc::new(Championship::from(row))
     }
 
-    pub fn from_rows(rows: &Vec<Row>) -> Vec<Arc<Championship>> {
-        let mut championships = Vec::with_capacity(rows.len());
+    #[inline]
+    pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Championship>>> {
+        tokio::pin!(it);
+        let mut championships = Vec::with_capacity(it.rows_affected().unwrap_or(0) as usize);
 
-        for row in rows {
-            championships.push(Championship::from_row(row));
+        while let Some(row) = it.try_next().await? {
+            championships.push(Championship::from_row(&row))
         }
 
-        championships
+        Ok(championships)
     }
 }
 

@@ -1,9 +1,11 @@
+use tokio_stream::StreamExt;
+
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
     entity::{SharedUser, User},
     error::AppResult,
-    utils::PasswordHasher,
+    utils::{slice_iter, PasswordHasher},
 };
 
 /// A repository for managing user data within a db and cache.
@@ -179,15 +181,17 @@ impl UserRepository {
             )
             .await?;
 
-        let rows = conn.query(&user_ids_stmt, &[]).await?;
-        let mut user_ids = Vec::with_capacity(rows.len());
+        let stream = conn.query_raw(&user_ids_stmt, slice_iter(&[])).await?;
 
-        for row in rows {
-            let id: i32 = row.get(0);
-            user_ids.push(id);
+        tokio::pin!(stream);
+
+        let mut used_ids = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        while let Some(row) = stream.try_next().await? {
+            used_ids.push(row.get(0));
         }
 
-        Ok(user_ids)
+        Ok(used_ids)
     }
 
     #[inline]
