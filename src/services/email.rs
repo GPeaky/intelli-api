@@ -9,7 +9,7 @@ use sailfish::TemplateOnce;
 use tokio::sync::Semaphore;
 use tracing::error;
 
-use crate::{config::constants::MAX_CONCURRENT_EMAILS, error::AppResult, structs::EmailUser};
+use crate::{config::constants::MAX_CONCURRENT_EMAILS, entity::SharedUser, error::AppResult};
 
 /// A service for sending emails asynchronously.
 ///
@@ -84,8 +84,7 @@ impl EmailService {
     /// ```
     pub async fn send_mail<'a, T: TemplateOnce>(
         &self,
-        // TODO: change this to a generic type that can be used for any user type
-        user: EmailUser<'a>,
+        user: SharedUser,
         subject: &'a str,
         body: T,
     ) -> AppResult<()> {
@@ -97,8 +96,8 @@ impl EmailService {
                 Address::from_str(dotenvy::var("EMAIL_FROM").as_ref().unwrap()).unwrap(),
             ))
             .to(Mailbox::new(
-                Some(user.username.to_string()),
-                Address::from_str(user.email).unwrap(),
+                Some(user.username.to_owned()),
+                Address::from_str(&user.email).unwrap(),
             ))
             .subject(subject)
             .header(ContentType::TEXT_HTML)

@@ -1,4 +1,5 @@
 use dotenvy::var;
+use reqwest::Client;
 
 use crate::{
     config::constants::*,
@@ -31,22 +32,22 @@ impl GoogleRepository {
     pub fn new() -> Self {
         Self {
             client_id: var("GOOGLE_CLIENT_ID")
-                .expect("GOOGLE_CLIENT_ID secret not found")
+                .expect("Missing GOOGLE_CLIENT_ID")
                 .leak(),
 
             client_secret: var("GOOGLE_CLIENT_SECRET")
-                .expect("GOOGLE_CLIENT_SECRET secret not found")
+                .expect("Missing GOOGLE_CLIENT_SECRET")
                 .leak(),
 
             redirect_uri: var("GOOGLE_REDIRECT_URI")
-                .expect("GOOGLE_REDIRECT_URI secret not found")
+                .expect("Missing GOOGLE_REDIRECT_URI")
                 .leak(),
 
             grant_type: var("GOOGLE_GRANT_TYPE")
-                .expect("GOOGLE_GRANT_TYPE secret not found")
+                .expect("Missing GOOGLE_GRANT_TYPE")
                 .leak(),
 
-            reqwest_client: reqwest::Client::new(),
+            reqwest_client: Client::new(),
         }
     }
 

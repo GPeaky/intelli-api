@@ -6,7 +6,7 @@ use ntex::web::{
 use crate::{
     error::{AppResult, UserError},
     states::AppState,
-    structs::{EmailUser, EmailVerified, VerifyEmailParams},
+    structs::{EmailVerified, VerifyEmailParams},
 };
 
 #[inline(always)]
@@ -22,14 +22,10 @@ pub async fn verify_email(
         .ok_or(UserError::NotFound)?;
 
     let template = EmailVerified {};
-    let email_user = EmailUser {
-        username: &user.username,
-        email: &user.email,
-    };
 
     state
         .email_svc
-        .send_mail(email_user, "Email Verified", template)
+        .send_mail(user, "Email Verified", template)
         .await?;
 
     Ok(HttpResponse::Ok().finish())

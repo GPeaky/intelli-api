@@ -10,9 +10,9 @@ use crate::{
     error::{AppResult, CommonError, UserError},
     states::AppState,
     structs::{
-        AuthResponse, EmailUser, FingerprintQuery, ForgotPasswordDto, LoginUserDto,
-        PasswordChanged, RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword,
-        ResetPasswordDto, ResetPasswordQuery, TokenType, VerifyEmail,
+        AuthResponse, FingerprintQuery, ForgotPasswordDto, LoginUserDto, PasswordChanged,
+        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword, ResetPasswordDto,
+        ResetPasswordQuery, TokenType, VerifyEmail,
     },
 };
 
@@ -31,6 +31,9 @@ pub(crate) async fn register(
     let token = state.token_svc.generate_token(user_id, TokenType::Email)?;
     state.token_svc.save_email_token(token.clone());
 
+    // Should be safe to unwrap the option cause we just created the user above
+    let user = state.user_repo.find(user_id).await?.unwrap();
+
     let template = VerifyEmail {
         verification_link: &format!(
             "https://intellitelemetry.live/auth/verify-email?token={}",
@@ -40,7 +43,7 @@ pub(crate) async fn register(
 
     state
         .email_svc
-        .send_mail((&form).into(), "Verify Email", template)
+        .send_mail(user, "Verify Email", template)
         .await?;
 
     Ok(HttpResponse::Created().finish())
@@ -151,14 +154,7 @@ pub(crate) async fn forgot_password(
 
     state
         .email_svc
-        .send_mail(
-            EmailUser {
-                username: &user.username,
-                email: &user.email,
-            },
-            "Reset Password",
-            template,
-        )
+        .send_mail(user, "Reset Password", template)
         .await?;
 
     Ok(HttpResponse::Ok().finish())
@@ -188,14 +184,7 @@ pub async fn reset_password(
 
     state
         .email_svc
-        .send_mail(
-            EmailUser {
-                username: &user.username,
-                email: &user.email,
-            },
-            "Password Changed",
-            template,
-        )
+        .send_mail(user, "Password Changed", template)
         .await?;
 
     Ok(HttpResponse::Ok().finish())
