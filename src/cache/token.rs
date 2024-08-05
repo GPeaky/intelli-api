@@ -5,6 +5,8 @@ use tokio::time::Instant;
 
 use crate::structs::TokenType;
 
+use super::CACHE_CAPACITY;
+
 // Todo: Make this impl a bit more legible
 pub struct TokenCache {
     cache: Cache<(String, TokenType), Instant>,
@@ -15,8 +17,8 @@ pub struct TokenCache {
 impl TokenCache {
     pub fn new() -> Self {
         Self {
-            cache: Cache::new(10_000),
-            refresh_tokens: Cache::new(10_000),
+            cache: Cache::new(CACHE_CAPACITY),
+            refresh_tokens: Cache::new(CACHE_CAPACITY),
         }
     }
 

@@ -50,6 +50,7 @@ impl Championship {
 }
 
 impl From<&Row> for Championship {
+    #[inline]
     fn from(value: &Row) -> Self {
         Self {
             id: value.get(0),

@@ -4,7 +4,7 @@ use quick_cache::sync::Cache;
 
 use crate::entity::{SharedUser, User};
 
-use super::EntityCache;
+use super::{EntityCache, CACHE_CAPACITY};
 
 pub struct UserCache {
     cache: Cache<i32, SharedUser>,
@@ -14,8 +14,8 @@ pub struct UserCache {
 impl UserCache {
     pub fn new() -> Self {
         Self {
-            cache: Cache::new(10_000),
-            email_to_id: Cache::new(10_000),
+            cache: Cache::new(CACHE_CAPACITY),
+            email_to_id: Cache::new(CACHE_CAPACITY),
         }
     }
 

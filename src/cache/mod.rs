@@ -6,6 +6,8 @@ mod championship;
 mod token;
 mod user;
 
+const CACHE_CAPACITY: usize = 4_000;
+
 /// Represents a caching layer for various entities using Redis.
 ///
 /// This struct provides separate caches for users, championships, and tokens,

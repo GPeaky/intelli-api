@@ -4,7 +4,7 @@ use quick_cache::sync::Cache;
 
 use crate::entity::Championship;
 
-use super::EntityCache;
+use super::{EntityCache, CACHE_CAPACITY};
 
 pub struct ChampionshipCache {
     cache: Cache<i32, Arc<Championship>>,
@@ -15,9 +15,9 @@ pub struct ChampionshipCache {
 impl ChampionshipCache {
     pub fn new() -> Self {
         Self {
-            cache: Cache::new(10_000),
-            name_to_id: Cache::new(10_000),
-            user_championships: Cache::new(10_000),
+            cache: Cache::new(CACHE_CAPACITY),
+            name_to_id: Cache::new(CACHE_CAPACITY),
+            user_championships: Cache::new(CACHE_CAPACITY),
         }
     }
 

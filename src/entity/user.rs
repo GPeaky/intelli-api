@@ -50,12 +50,14 @@ pub struct User {
 }
 
 impl User {
+    #[inline]
     pub fn from_row(row: &Row) -> Arc<Self> {
         Arc::new(Self::from(row))
     }
 }
 
 impl From<&Row> for User {
+    #[inline]
     fn from(row: &Row) -> Self {
         User {
             id: row.get(0),
@@ -78,6 +80,7 @@ pub trait UserExtension {
 }
 
 impl UserExtension for HttpRequest {
+    #[inline]
     fn user(&self) -> AppResult<SharedUser> {
         self.extensions()
             .get::<SharedUser>()
@@ -85,6 +88,7 @@ impl UserExtension for HttpRequest {
             .ok_or(AppError::Common(CommonError::InternalServerError))
     }
 
+    #[inline]
     fn user_id(&self) -> AppResult<i32> {
         self.extensions()
             .get::<SharedUser>()
