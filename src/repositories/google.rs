@@ -4,7 +4,7 @@ use reqwest::Client;
 use crate::{
     config::constants::*,
     error::AppResult,
-    structs::{GoogleTokenRequest, GoogleUserInfo},
+    structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
 };
 
 /// Manages interactions with Google's OAuth2 API and user information endpoints.
@@ -66,42 +66,37 @@ impl GoogleRepository {
     /// Returns an error if the request to Google's API fails or if the response cannot be parsed.
     // Todo: Fix this method is returning an error
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
-        // let access_token = {
-        let token_request = GoogleTokenRequest {
-            client_id: self.client_id,
-            client_secret: self.client_secret,
-            code: callback_code,
-            grant_type: self.grant_type,
-            redirect_uri: self.redirect_uri,
+        let access_token = {
+            let token_request = GoogleTokenRequest {
+                client_id: self.client_id,
+                client_secret: self.client_secret,
+                code: callback_code,
+                grant_type: self.grant_type,
+                redirect_uri: self.redirect_uri,
+            };
+
+            let response = self
+                .reqwest_client
+                .post(GOOGLE_TOKEN_URL)
+                .form(&token_request)
+                .send()
+                .await?
+                .json::<GoogleAuthResponse>()
+                .await?;
+
+            response.access_token
         };
 
-        let response: serde_json::Value = self
+        let test: serde_json::Value = self
             .reqwest_client
-            .post(GOOGLE_TOKEN_URL)
-            .form(&token_request)
+            .get(GOOGLE_USER_INFO)
+            .bearer_auth(access_token)
             .send()
             .await?
             .json()
             .await?;
 
-        println!("X");
-        println!("Response Value: {:#?}", response);
-
-        // response.access_token
-        // };
-
-        // let test: serde_json::Value = self
-        //     .reqwest_client
-        //     .get(GOOGLE_USER_INFO)
-        //     .bearer_auth(access_token)
-        //     .send()
-        //     .await?
-        //     .json()
-        //     .await?;
-
-        // println!("Y");
-        // println!("Response Value: {:#?}", test);
-
+        println!("Response Value: {:#?}", test);
         todo!("Testing")
         // Ok(user_info)
     }
