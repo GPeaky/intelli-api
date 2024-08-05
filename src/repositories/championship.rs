@@ -179,7 +179,13 @@ impl ChampionshipRepository {
             conn.query_raw(&find_all_stmt, &[&user_id]).await?
         };
 
-        Championship::from_row_stream(stream).await
+        let championships = Championship::from_row_stream(stream).await?;
+
+        self.cache
+            .championship
+            .set_user_championships(user_id, championships.clone()); // Try to avoid cloning
+
+        Ok(championships)
     }
 
     /// Retrieves a list of user IDs associated with a championship ID.
