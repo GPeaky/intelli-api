@@ -31,14 +31,13 @@ pub struct GoogleAuthResponse {
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct GoogleUserInfo {
-    pub id: String,
     pub email: String,
-    pub verified_email: bool,
-    pub name: String,
-    pub given_name: Option<String>,
     pub family_name: Option<String>,
+    pub given_name: Option<String>,
+    pub id: String,
+    pub name: String,
     pub picture: String,
-    pub locale: String,
+    pub verified_email: bool,
 }
 
 #[derive(Serialize)]
