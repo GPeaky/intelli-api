@@ -5,12 +5,11 @@ use crate::{
     error::{AppResult, F1ServiceError},
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
+    utils::zstd_compress_async,
 };
-use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
 use parking_lot::{Mutex, RwLock};
 use tokio::{
-    io::AsyncWriteExt,
     sync::{broadcast::Sender, oneshot},
     time::interval,
 };
@@ -207,7 +206,7 @@ impl PacketBatching {
         };
 
         if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
-            let encoded_batch = Self::compress(&batch).await?;
+            let encoded_batch = zstd_compress_async(batch).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());
@@ -221,33 +220,6 @@ impl PacketBatching {
         }
 
         Ok(())
-    }
-
-    /// Compresses data using zstd with a compression level of 3.
-    ///
-    /// This function takes a slice of bytes `data` as input and returns an `AppResult<Bytes>`
-    /// containing the compressed data. In case of an error during compression, the error is logged,
-    /// and `F1ServiceError::Compressing` is returned.
-    ///
-    /// # Errors
-    ///
-    /// If compression fails, this function returns an `Err` with `F1ServiceError::Compressing`.
-    ///
-    /// # Parameters
-    ///
-    /// - `data`: A slice of bytes representing the data to be compressed.
-    ///
-    /// # Returns
-    ///
-    /// An `AppResult<Bytes>` that contains the compressed data or an error if compression fails.
-    #[inline(always)]
-    async fn compress(data: &[u8]) -> AppResult<Bytes> {
-        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
-
-        encoder.write_all(data).await.unwrap();
-        encoder.shutdown().await.unwrap();
-
-        Ok(Bytes::from(encoder.into_inner()))
     }
 }
 

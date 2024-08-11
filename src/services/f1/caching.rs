@@ -1,8 +1,7 @@
 use ahash::{AHashMap, AHashSet};
-use async_compression::{tokio::write::ZstdEncoder, Level};
 use ntex::util::Bytes;
 use parking_lot::RwLock;
-use tokio::{io::AsyncWriteExt, time::Instant};
+use tokio::time::Instant;
 use tracing::error;
 
 use crate::{
@@ -10,6 +9,7 @@ use crate::{
     error::AppResult,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
+    utils::zstd_compress_async,
 };
 
 struct CachedData(Bytes, Instant);
@@ -74,7 +74,7 @@ impl PacketCaching {
         match ToProtoMessageBatched::batched_encoded(headers) {
             None => Ok(None),
             Some(bytes) => {
-                let compressed = Self::compress(&bytes).await?;
+                let compressed = zstd_compress_async(bytes).await?;
                 let mut cache_write = self.cache.write();
 
                 *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
@@ -247,15 +247,5 @@ impl PacketCaching {
     #[inline(always)]
     fn push_event(&mut self, payload: Vec<u8>, _code: [u8; 4]) {
         self.event_data.insert(payload);
-    }
-
-    #[inline(always)]
-    async fn compress(data: &[u8]) -> AppResult<Bytes> {
-        let mut encoder = ZstdEncoder::with_quality(Vec::new(), Level::Default);
-
-        encoder.write_all(data).await.unwrap();
-        encoder.shutdown().await.unwrap();
-
-        Ok(Bytes::from(encoder.into_inner()))
     }
 }

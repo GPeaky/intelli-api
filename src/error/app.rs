@@ -4,6 +4,7 @@ use ntex::{
         header::{HeaderValue, CONTENT_TYPE},
         StatusCode,
     },
+    rt::JoinError,
     web::{error::WebResponseError, HttpRequest, HttpResponse},
 };
 use tracing::error;
@@ -27,6 +28,13 @@ pub enum AppError {
     PgPool,
     Reqwest,
     Sailfish,
+}
+
+impl From<JoinError> for AppError {
+    fn from(value: JoinError) -> Self {
+        error!("Join Error: {}", value);
+        AppError::Common(CommonError::InternalServerError)
+    }
 }
 
 impl From<PgError> for AppError {

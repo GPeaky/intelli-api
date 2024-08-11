@@ -180,11 +180,13 @@ impl FirewallService {
         Ok(())
     }
 
+    #[inline]
     async fn rule_exists(&self, id: i32) -> bool {
         let rules = self.rules.read().await;
         rules.contains_key(&id)
     }
 
+    #[inline]
     async fn ruleset() -> AppResult<String> {
         let output = Command::new("nft")
             .args(["-a", "list", "ruleset"])
@@ -216,6 +218,7 @@ impl FirewallService {
         }
     }
 
+    #[inline]
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
         let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
