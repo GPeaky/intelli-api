@@ -14,6 +14,7 @@ use crate::{
 
 struct CachedData(Bytes, Instant);
 
+// Try to remove RwLock
 pub struct PacketCaching {
     car_motion: Option<Vec<u8>>,
     session_data: Option<Vec<u8>>,

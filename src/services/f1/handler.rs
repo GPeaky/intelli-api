@@ -112,6 +112,17 @@ impl F1ServiceHandler {
         self.services.contains_key(id)
     }
 
+    /// Starts a new F1 service for the given championship.
+    ///
+    /// Initializes and runs a service on the specified `port` if it doesn't already exist.
+    ///
+    /// # Parameters
+    /// - `port`: The port number to listen on.
+    /// - `championship_id`: The championship ID to associate with the service.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the service starts successfully.
+    /// - `Err(F1ServiceError::AlreadyExists)` if the service already exists.
     pub async fn start(&self, port: i32, championship_id: i32) -> AppResult<()> {
         if self.service(&championship_id) {
             return Err(F1ServiceError::AlreadyExists)?;
@@ -138,6 +149,17 @@ impl F1ServiceHandler {
         Ok(())
     }
 
+    /// Stops the active F1 service for the given championship.
+    ///
+    /// Shuts down the service and removes it if it's active.
+    ///
+    /// # Parameters
+    /// - `championship_id`: The championship ID whose service is to be stopped.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the service stops successfully.
+    /// - `Err(F1ServiceError::NotActive)` if no active service is found.
+    /// - `Err(F1ServiceError::Shutdown)` if shutdown fails.
     pub async fn stop(&self, championship_id: &i32) -> AppResult<()> {
         if !self.service(championship_id) {
             return Err(F1ServiceError::NotActive)?;
