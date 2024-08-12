@@ -6,25 +6,17 @@ use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
 
-#[derive(Clone, Copy, Debug)]
-enum FirewallType {
-    Open,
-    PartiallyClosed,
-}
-
 #[derive(Debug)]
 struct FirewallRule {
     port: u16,
-    r#type: FirewallType,
     handle: String,
     ip_address: Option<String>,
 }
 
 impl FirewallRule {
-    pub fn new(port: u16, r#type: FirewallType, handle: String) -> Self {
+    pub fn new(port: u16, handle: String) -> Self {
         FirewallRule {
             port,
-            r#type,
             handle,
             ip_address: None,
         }
@@ -71,7 +63,7 @@ impl FirewallService {
             Self::extract_handle_from_ruleset(&ruleset, &format!("udp dport {} accept", port))?;
 
         let mut rules = self.rules.write().await;
-        rules.insert(id, FirewallRule::new(port, FirewallType::Open, handle));
+        rules.insert(id, FirewallRule::new(port, handle));
 
         Ok(())
     }
@@ -123,7 +115,6 @@ impl FirewallService {
 
                 rule.handle = new_handle;
                 rule.ip_address = Some(ip_address);
-                rule.r#type = FirewallType::PartiallyClosed;
 
                 Ok(())
             }
