@@ -211,7 +211,7 @@ impl F1Service {
         #[cfg(not(debug_assertions))]
         if session_data.network_game != 1 {
             error!("Not Online Game, closing service");
-            self.close();
+            self.close().await;
             return;
         }
 

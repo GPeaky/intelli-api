@@ -50,6 +50,7 @@ pub async fn service_status(
         Err(ChampionshipError::NotFound)?
     };
 
+    // Todo: Make num_connections work again
     let num_connections = 0;
     let service_active = state.f1_svc.service(&championship.id);
 
