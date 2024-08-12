@@ -4,7 +4,6 @@ use super::AppError;
 
 #[derive(Debug)]
 pub enum F1ServiceError {
-    BatchedEncoding,
     AlreadyExists,
     NotActive,
     InvalidPacketType,
@@ -15,7 +14,6 @@ pub enum F1ServiceError {
 impl F1ServiceError {
     pub const fn status_code(&self) -> StatusCode {
         match self {
-            F1ServiceError::BatchedEncoding => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::AlreadyExists => StatusCode::CONFLICT,
             F1ServiceError::NotActive => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::InvalidPacketType => StatusCode::INTERNAL_SERVER_ERROR,
@@ -26,7 +24,6 @@ impl F1ServiceError {
 
     pub const fn error_message(&self) -> &'static str {
         match self {
-            F1ServiceError::BatchedEncoding => "Error to encode batched data",
             F1ServiceError::AlreadyExists => "Already Exists",
             F1ServiceError::NotActive => "Service not active",
             F1ServiceError::InvalidPacketType => "Invalid packet type",

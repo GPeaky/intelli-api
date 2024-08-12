@@ -6,7 +6,6 @@ use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
 
-#[derive(Debug)]
 struct FirewallRule {
     port: u16,
     handle: String,
@@ -152,6 +151,7 @@ impl FirewallService {
     }
 
     #[allow(unused)]
+    // Todo: Use it when the server instance goes down
     pub async fn close_all(&self) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
@@ -163,7 +163,6 @@ impl FirewallService {
             rules.keys().copied().collect::<Vec<_>>()
         };
 
-        // Not concurrency need it because it's only for stopping
         for id in ids {
             self.close(id).await?;
         }
@@ -171,13 +170,13 @@ impl FirewallService {
         Ok(())
     }
 
-    #[inline]
+    #[inline(always)]
     async fn rule_exists(&self, id: i32) -> bool {
         let rules = self.rules.read().await;
         rules.contains_key(&id)
     }
 
-    #[inline]
+    #[inline(always)]
     async fn ruleset() -> AppResult<String> {
         let output = Command::new("nft")
             .args(["-a", "list", "ruleset"])
@@ -209,7 +208,7 @@ impl FirewallService {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
         let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;

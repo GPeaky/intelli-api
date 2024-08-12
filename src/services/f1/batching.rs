@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     config::constants::{BATCHING_CAPACITY, BATCHING_INTERVAL},
-    error::{AppResult, F1ServiceError},
+    error::AppResult,
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
     utils::zstd_compress_async,
@@ -17,67 +17,43 @@ use tracing::warn;
 
 use super::caching::PacketCaching;
 
-/// `PacketBatching` is responsible for collecting packets over a period of 700ms,
-/// batching them together, and then sending a single batched packet. It serves
-/// as a buffering layer that aggregates packets to minimize processing and sending overhead.
-///
-/// In addition to batching packets, it also forwards all received packets to a cache for
-/// potential further use or analysis.
+/// `PacketBatching` collects packets over 700ms, batches them together, and sends them as a single packet.
+/// It also caches incoming packets for potential future use.
 ///
 /// # Fields
 ///
-/// - `buf`: An `Arc<Mutex<Vec<PacketHeader>>>` that temporarily stores incoming packet headers
-///   before they are batched. This buffer accumulates packets over the 700ms window.
-///
-/// - `shutdown`: An `Option<oneshot::Sender<()>>` used to signal the shutdown of the packet
-///   batching process. Once a shutdown signal is received, no more packets are accepted,
-///   and the current batch is processed and sent.
-///
-/// - `cache`: `PacketCaching` is used to store packets as they arrive. This allows for
-///   caching of individual packets alongside the batching process, enabling both immediate
-///   and batched packet processing.
+/// - `shutdown`: Channel to signal the shutdown of the batching process.
+/// - `cache`: Cache for additional packet storage.
 ///
 /// # Functionality
 ///
-/// These structs primary function is to optimize packet processing by reducing the number
-/// of individual packets that need to be handled. By batching packets together and caching
-/// them simultaneously, it enables efficient packet management and processing, particularly
-/// in high-throughput scenarios.
-
+/// Optimizes packet handling by batching multiple packets together, reducing overhead.
 pub struct PacketBatching {
-    buf: Arc<Mutex<Vec<PacketHeader>>>,
+    packets: Arc<Mutex<Vec<PacketHeader>>>,
     cache: Arc<RwLock<PacketCaching>>,
     shutdown: Option<oneshot::Sender<()>>,
 }
 
 impl PacketBatching {
-    /// Creates a new `PacketBatching` instance with a sender for batched data and a cache.
+    /// Creates a new `PacketBatching` instance.
     ///
-    /// This function sets up a new `PacketBatching` with an internal buffer for packet headers,
-    /// a shutdown mechanism, and a reference to a cache for additional data handling. It also spawns
-    /// a background task that periodically sends data from the buffer to the specified sender every 700ms,
-    /// ensuring that any collected packets are batched and sent in a single operation. This task listens
-    /// for a shutdown signal to gracefully stop its operation.
+    /// Initiates a background task that batches and sends data every 700ms, stopping
+    /// when a shutdown signal is received.
     ///
     /// # Parameters
     ///
-    /// - `tx`: A `Sender<Bytes>` used to send the batched data to a receiver.
-    /// - `cache`: `PacketCaching`, a cache used for storing or further processing of packets.
+    /// - `tx`: Channel for sending batched data.
+    /// - `cache`: Cache for storing packets.
     ///
     /// # Returns
     ///
-    /// Returns an instance of `PacketBatching` ready to receive packets and handle batching operations.
-    /// # Note
-    ///
-    /// The background task for sending batched data operates until a shutdown signal is received.
-    /// Ensure to send a shutdown signal through the `shutdown` channel when the `PacketBatching`
-    /// instance is no longer needed to properly clean up resources.
+    /// An instance ready to handle packet batching.
     pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
         let (otx, mut orx) = oneshot::channel::<()>();
-        let buf = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_CAPACITY)));
+        let packets = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_CAPACITY)));
 
         let instance = Self {
-            buf: buf.clone(),
+            packets: packets.clone(),
             shutdown: Some(otx),
             cache,
         };
@@ -88,7 +64,7 @@ impl PacketBatching {
             loop {
                 tokio::select! {
                     _ = interval_timer.tick() => {
-                        if let Err(e) = Self::send_data(&buf, &tx).await {
+                        if let Err(e) = Self::send_data(&packets, &tx).await {
                             warn!("Packet batching: {}", e);
                         }
                     }
@@ -103,48 +79,22 @@ impl PacketBatching {
         instance
     }
 
-    /// Asynchronously pushes a `PacketHeader` into the internal buffer and caches it.
-    ///
-    /// This method is a convenience wrapper around `push_with_optional_parameter`, implicitly
-    /// passing `None` for the optional parameter. It encodes the given packet and stores it
-    /// both in an internal buffer and a cache, based on the packet type.
+    /// Adds a `PacketHeader` to the buffer and caches it.
     ///
     /// # Parameters
     ///
-    /// - `packet`: The `PacketHeader` to be pushed and cached.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `AppResult<()>` indicating the success or failure of the operation.
-    ///
-    /// # Errors
-    ///
-    /// This function returns an error if encoding the packet or caching it fails.
+    /// - `packet`: Packet to be added.
     #[inline(always)]
     pub fn push(&mut self, packet: PacketHeader) {
         self.push_with_optional_parameter(packet, None)
     }
 
-    /// Asynchronously pushes a `PacketHeader` into the internal buffer with an optional parameter,
-    /// and caches it.
-    ///
-    /// Encodes the given packet, stores it in the internal buffer, and caches it according to its
-    /// packet type. If provided, the optional parameter is used for additional processing or caching
-    /// logic specific to certain packet types.
+    /// Adds a `PacketHeader` to the buffer with an optional parameter, and caches it.
     ///
     /// # Parameters
     ///
-    /// - `packet`: The `PacketHeader` to be pushed and cached.
-    /// - `second_param`: An optional `OptionalMessage` used for certain packet types that require
-    ///   additional data.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `AppResult<()>` indicating the success or failure of the operation.
-    ///
-    /// # Errors
-    ///
-    /// This function returns an error if encoding the packet, determining its type, or caching it fails.
+    /// - `packet`: Packet to be added.
+    /// - `second_param`: Optional additional data for specific packet types.
     pub fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
@@ -157,66 +107,47 @@ impl PacketBatching {
             cache.save(packet_type, &packet.payload, second_param);
         }
 
-        self.buf.lock().push(packet);
+        self.packets.lock().push(packet);
     }
 
-    /// Sends batched packet headers from the buffer to the specified sender asynchronously.
-    ///
-    /// This function locks the shared buffer, drains it if not empty, and attempts to batch encode
-    /// the packet headers. If successful, the batch is compressed and sent to the receiver if there
-    /// are any listeners. The operation might fail if encoding the batched data or sending it through
-    /// the channel encounters errors.
+    /// Sends batched packets from the buffer asynchronously.
     ///
     /// # Parameters
     ///
-    /// - `buf`: A reference to an `Arc<Mutex<Vec<PacketHeader>>>` representing the shared buffer of packet headers.
-    /// - `tx`: A reference to a `Sender<Bytes>` used to send the encoded and compressed batch of packet headers.
+    /// - `buf`: Mutable reference to the packet buffer.
+    /// - `tx`: Channel for sending the batched data.
     ///
     /// # Returns
     ///
-    /// Returns `AppResult<()>` indicating the success or failure of the operation.
-    ///
-    /// # Errors
-    ///
-    /// - Returns `Ok(())` immediately if the buffer is empty, indicating there's nothing to send.
-    /// - Returns an error if batch encoding fails or if sending the encoded batch through the channel fails.
-    ///
-    /// # Usage
-    ///
-    /// This function is designed to be called exclusively from the background thread initiated by
-    /// `PacketBatching::new`. Calling this function from other contexts may result in unexpected behavior
-    /// or race conditions due to its reliance on shared state and specific timing.
-    ///
-    /// Note: This example assumes that `buf` and `tx` are appropriately set up and that the asynchronous
-    /// context is handled by the caller (e.g., a tokio runtime).
-    ///
+    /// `AppResult<()>` indicating success or failure.
     #[inline(always)]
-    async fn send_data(buf: &Arc<Mutex<Vec<PacketHeader>>>, tx: &Sender<Bytes>) -> AppResult<()> {
-        let buf = {
-            let mut buf = buf.lock();
+    async fn send_data(
+        packets: &Arc<Mutex<Vec<PacketHeader>>>,
+        tx: &Sender<Bytes>,
+    ) -> AppResult<()> {
+        let packets = {
+            let mut packets = packets.lock();
 
-            if buf.is_empty() {
+            if packets.is_empty() {
                 return Ok(());
             }
 
             let mut taken_buf = Vec::with_capacity(BATCHING_CAPACITY);
-            std::mem::swap(&mut taken_buf, &mut *buf);
+            std::mem::swap(&mut taken_buf, &mut *packets);
 
             taken_buf
         };
 
-        if let Some(batch) = ToProtoMessageBatched::batched_encoded(buf) {
-            let encoded_batch = zstd_compress_async(batch).await?;
+        if let Some(batched_packets) = ToProtoMessageBatched::batched_encoded(packets) {
+            let encoded_packets = zstd_compress_async(batched_packets).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());
             }
 
-            if let Err(e) = tx.send(encoded_batch) {
+            if let Err(e) = tx.send(encoded_packets) {
                 warn!("Broadcast channel: {}", e);
             };
-        } else {
-            Err(F1ServiceError::BatchedEncoding)?
         }
 
         Ok(())

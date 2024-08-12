@@ -413,7 +413,6 @@ pub struct SectorsLaps {
     pub sector3: u16,
 }
 
-#[repr(C)]
 pub enum PacketIds {
     Motion,
     Session,
