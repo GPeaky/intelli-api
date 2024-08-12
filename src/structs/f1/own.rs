@@ -1,22 +1,9 @@
-use std::sync::Arc;
-
-use ntex::util::Bytes;
-use parking_lot::RwLock;
-use tokio::sync::{broadcast::Receiver, oneshot};
-
 use crate::{
     error::{AppResult, F1ServiceError},
-    services::PacketCaching,
     utils::cast,
 };
 
 use super::game::*;
-
-pub struct F1ServiceData {
-    pub cache: Arc<RwLock<PacketCaching>>,
-    pub channel: Arc<Receiver<Bytes>>,
-    pub shutdown_tx: oneshot::Sender<()>,
-}
 
 // Todo: Change this to a more idiomatic name
 pub enum OptionalMessage {
@@ -37,7 +24,7 @@ pub enum F1Data<'a> {
 }
 
 impl<'a> F1Data<'a> {
-    pub fn try_cast(data: &[u8]) -> AppResult<(PacketIds, &PacketHeader, F1Data)> {
+    pub fn try_cast(data: &[u8]) -> AppResult<(&PacketHeader, F1Data)> {
         let header = cast::<PacketHeader>(data)?;
         let packet_id = PacketIds::try_from(header.packet_id).unwrap();
 
@@ -63,6 +50,6 @@ impl<'a> F1Data<'a> {
             _ => Err(F1ServiceError::InvalidPacketType)?,
         }?;
 
-        Ok((packet_id, header, packet))
+        Ok((header, packet))
     }
 }

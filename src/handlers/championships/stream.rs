@@ -21,13 +21,13 @@ pub async fn handle_stream(
         Err(CommonError::ValidationFailed)?
     }
 
-    if !state.f1_svc.service_active(path.0).await {
+    if !state.f1_svc.service(&path.0) {
         Err(F1ServiceError::NotActive)?
     }
 
-    let cached_data = state.f1_svc.service_cache(path.0).await?;
+    let cached_data = state.f1_svc.cache(&path.0).await?;
 
-    let Some(rx) = state.f1_svc.subscribe(path.0).await else {
+    let Some(rx) = state.f1_svc.subscribe(&path.0) else {
         Err(F1ServiceError::NotActive)?
     };
 

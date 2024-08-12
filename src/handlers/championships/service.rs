@@ -12,7 +12,7 @@ use crate::{
 
 #[inline(always)]
 pub async fn active_services(state: State<AppState>) -> AppResult<HttpResponse> {
-    let services = state.f1_svc.active_services().await;
+    let services = state.f1_svc.services();
     Ok(HttpResponse::Ok().json(&services))
 }
 
@@ -31,7 +31,7 @@ pub async fn start_service(
 
     state
         .f1_svc
-        .start_service(championship.port, championship.id)
+        .start(championship.port, championship.id)
         .await?;
 
     Ok(HttpResponse::Created().finish())
@@ -51,7 +51,7 @@ pub async fn service_status(
     };
 
     let num_connections = 0;
-    let service_active = state.f1_svc.service_active(championship.id).await;
+    let service_active = state.f1_svc.service(&championship.id);
 
     // if service_active {
     // if let Some(count) = get(&path.id) {
@@ -76,7 +76,7 @@ pub async fn stop_service(
         Err(CommonError::ValidationFailed)?
     }
 
-    state.f1_svc.stop_service(path.0).await?;
+    state.f1_svc.stop(&path.0).await?;
 
     Ok(HttpResponse::Ok().finish())
 }

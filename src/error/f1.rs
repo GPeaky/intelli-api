@@ -9,6 +9,7 @@ pub enum F1ServiceError {
     InvalidPacketType,
     CastingError,
     Shutdown,
+    UnsupportedFormat,
 }
 
 impl F1ServiceError {
@@ -19,6 +20,7 @@ impl F1ServiceError {
             F1ServiceError::InvalidPacketType => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::Shutdown => StatusCode::INTERNAL_SERVER_ERROR,
             F1ServiceError::CastingError => StatusCode::INTERNAL_SERVER_ERROR,
+            F1ServiceError::UnsupportedFormat => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -29,6 +31,7 @@ impl F1ServiceError {
             F1ServiceError::InvalidPacketType => "Invalid packet type",
             F1ServiceError::Shutdown => "Error shutting down service",
             F1ServiceError::CastingError => "Error casting data",
+            F1ServiceError::UnsupportedFormat => "Unsupported Format",
         }
     }
 }

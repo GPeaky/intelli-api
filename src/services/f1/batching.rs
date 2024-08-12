@@ -65,7 +65,7 @@ impl PacketBatching {
                 tokio::select! {
                     _ = interval_timer.tick() => {
                         if let Err(e) = Self::send_data(&packets, &tx).await {
-                            warn!("Packet batching: {}", e);
+                            warn!("Error while sending batched data: {}", e);
                         }
                     }
 
