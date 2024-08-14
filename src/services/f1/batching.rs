@@ -5,7 +5,7 @@ use crate::{
     error::AppResult,
     protos::{batched::ToProtoMessageBatched, PacketHeader},
     structs::OptionalMessage,
-    utils::zstd_compress_async,
+    utils::compress_async,
 };
 use ntex::util::Bytes;
 use parking_lot::{Mutex, RwLock};
@@ -139,7 +139,7 @@ impl PacketBatching {
         };
 
         if let Some(batched_packets) = ToProtoMessageBatched::batched_encoded(packets) {
-            let encoded_packets = zstd_compress_async(batched_packets).await?;
+            let encoded_packets = compress_async(batched_packets).await?;
 
             if tx.receiver_count() == 0 {
                 return Ok(());

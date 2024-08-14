@@ -135,9 +135,7 @@ impl F1Service {
                                 self.port_partially_opened = true;
                             }
 
-                            if let Err(e) = self.process_packet(buf, now).await {
-                                error!("Error processing packet: {:?}", e);
-                            }
+                            let _ = self.process_packet(buf, now).await;
                         }
 
                         Ok(Err(e)) => {
@@ -172,7 +170,7 @@ impl F1Service {
 
         match packet {
             F1Data::Motion(motion_data) => self.handle_motion_packet(motion_data, now),
-            F1Data::Session(session_data) => self.handle_session_packet(session_data, now),
+            F1Data::Session(session_data) => self.handle_session_packet(session_data, now).await,
             F1Data::Participants(participants_data) => {
                 self.handle_participants_packet(participants_data, now)
             }
@@ -203,17 +201,17 @@ impl F1Service {
     }
 
     #[inline]
-    fn handle_session_packet(&mut self, session_data: &PacketSessionData, now: Instant) {
+    async fn handle_session_packet(&mut self, session_data: &PacketSessionData, now: Instant) {
         if now.duration_since(self.last_updates.session) < SESSION_INTERVAL {
             return;
         }
 
-        #[cfg(not(debug_assertions))]
-        if session_data.network_game != 1 {
-            error!("Not Online Game, closing service");
-            self.close().await;
-            return;
-        }
+        // #[cfg(not(debug_assertions))]
+        // if session_data.network_game != 1 {
+        //     error!("Not Online Game, closing service");
+        //     self.close().await;
+        //     return;
+        // }
 
         let Ok(session_type) = SessionType::try_from(session_data.session_type) else {
             error!("Error deserializing F1 session type");
@@ -330,18 +328,18 @@ impl F1Service {
     }
 
     #[inline]
-    fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData) {
-        info!("Car damage: {:?}", car_damage);
+    fn handle_car_damage_packet(&mut self, _car_damage: &PacketCarDamageData) {
+        // info!("Car damage: {:?}", car_damage);
     }
 
     #[inline]
-    fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData) {
-        info!("Car status: {:?}", car_status);
+    fn handle_car_status_packet(&mut self, _car_status: &PacketCarStatusData) {
+        // info!("Car status: {:?}", car_status);
     }
 
     #[inline]
-    fn handle_car_telemetry_packet(&mut self, car_telemetry: &PacketCarTelemetryData) {
-        info!("Car telemetry: {:?}", car_telemetry);
+    fn handle_car_telemetry_packet(&mut self, _car_telemetry: &PacketCarTelemetryData) {
+        // info!("Car telemetry: {:?}", car_telemetry);
     }
 
     #[inline]

@@ -9,7 +9,7 @@ use crate::{
     error::AppResult,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
-    utils::zstd_compress_async,
+    utils::compress_async,
 };
 
 struct CachedData(Bytes, Instant);
@@ -75,7 +75,7 @@ impl PacketCaching {
         match ToProtoMessageBatched::batched_encoded(headers) {
             None => Ok(None),
             Some(bytes) => {
-                let compressed = zstd_compress_async(bytes).await?;
+                let compressed = compress_async(bytes).await?;
                 let mut cache_write = self.cache.write();
 
                 *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
