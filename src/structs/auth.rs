@@ -4,53 +4,6 @@ use serde_trim::{option_string_trim, string_trim};
 
 use crate::entity::Provider;
 
-#[derive(Deserialize)]
-pub struct GoogleCallbackQuery {
-    pub code: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct GoogleTokenRequest<'a> {
-    pub client_id: &'a str,
-    pub client_secret: &'a str,
-    pub code: &'a str,
-    pub grant_type: &'a str,
-    pub redirect_uri: &'a str,
-}
-
-#[allow(unused)]
-#[derive(Debug, Deserialize)]
-pub struct GoogleAuthResponse {
-    pub access_token: String,
-    pub expires_in: i64,
-    pub id_token: String,
-    pub scope: String,
-    pub token_type: String,
-}
-
-#[allow(unused)]
-#[derive(Debug, Deserialize)]
-pub struct GoogleUserInfo {
-    pub email: String,
-    pub family_name: Option<String>,
-    pub given_name: Option<String>,
-    pub id: String,
-    pub name: String,
-    pub picture: String,
-    pub verified_email: bool,
-}
-
-#[derive(Serialize)]
-pub struct AuthResponse {
-    pub access_token: String,
-    pub refresh_token: String,
-}
-
-#[derive(Serialize)]
-pub struct RefreshResponse {
-    pub access_token: String,
-}
-
 #[derive(Deserialize, Debug, Validate)]
 pub struct RegisterUserDto {
     #[garde(ascii, length(min = 3, max = 20))]
@@ -66,18 +19,6 @@ pub struct RegisterUserDto {
     pub avatar: Option<String>,
     #[garde(skip)]
     pub provider: Option<Provider>,
-}
-
-impl From<GoogleUserInfo> for RegisterUserDto {
-    fn from(value: GoogleUserInfo) -> Self {
-        Self {
-            username: value.name,
-            email: value.email,
-            password: None,
-            avatar: Some(value.picture),
-            provider: Some(Provider::Google),
-        }
-    }
 }
 
 #[derive(Deserialize, Validate)]
@@ -123,4 +64,63 @@ pub struct RefreshTokenQuery {
 #[derive(Debug, Deserialize)]
 pub struct FingerprintQuery {
     pub fingerprint: String,
+}
+
+#[derive(Serialize)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+}
+
+#[derive(Serialize)]
+pub struct RefreshResponse {
+    pub access_token: String,
+}
+
+#[derive(Deserialize)]
+pub struct GoogleCallbackQuery {
+    pub code: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GoogleTokenRequest<'a> {
+    pub client_id: &'a str,
+    pub client_secret: &'a str,
+    pub code: &'a str,
+    pub grant_type: &'a str,
+    pub redirect_uri: &'a str,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+pub struct GoogleAuthResponse {
+    pub access_token: String,
+    pub expires_in: i64,
+    pub id_token: String,
+    pub scope: String,
+    pub token_type: String,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+pub struct GoogleUserInfo {
+    pub email: String,
+    pub family_name: Option<String>,
+    pub given_name: Option<String>,
+    pub id: String,
+    pub name: String,
+    pub picture: String,
+    pub verified_email: bool,
+}
+
+impl From<GoogleUserInfo> for RegisterUserDto {
+    fn from(value: GoogleUserInfo) -> Self {
+        Self {
+            username: value.name,
+            email: value.email,
+            password: None,
+            avatar: Some(value.picture),
+            provider: Some(Provider::Google),
+        }
+    }
 }

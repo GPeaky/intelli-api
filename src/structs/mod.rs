@@ -6,6 +6,8 @@ pub(crate) use server::*;
 pub(crate) use token::*;
 pub(crate) use user::*;
 
+// Todo: Restructure the DTOs to be more modular and reusable
+
 mod auth;
 mod championship;
 mod email;

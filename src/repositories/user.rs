@@ -16,6 +16,7 @@ use crate::{
 pub struct UserRepository {
     db: &'static Database,
     cache: &'static ServiceCache,
+    // Todo: Rename this to a more idiomatic name, this can be confusing
     hasher: PasswordHasher,
 }
 

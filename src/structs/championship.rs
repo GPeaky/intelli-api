@@ -32,14 +32,6 @@ pub struct ServiceStatus {
     pub connections: usize,
 }
 
-#[allow(dead_code)]
-pub struct ChampionshipCacheData {
-    pub session_data: Vec<u8>,
-    pub motion_data: Vec<u8>,
-    pub participants_data: Vec<u8>,
-    pub history_data: Option<Vec<Vec<u8>>>,
-}
-
 #[derive(Deserialize, Validate)]
 pub struct ChampionshipIdPath(#[garde(range(min = 700000000, max = 799999999))] pub i32);
 

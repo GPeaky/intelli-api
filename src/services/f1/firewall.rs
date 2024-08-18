@@ -26,6 +26,7 @@ pub struct FirewallService {
     rules: Arc<RwLock<AHashMap<i32, FirewallRule>>>,
 }
 
+// Todo: this must check on initialization if the server has de firewall service installed and active to use it
 impl FirewallService {
     pub fn new() -> Self {
         Self {
