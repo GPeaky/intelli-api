@@ -99,7 +99,7 @@ impl PacketCaching {
                 debug_assert!(second_param.is_some());
 
                 if let Some(OptionalMessage::Code(code)) = second_param {
-                    // Todo - try to avoid .to_vec()
+                    // TODO - try to avoid .to_vec()
                     self.push_event(payload.to_vec(), code);
                 } else {
                     error!("Error Receiving OptionalMessage");
@@ -110,7 +110,7 @@ impl PacketCaching {
                 debug_assert!(second_param.is_some());
 
                 if let Some(OptionalMessage::Number(car_id)) = second_param {
-                    // Todo - try to avoid .to_vec()
+                    // TODO - try to avoid .to_vec()
                     self.set_history_data(payload.to_vec(), car_id)
                 } else {
                     error!("Error Receiving OptionalMessage");

@@ -29,7 +29,7 @@ pub struct UpdateChampionship {
 #[derive(Debug, Serialize)]
 pub struct ServiceStatus {
     pub active: bool,
-    pub connections: usize,
+    pub connections: u32,
 }
 
 #[derive(Deserialize, Validate)]

@@ -64,7 +64,6 @@ impl GoogleRepository {
     ///
     /// # Errors
     /// Returns an error if the request to Google's API fails or if the response cannot be parsed.
-    // Todo: Fix this method is returning an error
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
         let access_token = {
             let token_request = GoogleTokenRequest {

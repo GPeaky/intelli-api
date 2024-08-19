@@ -176,7 +176,6 @@ impl ChampionshipService {
             };
         }
 
-        // Todo: Check security in building this query on runtime & Improve performance
         let (query, params) = {
             let mut params_counter = 1u8;
             let mut clauses = Vec::with_capacity(3);

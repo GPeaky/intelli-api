@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-// Todo: Add rate limiting to the register endpoint
+// TODO: Add rate limiting to the register endpoint
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
@@ -160,7 +160,7 @@ pub(crate) async fn forgot_password(
     Ok(HttpResponse::Ok().finish())
 }
 
-// Todo: Add rate limiting to the reset password endpoint
+// TODO: Add rate limiting to the reset password endpoint
 #[inline(always)]
 pub async fn reset_password(
     state: State<AppState>,

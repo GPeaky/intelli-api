@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+};
 
 use ahash::AHashMap;
 use dashmap::DashMap;
@@ -46,8 +49,10 @@ pub struct F1Service {
 
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
-    pub channel: Arc<Receiver<Bytes>>,
-    pub shutdown: Option<oneshot::Sender<()>>,
+    channel: Arc<Receiver<Bytes>>,
+    // TODO: Recollect data of the current persons listening to the service
+    counter: Arc<AtomicU32>,
+    shutdown: Option<oneshot::Sender<()>>,
 }
 
 struct LastUpdates {
@@ -348,7 +353,7 @@ impl F1Service {
             error!("Error closing port in firewall");
         }
 
-        // Todo: Search a better way to do this without having to save a reference of all active services
+        // TODO: Search a better way to do this without having to save a reference of all active services
         self.services.remove(&self.championship_id);
     }
 }
@@ -361,7 +366,25 @@ impl F1ServiceData {
             cache,
             channel,
             shutdown: Some(shutdown),
+            counter: Arc::new(AtomicU32::new(0)),
         }
+    }
+
+    pub fn subscribe(&self) -> Receiver<Bytes> {
+        self.counter.fetch_add(1, Ordering::Relaxed);
+        self.channel.resubscribe()
+    }
+
+    pub fn subscribers_count(&self) -> u32 {
+        self.counter.load(Ordering::Relaxed)
+    }
+
+    pub fn unsubscribe(&self) {
+        self.counter.fetch_sub(1, Ordering::Relaxed);
+    }
+
+    pub fn shutdown(&mut self) -> Result<(), ()> {
+        self.shutdown.take().unwrap().send(())
     }
 }
 

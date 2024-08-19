@@ -15,7 +15,7 @@ use super::{
 
 pub type AppResult<T> = Result<T, AppError>;
 
-// Todo: Handle 3rd party errors in a better way
+// TODO: Handle 3rd party errors in a better way
 #[derive(Debug)]
 pub enum AppError {
     User(UserError),

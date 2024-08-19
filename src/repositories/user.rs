@@ -16,8 +16,7 @@ use crate::{
 pub struct UserRepository {
     db: &'static Database,
     cache: &'static ServiceCache,
-    // Todo: Rename this to a more idiomatic name, this can be confusing
-    hasher: PasswordHasher,
+    password_hasher: PasswordHasher,
 }
 
 impl UserRepository {
@@ -30,8 +29,12 @@ impl UserRepository {
     /// # Returns
     /// A new instance of `UserRepository`.
     pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
-        let hasher = PasswordHasher::new(30);
-        Self { cache, db, hasher }
+        let password_hasher = PasswordHasher::new(30);
+        Self {
+            cache,
+            db,
+            password_hasher,
+        }
     }
 
     /// Finds a user by ID.
@@ -197,7 +200,7 @@ impl UserRepository {
 
     #[inline]
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
-        self.hasher.hash_password(password).await
+        self.password_hasher.hash_password(password).await
     }
 
     /// Validates a user's password against a stored hash.
@@ -210,6 +213,6 @@ impl UserRepository {
     /// `true` if the password matches the hash, otherwise `false`.
     #[inline]
     pub async fn validate_password(&self, pwd: String, hash: String) -> AppResult<bool> {
-        self.hasher.verify_password(hash, pwd).await
+        self.password_hasher.verify_password(hash, pwd).await
     }
 }

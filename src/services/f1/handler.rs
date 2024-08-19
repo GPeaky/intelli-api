@@ -8,7 +8,10 @@ use tokio::sync::{
 };
 use tracing::{info, warn};
 
-use crate::error::{AppResult, F1ServiceError};
+use crate::{
+    error::{AppResult, F1ServiceError},
+    structs::ServiceStatus,
+};
 
 use super::{
     firewall::FirewallService,
@@ -77,7 +80,13 @@ impl F1ServiceHandler {
     /// - `None` if no service exists for the given ID.
     pub fn subscribe(&self, championship_id: &i32) -> Option<Receiver<Bytes>> {
         let service = self.services.get(championship_id)?;
-        Some(service.channel.resubscribe())
+        Some(service.subscribe())
+    }
+
+    pub fn unsubscribe(&self, championship_id: &i32) {
+        if let Some(service) = self.services.get(championship_id) {
+            service.unsubscribe();
+        }
     }
 
     /// Retrieves a list of all active services.
@@ -110,6 +119,22 @@ impl F1ServiceHandler {
     /// `true` if the service is active, `false` otherwise.
     pub fn service(&self, id: &i32) -> bool {
         self.services.contains_key(id)
+    }
+
+    pub fn service_status(&self, id: &i32) -> ServiceStatus {
+        let Some(service) = self.services.get(id) else {
+            return ServiceStatus {
+                active: false,
+                connections: 0,
+            };
+        };
+
+        let connections = service.subscribers_count();
+
+        ServiceStatus {
+            active: true,
+            connections,
+        }
     }
 
     /// Starts a new F1 service for the given championship.
@@ -166,7 +191,7 @@ impl F1ServiceHandler {
         }
 
         if let Some((_, mut service)) = self.services.remove(championship_id) {
-            if service.shutdown.take().unwrap().send(()).is_err() {
+            if service.shutdown().is_err() {
                 return Err(F1ServiceError::Shutdown)?;
             }
         } else {

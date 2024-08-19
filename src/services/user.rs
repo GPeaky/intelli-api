@@ -150,7 +150,6 @@ impl UserService {
             Err(UserError::UpdateLimitExceeded)?
         }
 
-        // Todo: Check security in building this query on runtime & Improve performance
         let (query, params) = {
             let mut params_counter = 1u8;
             let mut clauses = Vec::with_capacity(2);
@@ -193,7 +192,7 @@ impl UserService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    // Todo: Create a column "deleted" in users table and update it instead of delete
+    // TODO: Create a column "deleted" in users table and update it instead of delete
     pub async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 

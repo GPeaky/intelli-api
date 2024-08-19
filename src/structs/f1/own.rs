@@ -5,7 +5,7 @@ use crate::{
 
 use super::game::*;
 
-// Todo: Change this to a more idiomatic name
+// TODO: Change this to a more idiomatic name
 pub enum OptionalMessage {
     Code([u8; 4]),
     Number(u8),

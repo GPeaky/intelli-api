@@ -49,7 +49,7 @@ async fn main() -> std::io::Result<()> {
         .set_certificate_chain_file("certs/cert.pem")
         .unwrap();
 
-    // Todo - Make an recycle function to delete all unused data
+    // TODO - Make an recycle function to delete all unused data
     let login_limit_visitors: &'static DashMap<IpAddr, VisitorData> =
         Box::leak(Box::new(DashMap::with_capacity(100_000)));
 

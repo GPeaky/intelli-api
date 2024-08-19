@@ -31,9 +31,17 @@ pub async fn handle_stream(
         Err(F1ServiceError::NotActive)?
     };
 
-    let stream = BroadcastStream::new(rx);
-    let mut response = HttpResponse::Ok();
+    let stream = BroadcastStream::new(rx).take_while(move |result| {
+        let is_ok = result.is_ok();
 
+        if !is_ok {
+            state.f1_svc.unsubscribe(&path.0);
+        }
+
+        is_ok
+    });
+
+    let mut response = HttpResponse::Ok();
     response.content_type(HeaderValue::from_static("application/octet-stream"));
 
     match cached_data {

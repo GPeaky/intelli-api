@@ -7,13 +7,13 @@ use crate::structs::TokenType;
 
 use super::CACHE_CAPACITY;
 
-// Todo: Make this impl a bit more legible
+// TODO: Make this impl a bit more legible
 pub struct TokenCache {
     cache: Cache<(String, TokenType), Instant>,
     refresh_tokens: Cache<(i32, String), (Instant, String)>,
 }
 
-// Todo - Parse possibles errors
+// TODO - Parse possibles errors
 impl TokenCache {
     pub fn new() -> Self {
         Self {

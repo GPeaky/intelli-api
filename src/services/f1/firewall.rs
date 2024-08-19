@@ -26,7 +26,7 @@ pub struct FirewallService {
     rules: Arc<RwLock<AHashMap<i32, FirewallRule>>>,
 }
 
-// Todo: this must check on initialization if the server has de firewall service installed and active to use it
+// TODO: this must check on initialization if the server has de firewall service installed and active to use it
 impl FirewallService {
     pub fn new() -> Self {
         Self {
@@ -152,7 +152,7 @@ impl FirewallService {
     }
 
     #[allow(unused)]
-    // Todo: Use it when the server instance goes down
+    // TODO: Use it when the server instance goes down
     pub async fn close_all(&self) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
