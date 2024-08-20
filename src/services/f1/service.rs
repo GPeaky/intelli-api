@@ -50,7 +50,7 @@ pub struct F1Service {
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
-    // TODO: Recollect data of the current persons listening to the service
+    // TODO: Recollect all users_ids listening to the data
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
 }
