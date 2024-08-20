@@ -55,13 +55,14 @@ impl F1ServiceHandler {
     /// An `AppResult` containing an `Option<Bytes>` which is:
     /// - `Some(Bytes)` if the cache data is available.
     /// - `None` if the service or cache data does not exist.
-    pub async fn cache(&self, championship_id: &i32) -> AppResult<Option<Bytes>> {
+    #[allow(unused)]
+    pub async fn cache(&self, championship_id: &i32) -> Option<Bytes> {
         if let Some(service) = self.services.get(championship_id) {
             let cache = service.cache.read_arc();
             return cache.get().await;
         }
 
-        Ok(None)
+        None
     }
 
     /// Subscribes to a channel for a specific championship service.
@@ -78,9 +79,37 @@ impl F1ServiceHandler {
     /// An `Option<Receiver<Bytes>>` which is:
     /// - `Some(Receiver)` if the service exists and subscription is successful.
     /// - `None` if no service exists for the given ID.
+    #[allow(unused)]
     pub fn subscribe(&self, championship_id: &i32) -> Option<Receiver<Bytes>> {
         let service = self.services.get(championship_id)?;
         Some(service.subscribe())
+    }
+
+    /// Retrieves cache and subscribes to a channel for a specific championship service.
+    ///
+    /// # Parameters
+    ///
+    /// - `championship_id`: The ID of the championship.
+    ///
+    /// # Returns
+    ///
+    /// - `Some((cache, receiver))` if the service exists:
+    ///   - `cache`: `Option<Bytes>` - The cached data, if available.
+    ///   - `receiver`: `Receiver<Bytes>` - For receiving service updates.
+    /// - `None` if no service exists for the given ID.
+    pub async fn cache_and_subscribe(
+        &self,
+        championship_id: &i32,
+    ) -> Option<(Option<Bytes>, Receiver<Bytes>)> {
+        if let Some(service) = self.services.get(championship_id) {
+            let cache = service.cache.read_arc();
+            let data = cache.get().await;
+            let receiver = service.subscribe();
+
+            return Some((data, receiver));
+        }
+
+        None
     }
 
     pub fn unsubscribe(&self, championship_id: &i32) {
@@ -190,6 +219,7 @@ impl F1ServiceHandler {
             return Err(F1ServiceError::NotActive)?;
         }
 
+        // TODO: service.shutdown() also tries to remove the service from the map
         if let Some((_, mut service)) = self.services.remove(championship_id) {
             if service.shutdown().is_err() {
                 return Err(F1ServiceError::Shutdown)?;

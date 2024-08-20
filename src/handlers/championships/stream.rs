@@ -17,7 +17,7 @@ use crate::{
 
 struct CleanupStream<S> {
     inner: S,
-    app_state: State<AppState>,
+    state: State<AppState>,
     championship_id: i32,
 }
 
@@ -31,7 +31,7 @@ impl<S: Stream + Unpin> Stream for CleanupStream<S> {
 
 impl<S> Drop for CleanupStream<S> {
     fn drop(&mut self) {
-        self.app_state.f1_svc.unsubscribe(&self.championship_id);
+        self.state.f1_svc.unsubscribe(&self.championship_id);
     }
 }
 
@@ -44,20 +44,14 @@ pub async fn handle_stream(
         Err(CommonError::ValidationFailed)?
     }
 
-    if !state.f1_svc.service(&path.0) {
-        Err(F1ServiceError::NotActive)?
-    }
-
-    let cached_data = state.f1_svc.cache(&path.0).await?;
-
-    let Some(rx) = state.f1_svc.subscribe(&path.0) else {
+    let Some((cached_data, rx)) = state.f1_svc.cache_and_subscribe(&path.0).await else {
         Err(F1ServiceError::NotActive)?
     };
 
     let stream = BroadcastStream::new(rx);
     let cleanup_stream = CleanupStream {
         inner: stream,
-        app_state: state.clone(),
+        state: state.clone(),
         championship_id: path.0,
     };
 

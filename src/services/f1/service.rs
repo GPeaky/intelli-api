@@ -50,7 +50,7 @@ pub struct F1Service {
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
-    // TODO: Recollect all users_ids listening to the data
+    // TODO: Recollect all users_ids listening to the data || if the data needs authentication
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
 }
@@ -353,7 +353,6 @@ impl F1Service {
             error!("Error closing port in firewall");
         }
 
-        // TODO: Search a better way to do this without having to save a reference of all active services
         self.services.remove(&self.championship_id);
     }
 }

@@ -6,7 +6,6 @@ use tracing::error;
 
 use crate::{
     config::constants::F1_CACHING_DUR,
-    error::AppResult,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
     structs::OptionalMessage,
     utils::compress_async,
@@ -36,12 +35,12 @@ impl PacketCaching {
         }
     }
 
-    pub async fn get(&self) -> AppResult<Option<Bytes>> {
+    pub async fn get(&self) -> Option<Bytes> {
         {
             let cache_read = self.cache.read();
             if let Some(cached) = &*cache_read {
                 if cached.1.elapsed() < F1_CACHING_DUR {
-                    return Ok(Some(cached.0.clone()));
+                    return Some(cached.0.clone());
                 }
             }
         }
@@ -69,17 +68,18 @@ impl PacketCaching {
         };
 
         if headers.is_empty() {
-            return Ok(None);
+            return None;
         }
 
         match ToProtoMessageBatched::batched_encoded(headers) {
-            None => Ok(None),
+            None => None,
             Some(bytes) => {
-                let compressed = compress_async(bytes).await?;
+                // TODO: Handle this error returning None and printing an error
+                let compressed = compress_async(bytes).await.unwrap();
                 let mut cache_write = self.cache.write();
 
                 *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
-                Ok(Some(compressed))
+                Some(compressed)
             }
         }
     }
