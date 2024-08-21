@@ -4,7 +4,7 @@ use crate::{
     config::constants::{BATCHING_CAPACITY, BATCHING_INTERVAL},
     error::AppResult,
     protos::{batched::ToProtoMessageBatched, PacketHeader},
-    structs::OptionalMessage,
+    structs::PacketExtraData,
     utils::compress_async,
 };
 use ntex::util::Bytes;
@@ -94,17 +94,17 @@ impl PacketBatching {
     /// # Parameters
     ///
     /// - `packet`: Packet to be added.
-    /// - `second_param`: Optional additional data for specific packet types.
+    /// - `extra_data`: Optional additional data for specific packet types.
     pub fn push_with_optional_parameter(
         &mut self,
         packet: PacketHeader,
-        second_param: Option<OptionalMessage>,
+        extra_data: Option<PacketExtraData>,
     ) {
         let packet_type = packet.r#type();
 
         {
             let mut cache = self.cache.write();
-            cache.save(packet_type, &packet.payload, second_param);
+            cache.save(packet_type, &packet.payload, extra_data);
         }
 
         self.packets.lock().push(packet);

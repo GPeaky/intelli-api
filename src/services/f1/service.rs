@@ -25,8 +25,8 @@ use crate::{
     error::{AppResult, CommonError, F1ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
     structs::{
-        F1Data, OptionalMessage, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
-        PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
+        F1Data, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData, PacketEventData,
+        PacketExtraData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
         PacketSessionData, PacketSessionHistoryData, SectorsLaps, SessionType,
     },
 };
@@ -261,7 +261,7 @@ impl F1Service {
 
         self.packet_batching.push_with_optional_parameter(
             packet,
-            Some(OptionalMessage::Code(event_data.event_string_code)),
+            Some(PacketExtraData::EventCode(event_data.event_string_code)),
         )
     }
 
@@ -303,7 +303,7 @@ impl F1Service {
 
             self.packet_batching.push_with_optional_parameter(
                 packet,
-                Some(OptionalMessage::Number(history_data.car_idx)),
+                Some(PacketExtraData::CarNumber(history_data.car_idx)),
             )
         }
     }

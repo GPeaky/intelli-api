@@ -47,9 +47,9 @@ pub async fn service_status(
     }
 
     // Only used to check if the championship requested exist
-    let Some(_) = state.championship_repo.find(path.0).await? else {
+    if state.championship_repo.find(path.0).await?.is_none() {
         Err(ChampionshipError::NotFound)?
-    };
+    }
 
     let service_status = state.f1_svc.service_status(&path.0);
 

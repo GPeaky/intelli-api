@@ -7,7 +7,7 @@ use tracing::error;
 use crate::{
     config::constants::F1_CACHING_DUR,
     protos::{batched::ToProtoMessageBatched, packet_header::PacketType, PacketHeader},
-    structs::OptionalMessage,
+    structs::PacketExtraData,
     utils::compress_async,
 };
 
@@ -88,7 +88,7 @@ impl PacketCaching {
         &mut self,
         packet_type: PacketType,
         payload: &[u8],
-        second_param: Option<OptionalMessage>,
+        extra_data: Option<PacketExtraData>,
     ) {
         match packet_type {
             PacketType::CarMotion => self.set_car_motion(payload),
@@ -96,9 +96,9 @@ impl PacketCaching {
             PacketType::Participants => self.set_participants(payload),
 
             PacketType::EventData => {
-                debug_assert!(second_param.is_some());
+                debug_assert!(extra_data.is_some());
 
-                if let Some(OptionalMessage::Code(code)) = second_param {
+                if let Some(PacketExtraData::EventCode(code)) = extra_data {
                     // TODO - try to avoid .to_vec()
                     self.push_event(payload.to_vec(), code);
                 } else {
@@ -107,9 +107,9 @@ impl PacketCaching {
             }
 
             PacketType::SessionHistoryData => {
-                debug_assert!(second_param.is_some());
+                debug_assert!(extra_data.is_some());
 
-                if let Some(OptionalMessage::Number(car_id)) = second_param {
+                if let Some(PacketExtraData::CarNumber(car_id)) = extra_data {
                     // TODO - try to avoid .to_vec()
                     self.set_history_data(payload.to_vec(), car_id)
                 } else {
