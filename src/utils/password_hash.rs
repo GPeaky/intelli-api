@@ -68,3 +68,155 @@ impl PasswordHasher {
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::error::AppError;
+
+    use super::*;
+    use std::sync::Arc;
+    use tokio::task;
+    use tokio::time::{timeout, Duration};
+
+    #[ntex::test]
+    async fn hash_and_verify_password() {
+        let hasher = Arc::new(PasswordHasher::new(1));
+        let password = "my_secure_password".to_string();
+
+        let hashed = hasher.hash_password(password.clone()).await.unwrap();
+        assert!(hasher
+            .verify_password(hashed.clone(), password.clone())
+            .await
+            .unwrap());
+
+        assert!(!hasher
+            .verify_password(hashed, "wrong_password".to_string())
+            .await
+            .unwrap());
+    }
+
+    #[ntex::test]
+    async fn concurrent_hashing() {
+        let hasher = Arc::new(PasswordHasher::new(5));
+        let passwords: Vec<String> = (0..20).map(|i| format!("password_{}", i)).collect();
+
+        let mut handles = Vec::new();
+        for password in passwords {
+            let hasher = Arc::clone(&hasher);
+            handles.push(task::spawn(
+                async move { hasher.hash_password(password).await },
+            ));
+        }
+
+        let mut results = Vec::new();
+        for handle in handles {
+            results.push(handle.await.unwrap());
+        }
+
+        assert_eq!(results.len(), 20);
+        assert!(results.iter().all(|r| r.is_ok()));
+
+        let hashes: Vec<_> = results.into_iter().map(|r| r.unwrap()).collect();
+        let unique_hashes: std::collections::HashSet<_> = hashes.into_iter().collect();
+        assert_eq!(unique_hashes.len(), 20);
+    }
+
+    #[ntex::test]
+    async fn semaphore_limit() {
+        let max_concurrent = 2;
+        let hasher = Arc::new(PasswordHasher::new(max_concurrent));
+        let passwords: Vec<String> = (0..10).map(|i| format!("password_{}", i)).collect();
+
+        let start = std::time::Instant::now();
+
+        let mut handles = Vec::new();
+        for password in passwords {
+            let hasher = Arc::clone(&hasher);
+            handles.push(task::spawn(
+                async move { hasher.hash_password(password).await },
+            ));
+        }
+
+        for handle in handles {
+            handle.await.unwrap().unwrap();
+        }
+
+        let duration = start.elapsed();
+
+        assert!(
+            duration.as_millis() > 250,
+            "Hashing completed too quickly: {:?}",
+            duration
+        );
+    }
+
+    #[ntex::test]
+    async fn timeout_handling() {
+        let hasher = Arc::new(PasswordHasher::new(1));
+        let password = "timeout_test_password".to_string();
+
+        let slow_hash = timeout(Duration::from_secs(1), hasher.hash_password(password)).await;
+
+        assert!(slow_hash.is_ok(), "Hash operation timed out unexpectedly");
+    }
+
+    #[ntex::test]
+    async fn invalid_encoded_password() {
+        let hasher = Arc::new(PasswordHasher::new(1));
+        let result = hasher
+            .verify_password("invalid_encoded_string".to_string(), "password".to_string())
+            .await;
+        assert!(matches!(
+            result,
+            Err(AppError::Common(CommonError::HashingFailed))
+        ));
+    }
+
+    #[ntex::test]
+    async fn password_strength() {
+        let hasher = Arc::new(PasswordHasher::new(1));
+        let weak_password = "123".to_string();
+        let strong_password = "veryStrongP@ssw0rd!".to_string();
+
+        let weak_hash = hasher.hash_password(weak_password.clone()).await.unwrap();
+        let strong_hash = hasher.hash_password(strong_password.clone()).await.unwrap();
+
+        assert!(hasher
+            .verify_password(weak_hash.clone(), weak_password)
+            .await
+            .unwrap());
+        assert!(hasher
+            .verify_password(strong_hash.clone(), strong_password)
+            .await
+            .unwrap());
+
+        assert_ne!(weak_hash, strong_hash);
+
+        let start = std::time::Instant::now();
+        hasher
+            .hash_password("benchmark_password".to_string())
+            .await
+            .unwrap();
+        let duration = start.elapsed();
+        assert!(
+            duration.as_millis() > 10,
+            "Hashing might be too fast for security"
+        );
+    }
+
+    #[ntex::test]
+    async fn error_propagation() {
+        let hasher = Arc::new(PasswordHasher::new(1));
+
+        let result = hasher.hash_password("".to_string()).await;
+        assert!(
+            result.is_ok(),
+            "Empty password should be handled gracefully"
+        );
+
+        // Test con una contraseña muy larga
+        let long_password = "a".repeat(10000);
+        let result = hasher.hash_password(long_password).await;
+        assert!(result.is_ok(), "Long password should be handled gracefully");
+    }
+}

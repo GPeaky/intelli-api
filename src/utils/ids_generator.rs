@@ -42,7 +42,7 @@ impl IdsGenerator {
 
         let data = Box::leak(Box::new(Mutex::new(IdsData {
             ids: Vec::with_capacity(IDS_POOL_SIZE),
-            used_ids: BitSet::new(),
+            used_ids,
         })));
 
         let generator = IdsGenerator {
@@ -121,41 +121,118 @@ impl IdsGenerator {
     }
 }
 
-// // TODO: Check why test are giving a miri error
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use std::thread;
 
-//     #[test]
-//     fn test_id_generator_creation() {
-//         let range = 0..100000;
-//         let in_use_ids = vec![1, 2, 3];
-//         let generator = IdsGenerator::new(range, in_use_ids);
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn id_generator_creation() {
+        let range = 0..100000;
+        let in_use_ids = vec![1, 2, 3];
+        let generator = IdsGenerator::new(range, in_use_ids);
 
-//         assert!(!generator.data.lock().ids.is_empty());
-//     }
+        assert!(!generator.data.lock().ids.is_empty());
+    }
 
-//     #[test]
-//     fn test_id_generation() {
-//         let range = 0..100;
-//         let in_use_ids = vec![1, 2, 3];
-//         let generator = IdsGenerator::new(range, in_use_ids);
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn id_generation() {
+        let range = 0..100;
+        let in_use_ids = vec![1, 2, 3];
+        let generator = IdsGenerator::new(range, in_use_ids);
 
-//         let id = generator.next();
-//         assert!((0..100).contains(&id));
-//     }
+        let id = generator.next();
+        assert!((0..100).contains(&id));
+    }
 
-//     #[test]
-//     fn test_unique_ids() {
-//         let range = 0..1000;
-//         let in_use_ids = vec![1, 2, 3];
-//         let generator = IdsGenerator::new(range, in_use_ids);
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn unique_ids() {
+        let range = 0..1000;
+        let in_use_ids = vec![1, 2, 3];
+        let generator = IdsGenerator::new(range, in_use_ids);
 
-//         let mut ids = std::collections::HashSet::new();
-//         for _ in 0..100 {
-//             let id = generator.next();
-//             assert!(!ids.contains(&id));
-//             ids.insert(id);
-//         }
-//     }
-// }
+        let mut ids = std::collections::HashSet::new();
+        for _ in 0..100 {
+            let id = generator.next();
+            assert!(!ids.contains(&id));
+            ids.insert(id);
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn ids_within_range() {
+        let range = 100..200;
+        let generator = IdsGenerator::new(range.clone(), vec![]);
+
+        for _ in 0..99 {
+            // Generate only up to the range size
+            let id = generator.next();
+            assert!(range.contains(&id), "ID {} is out of range {:?}", id, range);
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn respects_in_use_ids() {
+        let range = 0..100;
+        let in_use_ids = vec![1, 2, 3];
+        let generator = IdsGenerator::new(range, in_use_ids.clone());
+
+        let mut generated_ids = std::collections::HashSet::new();
+        for _ in 0..97 {
+            generated_ids.insert(generator.next());
+        }
+
+        for id in in_use_ids {
+            assert!(
+                !generated_ids.contains(&id),
+                "Generated an ID that was supposed to be in use: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[should_panic(expected = "Failed to generate a unique ID")]
+    fn exhausts_range() {
+        let range = 0..10;
+        let generator = IdsGenerator::new(range, vec![]);
+
+        for _ in 0..11 {
+            // Try to generate one more ID than the range allows
+            generator.next();
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn concurrent_generation() {
+        let range = 0..10000;
+        let generator = Arc::new(IdsGenerator::new(range, vec![]));
+        let mut handles = vec![];
+
+        for _ in 0..10 {
+            let gen = Arc::clone(&generator);
+            handles.push(thread::spawn(move || {
+                let mut ids = std::collections::HashSet::new();
+                for _ in 0..100 {
+                    ids.insert(gen.next());
+                }
+                ids
+            }));
+        }
+
+        let mut all_ids = std::collections::HashSet::new();
+        for handle in handles {
+            all_ids.extend(handle.join().unwrap());
+        }
+
+        assert_eq!(all_ids.len(), 1000, "Duplicate IDs were generated");
+    }
+}
