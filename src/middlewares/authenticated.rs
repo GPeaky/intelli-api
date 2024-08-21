@@ -53,7 +53,7 @@ where
             Err(CommonError::InternalServerError)?
         };
 
-        let id = state.token_svc.validate(header)?.claims.sub;
+        let id = state.token_svc.validate(header)?.claims.subject_id;
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
         req.extensions_mut().insert(user);
 

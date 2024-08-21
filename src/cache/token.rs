@@ -3,13 +3,13 @@ use std::time::Duration;
 use quick_cache::sync::Cache;
 use tokio::time::Instant;
 
-use crate::structs::TokenType;
+use crate::structs::TokenPurpose;
 
 use super::CACHE_CAPACITY;
 
 // TODO: Make this impl a bit more legible
 pub struct TokenCache {
-    cache: Cache<(String, TokenType), Instant>,
+    cache: Cache<(String, TokenPurpose), Instant>,
     refresh_tokens: Cache<(i32, String), (Instant, String)>,
 }
 
@@ -22,8 +22,8 @@ impl TokenCache {
         }
     }
 
-    pub fn set_token(&self, token: String, token_type: TokenType) {
-        let expiry = token_type.expiry();
+    pub fn set_token(&self, token: String, token_type: TokenPurpose) {
+        let expiry = token_type.expiry_instant();
         self.cache.insert((token, token_type), expiry)
     }
 
@@ -34,7 +34,7 @@ impl TokenCache {
             .insert((user_id, fingerprint), (expiry, token));
     }
 
-    pub fn get_token(&self, token: String, token_type: TokenType) -> bool {
+    pub fn get_token(&self, token: String, token_type: TokenPurpose) -> bool {
         if let Some(expiry) = self.cache.get(&(token.clone(), token_type)) {
             if Instant::now() < expiry {
                 return true;
@@ -58,7 +58,7 @@ impl TokenCache {
         None
     }
 
-    pub fn remove_token(&self, token: String, token_type: TokenType) {
+    pub fn remove_token(&self, token: String, token_type: TokenPurpose) {
         self.cache.remove(&(token, token_type));
     }
 

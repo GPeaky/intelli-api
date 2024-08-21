@@ -7,7 +7,7 @@ use ntex::web::{
 use crate::{
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
-    structs::ChampionshipIdPath,
+    structs::ChampionshipId,
 };
 
 #[inline(always)]
@@ -19,7 +19,7 @@ pub async fn active_services(state: State<AppState>) -> AppResult<HttpResponse> 
 #[inline(always)]
 pub async fn start_service(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -40,7 +40,7 @@ pub async fn start_service(
 #[inline(always)]
 pub async fn service_status(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -59,7 +59,7 @@ pub async fn service_status(
 #[inline(always)]
 pub async fn stop_service(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?

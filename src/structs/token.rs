@@ -2,41 +2,41 @@ use chrono::{Duration, Local, TimeDelta};
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 
-//* Token Type Enum
+// Token Types and Claims
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
-pub enum TokenType {
-    Bearer,
-    Email,
-    ResetPassword,
-    RefreshBearer,
+pub enum TokenPurpose {
+    Authentication,
+    EmailVerification,
+    PasswordReset,
+    RefreshAuthentication,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct TokenClaim {
-    pub exp: usize,
-    pub sub: i32,
-    pub token_type: TokenType,
+pub struct TokenPayload {
+    pub expiration: usize,
+    pub subject_id: i32,
+    pub purpose: TokenPurpose,
 }
 
-// Token Type Implementation
-impl TokenType {
-    pub fn expiry(&self) -> Instant {
-        Instant::now() + self.minutes().unwrap().to_std().unwrap()
+// Token Purpose Implementation
+impl TokenPurpose {
+    pub fn expiry_instant(&self) -> Instant {
+        Instant::now() + self.validity_duration().unwrap().to_std().unwrap()
     }
 
-    pub fn set_expiration(&self) -> usize {
-        let minutes = self.minutes().unwrap();
+    pub fn expiration_timestamp(&self) -> usize {
+        let duration = self.validity_duration().unwrap();
 
         Local::now()
-            .checked_add_signed(minutes)
+            .checked_add_signed(duration)
             .unwrap()
             .timestamp() as usize
     }
 
-    const fn minutes(&self) -> Option<TimeDelta> {
+    const fn validity_duration(&self) -> Option<TimeDelta> {
         match self {
-            TokenType::RefreshBearer => Duration::try_days(17),
-            TokenType::Bearer => Duration::try_days(1),
+            TokenPurpose::RefreshAuthentication => Duration::try_days(17),
+            TokenPurpose::Authentication => Duration::try_days(1),
             _ => Duration::try_minutes(15),
         }
     }

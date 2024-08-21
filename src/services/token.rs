@@ -5,7 +5,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use crate::{
     cache::ServiceCache,
     error::{AppResult, TokenError},
-    structs::{TokenClaim, TokenType},
+    structs::{TokenPayload, TokenPurpose},
 };
 
 /// Manages token generation, validation, and lifecycle for user authentication and authorization.
@@ -58,8 +58,8 @@ impl TokenService {
     ///
     /// # Returns
     /// The token data including the claims if the token is valid.
-    pub fn validate(&self, token: &str) -> AppResult<TokenData<TokenClaim>> {
-        decode::<TokenClaim>(token, &self.decoding_key, &self.validation)
+    pub fn validate(&self, token: &str) -> AppResult<TokenData<TokenPayload>> {
+        decode::<TokenPayload>(token, &self.decoding_key, &self.validation)
             .map_err(|_| TokenError::InvalidToken.into())
     }
 
@@ -71,7 +71,9 @@ impl TokenService {
     /// # Returns
     /// An empty result indicating success or failure.
     pub fn save_reset_password_token(&self, token: String) {
-        self.cache.token.set_token(token, TokenType::ResetPassword);
+        self.cache
+            .token
+            .set_token(token, TokenPurpose::PasswordReset);
     }
 
     /// Saves an email verification token to the cache.
@@ -83,7 +85,9 @@ impl TokenService {
     /// An empty result indicating success or failure.
     #[inline]
     pub fn save_email_token(&self, token: String) {
-        self.cache.token.set_token(token, TokenType::Email);
+        self.cache
+            .token
+            .set_token(token, TokenPurpose::EmailVerification);
     }
 
     /// Generates a new token with specified subject and type.
@@ -94,11 +98,11 @@ impl TokenService {
     ///
     /// # Returns
     /// A new token as a string if successful.
-    pub fn generate_token(&self, sub: i32, token_type: TokenType) -> AppResult<String> {
-        let token_claim = TokenClaim {
-            sub,
-            exp: token_type.set_expiration(),
-            token_type,
+    pub fn generate_token(&self, subject_id: i32, purpose: TokenPurpose) -> AppResult<String> {
+        let token_claim = TokenPayload {
+            subject_id,
+            expiration: purpose.expiration_timestamp(),
+            purpose,
         };
 
         encode(&self.header, &token_claim, &self.encoding_key)
@@ -126,7 +130,7 @@ impl TokenService {
     /// # Returns
     /// A new refresh token as a string if successful.
     pub fn generate_refresh_token(&self, user_id: i32, fingerprint: String) -> AppResult<String> {
-        let token = self.generate_token(user_id, TokenType::RefreshBearer)?;
+        let token = self.generate_token(user_id, TokenPurpose::RefreshAuthentication)?;
 
         self.cache
             .token
@@ -151,11 +155,11 @@ impl TokenService {
         let id = {
             let token = self.validate(refresh_token)?;
 
-            if token.claims.token_type != TokenType::RefreshBearer {
-                Err(TokenError::InvalidTokenType)?
+            if token.claims.purpose != TokenPurpose::RefreshAuthentication {
+                Err(TokenError::InvalidTokenPurpose)?
             }
 
-            token.claims.sub
+            token.claims.subject_id
         };
 
         let Some(db_token) = self.cache.token.get_refresh_token(id, fingerprint) else {
@@ -166,6 +170,6 @@ impl TokenService {
             Err(TokenError::InvalidToken)?
         }
 
-        self.generate_token(id, TokenType::Bearer)
+        self.generate_token(id, TokenPurpose::Authentication)
     }
 }

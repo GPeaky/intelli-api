@@ -4,7 +4,7 @@ use reqwest::Client;
 use crate::{
     config::constants::*,
     error::AppResult,
-    structs::{GoogleAuthResponse, GoogleTokenRequest, GoogleUserInfo},
+    structs::{GoogleAuthTokens, GoogleTokenExchangeRequest, GoogleUserInfo},
 };
 
 /// Manages interactions with Google's OAuth2 API and user information endpoints.
@@ -66,7 +66,7 @@ impl GoogleRepository {
     /// Returns an error if the request to Google's API fails or if the response cannot be parsed.
     pub async fn account_info(&self, callback_code: &str) -> AppResult<GoogleUserInfo> {
         let access_token = {
-            let token_request = GoogleTokenRequest {
+            let token_request = GoogleTokenExchangeRequest {
                 client_id: self.client_id,
                 client_secret: self.client_secret,
                 code: callback_code,
@@ -80,7 +80,7 @@ impl GoogleRepository {
                 .form(&token_request)
                 .send()
                 .await?
-                .json::<GoogleAuthResponse>()
+                .json::<GoogleAuthTokens>()
                 .await?;
 
             response.access_token

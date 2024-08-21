@@ -13,8 +13,8 @@ use crate::{
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
     structs::{
-        AddUser, ChampionshipAndUserIdPath, ChampionshipIdPath, CreateChampionshipDto,
-        UpdateChampionship,
+        ChampionshipAndUserId, ChampionshipCreationData, ChampionshipId, ChampionshipUpdateData,
+        UserInvitationData,
     },
 };
 
@@ -26,7 +26,7 @@ mod stream;
 pub async fn create_championship(
     req: HttpRequest,
     state: State<AppState>,
-    Form(form): Form<CreateChampionshipDto>,
+    Form(form): Form<ChampionshipCreationData>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -65,8 +65,8 @@ pub async fn create_championship(
 pub async fn update(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<UpdateChampionship>,
-    path: Path<ChampionshipIdPath>,
+    form: Form<ChampionshipUpdateData>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() || path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -85,8 +85,8 @@ pub async fn update(
 pub async fn add_user(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<AddUser>,
-    path: Path<ChampionshipIdPath>,
+    form: Form<UserInvitationData>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() || path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -105,7 +105,7 @@ pub async fn add_user(
 pub async fn remove_user(
     req: HttpRequest,
     state: State<AppState>,
-    path: Path<ChampionshipAndUserIdPath>,
+    path: Path<ChampionshipAndUserId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -114,7 +114,7 @@ pub async fn remove_user(
     let user_id = req.user_id()?;
     state
         .championship_svc
-        .remove_user(path.id, user_id, path.user_id)
+        .remove_user(path.championship_id, user_id, path.user_id)
         .await?;
 
     Ok(HttpResponse::Ok().finish())
@@ -123,7 +123,7 @@ pub async fn remove_user(
 #[inline(always)]
 pub async fn get_championship(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?

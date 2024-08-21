@@ -7,7 +7,7 @@ use crate::{
     config::Database,
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository},
-    structs::{CreateChampionshipDto, UpdateChampionship},
+    structs::{ChampionshipCreationData, ChampionshipUpdateData},
     utils::{IdsGenerator, MachinePorts},
 };
 
@@ -81,7 +81,7 @@ impl ChampionshipService {
     ///
     /// # Returns
     /// An empty result indicating success or an error if the operation fails.
-    pub async fn create(&self, payload: CreateChampionshipDto, user_id: i32) -> AppResult<()> {
+    pub async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         if self
             .championship_repo
             .find_by_name(&payload.name)
@@ -158,7 +158,12 @@ impl ChampionshipService {
     ///
     /// # Returns
     /// An empty result indicating success or an error if the operation fails.
-    pub async fn update(&self, id: i32, user_id: i32, form: &UpdateChampionship) -> AppResult<()> {
+    pub async fn update(
+        &self,
+        id: i32,
+        user_id: i32,
+        form: &ChampionshipUpdateData,
+    ) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repo.find(id).await? else {

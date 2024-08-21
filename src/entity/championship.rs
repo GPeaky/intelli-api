@@ -31,37 +31,35 @@ pub struct Championship {
 }
 
 impl Championship {
-    #[inline(always)]
-    pub fn from_row(row: &Row) -> Arc<Championship> {
-        Arc::new(Championship::from(row))
+    #[inline]
+    pub fn from_row(row: &Row) -> Self {
+        Championship {
+            id: row.get(0),
+            port: row.get(1),
+            name: row.get(2),
+            category: row.get(3),
+            season: row.get(4),
+            driver_count: row.get(5),
+            owner_id: row.get(6),
+            created_at: row.get(7),
+            updated_at: row.get(8),
+        }
     }
 
     #[inline]
-    pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Championship>>> {
+    pub fn from_row_arc(row: &Row) -> Arc<Self> {
+        Arc::new(Championship::from_row(row))
+    }
+
+    #[inline]
+    pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Self>>> {
         tokio::pin!(it);
         let mut championships = Vec::with_capacity(it.rows_affected().unwrap_or(0) as usize);
 
         while let Some(row) = it.try_next().await? {
-            championships.push(Championship::from_row(&row))
+            championships.push(Championship::from_row_arc(&row))
         }
 
         Ok(championships)
-    }
-}
-
-impl From<&Row> for Championship {
-    #[inline]
-    fn from(value: &Row) -> Self {
-        Self {
-            id: value.get(0),
-            port: value.get(1),
-            name: value.get(2),
-            category: value.get(3),
-            season: value.get(4),
-            driver_count: value.get(5),
-            owner_id: value.get(6),
-            created_at: value.get(7),
-            updated_at: value.get(8),
-        }
     }
 }

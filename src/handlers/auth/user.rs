@@ -10,9 +10,10 @@ use crate::{
     error::{AppResult, CommonError, UserError},
     states::AppState,
     structs::{
-        AuthResponse, FingerprintQuery, ForgotPasswordDto, LoginUserDto, PasswordChanged,
-        RefreshResponse, RefreshTokenQuery, RegisterUserDto, ResetPassword, ResetPasswordDto,
-        ResetPasswordQuery, TokenType, VerifyEmail,
+        AuthTokens, ClientFingerprint, EmailVerificationTemplate, LoginCredentials, NewAccessToken,
+        PasswordChangeConfirmationTemplate, PasswordResetRequest, PasswordResetTemplate,
+        PasswordUpdateData, RefreshTokenRequest, TokenPurpose, TokenVerification,
+        UserRegistrationData,
     },
 };
 
@@ -20,7 +21,7 @@ use crate::{
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
-    Form(form): Form<RegisterUserDto>,
+    Form(form): Form<UserRegistrationData>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -28,13 +29,16 @@ pub(crate) async fn register(
 
     let user_id = state.user_svc.create(&form).await?;
 
-    let token = state.token_svc.generate_token(user_id, TokenType::Email)?;
+    let token = state
+        .token_svc
+        .generate_token(user_id, TokenPurpose::EmailVerification)?;
+
     state.token_svc.save_email_token(token.clone());
 
     // Should be safe to unwrap the option cause we just created the user above
     let user = state.user_repo.find(user_id).await?.unwrap();
 
-    let template = VerifyEmail {
+    let template = EmailVerificationTemplate {
         verification_link: &format!(
             "https://intellitelemetry.live/auth/verify-email?token={}",
             token
@@ -52,8 +56,8 @@ pub(crate) async fn register(
 #[inline(always)]
 pub(crate) async fn login(
     state: State<AppState>,
-    Query(query): Query<FingerprintQuery>,
-    Form(form): Form<LoginUserDto>,
+    Query(query): Query<ClientFingerprint>,
+    Form(form): Form<LoginCredentials>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -79,13 +83,15 @@ pub(crate) async fn login(
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token = state.token_svc.generate_token(user.id, TokenType::Bearer)?;
+    let access_token = state
+        .token_svc
+        .generate_token(user.id, TokenPurpose::Authentication)?;
 
     let refresh_token = state
         .token_svc
         .generate_refresh_token(user.id, query.fingerprint)?;
 
-    let auth_response = AuthResponse {
+    let auth_response = AuthTokens {
         access_token,
         refresh_token,
     };
@@ -96,13 +102,13 @@ pub(crate) async fn login(
 #[inline(always)]
 pub(crate) async fn refresh_token(
     state: State<AppState>,
-    Query(query): Query<RefreshTokenQuery>,
+    Query(query): Query<RefreshTokenRequest>,
 ) -> AppResult<HttpResponse> {
     let access_token = state
         .token_svc
         .refresh_access_token(&query.refresh_token, query.fingerprint)?;
 
-    let refresh_response = RefreshResponse { access_token };
+    let refresh_response = NewAccessToken { access_token };
 
     Ok(HttpResponse::Ok().json(&refresh_response))
 }
@@ -111,7 +117,7 @@ pub(crate) async fn refresh_token(
 pub(crate) async fn logout(
     req: HttpRequest,
     state: State<AppState>,
-    Query(query): Query<RefreshTokenQuery>,
+    Query(query): Query<RefreshTokenRequest>,
 ) -> AppResult<HttpResponse> {
     let user_id = req.user_id()?;
 
@@ -125,7 +131,7 @@ pub(crate) async fn logout(
 #[inline(always)]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
-    form: Form<ForgotPasswordDto>,
+    form: Form<PasswordResetRequest>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -141,9 +147,9 @@ pub(crate) async fn forgot_password(
 
     let token = state
         .token_svc
-        .generate_token(user.id, TokenType::ResetPassword)?;
+        .generate_token(user.id, TokenPurpose::PasswordReset)?;
 
-    let template = ResetPassword {
+    let template = PasswordResetTemplate {
         reset_password_link: &format!(
             "https://intellitelemetry.live/auth/reset-password?token={}",
             token
@@ -164,8 +170,8 @@ pub(crate) async fn forgot_password(
 #[inline(always)]
 pub async fn reset_password(
     state: State<AppState>,
-    Query(query): Query<ResetPasswordQuery>,
-    Form(form): Form<ResetPasswordDto>,
+    Query(query): Query<TokenVerification>,
+    Form(form): Form<PasswordUpdateData>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
@@ -180,7 +186,7 @@ pub async fn reset_password(
         Err(UserError::NotFound)?
     };
 
-    let template = PasswordChanged {};
+    let template = PasswordChangeConfirmationTemplate {};
 
     state
         .email_svc

@@ -6,13 +6,13 @@ use ntex::web::{
 use crate::{
     error::{AppResult, UserError},
     states::AppState,
-    structs::{EmailVerified, VerifyEmailParams},
+    structs::{EmailVerificationConfirmationTemplate, TokenVerification},
 };
 
 #[inline(always)]
 pub async fn verify_email(
     state: State<AppState>,
-    Query(query): Query<VerifyEmailParams>,
+    Query(query): Query<TokenVerification>,
 ) -> AppResult<HttpResponse> {
     let user_id = state.user_svc.activate_with_token(query.token).await?;
     let user = state
@@ -21,7 +21,7 @@ pub async fn verify_email(
         .await?
         .ok_or(UserError::NotFound)?;
 
-    let template = EmailVerified {};
+    let template = EmailVerificationConfirmationTemplate {};
 
     state
         .email_svc

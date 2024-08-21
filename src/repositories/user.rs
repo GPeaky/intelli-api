@@ -66,7 +66,7 @@ impl UserRepository {
 
         match row {
             Some(ref row) => {
-                let user = User::from_row(row);
+                let user = User::from_row_arc(row);
                 self.cache.user.set(user.clone());
                 Ok(Some(user))
             }
@@ -104,7 +104,7 @@ impl UserRepository {
 
         match row {
             Some(ref row) => {
-                let user = User::from_row(row);
+                let user = User::from_row_arc(row);
                 self.cache.user.set(user.clone());
                 Ok(Some(user))
             }

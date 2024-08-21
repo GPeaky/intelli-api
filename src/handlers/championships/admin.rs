@@ -7,13 +7,13 @@ use ntex::web::{
 use crate::{
     error::{AppResult, ChampionshipError, CommonError},
     states::AppState,
-    structs::{ChampionshipIdPath, UserIdPath},
+    structs::{ChampionshipId, UserId},
 };
 
 #[inline(always)]
 pub async fn user_championships(
     state: State<AppState>,
-    path: Path<UserIdPath>,
+    path: Path<UserId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -26,7 +26,7 @@ pub async fn user_championships(
 #[inline(always)]
 pub async fn delete_championship(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     let Some(championship) = state.championship_repo.find(path.0).await? else {
         Err(ChampionshipError::NotFound)?

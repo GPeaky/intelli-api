@@ -8,13 +8,13 @@ use crate::{
     entity::Provider,
     error::{AppResult, UserError},
     states::AppState,
-    structs::{GoogleCallbackQuery, TokenType},
+    structs::{GoogleAuthorizationCode, TokenPurpose, UserRegistrationData},
 };
 
 #[inline(always)]
 pub async fn callback(
     state: State<AppState>,
-    query: Query<GoogleCallbackQuery>,
+    query: Query<GoogleAuthorizationCode>,
 ) -> AppResult<HttpResponse> {
     let google_user = state.google_repo.account_info(&query.code).await?;
     let user = state.user_repo.find_by_email(&google_user.email).await?;
@@ -29,7 +29,10 @@ pub async fn callback(
         }
 
         None => {
-            let id = state.user_svc.create(&google_user.into()).await?;
+            let id = state
+                .user_svc
+                .create(&UserRegistrationData::from_google_user_info(google_user))
+                .await?;
 
             match state.user_repo.find(id).await? {
                 Some(user) => user,
@@ -38,7 +41,10 @@ pub async fn callback(
         }
     };
 
-    let access_token = state.token_svc.generate_token(user.id, TokenType::Bearer)?;
+    let access_token = state
+        .token_svc
+        .generate_token(user.id, TokenPurpose::Authentication)?;
+
     let refresh_token = state
         .token_svc
         .generate_refresh_token(user.id, String::from("google"))?;

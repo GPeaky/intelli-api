@@ -10,7 +10,7 @@ use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError},
     states::AppState,
-    structs::{UpdateUser, UserData},
+    structs::{UserProfileData, UserUpdateData},
 };
 
 mod admin;
@@ -20,7 +20,7 @@ pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppRe
     let user = req.user()?;
     let championships = state.championship_repo.find_all(user.id).await?;
 
-    Ok(HttpResponse::Ok().json(&UserData {
+    Ok(HttpResponse::Ok().json(&UserProfileData {
         user,
         championships,
     }))
@@ -30,7 +30,7 @@ pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppRe
 pub(crate) async fn update_user(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<UpdateUser>,
+    form: Form<UserUpdateData>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() {
         Err(CommonError::ValidationFailed)?

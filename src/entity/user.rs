@@ -51,14 +51,7 @@ pub struct User {
 
 impl User {
     #[inline]
-    pub fn from_row(row: &Row) -> Arc<Self> {
-        Arc::new(Self::from(row))
-    }
-}
-
-impl From<&Row> for User {
-    #[inline]
-    fn from(row: &Row) -> Self {
+    pub fn from_row(row: &Row) -> Self {
         User {
             id: row.get(0),
             email: row.get(1),
@@ -71,6 +64,11 @@ impl From<&Row> for User {
             created_at: row.get(8),
             updated_at: row.get(9),
         }
+    }
+
+    #[inline]
+    pub fn from_row_arc(row: &Row) -> Arc<Self> {
+        Arc::new(User::from_row(row))
     }
 }
 

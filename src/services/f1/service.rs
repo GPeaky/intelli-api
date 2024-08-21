@@ -25,9 +25,10 @@ use crate::{
     error::{AppResult, CommonError, F1ServiceError},
     protos::{packet_header::PacketType, ToProtoMessage},
     structs::{
-        F1Data, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData, PacketEventData,
-        PacketExtraData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
-        PacketSessionData, PacketSessionHistoryData, SectorsLaps, SessionType,
+        F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
+        PacketEventData, PacketExtraData, PacketFinalClassificationData, PacketMotionData,
+        PacketParticipantsData, PacketSessionData, PacketSessionHistoryData, SectorsLaps,
+        SessionType,
     },
 };
 
@@ -163,7 +164,7 @@ impl F1Service {
 
     #[inline]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
-        let (header, packet) = F1Data::try_cast(buf)?;
+        let (header, packet) = F1PacketData::parse_and_identify(buf)?;
 
         if header.packet_format != 2023 {
             return Err(F1ServiceError::UnsupportedFormat)?;
@@ -174,21 +175,25 @@ impl F1Service {
         }
 
         match packet {
-            F1Data::Motion(motion_data) => self.handle_motion_packet(motion_data, now),
-            F1Data::Session(session_data) => self.handle_session_packet(session_data, now).await,
-            F1Data::Participants(participants_data) => {
+            F1PacketData::Motion(motion_data) => self.handle_motion_packet(motion_data, now),
+            F1PacketData::Session(session_data) => {
+                self.handle_session_packet(session_data, now).await
+            }
+            F1PacketData::Participants(participants_data) => {
                 self.handle_participants_packet(participants_data, now)
             }
-            F1Data::Event(event_data) => self.handle_event_packet(event_data),
-            F1Data::SessionHistory(session_history_data) => {
+            F1PacketData::Event(event_data) => self.handle_event_packet(event_data),
+            F1PacketData::SessionHistory(session_history_data) => {
                 self.handle_session_history_packet(session_history_data, now)
             }
-            F1Data::FinalClassification(final_classification) => {
+            F1PacketData::FinalClassification(final_classification) => {
                 self.handle_final_classification_packet(final_classification)
             }
-            F1Data::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage),
-            F1Data::CarStatus(car_status) => self.handle_car_status_packet(car_status),
-            F1Data::CarTelemetry(car_telemetry) => self.handle_car_telemetry_packet(car_telemetry),
+            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage),
+            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status),
+            F1PacketData::CarTelemetry(car_telemetry) => {
+                self.handle_car_telemetry_packet(car_telemetry)
+            }
         }
 
         Ok(())

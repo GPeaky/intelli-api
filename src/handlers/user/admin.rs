@@ -8,14 +8,14 @@ use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
     states::AppState,
-    structs::UserIdPath,
+    structs::UserId,
 };
 
 #[inline(always)]
 pub async fn delete_user(
     req: HttpRequest,
     state: State<AppState>,
-    path: Path<UserIdPath>,
+    path: Path<UserId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -39,7 +39,7 @@ pub async fn delete_user(
 pub async fn disable_user(
     req: HttpRequest,
     state: State<AppState>,
-    path: Path<UserIdPath>,
+    path: Path<UserId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -67,7 +67,7 @@ pub async fn disable_user(
 pub async fn enable_user(
     req: HttpRequest,
     state: State<AppState>,
-    path: Path<UserIdPath>,
+    path: Path<UserId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?

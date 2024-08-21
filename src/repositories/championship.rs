@@ -99,7 +99,7 @@ impl ChampionshipRepository {
 
         match row {
             Some(ref row) => {
-                let championship = Championship::from_row(row);
+                let championship = Championship::from_row_arc(row);
                 self.cache.championship.set(championship.clone());
                 Ok(Some(championship))
             }
@@ -139,7 +139,7 @@ impl ChampionshipRepository {
 
         match row {
             Some(ref row) => {
-                let championship = Championship::from_row(row);
+                let championship = Championship::from_row_arc(row);
                 self.cache.championship.set(championship.clone());
                 Ok(Some(championship))
             }

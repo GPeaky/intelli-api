@@ -4,8 +4,31 @@ use serde_trim::{option_string_trim, string_trim};
 
 use crate::entity::Provider;
 
+// Authentication Structures
+#[derive(Deserialize, Validate)]
+pub struct LoginCredentials {
+    #[garde(email)]
+    #[serde(deserialize_with = "string_trim")]
+    pub email: String,
+    #[garde(length(min = 8, max = 40))]
+    #[serde(deserialize_with = "string_trim")]
+    pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct AuthTokens {
+    pub access_token: String,
+    pub refresh_token: String,
+}
+
+#[derive(Serialize)]
+pub struct NewAccessToken {
+    pub access_token: String,
+}
+
+// User Registration and Management
 #[derive(Deserialize, Debug, Validate)]
-pub struct RegisterUserDto {
+pub struct UserRegistrationData {
     #[garde(ascii, length(min = 3, max = 20))]
     #[serde(deserialize_with = "string_trim")]
     pub username: String,
@@ -21,69 +44,58 @@ pub struct RegisterUserDto {
     pub provider: Option<Provider>,
 }
 
-#[derive(Deserialize, Validate)]
-pub struct LoginUserDto {
-    #[garde(email)]
-    #[serde(deserialize_with = "string_trim")]
-    pub email: String,
-    #[garde(length(min = 8, max = 40))]
-    #[serde(deserialize_with = "string_trim")]
-    pub password: String,
+impl UserRegistrationData {
+    pub fn from_google_user_info(google_info: GoogleUserInfo) -> Self {
+        Self {
+            username: google_info.name,
+            email: google_info.email,
+            password: None,
+            avatar: Some(google_info.picture),
+            provider: Some(Provider::Google),
+        }
+    }
 }
 
+// Password Management
 #[derive(Deserialize, Validate)]
-pub struct ForgotPasswordDto {
+pub struct PasswordResetRequest {
     #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
     pub email: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]
-pub struct ResetPasswordDto {
+pub struct PasswordUpdateData {
     #[garde(length(min = 8, max = 40))]
     #[serde(deserialize_with = "string_trim")]
     pub password: String,
 }
 
-#[derive(Deserialize)]
-pub struct ResetPasswordQuery {
+// Token and Security
+#[derive(Debug, Deserialize)]
+pub struct TokenVerification {
     pub token: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct VerifyEmailParams {
-    pub token: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RefreshTokenQuery {
+pub struct RefreshTokenRequest {
     pub fingerprint: String,
     pub refresh_token: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct FingerprintQuery {
+pub struct ClientFingerprint {
     pub fingerprint: String,
 }
 
-#[derive(Serialize)]
-pub struct AuthResponse {
-    pub access_token: String,
-    pub refresh_token: String,
-}
-
-#[derive(Serialize)]
-pub struct RefreshResponse {
-    pub access_token: String,
-}
-
+// Google OAuth Structures
 #[derive(Deserialize)]
-pub struct GoogleCallbackQuery {
+pub struct GoogleAuthorizationCode {
     pub code: String,
 }
 
 #[derive(Debug, Serialize)]
-pub struct GoogleTokenRequest<'a> {
+pub struct GoogleTokenExchangeRequest<'a> {
     pub client_id: &'a str,
     pub client_secret: &'a str,
     pub code: &'a str,
@@ -93,7 +105,7 @@ pub struct GoogleTokenRequest<'a> {
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct GoogleAuthResponse {
+pub struct GoogleAuthTokens {
     pub access_token: String,
     pub expires_in: i64,
     pub id_token: String,
@@ -111,16 +123,4 @@ pub struct GoogleUserInfo {
     pub name: String,
     pub picture: String,
     pub verified_email: bool,
-}
-
-impl From<GoogleUserInfo> for RegisterUserDto {
-    fn from(value: GoogleUserInfo) -> Self {
-        Self {
-            username: value.name,
-            email: value.email,
-            password: None,
-            avatar: Some(value.picture),
-            provider: Some(Provider::Google),
-        }
-    }
 }

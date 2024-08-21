@@ -1,14 +1,14 @@
 use chrono::{Duration, Utc};
 use postgres_types::ToSql;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
     entity::{Provider, SharedUser},
-    error::{AppResult, TokenError, UserError},
+    error::{AppResult, UserError},
     repositories::UserRepository,
-    structs::{RegisterUserDto, TokenType, UpdateUser},
+    structs::{TokenPurpose, UserRegistrationData, UserUpdateData},
     utils::IdsGenerator,
 };
 
@@ -68,7 +68,7 @@ impl UserService {
     ///
     /// # Returns
     /// The ID of the newly created user if successful.
-    pub async fn create(&self, register: &RegisterUserDto) -> AppResult<i32> {
+    pub async fn create(&self, register: &UserRegistrationData) -> AppResult<i32> {
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
         if user_exists {
@@ -145,7 +145,7 @@ impl UserService {
     ///
     /// # Returns
     /// An empty result indicating success or failure.
-    pub async fn update(&self, user: SharedUser, form: &UpdateUser) -> AppResult<()> {
+    pub async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_days(7).unwrap() {
             Err(UserError::UpdateLimitExceeded)?
         }
@@ -239,22 +239,17 @@ impl UserService {
     ) -> AppResult<i32> {
         self.cache
             .token
-            .get_token(token.clone(), TokenType::ResetPassword);
+            .get_token(token.clone(), TokenPurpose::PasswordReset);
 
         let user_id = {
             let token_data = self.token_svc.validate(&token)?;
-            if token_data.claims.token_type != TokenType::ResetPassword {
-                error!("Token type is not ResetPassword");
-                Err(TokenError::InvalidToken)?
-            }
-
-            token_data.claims.sub
+            token_data.claims.subject_id
         };
 
         self.reset_password(user_id, password).await?;
         self.cache
             .token
-            .remove_token(token, TokenType::ResetPassword);
+            .remove_token(token, TokenPurpose::PasswordReset);
 
         Ok(user_id)
     }
@@ -295,19 +290,19 @@ impl UserService {
     /// # Returns
     /// The ID of the user activated if successful.
     pub async fn activate_with_token(&self, token: String) -> AppResult<i32> {
-        self.cache.token.get_token(token.clone(), TokenType::Email);
+        self.cache
+            .token
+            .get_token(token.clone(), TokenPurpose::EmailVerification);
 
         let user_id = {
             let token_data = self.token_svc.validate(&token)?;
-            if token_data.claims.token_type != TokenType::Email {
-                Err(TokenError::InvalidToken)?
-            }
-
-            token_data.claims.sub
+            token_data.claims.subject_id
         };
 
         self.activate(user_id).await?;
-        self.cache.token.remove_token(token, TokenType::Email);
+        self.cache
+            .token
+            .remove_token(token, TokenPurpose::EmailVerification);
 
         Ok(user_id)
     }

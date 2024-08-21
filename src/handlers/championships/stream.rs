@@ -12,7 +12,7 @@ use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use crate::{
     error::{AppResult, CommonError, F1ServiceError},
     states::AppState,
-    structs::ChampionshipIdPath,
+    structs::ChampionshipId,
 };
 
 struct CleanupStream<S> {
@@ -38,7 +38,7 @@ impl<S> Drop for CleanupStream<S> {
 #[inline(always)]
 pub async fn handle_stream(
     state: State<AppState>,
-    path: Path<ChampionshipIdPath>,
+    path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?

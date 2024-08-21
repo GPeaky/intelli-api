@@ -1,4 +1,4 @@
-use crate::{config::Database, structs::DatabasesStatus};
+use crate::{config::Database, structs::ConnectionPoolStatus};
 
 /// Manages access to server resources, including db connections.
 ///
@@ -36,8 +36,8 @@ impl ServerRepository {
     /// # Returns
     ///
     /// A `DatabasesStatus` struct containing the status information for the Redis and PostgreSQL pools.
-    pub fn active_pools(&self) -> DatabasesStatus {
+    pub fn active_pools(&self) -> ConnectionPoolStatus {
         let pg_pool = self.db.pg.status();
-        DatabasesStatus { pg: pg_pool.into() }
+        pg_pool.into()
     }
 }

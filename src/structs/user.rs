@@ -6,8 +6,9 @@ use serde_trim::{option_string_trim, string_trim};
 
 use crate::entity::{Championship, SharedUser};
 
+// User Management
 #[derive(Debug, Deserialize, Validate)]
-pub struct UpdateUser {
+pub struct UserUpdateData {
     #[serde(default, deserialize_with = "option_string_trim")]
     #[garde(inner(ascii, length(min = 3, max = 20)))]
     pub username: Option<String>,
@@ -17,17 +18,18 @@ pub struct UpdateUser {
 }
 
 #[derive(Debug, Deserialize, Validate)]
-pub struct AddUser {
+pub struct UserInvitationData {
     #[serde(deserialize_with = "string_trim")]
     #[garde(email)]
     pub email: String,
 }
 
 #[derive(Debug, Serialize)]
-pub struct UserData {
+pub struct UserProfileData {
     pub user: SharedUser,
     pub championships: Vec<Arc<Championship>>,
 }
 
+// Path Parameters
 #[derive(Debug, Deserialize, Validate)]
-pub struct UserIdPath(#[garde(range(min = 600000000, max = 699999999))] pub i32);
+pub struct UserId(#[garde(range(min = 600000000, max = 699999999))] pub i32);

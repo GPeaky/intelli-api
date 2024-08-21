@@ -1,15 +1,16 @@
 use deadpool_postgres::Status as DeadPoolStatus;
 use serde::Serialize;
 
+// Database Connection Pool Status
 #[derive(Serialize)]
-pub struct Status {
+pub struct ConnectionPoolStatus {
     pub max_size: usize,
     pub size: usize,
     pub available: usize,
     pub waiting: usize,
 }
 
-impl From<DeadPoolStatus> for Status {
+impl From<DeadPoolStatus> for ConnectionPoolStatus {
     fn from(status: DeadPoolStatus) -> Self {
         Self {
             max_size: status.max_size,
@@ -21,6 +22,6 @@ impl From<DeadPoolStatus> for Status {
 }
 
 #[derive(Serialize)]
-pub struct DatabasesStatus {
-    pub pg: Status,
+pub struct DatabaseStatus {
+    pub postgres: ConnectionPoolStatus,
 }
