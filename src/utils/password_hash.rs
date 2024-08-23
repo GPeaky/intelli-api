@@ -79,6 +79,7 @@ mod tests {
     use tokio::time::{timeout, Duration};
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
     async fn hash_and_verify_password() {
         let hasher = Arc::new(PasswordHasher::new(1));
         let password = "my_secure_password".to_string();
@@ -96,6 +97,8 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
+
     async fn concurrent_hashing() {
         let hasher = Arc::new(PasswordHasher::new(5));
         let passwords: Vec<String> = (0..20).map(|i| format!("password_{}", i)).collect();
@@ -122,6 +125,7 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
     async fn semaphore_limit() {
         let max_concurrent = 2;
         let hasher = Arc::new(PasswordHasher::new(max_concurrent));
@@ -151,6 +155,7 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
     async fn timeout_handling() {
         let hasher = Arc::new(PasswordHasher::new(1));
         let password = "timeout_test_password".to_string();
@@ -161,6 +166,7 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
     async fn invalid_encoded_password() {
         let hasher = Arc::new(PasswordHasher::new(1));
         let result = hasher
@@ -173,6 +179,7 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
     async fn password_strength() {
         let hasher = Arc::new(PasswordHasher::new(1));
         let weak_password = "123".to_string();
@@ -205,6 +212,8 @@ mod tests {
     }
 
     #[ntex::test]
+    #[cfg_attr(miri, ignore)]
+
     async fn error_propagation() {
         let hasher = Arc::new(PasswordHasher::new(1));
 
