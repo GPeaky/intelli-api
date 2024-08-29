@@ -152,7 +152,7 @@ impl FirewallService {
     }
 
     #[allow(unused)]
-    // TODO: Use it when the server instance goes down
+    // TODO: Use it when the server instance goes down to clear all the firewall rules seated
     pub async fn close_all(&self) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");

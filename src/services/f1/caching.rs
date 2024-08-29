@@ -71,19 +71,26 @@ impl PacketCaching {
             return None;
         }
 
+        // TODO: Try to avoid double match statements
         match ToProtoMessageBatched::batched_encoded(headers) {
-            None => None,
-            Some(bytes) => {
-                // TODO: Handle this error returning None and printing an error
-                let compressed = compress_async(bytes).await.unwrap();
-                let mut cache_write = self.cache.write();
+            Some(bytes) => match compress_async(bytes).await {
+                Ok(compressed) => {
+                    let mut cache_write = self.cache.write();
 
-                *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
-                Some(compressed)
-            }
+                    *cache_write = Some(CachedData(compressed.clone(), Instant::now()));
+                    Some(compressed)
+                }
+
+                Err(e) => {
+                    error!("Error while compressing data: {}", e);
+                    None
+                }
+            },
+            None => None,
         }
     }
 
+    // TODO: Use bytes to avoid multiple clones of the same data
     pub fn save(
         &mut self,
         packet_type: PacketType,
@@ -99,7 +106,6 @@ impl PacketCaching {
                 debug_assert!(extra_data.is_some());
 
                 if let Some(PacketExtraData::EventCode(code)) = extra_data {
-                    // TODO - try to avoid .to_vec()
                     self.push_event(payload.to_vec(), code);
                 } else {
                     error!("Error Receiving OptionalMessage");
@@ -110,7 +116,6 @@ impl PacketCaching {
                 debug_assert!(extra_data.is_some());
 
                 if let Some(PacketExtraData::CarNumber(car_id)) = extra_data {
-                    // TODO - try to avoid .to_vec()
                     self.set_history_data(payload.to_vec(), car_id)
                 } else {
                     error!("Error Receiving OptionalMessage");
