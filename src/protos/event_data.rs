@@ -1,3 +1,4 @@
+use prost::bytes::Bytes as ProstBytes;
 use tracing::warn;
 
 use crate::{
@@ -37,7 +38,7 @@ impl ToProtoMessage for BPacketEventData {
         };
 
         Some(PacketEventData {
-            event_string_code: self.event_string_code.to_vec(),
+            event_string_code: ProstBytes::copy_from_slice(&self.event_string_code),
             event_details: Some(convert_event_data_details(&event_code, &self.event_details)),
         })
     }

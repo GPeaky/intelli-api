@@ -1,6 +1,7 @@
 use ahash::{AHashMap, AHashSet};
 use ntex::util::Bytes;
 use parking_lot::RwLock;
+use prost::bytes::{Bytes as ProstBytes, BytesMut as ProstBytesMut};
 use tokio::time::Instant;
 use tracing::error;
 
@@ -15,11 +16,11 @@ struct CachedData(Bytes, Instant);
 
 // Try to remove RwLock
 pub struct PacketCaching {
-    car_motion: Option<Vec<u8>>,
-    session_data: Option<Vec<u8>>,
-    participants: Option<Vec<u8>>,
-    history_data: AHashMap<u8, Vec<u8>>,
-    event_data: AHashSet<Vec<u8>>,
+    car_motion: Option<ProstBytes>,
+    session_data: Option<ProstBytes>,
+    participants: Option<ProstBytes>,
+    history_data: AHashMap<u8, ProstBytes>,
+    event_data: AHashSet<ProstBytes>,
     cache: RwLock<Option<CachedData>>,
 }
 
@@ -90,7 +91,6 @@ impl PacketCaching {
         }
     }
 
-    // TODO: Use bytes to avoid multiple clones of the same data
     pub fn save(
         &mut self,
         packet_type: PacketType,
@@ -106,7 +106,7 @@ impl PacketCaching {
                 debug_assert!(extra_data.is_some());
 
                 if let Some(PacketExtraData::EventCode(code)) = extra_data {
-                    self.push_event(payload.to_vec(), code);
+                    self.push_event(payload, code);
                 } else {
                     error!("Error Receiving OptionalMessage");
                 }
@@ -116,7 +116,7 @@ impl PacketCaching {
                 debug_assert!(extra_data.is_some());
 
                 if let Some(PacketExtraData::CarNumber(car_id)) = extra_data {
-                    self.set_history_data(payload.to_vec(), car_id)
+                    self.set_history_data(payload, car_id)
                 } else {
                     error!("Error Receiving OptionalMessage");
                 }
@@ -201,57 +201,36 @@ impl PacketCaching {
 
     #[inline(always)]
     fn set_car_motion(&mut self, payload: &[u8]) {
-        match &mut self.car_motion {
-            Some(car_motion) => {
-                car_motion.clear();
-                car_motion.extend_from_slice(payload)
-            }
+        let mut data = ProstBytesMut::with_capacity(payload.len());
+        data.extend_from_slice(payload);
 
-            None => {
-                let mut car_motion = Vec::with_capacity(payload.len());
-                car_motion.extend_from_slice(payload);
-                self.car_motion = Some(car_motion);
-            }
-        }
+        self.car_motion = Some(data.freeze());
     }
 
     #[inline(always)]
     fn set_session_data(&mut self, payload: &[u8]) {
-        match &mut self.session_data {
-            Some(vec) => {
-                vec.clear();
-                vec.extend_from_slice(payload);
-            }
-            None => {
-                let mut vec = Vec::with_capacity(payload.len());
-                vec.extend_from_slice(payload);
-                self.session_data = Some(vec);
-            }
-        }
+        let mut data = ProstBytesMut::with_capacity(payload.len());
+        data.extend_from_slice(payload);
+
+        self.session_data = Some(data.freeze());
     }
 
     #[inline(always)]
     fn set_participants(&mut self, payload: &[u8]) {
-        match &mut self.participants {
-            Some(vec) => {
-                vec.clear();
-                vec.extend_from_slice(payload);
-            }
-            None => {
-                let mut vec = Vec::with_capacity(payload.len());
-                vec.extend_from_slice(payload);
-                self.participants = Some(vec);
-            }
-        }
+        let mut data = ProstBytesMut::with_capacity(payload.len());
+        data.extend_from_slice(payload);
+
+        self.participants = Some(data.freeze());
     }
 
     #[inline(always)]
-    fn set_history_data(&mut self, payload: Vec<u8>, car_idx: u8) {
-        self.history_data.insert(car_idx, payload);
+    fn set_history_data(&mut self, payload: &[u8], car_idx: u8) {
+        self.history_data
+            .insert(car_idx, ProstBytes::copy_from_slice(payload));
     }
 
     #[inline(always)]
-    fn push_event(&mut self, payload: Vec<u8>, _code: [u8; 4]) {
-        self.event_data.insert(payload);
+    fn push_event(&mut self, payload: &[u8], _code: [u8; 4]) {
+        self.event_data.insert(ProstBytes::copy_from_slice(payload));
     }
 }

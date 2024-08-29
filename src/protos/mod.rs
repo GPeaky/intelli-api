@@ -1,4 +1,4 @@
-use prost::Message;
+use prost::{bytes::BytesMut as ProstBytesMut, Message};
 
 use crate::protos::packet_header::PacketType;
 
@@ -33,11 +33,13 @@ pub trait ToProtoMessage: Sized {
     /// A `PacketHeader` with the serialized protobuf message, or `None` if the data is not important.
     fn convert(&self, packet_type: PacketType) -> Option<PacketHeader> {
         let proto_data = self.to_proto()?;
-        let proto_data: Vec<u8> = proto_data.encode_to_vec();
+        let mut payload = ProstBytesMut::with_capacity(proto_data.encoded_len());
+
+        proto_data.encode_raw(&mut payload);
 
         Some(PacketHeader {
             r#type: packet_type.into(),
-            payload: proto_data,
+            payload: payload.freeze(),
         })
     }
 }
