@@ -5,7 +5,7 @@
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct PacketHeader {
-    pub packet_format: u16,             // 2023
+    pub packet_format: u16,             // 2024
     pub game_year: u8,                  // Game year - last two digits e.g. 23
     pub game_major_version: u8,         // Game major version - "X.00"
     pub game_minor_version: u8,         // Game minor version - "1.XX"
@@ -27,9 +27,9 @@ pub struct PacketMotionData {
 
 #[repr(C, packed)]
 pub struct PacketEventData {
-    pub header: PacketHeader,            // Header
-    pub event_string_code: [u8; 4],      // Event string code, see below
-    pub event_details: EventDataDetails, // Event details - should be interpreted differently for each type
+    pub header: PacketHeader,
+    pub event_string_code: [u8; 4],
+    pub event_details: EventDataDetails,
 }
 
 #[repr(C, packed)]
@@ -99,9 +99,9 @@ pub struct PacketSessionData {
     pub air_temperature: i8, // Air temp. in degrees Celsius
     pub total_laps: u8, // Total number of laps in this race
     pub track_length: u16, // Track length in metres
-    pub session_type: u8, // 0 = unknown, 1 = P1, 2 = P2, 3 = P3, 4 = Short P5 = Q1, 6 = Q2, 7 = Q3, 8 = Short Q, 9 = OSQ 10 = R, 11 = R2, 12 = R3, 13 = Time Trial
-    pub track_id: i8,     // TrackIds//  -1 for unknown, see appendix
-    pub formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 5 = Supercars, 6 = Esports, 7 = F2 2021
+    pub session_type: u8, // 0 = unknown, see appendix
+    pub track_id: i8, // -1 for unknown, see appendix
+    pub formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 6 = Esports, 8 = F1 World, 9 = F1 Elimination
     pub session_time_left: u16, // Time left in session in seconds
     pub session_duration: u16, // Session duration in seconds
     pub pit_speed_limit: u8, // Pit speed limit in kilometres per hour
@@ -114,7 +114,7 @@ pub struct PacketSessionData {
     pub safety_car_status: u8, // 0 = no safety car, 1 = full, 2 = virtual, 3 = formation lap
     pub network_game: u8, // 0 = offline, 1 = online
     pub num_weather_forecast_samples: u8, // Number of weather samples to follow
-    pub weather_forecast_samples: [WeatherForecastSample; 56], // Array of weather forecast samples
+    pub weather_forecast_samples: [WeatherForecastSample; 64], // Array of weather forecast samples
     pub forecast_accuracy: u8, // 0 = Perfect, 1 = Approximate
     pub ai_difficulty: u8, // AI Difficulty rating – 0-110
     pub season_link_identifier: u32, // Identifier for season - persists across saves
@@ -132,10 +132,10 @@ pub struct PacketSessionData {
     pub drs_assist: u8, // 0 = off, 1 = on
     pub dynamic_racing_line: u8, // 0 = off, 1 = corners only, 2 = full
     pub dynamic_racing_line_type: u8, // 0 = 2D, 1 = 3D
-    pub game_mode: u8, //GameModeIds // Game mode id - see appendix
-    pub rule_set: u8, // RuleSetIds // Ruleset - see appendix
+    pub game_mode: u8, // Game mode id - see appendix
+    pub rule_set: u8, // Ruleset - see appendix
     pub time_of_day: u32, // Local time of day - minutes since midnight
-    pub session_length: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium 5 = Medium Long, 6 = Long, 7 = Full
+    pub session_length: u8, // 0 = None, 2 = Very Short, 3 = Short, 4 = Medium, 5 = Medium Long, 6 = Long, 7 = Full
     pub speed_units_lead_player: u8, // 0 = MPH, 1 = KPH
     pub temperature_units_lead_player: u8, // 0 = Celsius, 1 = Fahrenheit
     pub speed_units_secondary_player: u8, // 0 = MPH, 1 = KPH
@@ -143,6 +143,34 @@ pub struct PacketSessionData {
     pub num_safety_car_periods: u8, // Number of safety cars called during session
     pub num_virtual_safety_car_periods: u8, // Number of virtual safety cars called
     pub num_red_flag_periods: u8, // Number of red flags called during session
+    pub equal_car_performance: u8, // 0 = Off, 1 = On
+    pub recovery_mode: u8,  // 0 = None, 1 = Flashbacks, 2 = Auto-recovery
+    pub flashback_limit: u8, // 0 = Low, 1 = Medium, 2 = High, 3 = Unlimited
+    pub surface_type: u8,   // 0 = Simplified, 1 = Realistic
+    pub low_fuel_mode: u8,  // 0 = Easy, 1 = Hard
+    pub race_starts: u8,    // 0 = Manual, 1 = Assisted
+    pub tyre_temperature: u8, // 0 = Surface only, 1 = Surface & Carcass
+    pub pit_lane_tyre_sim: u8, // 0 = On, 1 = Off
+    pub car_damage: u8,     // 0 = Off, 1 = Reduced, 2 = Standard, 3 = Simulation
+    pub car_damage_rate: u8, // 0 = Reduced, 1 = Standard, 2 = Simulation
+    pub collisions: u8,     // 0 = Off, 1 = Player-to-Player Off, 2 = On
+    pub collisions_off_for_first_lap_only: u8, // 0 = Disabled, 1 = Enabled
+    pub mp_unsafe_pit_release: u8, // 0 = On, 1 = Off (Multiplayer)
+    pub mp_off_for_griefing: u8, // 0 = Disabled, 1 = Enabled (Multiplayer)
+    pub corner_cutting_stringency: u8, // 0 = Regular, 1 = Strict
+    pub parc_ferme_rules: u8, // 0 = Off, 1 = On
+    pub pit_stop_experience: u8, // 0 = Automatic, 1 = Broadcast, 2 = Immersive
+    pub safety_car: u8,     // 0 = Off, 1 = Reduced, 2 = Standard, 3 = Increased
+    pub safety_car_experience: u8, // 0 = Broadcast, 1 = Immersive
+    pub formation_lap: u8,  // 0 = Off, 1 = On
+    pub formation_lap_experience: u8, // 0 = Broadcast, 1 = Immersive
+    pub red_flags: u8,      // 0 = Off, 1 = Reduced, 2 = Standard, 3 = Increased
+    pub affects_licence_level_solo: u8, // 0 = Off, 1 = On
+    pub affects_licence_level_mp: u8, // 0 = Off, 1 = On
+    pub num_sessions_in_weekend: u8, // Number of session in following array
+    pub weekend_structure: [u8; 12], // List of session types to show weekend structure - see appendix for types
+    pub sector2_lap_distance_start: f32, // Distance in m around track where sector 2 starts
+    pub sector3_lap_distance_start: f32, // Distance in m around track where sector 3 starts
 }
 
 #[repr(C, packed)]
@@ -183,6 +211,24 @@ pub struct WeatherForecastSample {
     pub air_temperature: i8, // Air temp. in degrees Celsius
     pub air_temperature_change: i8, // Air temp. change – 0 = up, 1 = down, 2 = no change
     pub rain_percentage: u8, // Rain percentage (0-100)
+}
+
+#[repr(C, packed)]
+pub union EventDataDetails {
+    pub fastest_lap: FastestLap,
+    pub retirement: Retirement,
+    pub team_mate_in_pits: TeamMateInPits,
+    pub race_winner: RaceWinner,
+    pub penalty: Penalty,
+    pub speed_trap: SpeedTrap,
+    pub start_lights: StartLights,
+    pub drive_through_penalty_served: DriveThroughPenaltyServed,
+    pub stop_go_penalty_served: StopGoPenaltyServed,
+    pub flashback: Flashback,
+    pub buttons: Buttons,
+    pub overtake: Overtake,
+    pub safety_car: SafetyCar,
+    pub collision: Collision,
 }
 
 #[repr(C, packed)]
@@ -254,8 +300,8 @@ pub struct StopGoPenaltyServed {
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct Flashback {
-    pub flashback_frame_identifier: u32, // Frame identifier flashed back to
-    pub flashback_session_time: f32,     // Session time flashed back to
+    pub flashback_frame_identifier: u32,
+    pub flashback_session_time: f32,
 }
 
 #[repr(C, packed)]
@@ -272,34 +318,34 @@ pub struct Overtake {
 }
 
 #[repr(C, packed)]
-pub union EventDataDetails {
-    pub fastest_lap: FastestLap,
-    pub retirement: Retirement,
-    pub team_mate_in_pits: TeamMateInPits,
-    pub race_winner: RaceWinner,
-    pub penalty: Penalty,
-    pub speed_trap: SpeedTrap,
-    pub start_lights: StartLights,
-    pub drive_through_penalty_served: DriveThroughPenaltyServed,
-    pub stop_go_penalty_served: StopGoPenaltyServed,
-    pub flashback: Flashback,
-    pub buttons: Buttons,
-    pub overtake: Overtake,
+#[derive(Clone, Copy)]
+pub struct SafetyCar {
+    pub safety_car_type: u8,
+    pub event_type: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+pub struct Collision {
+    pub vehicle1_idx: u8,
+    pub vehicle2_idx: u8,
 }
 
 #[repr(C, packed)]
 pub struct ParticipantData {
-    pub ai_controlled: u8,  // Whether the vehicle is AI (1) or Human (0) controlled
-    pub driver_id: u8,      // Driver id - see appendix, 255 if network human
-    pub network_id: u8,     // Network id – unique identifier for network players
-    pub team_id: u8,        // Team id - see appendix
-    pub my_team: u8,        // My team flag – 1 = My Team, 0 = otherwise
-    pub race_number: u8,    // Race number of the car
-    pub nationality: u8,    // ParticipantNationality // Nationality of the driver
-    pub name: [u8; 48], // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
+    pub ai_controlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
+    pub driver_id: u8,     // Driver id - see appendix, 255 if network human
+    pub network_id: u8,    // Network id – unique identifier for network players
+    pub team_id: u8,       // Team id - see appendix
+    pub my_team: u8,       // My team flag – 1 = My Team, 0 = otherwise
+    pub race_number: u8,   // Race number of the car
+    pub nationality: u8,   // Nationality of the driver
+    pub name: [u8; 48],    // Name of participant in UTF-8 format – null terminated
+    // Will be truncated with … (U+2026) if too long
     pub your_telemetry: u8, // The player's UDP setting, 0 = restricted, 1 = public
     pub show_online_names: u8, // The player's show online names setting, 0 = off, 1 = on
-    pub platform: u8,   // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
+    pub tech_level: u16,    // F1 World tech level
+    pub platform: u8,       // 1 = Steam, 3 = PlayStation, 4 = Xbox, 6 = Origin, 255 = unknown
 }
 
 #[repr(C, packed)]
@@ -459,6 +505,8 @@ pub enum EventCode {
     ButtonStatus,
     RedFlag,
     Overtake,
+    SafetyCar,
+    Collision,
 }
 
 #[derive(Debug, PartialEq)]
@@ -807,6 +855,8 @@ impl TryFrom<&[u8; 4]> for EventCode {
             b"BUTN" => Ok(Self::ButtonStatus),
             b"RFGO" => Ok(Self::RedFlag),
             b"OVTK" => Ok(Self::Overtake),
+            b"SCAR" => Ok(Self::SafetyCar),
+            b"COLL" => Ok(Self::Collision),
             _ => Err("Unknown event code"),
         }
     }

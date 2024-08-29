@@ -101,7 +101,7 @@ impl TokenService {
     pub fn generate_token(&self, subject_id: i32, purpose: TokenPurpose) -> AppResult<String> {
         let token_claim = TokenPayload {
             subject_id,
-            expiration: purpose.expiration_timestamp(),
+            exp: purpose.expiration_timestamp(),
             purpose,
         };
 

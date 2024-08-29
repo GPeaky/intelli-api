@@ -13,7 +13,7 @@ pub enum TokenPurpose {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TokenPayload {
-    pub expiration: usize,
+    pub exp: usize,
     pub subject_id: i32,
     pub purpose: TokenPurpose,
 }
