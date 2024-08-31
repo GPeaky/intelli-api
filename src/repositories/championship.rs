@@ -49,7 +49,7 @@ impl ChampionshipRepository {
             let ports_in_use_stmt = conn
                 .prepare_cached(
                     r#"
-                        SELECT port FROM championship
+                        SELECT port FROM championships
                     "#,
                 )
                 .await?;
@@ -88,7 +88,7 @@ impl ChampionshipRepository {
             let find_championship_stmt = conn
                 .prepare_cached(
                     r#"
-                        SELECT * FROM championship
+                        SELECT * FROM championships
                         WHERE id = $1
                     "#,
                 )
@@ -128,7 +128,7 @@ impl ChampionshipRepository {
             let find_by_name_stmt = conn
                 .prepare_cached(
                     r#"
-                        SELECT * FROM championship
+                        SELECT * FROM championships
                         WHERE name = $1
                     "#,
                 )
@@ -169,7 +169,7 @@ impl ChampionshipRepository {
                 .prepare_cached(
                     r#"
                         SELECT c.*
-                        FROM championship c
+                        FROM championships c
                         JOIN user_championships uc ON c.id = uc.championship_id
                         WHERE uc.user_id = $1
                     "#,
@@ -243,7 +243,7 @@ impl ChampionshipRepository {
                         SELECT
                             c.id
                         FROM
-                            championship c
+                            championships c
                         JOIN
                             user_championships uc ON c.id = uc.championship_id
                         WHERE
@@ -265,7 +265,7 @@ impl ChampionshipRepository {
         let championship_ids_stmt = conn
             .prepare_cached(
                 r#"
-                    SELECT id FROM championship
+                    SELECT id FROM championships
                 "#,
             )
             .await?;

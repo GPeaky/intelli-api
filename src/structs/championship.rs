@@ -12,8 +12,6 @@ pub struct ChampionshipCreationData {
     pub name: String,
     #[garde(skip)]
     pub category: Category,
-    #[garde(skip)]
-    pub season: i16,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -23,8 +21,6 @@ pub struct ChampionshipUpdateData {
     pub name: Option<String>,
     #[garde(skip)]
     pub category: Option<Category>,
-    #[garde(skip)]
-    pub season: Option<i16>,
 }
 
 // Service Status

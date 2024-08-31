@@ -322,25 +322,25 @@ impl F1Service {
     #[inline]
     fn handle_final_classification_packet(
         &mut self,
-        final_classification: &PacketFinalClassificationData,
+        _final_classification: &PacketFinalClassificationData,
     ) {
         info!("FinalClassification data received");
 
-        let packet = final_classification
-            .convert(PacketType::FinalClassificationData)
-            .unwrap();
+        // let packet = final_classification
+        //     .convert(PacketType::FinalClassificationData)
+        //     .unwrap();
 
-        {
-            info!("Session type: {:?}", self.session_type);
+        // {
+        //     info!("Session type: {:?}", self.session_type);
 
-            if let SessionType::R | SessionType::R2 | SessionType::R3 =
-                self.session_type.as_ref().unwrap()
-            {
-                info!("Race Finished, saving final classification data");
-            }
-        }
+        //     if let SessionType::R | SessionType::R2 | SessionType::R3 =
+        //         self.session_type.as_ref().unwrap()
+        //     {
+        //         info!("Race Finished, saving final classification data");
+        //     }
+        // }
 
-        self.packet_batching.push(packet);
+        // self.packet_batching.push(packet);
     }
 
     #[inline]

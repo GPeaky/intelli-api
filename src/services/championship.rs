@@ -96,8 +96,8 @@ impl ChampionshipService {
 
             let create_championship_stmt_fut = conn.prepare_cached(
                 r#"
-                    INSERT INTO championship (id, port, name, category, season, owner_id)
-                    VALUES ($1,$2,$3,$4,$5,$6)
+                    INSERT INTO championships (id, port, name, category, owner_id)
+                    VALUES ($1,$2,$3,$4,$5)
                 "#,
             );
 
@@ -123,14 +123,7 @@ impl ChampionshipService {
             let result = conn
                 .execute(
                     &create_championship_stmt,
-                    &[
-                        &id,
-                        &port,
-                        &payload.name,
-                        &payload.category,
-                        &payload.season,
-                        &user_id,
-                    ],
+                    &[&id, &port, &payload.name, &payload.category, &user_id],
                 )
                 .await;
 
@@ -195,12 +188,6 @@ impl ChampionshipService {
             if let Some(category) = &form.category {
                 clauses.push(format!("category = ${}", params_counter));
                 params.push(category);
-                params_counter += 1;
-            }
-
-            if let Some(season) = &form.season {
-                clauses.push(format!("season = ${}", params_counter));
-                params.push(season);
                 params_counter += 1;
             }
 
@@ -349,7 +336,7 @@ impl ChampionshipService {
 
         let delete_championship_stmt_fut = conn.prepare_cached(
             r#"
-                DELETE FROM championship WHERE id = $1
+                DELETE FROM championships WHERE id = $1
             "#,
         );
 
