@@ -3,10 +3,7 @@ use crate::{
     config::Database,
     error::AppResult,
     repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
-    services::{
-        ChampionshipService, EmailService, F1ServiceHandler, TokenService,
-        UserService,
-    },
+    services::{ChampionshipService, EmailService, F1ServiceHandler, TokenService, UserService},
 };
 
 #[derive(Clone)]
