@@ -36,7 +36,7 @@ pub async fn create_championship(
     let championships_len = state.championship_repo.championship_len(user.id).await?;
 
     match user.role {
-        Role::Free => {
+        Role::Regular => {
             if championships_len >= 1 {
                 Err(ChampionshipError::LimitReached)?
             }
@@ -44,12 +44,6 @@ pub async fn create_championship(
 
         Role::Premium => {
             if championships_len >= 3 {
-                Err(ChampionshipError::LimitReached)?
-            }
-        }
-
-        Role::Business => {
-            if championships_len >= 14 {
                 Err(ChampionshipError::LimitReached)?
             }
         }

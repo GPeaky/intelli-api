@@ -4,7 +4,7 @@ use crate::{
     error::AppResult,
     repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
     services::{
-        ChampionshipService, EmailService, F1ServiceHandler, SavedSessionService, TokenService,
+        ChampionshipService, EmailService, F1ServiceHandler, TokenService,
         UserService,
     },
 };
@@ -18,8 +18,6 @@ pub struct AppState {
     pub championship_repo: &'static ChampionshipRepository,
     pub email_svc: EmailService,
     pub f1_svc: F1ServiceHandler,
-    #[allow(unused)]
-    pub saved_session_svc: &'static SavedSessionService,
     pub google_repo: &'static GoogleRepository,
     pub server_repo: ServerRepository,
 }
@@ -39,7 +37,6 @@ impl AppState {
         let championship_svc = Box::leak(Box::from(
             ChampionshipService::new(db, cache, user_repo, championship_repo).await?,
         ));
-        let saved_session_svc = Box::leak(Box::from(SavedSessionService::new(db, cache).await));
 
         Ok(Self {
             user_svc,
@@ -49,7 +46,6 @@ impl AppState {
             championship_svc,
             championship_repo,
             email_svc: EmailService::new(),
-            saved_session_svc,
             google_repo,
             server_repo: ServerRepository::new(db),
         })

@@ -40,6 +40,7 @@ pub struct PacketFinalClassificationData {
 }
 
 #[repr(C, packed)]
+#[derive(Debug)]
 pub struct PacketParticipantsData {
     pub header: PacketHeader, // Header
     pub num_active_cars: u8, // Number of active cars in the data – should match number of cars on HUD
@@ -104,7 +105,7 @@ pub struct PacketSessionData {
     pub formula: u8, // Formula, 0 = F1 Modern, 1 = F1 Classic, 2 = F2, 3 = F1 Generic, 4 = Beta, 6 = Esports, 8 = F1 World, 9 = F1 Elimination
     pub session_time_left: u16, // Time left in session in seconds
     pub session_duration: u16, // Session duration in seconds
-    pub pit_speed_limit: u8, // Pit speed limit in kilometres per hour
+    pub pit_speed_limit: u8, // Pit speed limit in kilometers per hour
     pub game_paused: u8, // Whether the game is paused – network game only
     pub is_spectating: u8, // Whether the player is spectating
     pub spectator_car_index: u8, // Index of the car being spectated
@@ -332,6 +333,7 @@ pub struct Collision {
 }
 
 #[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
 pub struct ParticipantData {
     pub ai_controlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub driver_id: u8,     // Driver id - see appendix, 255 if network human
@@ -482,6 +484,7 @@ pub enum PacketIds {
     SessionHistory,
     TyreSets,
     MotionEx,
+    TimeTrial,
 }
 
 #[derive(Debug, PartialEq)]
@@ -511,15 +514,21 @@ pub enum EventCode {
 
 #[derive(Debug, PartialEq)]
 pub enum SessionType {
-    P1,
-    P2,
-    P3,
-    ShortP,
+    Unknown,
+    Practice1,
+    Practice2,
+    Practice3,
+    ShortPractice,
     Q1,
     Q2,
     Q3,
-    ShortQ,
+    SQ,
     Osq,
+    SprintShootout1,
+    SprintShootout2,
+    SprintShootout3,
+    ShortSprintShootout,
+    OneShotSprintShootout,
     R,
     R2,
     R3,
@@ -658,19 +667,26 @@ impl TryFrom<u8> for SessionType {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(Self::P1),
-            2 => Ok(Self::P2),
-            3 => Ok(Self::P3),
-            4 => Ok(Self::ShortP),
+            0 => Ok(Self::Unknown),
+            1 => Ok(Self::Practice1),
+            2 => Ok(Self::Practice2),
+            3 => Ok(Self::Practice3),
+            4 => Ok(Self::ShortPractice),
             5 => Ok(Self::Q1),
             6 => Ok(Self::Q2),
             7 => Ok(Self::Q3),
-            8 => Ok(Self::ShortQ),
+            8 => Ok(Self::SQ),
             9 => Ok(Self::Osq),
-            10 => Ok(Self::R),
-            11 => Ok(Self::R2),
-            12 => Ok(Self::R3),
-            13 => Ok(Self::TimeTrial),
+            10 => Ok(Self::SprintShootout1),
+            11 => Ok(Self::SprintShootout2),
+            12 => Ok(Self::SprintShootout3),
+            13 => Ok(Self::ShortSprintShootout),
+            14 => Ok(Self::OneShotSprintShootout),
+            15 => Ok(Self::R),
+            16 => Ok(Self::R2),
+            17 => Ok(Self::R3),
+            18 => Ok(Self::TimeTrial),
+
             _ => Err("Unknown session type"),
         }
     }
@@ -881,6 +897,7 @@ impl TryFrom<u8> for PacketIds {
             11 => Ok(PacketIds::SessionHistory),
             12 => Ok(PacketIds::TyreSets),
             13 => Ok(PacketIds::MotionEx),
+            14 => Ok(PacketIds::TimeTrial),
             _ => Err("Unknown packet id"),
         }
     }

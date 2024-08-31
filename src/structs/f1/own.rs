@@ -48,6 +48,7 @@ impl<'a> F1PacketData<'a> {
             }
             PacketIds::FinalClassification => cast::<PacketFinalClassificationData>(raw_data)
                 .map(F1PacketData::FinalClassification),
+
             _ => Err(F1ServiceError::InvalidPacketType)?,
         }?;
 

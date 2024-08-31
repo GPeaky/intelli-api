@@ -51,7 +51,6 @@ pub struct F1Service {
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
-    // TODO: Recollect all users_ids listening to the data || if the data needs authentication
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
 }
@@ -141,7 +140,11 @@ impl F1Service {
                                 self.port_partially_opened = true;
                             }
 
-                            let _ = self.process_packet(buf, now).await;
+                            if let Err(e) = self.process_packet(buf, now).await {
+                                error!("Error processing packet: {}", e);
+                                self.close().await;
+                                break;
+                            }
                         }
 
                         Ok(Err(e)) => {
@@ -164,9 +167,12 @@ impl F1Service {
 
     #[inline]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
-        let (header, packet) = F1PacketData::parse_and_identify(buf)?;
+        let (header, packet) = match F1PacketData::parse_and_identify(buf) {
+            Ok(result) => result,
+            Err(_) => return Ok(()),
+        };
 
-        if header.packet_format != 2023 {
+        if header.packet_format != 2024 {
             return Err(F1ServiceError::UnsupportedFormat)?;
         }
 

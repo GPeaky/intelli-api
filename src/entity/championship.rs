@@ -23,8 +23,6 @@ pub struct Championship {
     pub port: i32,
     pub name: String,
     pub category: Category,
-    pub season: i16,
-    pub driver_count: i16,
     pub owner_id: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -38,11 +36,9 @@ impl Championship {
             port: row.get(1),
             name: row.get(2),
             category: row.get(3),
-            season: row.get(4),
-            driver_count: row.get(5),
-            owner_id: row.get(6),
-            created_at: row.get(7),
-            updated_at: row.get(8),
+            owner_id: row.get(4),
+            created_at: row.get(5),
+            updated_at: row.get(6),
         }
     }
 
