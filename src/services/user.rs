@@ -202,7 +202,7 @@ impl UserService {
 
         let delete_users_relations_stmt_fut = conn.prepare_cached(
             r#"
-                DELETE FROM user_championships
+                DELETE FROM championship_users
                 WHERE user_id = $1
             "#,
         );

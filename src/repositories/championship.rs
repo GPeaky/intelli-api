@@ -170,8 +170,8 @@ impl ChampionshipRepository {
                     r#"
                         SELECT c.*
                         FROM championships c
-                        JOIN user_championships uc ON c.id = uc.championship_id
-                        WHERE uc.user_id = $1
+                        JOIN championship_users cu ON c.id = cu.championship_id
+                        WHERE cu.user_id = $1
                     "#,
                 )
                 .await?;
@@ -204,7 +204,7 @@ impl ChampionshipRepository {
             let championship_users_stmt = conn
                 .prepare_cached(
                     r#"
-                        SELECT user_id FROM user_championships
+                        SELECT user_id FROM championship_users
                         WHERE championship_id = $1
                     "#,
                 )
@@ -245,9 +245,9 @@ impl ChampionshipRepository {
                         FROM
                             championships c
                         JOIN
-                            user_championships uc ON c.id = uc.championship_id
+                            championship_users cu ON c.id = cu.championship_id
                         WHERE
-                            uc.user_id = $1
+                            cu.user_id = $1
                     "#,
                 )
                 .await?;

@@ -103,7 +103,7 @@ impl ChampionshipService {
 
             let relate_user_with_championship_stmt_fut = conn.prepare_cached(
                 r#"
-                    INSERT INTO user_championships (user_id, championship_id)
+                    INSERT INTO championship_users (user_id, championship_id)
                     VALUES ($1,$2)
                 "#,
             );
@@ -259,7 +259,7 @@ impl ChampionshipService {
         let add_user_stmt = conn
             .prepare_cached(
                 r#"
-                    INSERT INTO user_championships (user_id, championship_id)
+                    INSERT INTO championship_users (user_id, championship_id)
                     VALUES ($1,$2)
                 "#,
             )
@@ -306,7 +306,7 @@ impl ChampionshipService {
         let remove_user_stmt = conn
             .prepare_cached(
                 r#"
-                    DELETE FROM user_championships WHERE user_id = $1 AND championship_id = $2
+                    DELETE FROM championship_users WHERE user_id = $1 AND championship_id = $2
                 "#,
             )
             .await?;
@@ -332,7 +332,7 @@ impl ChampionshipService {
 
         let delete_championship_relations_stmt_fut = conn.prepare_cached(
             r#"
-                DELETE FROM user_championships WHERE championship_id = $1
+                DELETE FROM championship_users WHERE championship_id = $1
             "#,
         );
 
