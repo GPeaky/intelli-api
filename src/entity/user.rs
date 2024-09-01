@@ -46,7 +46,7 @@ pub struct User {
     #[serde(skip_serializing)]
     pub active: bool,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl User {

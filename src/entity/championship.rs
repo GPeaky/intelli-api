@@ -25,7 +25,7 @@ pub struct Championship {
     pub category: Category,
     pub owner_id: i32,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl Championship {

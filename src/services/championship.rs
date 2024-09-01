@@ -167,11 +167,11 @@ impl ChampionshipService {
                 Err(ChampionshipError::NotOwner)?
             }
 
-            if Utc::now().signed_duration_since(championship.updated_at)
-                <= Duration::try_days(7).unwrap()
-            {
-                Err(ChampionshipError::IntervalNotReached)?
-            };
+            if let Some(last_update) = championship.updated_at {
+                if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
+                    Err(ChampionshipError::IntervalNotReached)?
+                };
+            }
         }
 
         let (query, params) = {
@@ -194,6 +194,8 @@ impl ChampionshipService {
             if clauses.is_empty() {
                 Err(CommonError::NotValidUpdate)?
             }
+
+            clauses.push("updated_at = CURRENT_TIMESTAMP".to_owned());
 
             let clause = clauses.join(", ");
             let query = format!(

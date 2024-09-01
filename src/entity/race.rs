@@ -8,7 +8,7 @@ pub struct Race {
     name: String,
     date: DateTime<Utc>,
     created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    updated_at: Option<DateTime<Utc>>,
 }
 
 impl Race {

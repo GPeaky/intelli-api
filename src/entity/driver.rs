@@ -7,7 +7,7 @@ pub struct Driver {
     discord_id: i64,
     nationality: i8,
     created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    updated_at: Option<DateTime<Utc>>,
 }
 
 impl Driver {

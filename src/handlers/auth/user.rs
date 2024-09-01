@@ -141,8 +141,10 @@ pub(crate) async fn forgot_password(
         return Err(UserError::NotFound)?;
     };
 
-    if Utc::now().signed_duration_since(user.updated_at) > Duration::try_hours(1).unwrap() {
-        return Err(UserError::UpdateLimitExceeded)?;
+    if let Some(last_update) = user.updated_at {
+        if Utc::now().signed_duration_since(last_update) > Duration::hours(1) {
+            return Err(UserError::UpdateLimitExceeded)?;
+        }
     }
 
     let token = state

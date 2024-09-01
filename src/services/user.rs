@@ -146,8 +146,10 @@ impl UserService {
     /// # Returns
     /// An empty result indicating success or failure.
     pub async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
-        if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_days(7).unwrap() {
-            Err(UserError::UpdateLimitExceeded)?
+        if let Some(last_update) = user.updated_at {
+            if Utc::now().signed_duration_since(last_update) > Duration::days(7) {
+                return Err(UserError::UpdateLimitExceeded)?;
+            }
         }
 
         let (query, params) = {
@@ -170,6 +172,8 @@ impl UserService {
             if clauses.is_empty() {
                 Err(UserError::InvalidUpdate)?
             }
+
+            clauses.push("updated_at = CURRENT_TIMESTAMP".to_owned());
 
             let clause = clauses.join(", ");
             let query = format!("UPDATE users {} WHERE id = ${}", clause, params_counter);
@@ -218,6 +222,7 @@ impl UserService {
 
         conn.execute(&delete_user_stmt, &binding).await?;
         self.cache.user.delete(id);
+        self.cache.championship.delete_by_user(id);
 
         info!("User deleted with success: {}", id);
 
@@ -268,7 +273,7 @@ impl UserService {
             .prepare_cached(
                 r#"
                     UPDATE users
-                    SET active = true
+                    SET active = true, updated_at = CURRENT_TIMESTAMP
                     WHERE id = $1
                 "#,
             )
@@ -320,7 +325,7 @@ impl UserService {
             .prepare_cached(
                 r#"
                     UPDATE users
-                    SET active = false
+                    SET active = false, updated_at = CURRENT_TIMESTAMP
                     WHERE id = $1
                 "#,
             )
@@ -346,8 +351,10 @@ impl UserService {
             Err(UserError::NotFound)?
         };
 
-        if Utc::now().signed_duration_since(user.updated_at) <= Duration::try_minutes(15).unwrap() {
-            Err(UserError::UpdateLimitExceeded)?
+        if let Some(last_update) = user.updated_at {
+            if Utc::now().signed_duration_since(last_update) > Duration::minutes(15) {
+                return Err(UserError::UpdateLimitExceeded)?;
+            }
         }
 
         let conn = self.db.pg.get().await?;
@@ -355,7 +362,7 @@ impl UserService {
             .prepare_cached(
                 r#"
                     UPDATE users
-                    SET password = $1
+                    SET password = $1, updated_at = CURRENT_TIMESTAMP
                     WHERE id = $2
                 "#,
             )
