@@ -13,13 +13,10 @@ mod states;
 mod structs;
 mod utils;
 
-use std::net::IpAddr;
-
 use cache::ServiceCache;
 use config::{initialize_tracing_subscriber, Database};
 use dashmap::DashMap;
 use dotenvy::{dotenv, var};
-use middlewares::VisitorData;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -50,8 +47,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     // TODO - Make an recycle function to delete all unused data
-    let login_limit_visitors: &'static DashMap<IpAddr, VisitorData> =
-        Box::leak(Box::new(DashMap::with_capacity(100_000)));
+    let login_limit_visitors: &'static _ = Box::leak(Box::new(DashMap::with_capacity(10_000)));
 
     web::server(move || {
         web::App::new()

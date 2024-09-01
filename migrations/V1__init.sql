@@ -1,8 +1,9 @@
+-- Enums
 CREATE TYPE user_provider AS ENUM ('Local', 'Google');
 CREATE TYPE user_role AS ENUM ('Regular', 'Premium', 'Admin');
 CREATE TYPE championship_category AS ENUM ('F1', 'F2');
 
---- Tables
+-- Tables
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -15,7 +16,7 @@ CREATE TABLE users (
     discord_id BIGINT UNIQUE,
     active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE championships (
@@ -25,7 +26,7 @@ CREATE TABLE championships (
     category championship_category NOT NULL DEFAULT 'F1',
     owner_id INTEGER NOT NULL REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE drivers (
@@ -33,7 +34,7 @@ CREATE TABLE drivers (
     discord_id BIGINT UNIQUE,
     nationality CHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE races (
@@ -42,7 +43,7 @@ CREATE TABLE races (
     name VARCHAR(100) NOT NULL,
     date TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE results (
@@ -54,9 +55,10 @@ CREATE TABLE results (
 );
 
 -- Link tables
-CREATE TABLE user_championships (
+CREATE TABLE championship_users (
     user_id INTEGER NOT NULL REFERENCES users(id),
     championship_id INTEGER NOT NULL REFERENCES championships(id),
+    team_id SMALLINT,
     PRIMARY KEY (user_id, championship_id)
 );
 
@@ -68,39 +70,38 @@ CREATE TABLE championship_drivers (
     PRIMARY KEY (championship_id, driver_steam_name)
 );
 
-CREATE TABLE engineer_assignments (
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    championship_id INTEGER NOT NULL REFERENCES championships(id),
-    team_id SMALLINT NOT NULL,
-    PRIMARY KEY (user_id, championship_id)
-);
+-- Optimized Indexes
+CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_championships_name ON championships (name);
+CREATE INDEX idx_races_championship ON races (championship_id);
+CREATE INDEX idx_results_race_session ON results (race_id, session_type);
 
--- Indexes
-CREATE INDEX ON users (email);
-CREATE INDEX ON championships (id, name);
-CREATE INDEX ON drivers (steam_name);
-CREATE INDEX ON engineer_assignments(user_id);
-CREATE INDEX ON engineer_assignments(championship_id, team_id);
-CREATE INDEX ON championship_drivers (championship_id, driver_steam_name);
-CREATE INDEX ON races (championship_id);
-CREATE INDEX ON results (race_id);
+-- Modify this index to be more specific if needed
+CREATE INDEX idx_championship_users_team ON championship_users (team_id)
+WHERE team_id IS NOT NULL;
 
-CREATE OR REPLACE FUNCTION update_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Evaluate the need for this index based on your query patterns
+CREATE INDEX idx_championship_drivers_team_number ON championship_drivers (championship_id, team_id, number);
 
-CREATE TRIGGER update_users_timestamp
-BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+-- Extended Statistics
+CREATE STATISTICS ext_stats_championship_drivers (dependencies)
+ON championship_id, team_id, driver_steam_name
+FROM championship_drivers;
 
-CREATE TRIGGER update_championship_timestamp
-BEFORE UPDATE ON championships
-FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+CREATE STATISTICS ext_stats_championship_users (dependencies)
+ON user_id, championship_id, team_id
+FROM championship_users;
 
-CREATE TRIGGER update_drivers_timestamp
-BEFORE UPDATE ON drivers
-FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+CREATE STATISTICS ext_stats_results (dependencies)
+ON race_id, session_type
+FROM results;
+
+CREATE STATISTICS ext_stats_races (dependencies)
+ON championship_id, date
+FROM races;
+
+-- After creating extended statistics, analyze the tables
+ANALYZE championship_drivers;
+ANALYZE championship_users;
+ANALYZE results;
+ANALYZE races;
