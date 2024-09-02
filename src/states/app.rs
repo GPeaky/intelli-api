@@ -2,7 +2,7 @@ use crate::{
     cache::ServiceCache,
     config::Database,
     error::AppResult,
-    repositories::{ChampionshipRepository, GoogleRepository, ServerRepository, UserRepository},
+    repositories::{ChampionshipRepository, DiscordRepository, ServerRepository, UserRepository},
     services::{ChampionshipService, EmailService, F1ServiceHandler, TokenService, UserService},
 };
 
@@ -15,7 +15,7 @@ pub struct AppState {
     pub championship_repo: &'static ChampionshipRepository,
     pub email_svc: EmailService,
     pub f1_svc: F1ServiceHandler,
-    pub google_repo: &'static GoogleRepository,
+    pub discord_repo: &'static DiscordRepository,
     pub server_repo: ServerRepository,
 }
 
@@ -24,7 +24,7 @@ impl AppState {
         // Repositories
         let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
         let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
-        let google_repo = Box::leak(Box::new(GoogleRepository::new()));
+        let discord_repo = Box::leak(Box::new(DiscordRepository::new()));
 
         // Services
         let token_svc = Box::leak(Box::from(TokenService::new(cache)));
@@ -43,7 +43,7 @@ impl AppState {
             championship_svc,
             championship_repo,
             email_svc: EmailService::new(),
-            google_repo,
+            discord_repo,
             server_repo: ServerRepository::new(db),
         })
     }

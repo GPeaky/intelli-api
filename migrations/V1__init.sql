@@ -1,5 +1,5 @@
 -- Enums
-CREATE TYPE user_provider AS ENUM ('Local', 'Google');
+CREATE TYPE user_provider AS ENUM ('Local', 'Discord');
 CREATE TYPE user_role AS ENUM ('Regular', 'Premium', 'Admin');
 CREATE TYPE championship_category AS ENUM ('F1', 'F2');
 

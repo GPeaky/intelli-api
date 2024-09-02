@@ -6,8 +6,8 @@ use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
 use crate::{
     handlers::{
         auth::{
-            callback, forgot_password, login, logout, refresh_token, register, reset_password,
-            verify_email,
+            discord_callback, forgot_password, login, logout, refresh_token, register,
+            reset_password, verify_email,
         },
         championships::{
             add_user, all_championships, create_championship, get_championship, handle_stream,
@@ -33,7 +33,7 @@ pub(crate) fn api_routes(cfg: &mut ServiceConfig, visitors: &'static DashMap<IpA
                     .route(get().to(logout))
                     .wrap(Authentication),
             )
-            .route("/google/callback", get().to(callback))
+            .route("/discord/callback", get().to(discord_callback))
             .route("/register", post().to(register))
             .route("/login", post().to(login))
             .route("/refresh", get().to(refresh_token))

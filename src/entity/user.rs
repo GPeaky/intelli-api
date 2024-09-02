@@ -15,8 +15,8 @@ pub type SharedUser = Arc<User>;
 pub enum Provider {
     #[postgres(name = "Local")]
     Local,
-    #[postgres(name = "Google")]
-    Google,
+    #[postgres(name = "Discord")]
+    Discord,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, FromSql, ToSql)]

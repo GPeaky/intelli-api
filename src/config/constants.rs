@@ -7,11 +7,9 @@ pub const BEARER_PREFIX: &str = "Bearer ";
 pub const LOGIN_RATE_LIMIT: u8 = 5;
 pub const LOGIN_RATE_LIMIT_DUR: Duration = Duration::from_secs(120);
 
-// Google auth
-pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
-#[allow(unused)]
-pub const GOOGLE_USER_INFO: &str = "https://www.googleapis.com/oauth2/v2/userinfo";
-pub const GOOGLE_REDIRECT: &str = "https://intellitelemetry.live/auth/google/callback";
+// Discord auth
+pub const DISCORD_API_URL: &str = "https://discord.com/api/v10";
+pub const DISCORD_REDIRECT: &str = "https://intellitelemetry.live/auth/discord/callback";
 
 // Email
 pub const MAX_CONCURRENT_EMAILS: usize = 10;
