@@ -113,9 +113,9 @@ impl F1ServiceHandler {
     }
 
     pub fn unsubscribe(&self, championship_id: &i32) {
-        if let Some(service) = self.services.get(championship_id) {
-            service.unsubscribe();
-        }
+        self.services
+            .get(championship_id)
+            .map(|service| service.unsubscribe());
     }
 
     /// Retrieves a list of all active services.
