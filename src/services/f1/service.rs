@@ -222,6 +222,7 @@ impl F1Service {
             return;
         }
 
+        // TODO: Activate this in production
         // #[cfg(not(debug_assertions))]
         // if session_data.network_game != 1 {
         //     error!("Not Online Game, closing service");

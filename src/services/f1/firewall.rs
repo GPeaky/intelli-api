@@ -76,49 +76,45 @@ impl FirewallService {
         }
 
         let mut rules = self.rules.write().await;
+        let mut rule = rules.get_mut(&id).ok_or(FirewallError::RuleNotFound)?;
 
-        match rules.get_mut(&id) {
-            None => Err(FirewallError::RuleNotFound)?,
-            Some(rule) => {
-                Self::nft_command(&[
-                    "delete",
-                    "rule",
-                    "inet",
-                    "nftables_svc",
-                    "allow",
-                    "handle",
-                    &rule.handle,
-                ])
-                .await?;
+        Self::nft_command(&[
+            "delete",
+            "rule",
+            "inet",
+            "nftables_svc",
+            "allow",
+            "handle",
+            &rule.handle,
+        ])
+        .await?;
 
-                Self::nft_command(&[
-                    "add",
-                    "rule",
-                    "inet",
-                    "nftables_svc",
-                    "allow",
-                    "ip",
-                    "saddr",
-                    &ip_address,
-                    "udp",
-                    "dport",
-                    &rule.port.to_string(),
-                    "accept",
-                ])
-                .await?;
+        Self::nft_command(&[
+            "add",
+            "rule",
+            "inet",
+            "nftables_svc",
+            "allow",
+            "ip",
+            "saddr",
+            &ip_address,
+            "udp",
+            "dport",
+            &rule.port.to_string(),
+            "accept",
+        ])
+        .await?;
 
-                let ruleset = Self::ruleset().await?;
-                let new_handle = Self::extract_handle_from_ruleset(
-                    &ruleset,
-                    &format!("ip saddr {} udp dport {} accept", ip_address, rule.port),
-                )?;
+        let ruleset = Self::ruleset().await?;
+        let new_handle = Self::extract_handle_from_ruleset(
+            &ruleset,
+            &format!("ip saddr {} udp dport {} accept", ip_address, rule.port),
+        )?;
 
-                rule.handle = new_handle;
-                rule.ip_address = Some(ip_address);
+        rule.handle = new_handle;
+        rule.ip_address = Some(ip_address);
 
-                Ok(())
-            }
-        }
+        Ok(())
     }
 
     pub async fn close(&self, id: i32) -> AppResult<()> {
@@ -127,28 +123,26 @@ impl FirewallService {
             return Ok(());
         }
 
-        let rules = self.rules.read().await;
+        if !self.rule_exists(id).await {
+            return Err(FirewallError::RuleNotFound)?;
+        };
 
-        match rules.get(&id) {
-            None => Err(FirewallError::RuleNotFound)?,
-            Some(rule) => {
-                Self::nft_command(&[
-                    "delete",
-                    "rule",
-                    "inet",
-                    "nftables_svc",
-                    "allow",
-                    "handle",
-                    &rule.handle,
-                ])
-                .await?;
+        let mut rules = self.rules.write().await;
+        let rule = rules.get(&id).unwrap();
 
-                drop(rules);
-                let mut rules = self.rules.write().await;
-                rules.remove(&id);
-                Ok(())
-            }
-        }
+        Self::nft_command(&[
+            "delete",
+            "rule",
+            "inet",
+            "nftables_svc",
+            "allow",
+            "handle",
+            &rule.handle,
+        ])
+        .await?;
+
+        rules.remove(&id);
+        Ok(())
     }
 
     #[allow(unused)]
@@ -185,12 +179,12 @@ impl FirewallService {
             .await
             .expect("Failed to execute process");
 
-        if output.status.success() {
-            let ruleset = String::from_utf8(output.stdout).unwrap_or_default();
-            Ok(ruleset)
-        } else {
+        if !output.status.success() {
             Err(FirewallError::ExecutionError)?
         }
+
+        let ruleset = String::from_utf8(output.stdout).unwrap_or_default();
+        Ok(ruleset)
     }
 
     #[inline(always)]
@@ -201,12 +195,12 @@ impl FirewallService {
             .await
             .expect("Failed to execute process");
 
-        if output.status.success() {
-            Ok(())
-        } else {
+        if !output.status.success() {
             error!("{:?}", std::str::from_utf8(&output.stderr));
             Err(FirewallError::ExecutionError)?
         }
+
+        Ok(())
     }
 
     #[inline(always)]
