@@ -8,7 +8,7 @@ impl ToProtoMessage for BPacketMotionData {
     type ProtoType = PacketMotionData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
-        let mut car_motion_data = Vec::with_capacity(22);
+        let mut car_motion_data = Vec::with_capacity(20);
 
         for motion_data in &self.car_motion_data {
             car_motion_data.push(CarMotionData {

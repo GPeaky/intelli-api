@@ -8,7 +8,7 @@ impl ToProtoMessage for BFinalClassificationData {
     type ProtoType = PacketFinalClassificationData;
 
     fn to_proto(&self) -> Option<Self::ProtoType> {
-        let mut classification_data = Vec::with_capacity(22);
+        let mut classification_data = Vec::with_capacity(20);
 
         for data in &self.classification_data {
             let mut tyre_stints_actual = Vec::with_capacity(8);
