@@ -43,11 +43,6 @@ pub struct User {
     pub role: Role,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discord_id: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub steam_name: Option<String>,
-    #[allow(unused)]
-    #[serde(skip_serializing)]
-    pub nationality: Option<i16>,
     #[serde(skip_serializing)]
     pub active: bool,
     pub created_at: DateTime<Utc>,
@@ -67,11 +62,9 @@ impl User {
             provider: row.get(5),
             role: row.get(6),
             discord_id: row.get(7),
-            steam_name: row.get(8),
-            nationality: row.get(9),
-            active: row.get(10),
-            created_at: row.get(11),
-            updated_at: row.get(12),
+            active: row.get(8),
+            created_at: row.get(9),
+            updated_at: row.get(10),
         }
     }
 
