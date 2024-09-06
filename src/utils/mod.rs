@@ -6,11 +6,20 @@ pub(crate) use ports::MachinePorts;
 use brotli::CompressorWriter;
 use ntex::util::Bytes;
 use postgres_types::ToSql;
+use serde::{Deserialize, Deserializer};
 use std::{io::Write, mem};
 
 mod ids_generator;
 mod password_hash;
 mod ports;
+
+pub fn deserialize_i64_from_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    s.parse().map_err(serde::de::Error::custom)
+}
 
 #[inline(always)]
 pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {

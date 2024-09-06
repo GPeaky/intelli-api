@@ -79,24 +79,25 @@ impl UserService {
         let conn = self.db.pg.get().await?;
 
         match &register.provider {
-            Some(provider) if provider == &Provider::Google => {
-                let create_user_stmt = conn
+            Some(provider) if provider == &Provider::Discord => {
+                let create_discord_user_stmt = conn
                     .prepare_cached(
                         r#"
-                            INSERT INTO users (id, email, username, avatar, provider, active)
-                            VALUES ($1,$2,$3,$4,$5, true)
+                            INSERT INTO users (id, email, username, avatar, provider, discord_id, active)
+                            VALUES ($1,$2,$3,$4,$5,$6, true)
                         "#,
                     )
                     .await?;
 
                 conn.execute(
-                    &create_user_stmt,
+                    &create_discord_user_stmt,
                     &[
                         &id,
                         &register.email,
                         &register.username,
                         &register.avatar,
                         provider,
+                        &register.discord_id,
                     ],
                 )
                 .await?;
@@ -108,7 +109,7 @@ impl UserService {
                     .hash_password(register.password.clone().unwrap())
                     .await?;
 
-                let create_google_user_stmt = conn
+                let create_user_stmt = conn
                     .prepare_cached(
                         r#"
                             INSERT INTO users (id, email, username, password, avatar, active)
@@ -118,7 +119,7 @@ impl UserService {
                     .await?;
 
                 conn.execute(
-                    &create_google_user_stmt,
+                    &create_user_stmt,
                     &[
                         &id,
                         &register.email,

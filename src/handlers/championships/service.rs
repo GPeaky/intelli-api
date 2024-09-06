@@ -46,7 +46,6 @@ pub async fn service_status(
         Err(CommonError::ValidationFailed)?
     }
 
-    // Only used to check if the championship requested exist
     if state.championship_repo.find(path.0).await?.is_none() {
         Err(ChampionshipError::NotFound)?
     }

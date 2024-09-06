@@ -2,7 +2,7 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
 
-use crate::entity::Provider;
+use crate::{entity::Provider, utils::deserialize_i64_from_string};
 
 // Authentication Structures
 #[derive(Deserialize, Validate)]
@@ -42,16 +42,19 @@ pub struct UserRegistrationData {
     pub avatar: Option<String>,
     #[garde(skip)]
     pub provider: Option<Provider>,
+    #[garde(skip)]
+    pub discord_id: Option<i64>,
 }
 
 impl UserRegistrationData {
-    pub fn from_google_user_info(google_info: GoogleUserInfo) -> Self {
-        Self {
-            username: google_info.name,
-            email: google_info.email,
+    pub fn from_discord_user_info(discord_info: DiscordUserInfo) -> Self {
+        UserRegistrationData {
+            avatar: discord_info.avatar_url(),
+            username: discord_info.username,
+            email: discord_info.email,
+            provider: Some(Provider::Discord),
             password: None,
-            avatar: Some(google_info.picture),
-            provider: Some(Provider::Google),
+            discord_id: Some(discord_info.id),
         }
     }
 }
@@ -88,39 +91,46 @@ pub struct ClientFingerprint {
     pub fingerprint: String,
 }
 
-// Google OAuth Structures
 #[derive(Deserialize)]
-pub struct GoogleAuthorizationCode {
+pub struct OauthAuthorizationCode {
     pub code: String,
 }
 
 #[derive(Debug, Serialize)]
-pub struct GoogleTokenExchangeRequest<'a> {
+pub struct DiscordExchangeRequest<'a> {
     pub client_id: &'a str,
     pub client_secret: &'a str,
-    pub code: &'a str,
     pub grant_type: &'a str,
+    pub code: &'a str,
     pub redirect_uri: &'a str,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct GoogleAuthTokens {
+pub struct DiscordAuth {
     pub access_token: String,
-    pub expires_in: i64,
-    pub id_token: String,
+    pub expires_in: u32,
+    pub refresh_token: String,
     pub scope: String,
     pub token_type: String,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-pub struct GoogleUserInfo {
+#[derive(Deserialize, Debug)]
+pub struct DiscordUserInfo {
+    #[serde(deserialize_with = "deserialize_i64_from_string")]
+    pub id: i64,
+    pub username: String,
     pub email: String,
-    pub family_name: Option<String>,
-    pub given_name: Option<String>,
-    pub id: String,
-    pub name: String,
-    pub picture: String,
-    pub verified_email: bool,
+    pub avatar: Option<String>,
+}
+
+impl DiscordUserInfo {
+    pub fn avatar_url(&self) -> Option<String> {
+        self.avatar.as_ref().map(|avatar| {
+            format!(
+                "https://cdn.discordapp.com/avatars/{}/{}.png",
+                self.id, avatar
+            )
+        })
+    }
 }

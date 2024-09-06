@@ -26,11 +26,7 @@ impl ChampionshipCache {
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<Arc<Championship>> {
-        if let Some(id) = self.name_to_id.get(name) {
-            return self.get(id);
-        }
-
-        None
+        self.name_to_id.get(name).and_then(|id| self.get(id))
     }
 
     pub fn set_user_championships(&self, user_id: i32, championships: Vec<Arc<Championship>>) {

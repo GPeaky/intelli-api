@@ -86,15 +86,14 @@ impl F1Service {
     }
 
     pub async fn initialize(&mut self, port: i32, championship_id: i32) -> AppResult<()> {
-        self.port = port;
-        self.championship_id = championship_id;
-
         let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
         };
 
+        self.port = port;
         self.socket = socket;
+        self.championship_id = championship_id;
 
         self.firewall
             .open(self.championship_id, self.port as u16)
@@ -222,6 +221,7 @@ impl F1Service {
             return;
         }
 
+        // TODO: Activate this in production
         // #[cfg(not(debug_assertions))]
         // if session_data.network_game != 1 {
         //     error!("Not Online Game, closing service");

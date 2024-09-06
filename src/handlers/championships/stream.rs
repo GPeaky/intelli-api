@@ -48,9 +48,8 @@ pub async fn handle_stream(
         Err(F1ServiceError::NotActive)?
     };
 
-    let stream = BroadcastStream::new(rx);
-    let cleanup_stream = CleanupStream {
-        inner: stream,
+    let stream = CleanupStream {
+        inner: BroadcastStream::new(rx),
         state: state.clone(),
         championship_id: path.0,
     };
@@ -59,11 +58,11 @@ pub async fn handle_stream(
     response.content_type(HeaderValue::from_static("application/octet-stream"));
 
     match cached_data {
-        None => Ok(response.streaming(cleanup_stream)),
+        None => Ok(response.streaming(stream)),
 
         Some(data) => {
             let cache_steam = tokio_stream::once(Ok(data));
-            let combined_stream = cache_steam.chain(cleanup_stream);
+            let combined_stream = cache_steam.chain(stream);
 
             Ok(response.streaming(combined_stream))
         }

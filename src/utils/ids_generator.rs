@@ -100,11 +100,19 @@ impl IdsGenerator {
 
         rng.fill(byte_buf).expect("Failed to generate random byte");
 
+        // Check if we need to increase the capacity of the used IDs bitset
+        {
+            let current_capacity = data.used_ids.capacity();
+            let desired_capacity = data.used_ids.len() + IDS_POOL_SIZE;
+
+            if current_capacity < desired_capacity {
+                data.used_ids
+                    .reserve_len(desired_capacity - data.used_ids.len());
+            }
+        }
+
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);
-
-        let new_capacity = data.used_ids.capacity() + buf.len();
-        data.used_ids.reserve_len(new_capacity);
 
         for chunk in buf.chunks_exact(16) {
             let nums = i32x16::from_slice(chunk).saturating_abs();

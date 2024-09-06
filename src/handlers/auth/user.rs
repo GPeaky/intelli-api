@@ -72,7 +72,8 @@ pub(crate) async fn login(
     }
 
     if user.provider != Provider::Local {
-        return Err(UserError::GoogleLogin)?;
+        // TODO: Change the error type to a generic one for discord auth
+        return Err(UserError::DiscordAuth)?;
     }
 
     if !state
