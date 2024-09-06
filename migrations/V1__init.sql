@@ -2,7 +2,7 @@
 CREATE TYPE user_provider AS ENUM ('Local', 'Discord');
 CREATE TYPE user_role AS ENUM ('User', 'Premium', 'Admin');
 CREATE TYPE championship_category AS ENUM ('F1', 'F2');
-CREATE TYPE championship_role AS ENUM ('Driver', 'Engineer', 'Admin');
+CREATE TYPE championship_role AS ENUM ('Visitor', 'Engineer', 'Admin');
 
 -- Tables
 CREATE TABLE users (
@@ -59,9 +59,8 @@ CREATE TABLE results (
 CREATE TABLE championship_users (
     user_id INTEGER NOT NULL REFERENCES users(id),
     championship_id INTEGER NOT NULL REFERENCES championships(id),
-    role championship_role NOT NULL DEFAULT 'Driver',
+    role championship_role NOT NULL DEFAULT 'Visitor',
     team_id SMALLINT,
-    number SMALLINT,
     PRIMARY KEY (user_id, championship_id, role)
 );
 

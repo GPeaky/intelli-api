@@ -11,8 +11,8 @@ use crate::error::AppResult;
 #[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_role")]
 pub enum ChampionshipRole {
-    #[postgres(name = "Driver")]
-    Driver,
+    #[postgres(name = "Visitor")]
+    Visitor,
     #[postgres(name = "Engineer")]
     Engineer,
     #[postgres(name = "Admin")]
