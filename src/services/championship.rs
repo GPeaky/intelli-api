@@ -129,7 +129,7 @@ impl ChampionshipService {
 
             if let Err(e) = result {
                 self.machine_ports.return_port(port);
-                return Err(e.into());
+                return Err(e)?;
             }
 
             conn.execute(&relate_user_with_championship_stmt, &[&user_id, &id])

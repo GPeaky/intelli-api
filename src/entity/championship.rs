@@ -9,6 +9,17 @@ use tokio_stream::StreamExt;
 use crate::error::AppResult;
 
 #[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
+#[postgres(name = "championship_role")]
+pub enum ChampionshipRole {
+    #[postgres(name = "Driver")]
+    Driver,
+    #[postgres(name = "Engineer")]
+    Engineer,
+    #[postgres(name = "Admin")]
+    Admin,
+}
+
+#[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
 pub enum Category {
     #[postgres(name = "F1")]
@@ -25,6 +36,7 @@ pub struct Championship {
     pub category: Category,
     pub owner_id: i32,
     pub created_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
 }
 

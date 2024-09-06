@@ -22,8 +22,8 @@ pub enum Provider {
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, FromSql, ToSql)]
 #[postgres(name = "user_role")]
 pub enum Role {
-    #[postgres(name = "Regular")]
-    Regular,
+    #[postgres(name = "User")]
+    User,
     #[postgres(name = "Premium")]
     Premium,
     #[postgres(name = "Admin")]
@@ -41,11 +41,17 @@ pub struct User {
     #[serde(skip_serializing)]
     pub provider: Provider,
     pub role: Role,
-    pub engineer: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub discord_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub steam_name: Option<String>,
+    #[allow(unused)]
+    #[serde(skip_serializing)]
+    pub nationality: Option<i16>,
     #[serde(skip_serializing)]
     pub active: bool,
     pub created_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
 }
 
@@ -60,11 +66,12 @@ impl User {
             avatar: row.get(4),
             provider: row.get(5),
             role: row.get(6),
-            engineer: row.get(7),
-            discord_id: row.get(8),
-            active: row.get(9),
-            created_at: row.get(10),
-            updated_at: row.get(11),
+            discord_id: row.get(7),
+            steam_name: row.get(8),
+            nationality: row.get(9),
+            active: row.get(10),
+            created_at: row.get(11),
+            updated_at: row.get(12),
         }
     }
 
