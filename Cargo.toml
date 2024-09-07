@@ -11,10 +11,7 @@ repository = "https://github.com/Intelli-Telemetry/api"
 prost-build = "0.13"
 
 [dependencies]
-regex = "1"
-ahash = "0.8"
 ring = "0.17"
-dashmap = "6"
 prost = "0.13"
 tracing = "0.1"
 bit-set = "0.8"
@@ -29,6 +26,7 @@ quick_cache = "0.6"
 postgres-derive = "0.4"
 deadpool-postgres = "0.14"
 tokio = { version = "1", features = ["full"] }
+regex = { version = "1", features = ["unstable"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 openssl = { version = "0.10", features = ["v110"] }
@@ -36,7 +34,9 @@ tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
 ntex = { version = "2", features = ["tokio", "openssl"] }
+ahash = { version = "0.8", features = ["compile-time-rng"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
+dashmap = { version = "6", features = ["inline", "raw-api"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
@@ -48,6 +48,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "tokio1-rustls-tls",
     "smtp-transport",
     "builder",
+    "pool",
 ] }
 brotli = { version = "6", features = [
     "disable-timer",

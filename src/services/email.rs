@@ -2,11 +2,10 @@ use std::str::FromStr;
 
 use lettre::{
     message::{header::ContentType, Mailbox, MessageBuilder},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{authentication::Credentials, PoolConfig},
     Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
 use sailfish::TemplateOnce;
-use tokio::sync::Semaphore;
 use tracing::error;
 
 use crate::{config::constants::MAX_CONCURRENT_EMAILS, entity::SharedUser, error::AppResult};
@@ -18,10 +17,7 @@ use crate::{config::constants::MAX_CONCURRENT_EMAILS, entity::SharedUser, error:
 /// operations do not block the main execution thread. The service is designed to handle
 /// potentially high volumes of email sending tasks with resilience.
 #[derive(Clone)]
-pub struct EmailService(
-    &'static AsyncSmtpTransport<Tokio1Executor>,
-    &'static Semaphore,
-);
+pub struct EmailService(&'static AsyncSmtpTransport<Tokio1Executor>);
 
 impl EmailService {
     /// Constructs a new `EmailService`.
@@ -49,12 +45,11 @@ impl EmailService {
                 dotenvy::var("EMAIL_NAME").unwrap(),
                 dotenvy::var("EMAIL_PASS").unwrap(),
             ))
+            .pool_config(PoolConfig::new().max_size(MAX_CONCURRENT_EMAILS as u32))
             .build(),
         ));
 
-        let semaphore = Box::leak(Box::new(Semaphore::new(MAX_CONCURRENT_EMAILS)));
-
-        Self(mailer, semaphore)
+        Self(mailer)
     }
 
     /// Sends an email to a specified recipient.
@@ -91,8 +86,6 @@ impl EmailService {
     where
         T: TemplateOnce,
     {
-        let permit = self.1.acquire().await.unwrap();
-
         let message = MessageBuilder::new()
             .from(Mailbox::new(
                 Some(String::from("Intelli Telemetry")),
@@ -110,13 +103,9 @@ impl EmailService {
         let mailer = self.0;
 
         ntex::rt::spawn(async move {
-            let res = mailer.send(message).await;
-
-            if let Err(e) = res {
+            if let Err(e) = mailer.send(message).await {
                 error!("Error sending email: {}", e);
             }
-
-            drop(permit);
         });
 
         Ok(())
