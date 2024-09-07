@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 
+/// Represents a driver in the championship
 #[allow(unused)]
 pub struct Driver {
     id: i32,
@@ -12,6 +13,7 @@ pub struct Driver {
 }
 
 impl Driver {
+    /// Creates a Driver from a database row
     #[inline]
     #[allow(unused)]
     pub fn from_row(row: &Row) -> Self {

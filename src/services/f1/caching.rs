@@ -14,7 +14,7 @@ use crate::{
 
 struct CachedData(Bytes, Instant);
 
-// Try to remove RwLock
+/// Manages caching of various packet types for F1 telemetry data.
 pub struct PacketCaching {
     car_motion: Option<ProstBytes>,
     session_data: Option<ProstBytes>,
@@ -25,6 +25,7 @@ pub struct PacketCaching {
 }
 
 impl PacketCaching {
+    /// Creates a new PacketCaching instance.
     pub fn new() -> Self {
         Self {
             car_motion: None,
@@ -36,6 +37,10 @@ impl PacketCaching {
         }
     }
 
+    /// Retrieves all cached data, compressing it if necessary.
+    ///
+    /// # Returns
+    /// Compressed bytes of all cached data, or None if cache is empty or compression fails.
     pub async fn get(&self) -> Option<Bytes> {
         {
             let cache_read = self.cache.read();
@@ -91,6 +96,12 @@ impl PacketCaching {
         }
     }
 
+    /// Saves a packet to the appropriate cache based on its type.
+    ///
+    /// # Arguments
+    /// - `packet_type`: Type of the packet being saved.
+    /// - `payload`: Raw data of the packet.
+    /// - `extra_data`: Additional data specific to certain packet types.
     pub fn save(
         &mut self,
         packet_type: PacketType,
@@ -128,6 +139,10 @@ impl PacketCaching {
         }
     }
 
+    /// Calculates the total number of headers across all packet types.
+    ///
+    /// # Returns
+    /// Total count of headers in the cache.
     fn total_headers(&self) -> usize {
         let base_count = 3;
         let history_estimate = self.history_data.len();
@@ -136,6 +151,7 @@ impl PacketCaching {
         base_count + history_estimate + events_estimate
     }
 
+    // Various getter methods for different packet types
     #[inline(always)]
     fn get_car_motion(&self) -> Option<PacketHeader> {
         self.car_motion
@@ -199,6 +215,7 @@ impl PacketCaching {
         Some(vec)
     }
 
+    // Various setter methods for different packet types
     #[inline(always)]
     fn set_car_motion(&mut self, payload: &[u8]) {
         let mut data = ProstBytesMut::with_capacity(payload.len());

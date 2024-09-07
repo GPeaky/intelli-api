@@ -14,33 +14,26 @@ use crate::{
 
 use super::TokenService;
 
-/// A service for managing user accounts.
-///
-/// This service provides functionality to create, update, delete, and manage the state of user
-/// accounts. It integrates db operations with caching for improved performance and
-/// efficiency, leveraging both a direct db connection and a Redis cache.
+/// Manages user account operations, integrating database operations with caching.
 pub struct UserService {
-    /// Redis cache for temporarily storing user data.
     cache: &'static ServiceCache,
-    /// Database connection for persistent storage.
     db: &'static Database,
-    /// Repository for user-specific db operations.
     user_repo: &'static UserRepository,
-    /// Service for managing authentication tokens.
     token_svc: &'static TokenService,
-    /// Service for generating unique IDs.
     ids_generator: IdsGenerator,
 }
 
 impl UserService {
-    /// Constructs a new instance of the user service.
+    /// Constructs a new UserService instance.
     ///
     /// # Arguments
-    /// - `db`: A reference to the db connection.
-    /// - `cache`: A reference to the Redis cache.
+    /// - `db`: Database connection.
+    /// - `cache`: Redis cache.
+    /// - `user_repo`: User repository for database operations.
+    /// - `token_svc`: Token service for authentication.
     ///
     /// # Returns
-    /// A new `UserService` instance.
+    /// A new UserService instance.
     pub async fn new(
         db: &'static Database,
         cache: &'static ServiceCache,
@@ -64,10 +57,10 @@ impl UserService {
     /// Creates a new user account.
     ///
     /// # Arguments
-    /// - `register`: Data transfer object containing user registration details.
+    /// - `register`: User registration data.
     ///
     /// # Returns
-    /// The ID of the newly created user if successful.
+    /// The ID of the newly created user.
     pub async fn create(&self, register: &UserRegistrationData) -> AppResult<i32> {
         let user_exists = self.user_repo.user_exists(&register.email).await?;
 
@@ -141,11 +134,11 @@ impl UserService {
     /// Updates an existing user account.
     ///
     /// # Arguments
-    /// - `user`: Current state of the user to be updated.
-    /// - `form`: Data transfer object containing updated user details.
+    /// - `user`: Current user data.
+    /// - `form`: Updated user data.
     ///
     /// # Returns
-    /// An empty result indicating success or failure.
+    /// Result indicating success or failure.
     pub async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         if let Some(last_update) = user.updated_at {
             if Utc::now().signed_duration_since(last_update) > Duration::days(7) {
@@ -190,13 +183,13 @@ impl UserService {
         Ok(())
     }
 
-    /// Deletes a user account by ID.
+    /// Deletes a user account.
     ///
     /// # Arguments
-    /// - `id`: The ID of the user to delete.
+    /// - `id`: User ID to delete.
     ///
     /// # Returns
-    /// An empty result indicating success or failure.
+    /// Result indicating success or failure.
     // TODO: Create a column "deleted" in users table and update it instead of delete
     pub async fn delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
@@ -230,14 +223,14 @@ impl UserService {
         Ok(())
     }
 
-    /// Resets the password for a user account using a token.
+    /// Resets user password using a token.
     ///
     /// # Arguments
-    /// - `token`: A token validating the reset request.
-    /// - `password`: The new password.
+    /// - `token`: Password reset token.
+    /// - `password`: New password.
     ///
     /// # Returns
-    /// The ID of the user whose password was reset if successful.
+    /// ID of the user whose password was reset.
     pub async fn reset_password_with_token(
         &self,
         token: String,
@@ -263,10 +256,10 @@ impl UserService {
     /// Activates a user account.
     ///
     /// # Arguments
-    /// - `id`: The ID of the user to activate.
+    /// - `id`: User ID to activate.
     ///
     /// # Returns
-    /// An empty result indicating success or failure.
+    /// Result indicating success or failure.
     pub async fn activate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -291,10 +284,10 @@ impl UserService {
     /// Activates a user account using a token.
     ///
     /// # Arguments
-    /// - `token`: A token validating the activation request.
+    /// - `token`: Activation token.
     ///
     /// # Returns
-    /// The ID of the user activated if successful.
+    /// ID of the activated user.
     pub async fn activate_with_token(&self, token: String) -> AppResult<i32> {
         self.cache
             .token
@@ -316,10 +309,10 @@ impl UserService {
     /// Deactivates a user account.
     ///
     /// # Arguments
-    /// - `id`: The ID of the user to deactivate.
+    /// - `id`: User ID to deactivate.
     ///
     /// # Returns
-    /// An empty result indicating success or failure.
+    /// Result indicating success or failure.
     pub async fn deactivate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
         let deactivate_user_stmt = conn
@@ -339,14 +332,14 @@ impl UserService {
         Ok(())
     }
 
-    /// Resets the password for a user account.
+    /// Resets a user's password.
     ///
     /// # Arguments
-    /// - `id`: The ID of the user whose password is to be reset.
-    /// - `password`: The new password.
+    /// - `id`: User ID.
+    /// - `password`: New password.
     ///
     /// # Returns
-    /// An empty result indicating success or failure.
+    /// Result indicating success or failure.
     async fn reset_password(&self, id: i32, password: String) -> AppResult<()> {
         let Some(user) = self.user_repo.find(id).await? else {
             Err(UserError::NotFound)?

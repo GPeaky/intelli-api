@@ -1,41 +1,32 @@
 use crate::{config::Database, structs::ConnectionPoolStatus};
 
-/// Manages access to server resources, including db connections.
-///
-/// This repository provides an interface for querying the status of various db pools
-/// within the server, such as Redis and PostgreSQL. It's designed to facilitate the monitoring
-/// and management of db connections and their operational status.
+/// Manages access to server resources, primarily database connections.
 #[derive(Clone)]
 pub struct ServerRepository {
-    /// The db connection(s) managed by this repository.
     db: &'static Database,
 }
 
 impl ServerRepository {
-    /// Constructs a new `ServerRepository` instance.
-    ///
-    /// Initializes the repository with a given db connection. This allows the repository
-    /// to perform operations related to the db, such as checking the status of connection pools.
+    /// Creates a new ServerRepository instance.
     ///
     /// # Arguments
-    ///
-    /// * `db` - A reference to an established `Database` connection.
+    /// - `db`: A reference to the Database connection.
     ///
     /// # Returns
-    ///
-    /// A new instance of `ServerRepository`.
+    /// A new ServerRepository instance.
     pub fn new(db: &'static Database) -> Self {
         Self { db }
     }
 
-    /// Retrieves the status of active db pools.
+    /// Retrieves the status of active database pools.
     ///
-    /// Queries the status of both Redis and PostgreSQL connection pools managed by the server.
-    /// This method can be used to monitor the health and availability of the db resources.
+    /// This method queries the status of the PostgreSQL connection pool
+    /// managed by the server. It can be used to monitor the health and
+    /// availability of the database resources.
     ///
     /// # Returns
-    ///
-    /// A `DatabasesStatus` struct containing the status information for the Redis and PostgreSQL pools.
+    /// A ConnectionPoolStatus struct containing the status information
+    /// for the PostgreSQL pool.
     pub fn active_pools(&self) -> ConnectionPoolStatus {
         let pg_pool = self.db.pg.status();
         pg_pool.into()

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 
+/// Represents a race in a championship
 #[allow(unused)]
 pub struct Race {
     id: i32,
@@ -12,6 +13,7 @@ pub struct Race {
 }
 
 impl Race {
+    /// Creates a Race from a database row
     #[inline]
     #[allow(unused)]
     pub fn from_row(row: &Row) -> Self {

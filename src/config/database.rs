@@ -10,28 +10,16 @@ use tracing::info;
 
 embed_migrations!("migrations");
 
-/// Represents the application's database connections, encapsulating both Redis and Postgres pools.
+/// Encapsulates Postgres database connections.
 pub struct Database {
-    /// The PostgresSQL connection pool for database operations.
     pub pg: Pool,
 }
 
 impl Database {
-    /// Initializes and returns a new `Database` instance by setting up connection to Postgres databases.
-    ///
-    /// It reads database URL from the environment, creates connection pools for Postgres,
-    /// and performs database migrations.
+    /// Initializes a new `Database` instance.
     ///
     /// # Panics
-    /// This function will panic if:
-    /// - The environment variable `DATABASE_URL` is not set.
-    /// - It fails to create the connection pools.
-    /// - It fails to run database migrations.
-    ///
-    /// # Examples
-    /// ```
-    /// let database = Database::new().await;
-    /// ```
+    /// If DATABASE_URL is not set, pool creation fails, or migrations fail.
     pub async fn new() -> Self {
         info!("Connecting Databases...");
 
@@ -45,19 +33,14 @@ impl Database {
             Pool::builder(manager).max_size(200).build().unwrap()
         };
 
-        Self::migrations(&pg).await;
+        Self::run_migrations(&pg).await;
 
         Self { pg }
     }
 
-    /// Executes database migrations for the Postgres database.
-    ///
-    /// This is an internal function called during the initialization of the `Database` struct.
-    ///
-    /// # Panics
-    /// This function will panic if it fails to acquire a connection from the pool or to run the migrations.
+    /// Runs database migrations.
     #[inline]
-    async fn migrations(pg: &Pool) {
+    async fn run_migrations(pg: &Pool) {
         let mut conn = pg.get().await.unwrap();
         let client = conn.deref_mut().deref_mut();
         migrations::runner().run_async(client).await.unwrap();

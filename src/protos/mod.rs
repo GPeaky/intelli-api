@@ -12,26 +12,22 @@ pub(crate) mod participants;
 pub(crate) mod session_data;
 pub(crate) mod session_history;
 
-/// Converts Rust data structures to protobuf messages.
-///
-/// This trait defines how to transform a Rust type into its corresponding protobuf message for serialization.
+/// Converts Rust types to protobuf messages.
 pub trait ToProtoMessage: Sized {
-    /// The associated protobuf message type.
+    /// Associated protobuf message type.
     type ProtoType: Message;
 
-    /// Converts the Rust type to its protobuf message equivalent.
+    /// Converts to protobuf message.
     fn to_proto(&self) -> Option<Self::ProtoType>;
 
-    /// Converts the type to a `PacketHeader` containing the serialized protobuf message.
+    /// Wraps protobuf message in PacketHeader.
     ///
-    /// Uses `to_proto` for conversion, then wraps the serialized message in a `PacketHeader` for transmission.
-    ///
-    /// # Parameters
-    /// - `packet_type`: The packet type used in the `PacketHeader`.
+    /// # Args
+    /// - `packet_type`: PacketType for header
     ///
     /// # Returns
-    /// A `PacketHeader` with the serialized protobuf message, or `None` if the data is not important.
-    fn convert(&self, packet_type: PacketType) -> Option<PacketHeader> {
+    /// PacketHeader with serialized message, or None.
+    fn to_packet_header(&self, packet_type: PacketType) -> Option<PacketHeader> {
         let proto_data = self.to_proto()?;
         let mut payload = ProstBytesMut::with_capacity(proto_data.encoded_len());
 

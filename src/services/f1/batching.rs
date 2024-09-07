@@ -17,17 +17,7 @@ use tracing::warn;
 
 use super::caching::PacketCaching;
 
-/// `PacketBatching` collects packets over 700ms, batches them together, and sends them as a single packet.
-/// It also caches incoming packets for potential future use.
-///
-/// # Fields
-///
-/// - `shutdown`: Channel to signal the shutdown of the batching process.
-/// - `cache`: Cache for additional packet storage.
-///
-/// # Functionality
-///
-/// Optimizes packet handling by batching multiple packets together, reducing overhead.
+/// Collects packets over a specified interval, batches them, and sends them as a single packet.
 pub struct PacketBatching {
     packets: Arc<Mutex<Vec<PacketHeader>>>,
     cache: Arc<RwLock<PacketCaching>>,
@@ -35,19 +25,14 @@ pub struct PacketBatching {
 }
 
 impl PacketBatching {
-    /// Creates a new `PacketBatching` instance.
+    /// Creates a new PacketBatching instance.
     ///
-    /// Initiates a background task that batches and sends data every 700ms, stopping
-    /// when a shutdown signal is received.
-    ///
-    /// # Parameters
-    ///
+    /// # Arguments
     /// - `tx`: Channel for sending batched data.
     /// - `cache`: Cache for storing packets.
     ///
     /// # Returns
-    ///
-    /// An instance ready to handle packet batching.
+    /// A new PacketBatching instance.
     pub fn new(tx: Sender<Bytes>, cache: Arc<RwLock<PacketCaching>>) -> Self {
         let (otx, mut orx) = oneshot::channel::<()>();
         let packets = Arc::from(Mutex::from(Vec::with_capacity(BATCHING_CAPACITY)));
@@ -79,20 +64,18 @@ impl PacketBatching {
         instance
     }
 
-    /// Adds a `PacketHeader` to the buffer and caches it.
+    /// Adds a PacketHeader to the buffer and caches it.
     ///
-    /// # Parameters
-    ///
+    /// # Arguments
     /// - `packet`: Packet to be added.
     #[inline(always)]
     pub fn push(&mut self, packet: PacketHeader) {
         self.push_with_optional_parameter(packet, None)
     }
 
-    /// Adds a `PacketHeader` to the buffer with an optional parameter, and caches it.
+    /// Adds a PacketHeader to the buffer with optional extra data, and caches it.
     ///
-    /// # Parameters
-    ///
+    /// # Arguments
     /// - `packet`: Packet to be added.
     /// - `extra_data`: Optional additional data for specific packet types.
     pub fn push_with_optional_parameter(
@@ -112,14 +95,12 @@ impl PacketBatching {
 
     /// Sends batched packets from the buffer asynchronously.
     ///
-    /// # Parameters
-    ///
-    /// - `buf`: Mutable reference to the packet buffer.
+    /// # Arguments
+    /// - `packets`: Mutable reference to the packet buffer.
     /// - `tx`: Channel for sending the batched data.
     ///
     /// # Returns
-    ///
-    /// `AppResult<()>` indicating success or failure.
+    /// Result indicating success or failure.
     #[inline(always)]
     async fn send_data(
         packets: &Arc<Mutex<Vec<PacketHeader>>>,

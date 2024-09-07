@@ -6,6 +6,7 @@ use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
 
+/// Represents a single firewall rule.
 struct FirewallRule {
     port: u16,
     handle: String,
@@ -13,6 +14,11 @@ struct FirewallRule {
 }
 
 impl FirewallRule {
+    /// Creates a new FirewallRule.
+    ///
+    /// # Arguments
+    /// - `port`: The port number for the rule.
+    /// - `handle`: A unique identifier for the rule.
     pub fn new(port: u16, handle: String) -> Self {
         FirewallRule {
             port,
@@ -22,18 +28,28 @@ impl FirewallRule {
     }
 }
 
+/// Manages firewall rules for the application.
 pub struct FirewallService {
     rules: Arc<RwLock<AHashMap<i32, FirewallRule>>>,
 }
 
 // TODO: this must check on initialization if the server has de firewall service installed and active to use it
 impl FirewallService {
+    /// Creates a new FirewallService instance.
     pub fn new() -> Self {
         Self {
             rules: Arc::from(RwLock::from(AHashMap::with_capacity(10))),
         }
     }
 
+    /// Opens a port in the firewall.
+    ///
+    /// # Arguments
+    /// - `id`: Unique identifier for the rule.
+    /// - `port`: Port number to open.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     #[allow(unused)]
     pub async fn open(&self, id: i32, port: u16) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
@@ -68,6 +84,14 @@ impl FirewallService {
         Ok(())
     }
 
+    /// Restricts an open port to a specific IP address.
+    ///
+    /// # Arguments
+    /// - `id`: Unique identifier for the rule.
+    /// - `ip_address`: IP address to restrict the rule to.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     #[allow(unused)]
     pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
@@ -117,6 +141,13 @@ impl FirewallService {
         Ok(())
     }
 
+    /// Closes a previously opened port.
+    ///
+    /// # Arguments
+    /// - `id`: Unique identifier for the rule to close.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     pub async fn close(&self, id: i32) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
@@ -145,6 +176,10 @@ impl FirewallService {
         Ok(())
     }
 
+    /// Closes all open ports managed by this service.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     #[allow(unused)]
     // TODO: Use it when the server instance goes down to clear all the firewall rules seated
     pub async fn close_all(&self) -> AppResult<()> {
@@ -165,12 +200,23 @@ impl FirewallService {
         Ok(())
     }
 
+    /// Checks if a rule with the given ID exists.
+    ///
+    /// # Arguments
+    /// - `id`: Unique identifier for the rule.
+    ///
+    /// # Returns
+    /// Boolean indicating whether the rule exists.
     #[inline(always)]
     async fn rule_exists(&self, id: i32) -> bool {
         let rules = self.rules.read().await;
         rules.contains_key(&id)
     }
 
+    /// Retrieves the current firewall ruleset.
+    ///
+    /// # Returns
+    /// String representation of the current ruleset or an error.
     #[inline(always)]
     async fn ruleset() -> AppResult<String> {
         let output = Command::new("nft")
@@ -187,6 +233,13 @@ impl FirewallService {
         Ok(ruleset)
     }
 
+    /// Executes an nft command with the given arguments.
+    ///
+    /// # Arguments
+    /// - `args`: Slice of command arguments.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     #[inline(always)]
     async fn nft_command(args: &[&str]) -> AppResult<()> {
         let output = Command::new("nft")
@@ -203,6 +256,14 @@ impl FirewallService {
         Ok(())
     }
 
+    /// Extracts the handle from a ruleset for a given search pattern.
+    ///
+    /// # Arguments
+    /// - `ruleset`: String representation of the current ruleset.
+    /// - `search_pattern`: Pattern to search for in the ruleset.
+    ///
+    /// # Returns
+    /// The extracted handle as a string or an error.
     #[inline(always)]
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
         let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));

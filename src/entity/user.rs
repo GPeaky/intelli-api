@@ -8,8 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, AppResult, CommonError};
 
+/// Shared reference to a User
 pub type SharedUser = Arc<User>;
 
+/// User authentication provider
 #[derive(Debug, Serialize, Deserialize, PartialEq, FromSql, ToSql)]
 #[postgres(name = "user_provider")]
 pub enum Provider {
@@ -19,6 +21,7 @@ pub enum Provider {
     Discord,
 }
 
+/// User role in the system
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, FromSql, ToSql)]
 #[postgres(name = "user_role")]
 pub enum Role {
@@ -30,6 +33,7 @@ pub enum Role {
     Admin,
 }
 
+/// Represents a user in the system
 #[derive(Debug, Serialize)]
 pub struct User {
     pub id: i32,
@@ -51,6 +55,7 @@ pub struct User {
 }
 
 impl User {
+    /// Creates a User from a database row
     #[inline]
     pub fn from_row(row: &Row) -> Self {
         User {
@@ -68,18 +73,21 @@ impl User {
         }
     }
 
+    /// Creates an Arc<User> from a database row
     #[inline]
     pub fn from_row_arc(row: &Row) -> Arc<Self> {
         Arc::new(User::from_row(row))
     }
 }
 
+/// Extension trait for extracting user information from HttpRequest
 pub trait UserExtension {
     fn user(&self) -> AppResult<SharedUser>;
     fn user_id(&self) -> AppResult<i32>;
 }
 
 impl UserExtension for HttpRequest {
+    /// Retrieves the SharedUser from the request extensions
     #[inline]
     fn user(&self) -> AppResult<SharedUser> {
         self.extensions()
@@ -88,6 +96,7 @@ impl UserExtension for HttpRequest {
             .ok_or(AppError::Common(CommonError::InternalServerError))
     }
 
+    /// Retrieves the user ID from the request extensions
     #[inline]
     fn user_id(&self) -> AppResult<i32> {
         self.extensions()

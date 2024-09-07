@@ -7,6 +7,7 @@ use crate::{
     structs::{DiscordAuth, DiscordExchangeRequest, DiscordUserInfo},
 };
 
+/// Repository for interacting with the Discord API.
 #[derive(Clone)]
 pub struct DiscordRepository {
     client_id: &'static str,
@@ -16,6 +17,15 @@ pub struct DiscordRepository {
 }
 
 impl DiscordRepository {
+    /// Creates a new DiscordRepository instance.
+    ///
+    /// Initializes the repository with Discord API credentials from environment variables.
+    ///
+    /// # Panics
+    /// Panics if any of the required environment variables are missing.
+    ///
+    /// # Returns
+    /// A new DiscordRepository instance.
     pub fn new() -> Self {
         DiscordRepository {
             client_id: var("DISCORD_CLIENT_ID")
@@ -34,6 +44,13 @@ impl DiscordRepository {
         }
     }
 
+    /// Retrieves Discord account information for a user.
+    ///
+    /// # Arguments
+    /// - `code`: The authorization code received from Discord OAuth flow.
+    ///
+    /// # Returns
+    /// Discord user information wrapped in AppResult.
     pub async fn account_info(&self, code: &str) -> AppResult<DiscordUserInfo> {
         let discord_exchange = DiscordExchangeRequest {
             client_id: self.client_id,

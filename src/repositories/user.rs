@@ -8,11 +8,7 @@ use crate::{
     utils::{slice_iter, PasswordHasher},
 };
 
-/// A repository for managing user data within a db and cache.
-///
-/// This struct provides an interface to interact with user records, offering capabilities
-/// to find, verify, and manage user information. It integrates both a db connection
-/// and a caching layer to optimize data retrieval and reduce db load.
+/// Repository for managing user data with database and cache integration.
 pub struct UserRepository {
     db: &'static Database,
     cache: &'static ServiceCache,
@@ -20,14 +16,14 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
-    /// Creates a new `UserRepository` instance.
+    /// Creates a new UserRepository instance.
     ///
     /// # Arguments
-    /// - `db`: A reference to a `Database` connection.
-    /// - `cache`: A reference to a `ServiceCache`.
+    /// - `db`: Database connection.
+    /// - `cache`: Service cache.
     ///
     /// # Returns
-    /// A new instance of `UserRepository`.
+    /// A new UserRepository instance.
     pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
         let password_hasher = PasswordHasher::new(30);
         Self {
@@ -40,10 +36,10 @@ impl UserRepository {
     /// Finds a user by ID.
     ///
     /// # Arguments
-    /// - `id`: The user's ID.
+    /// - `id`: User ID.
     ///
     /// # Returns
-    /// An `AppResult` containing the user if found, or `None`.
+    /// An Option containing the user if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<SharedUser>> {
         if let Some(user) = self.cache.user.get(id) {
             return Ok(Some(user));
@@ -75,13 +71,13 @@ impl UserRepository {
         }
     }
 
-    /// Finds a user by their email address.
+    /// Finds a user by email address.
     ///
     /// # Arguments
-    /// - `email`: The email address of the user.
+    /// - `email`: User's email address.
     ///
     /// # Returns
-    /// An `AppResult` containing the user if found, or `None`.
+    /// An Option containing the user if found.
     pub async fn find_by_email(&self, email: &str) -> AppResult<Option<SharedUser>> {
         if let Some(user) = self.cache.user.get_by_email(email) {
             return Ok(Some(user));
@@ -113,13 +109,13 @@ impl UserRepository {
         }
     }
 
-    /// Checks if a user exists by their email.
+    /// Checks if a user exists by email.
     ///
     /// # Arguments
-    /// - `email`: The email address to check.
+    /// - `email`: Email address to check.
     ///
     /// # Returns
-    /// `true` if the user exists, otherwise `false`.
+    /// Boolean indicating if the user exists.
     pub async fn user_exists(&self, email: &str) -> AppResult<bool> {
         if self.find_by_email(email).await?.is_some() {
             return Ok(true);
@@ -146,10 +142,10 @@ impl UserRepository {
     /// Retrieves the active status of a user.
     ///
     /// # Arguments
-    /// - `id`: The user's ID.
+    /// - `id`: User ID.
     ///
     /// # Returns
-    /// An optional boolean indicating the user's active status, or `None` if not found.
+    /// An Option containing the user's active status if found.
     pub async fn status(&self, id: i32) -> AppResult<Option<bool>> {
         let row = {
             let conn = self.db.pg.get().await?;
@@ -173,7 +169,12 @@ impl UserRepository {
         Ok(None)
     }
 
-    /// This method should only be called once
+    /// Retrieves all used user IDs.
+    ///
+    /// This method should only be called once.
+    ///
+    /// # Returns
+    /// A vector of all used user IDs.
     pub async fn used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 
@@ -198,19 +199,26 @@ impl UserRepository {
         Ok(used_ids)
     }
 
+    /// Hashes a password.
+    ///
+    /// # Arguments
+    /// - `password`: Password to hash.
+    ///
+    /// # Returns
+    /// Hashed password as a string.
     #[inline]
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
         self.password_hasher.hash_password(password).await
     }
 
-    /// Validates a user's password against a stored hash.
+    /// Validates a password against a stored hash.
     ///
     /// # Arguments
-    /// - `password`: The password to validate.
-    /// - `hash`: The hash to validate against.
+    /// - `pwd`: Password to validate.
+    /// - `hash`: Stored hash to validate against.
     ///
     /// # Returns
-    /// `true` if the password matches the hash, otherwise `false`.
+    /// Boolean indicating if the password is valid.
     #[inline]
     pub async fn validate_password(&self, pwd: String, hash: String) -> AppResult<bool> {
         self.password_hasher.verify_password(hash, pwd).await

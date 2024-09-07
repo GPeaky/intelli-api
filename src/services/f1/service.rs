@@ -34,6 +34,7 @@ use crate::{
 
 use super::{batching::PacketBatching, firewall::FirewallService, PacketCaching};
 
+/// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
     port: i32,
     championship_id: i32,
@@ -48,6 +49,7 @@ pub struct F1Service {
     services: &'static DashMap<i32, F1ServiceData>,
 }
 
+/// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
     pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
@@ -55,6 +57,7 @@ pub struct F1ServiceData {
     shutdown: Option<oneshot::Sender<()>>,
 }
 
+/// Tracks the last update times for various packet types.
 struct LastUpdates {
     session: Instant,
     car_motion: Instant,
@@ -63,6 +66,17 @@ struct LastUpdates {
 }
 
 impl F1Service {
+    /// Creates a new F1Service instance.
+    ///
+    /// # Arguments
+    /// - `tx`: Sender for broadcasting data.
+    /// - `shutdown`: Receiver for shutdown signal.
+    /// - `cache`: Shared cache for packet data.
+    /// - `firewall`: Firewall service.
+    /// - `services`: Map of active services.
+    ///
+    /// # Returns
+    /// A new F1Service instance.
     pub async fn new(
         tx: Sender<Bytes>,
         shutdown: oneshot::Receiver<()>,
@@ -85,6 +99,14 @@ impl F1Service {
         }
     }
 
+    /// Initializes the F1 service with a specific port and championship ID.
+    ///
+    /// # Arguments
+    /// - `port`: Port number to bind the service to.
+    /// - `championship_id`: ID of the championship.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     pub async fn initialize(&mut self, port: i32, championship_id: i32) -> AppResult<()> {
         let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
             error!("There was an error binding to the socket");
@@ -102,6 +124,7 @@ impl F1Service {
         Ok(())
     }
 
+    /// Runs the main loop of the F1 service, processing incoming packets.
     pub async fn run(&mut self) {
         let span = info_span!("F1 Service", championship_id = self.championship_id);
         let _guard = span.enter();
@@ -164,6 +187,14 @@ impl F1Service {
         }
     }
 
+    /// Processes a single packet of F1 telemetry data.
+    ///
+    /// # Arguments
+    /// - `buf`: Buffer containing the packet data.
+    /// - `now`: Current timestamp.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
     #[inline]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
         let (header, packet) = match F1PacketData::parse_and_identify(buf) {
@@ -210,7 +241,7 @@ impl F1Service {
             return;
         }
 
-        let packet = motion_data.convert(PacketType::CarMotion).unwrap();
+        let packet = motion_data.to_packet_header(PacketType::CarMotion).unwrap();
         self.last_updates.car_motion = now;
         self.packet_batching.push(packet);
     }
@@ -235,7 +266,9 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
-        let packet = session_data.convert(PacketType::SessionData).unwrap();
+        let packet = session_data
+            .to_packet_header(PacketType::SessionData)
+            .unwrap();
         self.last_updates.session = now;
         self.packet_batching.push(packet);
     }
@@ -250,7 +283,9 @@ impl F1Service {
             return;
         }
 
-        let packet = participants_data.convert(PacketType::Participants).unwrap();
+        let packet = participants_data
+            .to_packet_header(PacketType::Participants)
+            .unwrap();
 
         self.last_updates.participants = now;
         self.packet_batching.push(packet);
@@ -266,7 +301,7 @@ impl F1Service {
             return;
         }
 
-        let Some(packet) = event_data.convert(PacketType::EventData) else {
+        let Some(packet) = event_data.to_packet_header(PacketType::EventData) else {
             return;
         };
 
@@ -309,7 +344,7 @@ impl F1Service {
 
             *last_sectors = sectors;
             let packet = history_data
-                .convert(PacketType::SessionHistoryData)
+                .to_packet_header(PacketType::SessionHistoryData)
                 .unwrap();
 
             self.packet_batching.push_with_optional_parameter(
@@ -358,6 +393,7 @@ impl F1Service {
         // info!("Car telemetry: {:?}", car_telemetry);
     }
 
+    /// Closes the F1 service, releasing resources and removing it from active services.
     #[inline]
     async fn close(&self) {
         if self.firewall.close(self.championship_id).await.is_err() {
@@ -369,6 +405,14 @@ impl F1Service {
 }
 
 impl F1ServiceData {
+    /// Creates a new F1ServiceData instance.
+    ///
+    /// # Arguments
+    /// - `channel`: Receiver for broadcast channel.
+    /// - `shutdown`: Sender for shutdown signal.
+    ///
+    /// # Returns
+    /// A new F1ServiceData instance.
     pub fn new(channel: Arc<Receiver<Bytes>>, shutdown: oneshot::Sender<()>) -> Self {
         let cache = Arc::new(RwLock::new(PacketCaching::new()));
 
@@ -380,25 +424,39 @@ impl F1ServiceData {
         }
     }
 
+    /// Subscribes to the service's broadcast channel.
+    ///
+    /// # Returns
+    /// A new Receiver for the broadcast channel.
     pub fn subscribe(&self) -> Receiver<Bytes> {
         self.counter.fetch_add(1, Ordering::Relaxed);
         self.channel.resubscribe()
     }
 
+    /// Gets the current number of subscribers.
+    ///
+    /// # Returns
+    /// The number of active subscribers.
     pub fn subscribers_count(&self) -> u32 {
         self.counter.load(Ordering::Relaxed)
     }
 
+    /// Decrements the subscriber count when a client unsubscribes.
     pub fn unsubscribe(&self) {
         self.counter.fetch_sub(1, Ordering::Relaxed);
     }
 
+    /// Initiates the shutdown process for the service.
+    ///
+    /// # Returns
+    /// Result indicating success or failure of sending the shutdown signal.
     pub fn shutdown(&mut self) -> Result<(), ()> {
         self.shutdown.take().unwrap().send(())
     }
 }
 
 impl LastUpdates {
+    /// Creates a new LastUpdates instance with current time for all fields.
     fn new() -> Self {
         let time = Instant::now();
 

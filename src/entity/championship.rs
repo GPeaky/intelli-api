@@ -8,6 +8,7 @@ use tokio_stream::StreamExt;
 
 use crate::error::AppResult;
 
+/// Championship roles
 #[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_role")]
 pub enum ChampionshipRole {
@@ -20,6 +21,7 @@ pub enum ChampionshipRole {
     Admin,
 }
 
+/// Championship categories
 #[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_category")]
 pub enum Category {
@@ -29,6 +31,7 @@ pub enum Category {
     F2,
 }
 
+/// Represents a championship
 #[derive(Debug, Serialize)]
 pub struct Championship {
     pub id: i32,
@@ -42,6 +45,7 @@ pub struct Championship {
 }
 
 impl Championship {
+    /// Creates a Championship from a database row
     #[inline]
     pub fn from_row(row: &Row) -> Self {
         Championship {
@@ -55,11 +59,13 @@ impl Championship {
         }
     }
 
+    /// Creates an Arc<Championship> from a database row
     #[inline]
     pub fn from_row_arc(row: &Row) -> Arc<Self> {
         Arc::new(Championship::from_row(row))
     }
 
+    /// Creates a Vec<Arc<Championship>> from a RowStream
     #[inline]
     pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Self>>> {
         tokio::pin!(it);
