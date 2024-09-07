@@ -16,6 +16,7 @@ pub enum ChampionshipError {
     CannotRemoveOwner,
     IntervalNotReached,
     NoPortsAvailable,
+    InvalidTeamId,
 }
 
 impl std::error::Error for ChampionshipError {}
@@ -36,6 +37,7 @@ impl ChampionshipError {
             ChampionshipError::CannotRemoveOwner => StatusCode::BAD_REQUEST,
             ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NoPortsAvailable => StatusCode::SERVICE_UNAVAILABLE,
+            ChampionshipError::InvalidTeamId => StatusCode::BAD_REQUEST,
         }
     }
 
@@ -48,6 +50,7 @@ impl ChampionshipError {
             ChampionshipError::CannotRemoveOwner => "Cannot remove owner of Championship",
             ChampionshipError::IntervalNotReached => "Interval update time not reached",
             ChampionshipError::NoPortsAvailable => "No ports available",
+            ChampionshipError::InvalidTeamId => "Invalid Team Id",
         }
     }
 }

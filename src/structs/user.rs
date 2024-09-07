@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
-use serde_trim::{option_string_trim, string_trim};
+use serde_trim::option_string_trim;
 
 use crate::entity::{Championship, SharedUser};
 
@@ -15,13 +15,6 @@ pub struct UserUpdateData {
     #[serde(default, deserialize_with = "option_string_trim")]
     #[garde(inner(ascii, length(min = 10, max = 100)))]
     pub avatar: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct UserInvitationData {
-    #[serde(deserialize_with = "string_trim")]
-    #[garde(email)]
-    pub email: String,
 }
 
 #[derive(Debug, Serialize)]

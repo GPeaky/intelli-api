@@ -14,7 +14,7 @@ use crate::{
     states::AppState,
     structs::{
         ChampionshipAndUserId, ChampionshipCreationData, ChampionshipId, ChampionshipUpdateData,
-        UserInvitationData,
+        ChampionshipUserAddForm,
     },
 };
 
@@ -79,7 +79,7 @@ pub async fn update(
 pub async fn add_user(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<UserInvitationData>,
+    Form(form): Form<ChampionshipUserAddForm>,
     path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {
     if form.validate().is_err() || path.validate().is_err() {
@@ -89,7 +89,7 @@ pub async fn add_user(
     let user_id = req.user_id()?;
     state
         .championship_svc
-        .add_user(path.0, user_id, &form.email)
+        .add_user(path.0, user_id, form)
         .await?;
 
     Ok(HttpResponse::Ok().finish())

@@ -2,6 +2,10 @@
 // -------------- ORIGINAL GAME ----------------
 // ---------------------------------------------
 
+use serde::Deserialize;
+
+use crate::error::{AppError, ChampionshipError};
+
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct PacketHeader {
@@ -660,6 +664,67 @@ pub enum Ruleset {
     Drift,
     AverageSpeedZone,
     RivalDuel,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[repr(i16)]
+pub enum TeamIds {
+    Mercedes = 0,
+    Ferrari = 1,
+    RedBullRacing = 2,
+    Williams = 3,
+    AstonMartin = 4,
+    Alpine = 5,
+    RB = 6,
+    Haas = 7,
+    McLaren = 8,
+    Sauber = 9,
+    F1Generic = 41,
+    F1CustomTeam = 104,
+    ArtGP2023 = 143,
+    Campos2023 = 144,
+    Carlin2023 = 145,
+    PHM2023 = 146,
+    Dams2023 = 147,
+    Hitech2023 = 148,
+    MPMotorsport2023 = 149,
+    Prema2023 = 150,
+    Trident2023 = 151,
+    VanAmersfoortRacing2023 = 152,
+    Virtuosi2023 = 153,
+}
+
+impl TryFrom<i16> for TeamIds {
+    type Error = AppError;
+
+    fn try_from(v: i16) -> Result<Self, Self::Error> {
+        match v {
+            v if v == Self::Mercedes as i16 => Ok(Self::Mercedes),
+            v if v == Self::Ferrari as i16 => Ok(Self::Ferrari),
+            v if v == Self::RedBullRacing as i16 => Ok(Self::RedBullRacing),
+            v if v == Self::Williams as i16 => Ok(Self::Williams),
+            v if v == Self::AstonMartin as i16 => Ok(Self::AstonMartin),
+            v if v == Self::Alpine as i16 => Ok(Self::Alpine),
+            v if v == Self::RB as i16 => Ok(Self::RB),
+            v if v == Self::Haas as i16 => Ok(Self::Haas),
+            v if v == Self::McLaren as i16 => Ok(Self::McLaren),
+            v if v == Self::Sauber as i16 => Ok(Self::Sauber),
+            v if v == Self::F1Generic as i16 => Ok(Self::F1Generic),
+            v if v == Self::F1CustomTeam as i16 => Ok(Self::F1CustomTeam),
+            v if v == Self::ArtGP2023 as i16 => Ok(Self::ArtGP2023),
+            v if v == Self::Campos2023 as i16 => Ok(Self::Campos2023),
+            v if v == Self::Carlin2023 as i16 => Ok(Self::Carlin2023),
+            v if v == Self::PHM2023 as i16 => Ok(Self::PHM2023),
+            v if v == Self::Dams2023 as i16 => Ok(Self::Dams2023),
+            v if v == Self::Hitech2023 as i16 => Ok(Self::Hitech2023),
+            v if v == Self::MPMotorsport2023 as i16 => Ok(Self::MPMotorsport2023),
+            v if v == Self::Prema2023 as i16 => Ok(Self::Prema2023),
+            v if v == Self::Trident2023 as i16 => Ok(Self::Trident2023),
+            v if v == Self::VanAmersfoortRacing2023 as i16 => Ok(Self::VanAmersfoortRacing2023),
+            v if v == Self::Virtuosi2023 as i16 => Ok(Self::Virtuosi2023),
+            _ => Err(ChampionshipError::InvalidTeamId)?,
+        }
+    }
 }
 
 impl TryFrom<u8> for SessionType {

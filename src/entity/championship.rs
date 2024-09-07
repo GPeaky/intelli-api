@@ -8,9 +8,10 @@ use tokio_stream::StreamExt;
 
 use crate::error::AppResult;
 
-#[derive(Debug, Serialize, Deserialize, FromSql, ToSql)]
+#[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_role")]
 pub enum ChampionshipRole {
+    #[default]
     #[postgres(name = "Visitor")]
     Visitor,
     #[postgres(name = "Engineer")]

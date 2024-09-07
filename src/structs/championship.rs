@@ -2,7 +2,9 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
 
-use crate::entity::Category;
+use crate::entity::{Category, ChampionshipRole};
+
+use super::TeamIds;
 
 // Championship Management
 #[derive(Debug, Deserialize, Validate)]
@@ -12,6 +14,18 @@ pub struct ChampionshipCreationData {
     pub name: String,
     #[garde(skip)]
     pub category: Category,
+}
+
+#[derive(Deserialize, Validate)]
+pub struct ChampionshipUserAddForm {
+    #[serde(deserialize_with = "string_trim")]
+    #[garde(email)]
+    pub email: String,
+    #[serde(default)]
+    #[garde(skip)]
+    pub role: ChampionshipRole,
+    #[garde(skip)]
+    pub team_id: Option<TeamIds>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

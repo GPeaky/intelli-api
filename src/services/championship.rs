@@ -7,7 +7,7 @@ use crate::{
     config::Database,
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository},
-    structs::{ChampionshipCreationData, ChampionshipUpdateData},
+    structs::{ChampionshipCreationData, ChampionshipUpdateData, ChampionshipUserAddForm},
     utils::{IdsGenerator, MachinePorts},
 };
 
@@ -31,7 +31,6 @@ pub struct ChampionshipService {
     ids_generator: IdsGenerator,
 }
 
-//TODO: Create a common trait for the entities and implement the common methods there
 impl ChampionshipService {
     /// Creates a new instance of `ChampionshipService`.
     ///
@@ -103,8 +102,8 @@ impl ChampionshipService {
 
             let relate_user_with_championship_stmt_fut = conn.prepare_cached(
                 r#"
-                    INSERT INTO championship_users (user_id, championship_id)
-                    VALUES ($1,$2)
+                    INSERT INTO championship_users (user_id, championship_id, role)
+                    VALUES ($1,$2, 'Admin')
                 "#,
             );
 
@@ -234,7 +233,12 @@ impl ChampionshipService {
     ///
     /// # Returns
     /// An empty result indicating success or an error if the operation fails.
-    pub async fn add_user(&self, id: i32, user_id: i32, bind_user_email: &str) -> AppResult<()> {
+    pub async fn add_user(
+        &self,
+        id: i32,
+        user_id: i32,
+        form: ChampionshipUserAddForm,
+    ) -> AppResult<()> {
         // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
@@ -246,8 +250,8 @@ impl ChampionshipService {
             }
         }
 
-        let new_user_id = {
-            let Some(bind_user) = self.user_repo.find_by_email(bind_user_email).await? else {
+        let bind_user_id = {
+            let Some(bind_user) = self.user_repo.find_by_email(&form.email).await? else {
                 Err(UserError::NotFound)?
             };
 
@@ -259,14 +263,20 @@ impl ChampionshipService {
         let add_user_stmt = conn
             .prepare_cached(
                 r#"
-                    INSERT INTO championship_users (user_id, championship_id)
-                    VALUES ($1,$2)
+                    INSERT INTO championship_users (user_id, championship_id, role, team_id)
+                    VALUES ($1,$2,$3,$4)
                 "#,
             )
             .await?;
 
-        conn.execute(&add_user_stmt, &[&new_user_id, &id]).await?;
-        self.cache.championship.delete_by_user(new_user_id);
+        let formatted_team_id = form.team_id.map(|valid_team_id| valid_team_id as i16);
+
+        conn.execute(
+            &add_user_stmt,
+            &[&bind_user_id, &id, &form.role, &formatted_team_id],
+        )
+        .await?;
+        self.cache.championship.delete_by_user(bind_user_id);
         Ok(())
     }
 
@@ -282,7 +292,6 @@ impl ChampionshipService {
     /// # Returns
     /// An empty result indicating success or an error if the operation fails.
     pub async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
-        // Scope to check if championship exists and if user is owner
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
                 Err(ChampionshipError::NotFound)?
