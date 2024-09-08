@@ -7,6 +7,7 @@ use ntex::web::{
 use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError, UserError},
+    services::{UserAdminServiceOperations, UserServiceOperations},
     states::AppState,
     structs::UserId,
 };
@@ -20,7 +21,7 @@ pub async fn user_championships(
         Err(CommonError::ValidationFailed)?
     }
 
-    let championships = state.championship_repo.find_all(path.0).await?;
+    let championships = state.user_repo.championships(path.0).await?;
     Ok(HttpResponse::Ok().json(&championships))
 }
 
@@ -72,7 +73,7 @@ pub async fn deactivate_user_account(
         Err(UserError::AutoDelete)?
     }
 
-    state.user_svc.deactivate(path.0).await?;
+    state.user_svc.admin_deactivate(path.0).await?;
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -100,6 +101,6 @@ pub async fn reactivate_user_account(
         Err(UserError::AutoDelete)?
     }
 
-    state.user_svc.activate(path.0).await?;
+    state.user_svc.admin_activate(path.0).await?;
     Ok(HttpResponse::Ok().finish())
 }

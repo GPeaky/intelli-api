@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use tokio_stream::StreamExt;
 
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::{SharedUser, User},
+    entity::{Championship, SharedUser, User},
     error::AppResult,
     utils::{slice_iter, PasswordHasher},
 };
@@ -109,6 +111,76 @@ impl UserRepository {
         }
     }
 
+    /// Retrieves all championships associated with a user.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user.
+    ///
+    /// # Returns
+    /// A vector of Championships associated with the user.
+    pub async fn championships(&self, id: i32) -> AppResult<Vec<Arc<Championship>>> {
+        if let Some(championships) = self.cache.championship.get_user_championships(id) {
+            return Ok(championships);
+        };
+
+        let stream = {
+            let conn = self.db.pg.get().await?;
+
+            let find_all_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT c.*
+                        FROM championships c
+                        JOIN championship_users cu ON c.id = cu.championship_id
+                        WHERE cu.user_id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.query_raw(&find_all_stmt, &[&id]).await?
+        };
+
+        let championships = Championship::from_row_stream(stream).await?;
+
+        self.cache
+            .championship
+            .set_user_championships(id, championships.clone());
+
+        Ok(championships)
+    }
+
+    /// Counts the number of championships associated with a user.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the user.
+    ///
+    /// # Returns
+    /// The count of championships associated with the user.
+    pub async fn championship_len(&self, id: i32) -> AppResult<usize> {
+        let stream = {
+            let conn = self.db.pg.get().await?;
+
+            let championship_len_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT
+                            c.id
+                        FROM
+                            championships c
+                        JOIN
+                            championship_users cu ON c.id = cu.championship_id
+                        WHERE
+                            cu.user_id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.query_raw(&championship_len_stmt, &[&id]).await?
+        };
+
+        Ok(stream.rows_affected().unwrap_or(0) as usize)
+    }
+
     /// Checks if a user exists by email.
     ///
     /// # Arguments
@@ -116,27 +188,9 @@ impl UserRepository {
     ///
     /// # Returns
     /// Boolean indicating if the user exists.
+    #[inline(always)]
     pub async fn user_exists(&self, email: &str) -> AppResult<bool> {
-        if self.find_by_email(email).await?.is_some() {
-            return Ok(true);
-        };
-
-        let row = {
-            let conn = self.db.pg.get().await?;
-
-            let user_exists_stmt = conn
-                .prepare_cached(
-                    r#"
-                        SELECT EMAIL FROM users
-                        WHERE email = $1
-                    "#,
-                )
-                .await?;
-
-            conn.query_opt(&user_exists_stmt, &[&email]).await?
-        };
-
-        Ok(row.is_some())
+        Ok(self.find_by_email(email).await?.is_some())
     }
 
     /// Retrieves the active status of a user.
@@ -175,7 +229,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// A vector of all used user IDs.
-    pub async fn used_ids(&self) -> AppResult<Vec<i32>> {
+    pub async fn _used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 
         let user_ids_stmt = conn

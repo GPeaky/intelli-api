@@ -29,36 +29,6 @@ impl ChampionshipRepository {
         Self { db, cache }
     }
 
-    /// Retrieves a list of ports currently in use by championships.
-    ///
-    /// # Returns
-    /// A vector of port numbers in use.
-    pub async fn ports_in_use(&self) -> AppResult<Vec<i32>> {
-        let stream = {
-            let conn = self.db.pg.get().await?;
-
-            let ports_in_use_stmt = conn
-                .prepare_cached(
-                    r#"
-                        SELECT port FROM championships
-                    "#,
-                )
-                .await?;
-
-            conn.query_raw(&ports_in_use_stmt, slice_iter(&[])).await?
-        };
-
-        let mut ports = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
-
-        tokio::pin!(stream);
-
-        while let Some(row) = stream.try_next().await? {
-            ports.push(row.get(0));
-        }
-
-        Ok(ports)
-    }
-
     /// Finds a championship by its ID.
     ///
     /// # Arguments
@@ -135,44 +105,6 @@ impl ChampionshipRepository {
         }
     }
 
-    /// Retrieves all championships associated with a user.
-    ///
-    /// # Arguments
-    /// - `user_id`: The ID of the user.
-    ///
-    /// # Returns
-    /// A vector of Championships associated with the user.
-    pub async fn find_all(&self, user_id: i32) -> AppResult<Vec<Arc<Championship>>> {
-        if let Some(championships) = self.cache.championship.get_user_championships(user_id) {
-            return Ok(championships);
-        };
-
-        let stream = {
-            let conn = self.db.pg.get().await?;
-
-            let find_all_stmt = conn
-                .prepare_cached(
-                    r#"
-                        SELECT c.*
-                        FROM championships c
-                        JOIN championship_users cu ON c.id = cu.championship_id
-                        WHERE cu.user_id = $1
-                    "#,
-                )
-                .await?;
-
-            conn.query_raw(&find_all_stmt, &[&user_id]).await?
-        };
-
-        let championships = Championship::from_row_stream(stream).await?;
-
-        self.cache
-            .championship
-            .set_user_championships(user_id, championships.clone()); // Try to avoid cloning
-
-        Ok(championships)
-    }
-
     /// Retrieves user IDs associated with a championship.
     ///
     /// # Arguments
@@ -207,45 +139,13 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
-    /// Counts the number of championships associated with a user.
-    ///
-    /// # Arguments
-    /// - `user_id`: The ID of the user.
-    ///
-    /// # Returns
-    /// The count of championships associated with the user.
-    pub async fn championship_len(&self, user_id: i32) -> AppResult<usize> {
-        let stream = {
-            let conn = self.db.pg.get().await?;
-
-            let championship_len_stmt = conn
-                .prepare_cached(
-                    r#"
-                        SELECT
-                            c.id
-                        FROM
-                            championships c
-                        JOIN
-                            championship_users cu ON c.id = cu.championship_id
-                        WHERE
-                            cu.user_id = $1
-                    "#,
-                )
-                .await?;
-
-            conn.query_raw(&championship_len_stmt, &[&user_id]).await?
-        };
-
-        Ok(stream.rows_affected().unwrap_or(0) as usize)
-    }
-
     /// Retrieves all used championship IDs.
     ///
     /// This method should only be called once.
     ///
     /// # Returns
     /// A vector of all used championship IDs.
-    pub async fn used_ids(&self) -> AppResult<Vec<i32>> {
+    pub async fn _used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 
         let championship_ids_stmt = conn
@@ -269,5 +169,35 @@ impl ChampionshipRepository {
         }
 
         Ok(championships)
+    }
+
+    /// Retrieves a list of ports currently in use by championships.
+    ///
+    /// # Returns
+    /// A vector of port numbers in use.
+    pub async fn _ports_in_use(&self) -> AppResult<Vec<i32>> {
+        let stream = {
+            let conn = self.db.pg.get().await?;
+
+            let ports_in_use_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT port FROM championships
+                    "#,
+                )
+                .await?;
+
+            conn.query_raw(&ports_in_use_stmt, slice_iter(&[])).await?
+        };
+
+        let mut ports = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        tokio::pin!(stream);
+
+        while let Some(row) = stream.try_next().await? {
+            ports.push(row.get(0));
+        }
+
+        Ok(ports)
     }
 }

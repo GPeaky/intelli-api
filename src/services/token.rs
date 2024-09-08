@@ -6,6 +6,8 @@ use crate::{
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use std::fs;
 
+// TODO: Update this implementation
+
 /// Manages token lifecycle for authentication and authorization.
 #[derive(Clone)]
 pub struct TokenService {
@@ -32,6 +34,12 @@ impl TokenService {
             )
             .unwrap(),
         }
+    }
+
+    #[inline]
+    pub fn subject_id(&self, token: &str) -> AppResult<i32> {
+        let token_data = self.validate(token)?;
+        Ok(token_data.claims.subject_id)
     }
 
     /// Validates a token and returns the associated claims.

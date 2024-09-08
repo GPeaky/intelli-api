@@ -7,6 +7,7 @@ use crate::{
     config::constants::*,
     entity::Provider,
     error::{AppResult, UserError},
+    services::UserServiceOperations,
     states::AppState,
     structs::{OauthAuthorizationCode, TokenPurpose, UserRegistrationData},
 };

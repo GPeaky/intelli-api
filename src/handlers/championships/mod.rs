@@ -12,6 +12,7 @@ pub(crate) mod core {
     use crate::{
         entity::{Role, UserExtension},
         error::{AppResult, ChampionshipError, CommonError},
+        services::ChampionshipServiceOperations,
         states::AppState,
         structs::{
             ChampionshipAndUserId, ChampionshipCreationData, ChampionshipId,
@@ -30,7 +31,7 @@ pub(crate) mod core {
         }
 
         let user = req.user()?;
-        let championships_len = state.championship_repo.championship_len(user.id).await?;
+        let championships_len = state.user_repo.championship_len(user.id).await?;
 
         match user.role {
             Role::User => {

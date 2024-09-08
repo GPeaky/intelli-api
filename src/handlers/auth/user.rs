@@ -8,6 +8,7 @@ use ntex::web::{
 use crate::{
     entity::{Provider, UserExtension},
     error::{AppResult, CommonError, UserError},
+    services::UserServiceOperations,
     states::AppState,
     structs::{
         AuthTokens, ClientFingerprint, EmailVerificationTemplate, LoginCredentials, NewAccessToken,
@@ -182,7 +183,7 @@ pub async fn reset_password(
 
     let user_id = state
         .user_svc
-        .reset_password_with_token(query.token, form.password)
+        .reset_password(query.token, form.password)
         .await?;
 
     let Some(user) = state.user_repo.find(user_id).await? else {

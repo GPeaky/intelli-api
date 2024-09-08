@@ -8,8 +8,8 @@ use crate::{
 pub(crate) fn admin_routes(cfg: &mut ServiceConfig) {
     cfg.service(
         web::scope("/admin")
-            .wrap(Authentication)
             .wrap(Admin)
+            .wrap(Authentication)
             .service(
                 scope("/users/{id}")
                     .route("", delete().to(user::admin::remove_user))

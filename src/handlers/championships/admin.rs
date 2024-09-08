@@ -5,6 +5,7 @@ use ntex::web::{
 
 use crate::{
     error::{AppResult, ChampionshipError},
+    services::ChampionshipAdminServiceOperations,
     states::AppState,
     structs::ChampionshipId,
 };
@@ -27,6 +28,10 @@ pub async fn delete_championship(
         Err(ChampionshipError::NotFound)?
     };
 
-    state.championship_svc.delete(championship.id).await?;
+    state
+        .championship_svc
+        .admin_delete_championship(championship.id)
+        .await?;
+
     Ok(HttpResponse::Ok().finish())
 }

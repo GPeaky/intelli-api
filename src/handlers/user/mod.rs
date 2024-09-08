@@ -7,6 +7,7 @@ use ntex::web::{
 use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError},
+    services::UserServiceOperations,
     states::AppState,
     structs::{UserProfileData, UserUpdateData},
 };
@@ -16,7 +17,7 @@ pub(crate) mod admin;
 #[inline(always)]
 pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
     let user = req.user()?;
-    let championships = state.championship_repo.find_all(user.id).await?;
+    let championships = state.user_repo.championships(user.id).await?;
 
     Ok(HttpResponse::Ok().json(&UserProfileData {
         user,
@@ -45,7 +46,7 @@ pub async fn get_championships(
     state: State<AppState>,
 ) -> AppResult<HttpResponse> {
     let user_id = req.user_id()?;
-    let championships = state.championship_repo.find_all(user_id).await?;
+    let championships = state.user_repo.championships(user_id).await?;
 
     Ok(HttpResponse::Ok().json(&championships))
 }

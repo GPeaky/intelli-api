@@ -1,6 +1,5 @@
 use chrono::{Duration, Utc};
 use postgres_types::ToSql;
-use tracing::info;
 
 use crate::{
     cache::ServiceCache,
@@ -11,7 +10,92 @@ use crate::{
     utils::{IdsGenerator, MachinePorts},
 };
 
-/// Manages championship-related operations.
+/// Defines the core operations for managing championships.
+pub trait ChampionshipServiceOperations {
+    /// Creates a new championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `payload` - The data required to create a championship.
+    /// * `user_id` - The ID of the user creating the championship.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship name already exists or if there's a database error.
+    async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()>;
+
+    /// Updates an existing championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship to update.
+    /// * `user_id` - The ID of the user attempting the update.
+    /// * `form` - The data to update the championship with.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found, the user is not the owner,
+    /// or if the update interval hasn't been reached.
+    async fn update(&self, id: i32, user_id: i32, form: &ChampionshipUpdateData) -> AppResult<()>;
+
+    /// Adds a user to a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship.
+    /// * `user_id` - The ID of the user adding another user.
+    /// * `form` - The form containing the new user's details.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found, the user is not the owner,
+    /// or if the user to be added doesn't exist.
+    async fn add_user(&self, id: i32, user_id: i32, form: ChampionshipUserAddForm)
+        -> AppResult<()>;
+
+    /// Removes a user from a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship.
+    /// * `user_id` - The ID of the user removing another user.
+    /// * `remove_user_id` - The ID of the user to be removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found, the user is not the owner,
+    /// or if attempting to remove the owner.
+    async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()>;
+
+    /// Deletes a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship to delete.
+    /// * `user_id` - The ID of the user attempting to delete the championship.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found or if the user is not the owner.
+    #[allow(unused)]
+    async fn delete(&self, id: i32, user_id: i32) -> AppResult<()>;
+}
+
+/// Defines additional admin-level operations for managing championships.
+pub trait ChampionshipAdminServiceOperations: ChampionshipServiceOperations {
+    /// Allows an admin to delete a championship without ownership checks.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship to delete.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found or if there's a database error.
+    async fn admin_delete_championship(&self, id: i32) -> AppResult<()>;
+}
+
+/// Implements the championship service logic.
 pub struct ChampionshipService {
     db: &'static Database,
     cache: &'static ServiceCache,
@@ -25,13 +109,15 @@ impl ChampionshipService {
     /// Creates a new ChampionshipService instance.
     ///
     /// # Arguments
-    /// - `db`: Database connection.
-    /// - `cache`: Redis cache.
-    /// - `user_repo`: User repository for database operations.
-    /// - `championship_repo`: Championship repository for database operations.
     ///
-    /// # Returns
-    /// A new ChampionshipService instance or an error.
+    /// * `db` - The database connection.
+    /// * `cache` - The service cache.
+    /// * `user_repo` - The user repository.
+    /// * `championship_repo` - The championship repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there's an issue initializing the service components.
     pub async fn new(
         db: &'static Database,
         cache: &'static ServiceCache,
@@ -39,12 +125,12 @@ impl ChampionshipService {
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
         let machine_ports = {
-            let used_ports = championship_repo.ports_in_use().await?;
+            let used_ports = championship_repo._ports_in_use().await?;
             MachinePorts::new(used_ports).await?
         };
 
         let ids_generator = {
-            let used_ids = championship_repo.used_ids().await?;
+            let used_ids = championship_repo._used_ids().await?;
             IdsGenerator::new(700000000..799999999, used_ids)
         };
 
@@ -58,15 +144,9 @@ impl ChampionshipService {
         })
     }
 
-    /// Creates a new championship.
-    ///
-    /// # Arguments
-    /// - `payload`: Championship creation data.
-    /// - `user_id`: ID of the user creating the championship.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
-    pub async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
+    /// Internal method to create a championship.
+    #[inline(always)]
+    async fn _create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         if self
             .championship_repo
             .find_by_name(&payload.name)
@@ -123,38 +203,9 @@ impl ChampionshipService {
         Ok(())
     }
 
-    /// Updates an existing championship.
-    ///
-    /// # Arguments
-    /// - `id`: Championship ID.
-    /// - `user_id`: ID of the user updating the championship.
-    /// - `form`: Updated championship data.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
-    pub async fn update(
-        &self,
-        id: i32,
-        user_id: i32,
-        form: &ChampionshipUpdateData,
-    ) -> AppResult<()> {
-        // Scope to check if championship exists and if user is owner
-        {
-            let Some(championship) = self.championship_repo.find(id).await? else {
-                Err(ChampionshipError::NotFound)?
-            };
-
-            if championship.owner_id != user_id {
-                Err(ChampionshipError::NotOwner)?
-            }
-
-            if let Some(last_update) = championship.updated_at {
-                if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
-                    Err(ChampionshipError::IntervalNotReached)?
-                };
-            }
-        }
-
+    /// Internal method to update a championship.
+    #[inline(always)]
+    async fn _update(&self, id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
         let (query, params) = {
             let mut params_counter = 1u8;
             let mut clauses = Vec::with_capacity(3);
@@ -180,19 +231,15 @@ impl ChampionshipService {
 
             let clause = clauses.join(", ");
             let query = format!(
-                "UPDATE championships SET {} WHERE id = ${} AND owner_id = ${}",
-                clause,
-                params_counter,
-                params_counter + 1
+                "UPDATE championships SET {} WHERE id = ${}",
+                clause, params_counter,
             );
 
             params.push(&id);
-            params.push(&user_id);
 
             (query, params)
         };
 
-        // Scope to update championship
         {
             let conn = self.db.pg.get().await?;
             conn.execute(&query, &params).await?;
@@ -204,32 +251,9 @@ impl ChampionshipService {
         Ok(())
     }
 
-    /// Adds a user to a championship.
-    ///
-    /// # Arguments
-    /// - `id`: Championship ID.
-    /// - `user_id`: ID of the user performing the operation.
-    /// - `form`: Form containing the email and role of the user to add.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
-    pub async fn add_user(
-        &self,
-        id: i32,
-        user_id: i32,
-        form: ChampionshipUserAddForm,
-    ) -> AppResult<()> {
-        // Scope to check if championship exists and if user is owner
-        {
-            let Some(championship) = self.championship_repo.find(id).await? else {
-                Err(ChampionshipError::NotFound)?
-            };
-
-            if championship.owner_id != user_id {
-                Err(ChampionshipError::NotOwner)?
-            }
-        }
-
+    /// Internal method to add a user to a championship.
+    #[inline(always)]
+    async fn _add_user(&self, id: i32, form: ChampionshipUserAddForm) -> AppResult<()> {
         let bind_user_id = {
             let Some(bind_user) = self.user_repo.find_by_email(&form.email).await? else {
                 Err(UserError::NotFound)?
@@ -256,34 +280,15 @@ impl ChampionshipService {
             &[&bind_user_id, &id, &form.role, &formatted_team_id],
         )
         .await?;
+
         self.cache.championship.delete_by_user(bind_user_id);
+
         Ok(())
     }
 
-    /// Removes a user from a championship.
-    ///
-    /// # Arguments
-    /// - `id`: Championship ID.
-    /// - `user_id`: ID of the user performing the operation.
-    /// - `remove_user_id`: ID of the user to remove.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
-    pub async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
-        {
-            let Some(championship) = self.championship_repo.find(id).await? else {
-                Err(ChampionshipError::NotFound)?
-            };
-
-            if championship.owner_id != user_id {
-                Err(ChampionshipError::NotOwner)?
-            }
-
-            if championship.owner_id == remove_user_id {
-                Err(ChampionshipError::CannotRemoveOwner)?
-            }
-        }
-
+    /// Internal method to remove a user from a championship.
+    #[inline(always)]
+    async fn _remove_user(&self, id: i32, remove_user_id: i32) -> AppResult<()> {
         if self.user_repo.find(remove_user_id).await?.is_none() {
             Err(UserError::NotFound)?
         };
@@ -305,14 +310,9 @@ impl ChampionshipService {
         Ok(())
     }
 
-    /// Deletes a championship and all related user associations.
-    ///
-    /// # Arguments
-    /// - `id`: Championship ID to delete.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
-    pub async fn delete(&self, id: i32) -> AppResult<()> {
+    /// Internal method to delete a championship.
+    #[inline(always)]
+    async fn _delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
         let delete_championship_relations_stmt_fut = conn.prepare_cached(
@@ -333,13 +333,97 @@ impl ChampionshipService {
         )?;
 
         let users = self.championship_repo.users(id).await?;
+
         conn.execute_raw(&delete_championship_relations_stmt, &[&id])
             .await?;
+
         self.cache.championship.prune(id, users);
 
         conn.execute_raw(&delete_championship_stmt, &[&id]).await?;
-        info!("Championship deleted with success: {id}");
 
         Ok(())
+    }
+}
+
+impl ChampionshipServiceOperations for ChampionshipService {
+    async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
+        self._create(payload, user_id).await
+    }
+
+    async fn update(&self, id: i32, user_id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
+        {
+            let Some(championship) = self.championship_repo.find(id).await? else {
+                Err(ChampionshipError::NotFound)?
+            };
+
+            if championship.owner_id != user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+
+            if let Some(last_update) = championship.updated_at {
+                if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
+                    Err(ChampionshipError::IntervalNotReached)?
+                };
+            }
+        }
+
+        self._update(id, form).await
+    }
+
+    async fn add_user(
+        &self,
+        id: i32,
+        user_id: i32,
+        form: ChampionshipUserAddForm,
+    ) -> AppResult<()> {
+        {
+            let Some(championship) = self.championship_repo.find(id).await? else {
+                Err(ChampionshipError::NotFound)?
+            };
+
+            if championship.owner_id != user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+        }
+
+        self._add_user(id, form).await
+    }
+
+    async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
+        {
+            let Some(championship) = self.championship_repo.find(id).await? else {
+                Err(ChampionshipError::NotFound)?
+            };
+
+            if championship.owner_id != user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+
+            if championship.owner_id == remove_user_id {
+                Err(ChampionshipError::CannotRemoveOwner)?
+            }
+        }
+
+        self._remove_user(id, remove_user_id).await
+    }
+
+    async fn delete(&self, id: i32, user_id: i32) -> AppResult<()> {
+        {
+            let Some(championship) = self.championship_repo.find(id).await? else {
+                Err(ChampionshipError::NotFound)?
+            };
+
+            if championship.owner_id != user_id {
+                Err(ChampionshipError::NotOwner)?
+            }
+        }
+
+        self._delete(id).await
+    }
+}
+
+impl ChampionshipAdminServiceOperations for ChampionshipService {
+    async fn admin_delete_championship(&self, id: i32) -> AppResult<()> {
+        self._delete(id).await
     }
 }
