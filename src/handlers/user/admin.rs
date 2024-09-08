@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[inline(always)]
-pub async fn delete_user(
+pub async fn remove_user(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserId>,
@@ -36,7 +36,7 @@ pub async fn delete_user(
 }
 
 #[inline(always)]
-pub async fn disable_user(
+pub async fn deactivate_user_account(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserId>,
@@ -64,7 +64,7 @@ pub async fn disable_user(
 }
 
 #[inline(always)]
-pub async fn enable_user(
+pub async fn reactivate_user_account(
     req: HttpRequest,
     state: State<AppState>,
     path: Path<UserId>,
@@ -89,4 +89,17 @@ pub async fn enable_user(
 
     state.user_svc.activate(path.0).await?;
     Ok(HttpResponse::Ok().finish())
+}
+
+#[inline(always)]
+pub async fn user_championships(
+    state: State<AppState>,
+    path: Path<UserId>,
+) -> AppResult<HttpResponse> {
+    if path.validate().is_err() {
+        Err(CommonError::ValidationFailed)?
+    }
+
+    let championships = state.championship_repo.find_all(path.0).await?;
+    Ok(HttpResponse::Ok().json(&championships))
 }

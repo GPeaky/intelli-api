@@ -4,8 +4,6 @@ use ntex::web::{
     HttpRequest, HttpResponse,
 };
 
-pub(crate) use admin::*;
-
 use crate::{
     entity::UserExtension,
     error::{AppResult, CommonError},
@@ -13,10 +11,10 @@ use crate::{
     structs::{UserProfileData, UserUpdateData},
 };
 
-mod admin;
+pub(crate) mod admin;
 
 #[inline(always)]
-pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
+pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
     let user = req.user()?;
     let championships = state.championship_repo.find_all(user.id).await?;
 
@@ -27,7 +25,7 @@ pub(crate) async fn user_data(req: HttpRequest, state: State<AppState>) -> AppRe
 }
 
 #[inline(always)]
-pub(crate) async fn update_user(
+pub(crate) async fn update(
     req: HttpRequest,
     state: State<AppState>,
     form: Form<UserUpdateData>,
@@ -39,4 +37,15 @@ pub(crate) async fn update_user(
     let user = req.user()?;
     state.user_svc.update(user, &form).await?;
     Ok(HttpResponse::Ok().finish())
+}
+
+#[inline(always)]
+pub async fn get_championships(
+    req: HttpRequest,
+    state: State<AppState>,
+) -> AppResult<HttpResponse> {
+    let user_id = req.user_id()?;
+    let championships = state.championship_repo.find_all(user_id).await?;
+
+    Ok(HttpResponse::Ok().json(&championships))
 }

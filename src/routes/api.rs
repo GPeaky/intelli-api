@@ -4,18 +4,7 @@ use dashmap::DashMap;
 use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
 
 use crate::{
-    handlers::{
-        auth::{
-            discord_callback, forgot_password, login, logout, refresh_token, register,
-            reset_password, verify_email,
-        },
-        championships::{
-            add_user, all_championships, create_championship, get_championship, handle_stream,
-            remove_user, service_status, start_service, stop_service, update,
-        },
-        heartbeat,
-        user::{update_user, user_data},
-    },
+    handlers::{auth, championships, system_health_check, user},
     middlewares::{Authentication, LoginLimit, VisitorData},
 };
 
@@ -23,47 +12,66 @@ use crate::{
 pub(crate) fn api_routes(cfg: &mut ServiceConfig, visitors: &'static DashMap<IpAddr, VisitorData>) {
     cfg.service(
         scope("/auth")
+            .route("/register", post().to(auth::register))
             .service(
                 resource("/login")
-                    .route(post().to(login))
+                    .route(post().to(auth::login))
                     .wrap(LoginLimit::new(visitors)),
             )
             .service(
                 resource("/logout")
-                    .route(get().to(logout))
+                    .route(get().to(auth::logout))
                     .wrap(Authentication),
             )
-            .route("/discord/callback", get().to(discord_callback))
-            .route("/register", post().to(register))
-            .route("/login", post().to(login))
-            .route("/refresh", get().to(refresh_token))
-            .route("/verify/email", get().to(verify_email))
-            .route("/forgot-password", post().to(forgot_password))
-            .route("/reset-password", post().to(reset_password)),
+            .route("/refresh", get().to(auth::refresh_token))
+            .route("/verify/email", get().to(auth::verify_email))
+            .service(
+                scope("/password")
+                    .route("/forgot", post().to(auth::forgot_password))
+                    .route("/reset", post().to(auth::reset_password)),
+            )
+            .route("/discord/callback", get().to(auth::discord_callback)),
     );
 
     cfg.service(
         scope("/user")
-            .route("", put().to(update_user))
-            .route("/data", get().to(user_data))
+            .route("", get().to(user::get))
+            .route("", put().to(user::update))
+            .route("/championships", get().to(user::get_championships))
             .wrap(Authentication),
     );
 
     cfg.service(
         scope("/championships")
-            .route("", post().to(create_championship))
-            .route("/all", get().to(all_championships))
-            .route("/{id}", get().to(get_championship))
-            .route("/{id}", put().to(update))
-            .route("/{id}/user/add", put().to(add_user))
-            .route("/{id}/user/{user_id}", delete().to(remove_user))
-            .route("/{id}/service/start", get().to(start_service))
-            .route("/{id}/service/status", get().to(service_status))
-            .route("/{id}/service/stop", get().to(stop_service))
+            .route("", post().to(championships::core::create))
+            .service(
+                scope("/{id}")
+                    .route("", get().to(championships::core::get))
+                    .route("", put().to(championships::core::update))
+                    .service(
+                        scope("/users")
+                            .route("", put().to(championships::core::add_user))
+                            .route("/{user_id}", delete().to(championships::core::remove_user)),
+                    ),
+            )
             .wrap(Authentication),
     );
 
-    cfg.route("/heartbeat", get().to(heartbeat));
+    cfg.service(
+        scope("/services")
+            .service(
+                scope("/championships/{id}")
+                    .route("/start", post().to(championships::service::start))
+                    .route("/status", get().to(championships::service::status))
+                    .route("/stop", post().to(championships::service::stop)),
+            )
+            .wrap(Authentication),
+    );
 
-    cfg.route("/stream/championship/{id}", get().to(handle_stream));
+    cfg.service(scope("/system").route("/health-check", get().to(system_health_check)));
+
+    cfg.service(scope("/stream").route(
+        "/championships/{id}",
+        get().to(championships::stream::stream_live_session),
+    ));
 }

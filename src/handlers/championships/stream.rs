@@ -36,7 +36,7 @@ impl<S> Drop for CleanupStream<S> {
 }
 
 #[inline(always)]
-pub async fn handle_stream(
+pub async fn stream_live_session(
     state: State<AppState>,
     path: Path<ChampionshipId>,
 ) -> AppResult<HttpResponse> {

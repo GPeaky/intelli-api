@@ -11,16 +11,7 @@ use crate::{
 };
 
 #[inline(always)]
-pub async fn active_services(state: State<AppState>) -> AppResult<HttpResponse> {
-    let services = state.f1_svc.services();
-    Ok(HttpResponse::Ok().json(&services))
-}
-
-#[inline(always)]
-pub async fn start_service(
-    state: State<AppState>,
-    path: Path<ChampionshipId>,
-) -> AppResult<HttpResponse> {
+pub async fn start(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -38,10 +29,7 @@ pub async fn start_service(
 }
 
 #[inline(always)]
-pub async fn service_status(
-    state: State<AppState>,
-    path: Path<ChampionshipId>,
-) -> AppResult<HttpResponse> {
+pub async fn status(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
@@ -56,10 +44,7 @@ pub async fn service_status(
 }
 
 #[inline(always)]
-pub async fn stop_service(
-    state: State<AppState>,
-    path: Path<ChampionshipId>,
-) -> AppResult<HttpResponse> {
+pub async fn stop(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     }
