@@ -9,6 +9,9 @@ use crate::{
     structs::ChampionshipId,
 };
 
+// TODO: implement a method to update championship info
+// TODO: implement an addUser and removeUser for admin
+
 #[inline(always)]
 pub async fn active_championships(state: State<AppState>) -> AppResult<HttpResponse> {
     let services = state.f1_svc.services();

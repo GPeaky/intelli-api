@@ -76,50 +76,48 @@ impl ChampionshipService {
             Err(ChampionshipError::AlreadyExists)?
         };
 
-        {
-            let conn = self.db.pg.get().await?;
+        let conn = self.db.pg.get().await?;
 
-            let create_championship_stmt_fut = conn.prepare_cached(
-                r#"
+        let create_championship_stmt_fut = conn.prepare_cached(
+            r#"
                     INSERT INTO championships (id, port, name, category, owner_id)
                     VALUES ($1,$2,$3,$4,$5)
                 "#,
-            );
+        );
 
-            let relate_user_with_championship_stmt_fut = conn.prepare_cached(
-                r#"
+        let relate_user_with_championship_stmt_fut = conn.prepare_cached(
+            r#"
                     INSERT INTO championship_users (user_id, championship_id, role)
                     VALUES ($1,$2, 'Admin')
                 "#,
-            );
+        );
 
-            let (create_championship_stmt, relate_user_with_championship_stmt) = tokio::try_join!(
-                create_championship_stmt_fut,
-                relate_user_with_championship_stmt_fut
-            )?;
+        let (create_championship_stmt, relate_user_with_championship_stmt) = tokio::try_join!(
+            create_championship_stmt_fut,
+            relate_user_with_championship_stmt_fut
+        )?;
 
-            let id = self.ids_generator.next();
+        let id = self.ids_generator.next();
 
-            let port = self
-                .machine_ports
-                .next()
-                .ok_or(ChampionshipError::NoPortsAvailable)?;
+        let port = self
+            .machine_ports
+            .next()
+            .ok_or(ChampionshipError::NoPortsAvailable)?;
 
-            let result = conn
-                .execute(
-                    &create_championship_stmt,
-                    &[&id, &port, &payload.name, &payload.category, &user_id],
-                )
-                .await;
+        let result = conn
+            .execute(
+                &create_championship_stmt,
+                &[&id, &port, &payload.name, &payload.category, &user_id],
+            )
+            .await;
 
-            if let Err(e) = result {
-                self.machine_ports.return_port(port);
-                return Err(e)?;
-            }
-
-            conn.execute(&relate_user_with_championship_stmt, &[&user_id, &id])
-                .await?;
+        if let Err(e) = result {
+            self.machine_ports.return_port(port);
+            return Err(e)?;
         }
+
+        conn.execute_raw(&relate_user_with_championship_stmt, &[&user_id, &id])
+            .await?;
 
         self.cache.championship.delete_by_user(user_id);
         Ok(())
@@ -182,7 +180,7 @@ impl ChampionshipService {
 
             let clause = clauses.join(", ");
             let query = format!(
-                "UPDATE championship SET {} WHERE id = ${} AND owner_id = ${}",
+                "UPDATE championships SET {} WHERE id = ${} AND owner_id = ${}",
                 clause,
                 params_counter,
                 params_counter + 1
@@ -300,7 +298,7 @@ impl ChampionshipService {
             )
             .await?;
 
-        conn.execute(&remove_user_stmt, &[&remove_user_id, &id])
+        conn.execute_raw(&remove_user_stmt, &[&remove_user_id, &id])
             .await?;
         self.cache.championship.delete_by_user(remove_user_id);
 
@@ -335,11 +333,11 @@ impl ChampionshipService {
         )?;
 
         let users = self.championship_repo.users(id).await?;
-        conn.execute(&delete_championship_relations_stmt, &[&id])
+        conn.execute_raw(&delete_championship_relations_stmt, &[&id])
             .await?;
         self.cache.championship.prune(id, users);
 
-        conn.execute(&delete_championship_stmt, &[&id]).await?;
+        conn.execute_raw(&delete_championship_stmt, &[&id]).await?;
         info!("Championship deleted with success: {id}");
 
         Ok(())

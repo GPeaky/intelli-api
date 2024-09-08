@@ -31,7 +31,7 @@ pub async fn discord_callback(
         None => {
             let id = state
                 .user_svc
-                .create(&UserRegistrationData::from_discord_user_info(discord_info))
+                .create(UserRegistrationData::from_discord_user_info(discord_info))
                 .await?;
 
             state.user_repo.find(id).await.unwrap().unwrap()

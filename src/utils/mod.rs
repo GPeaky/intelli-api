@@ -41,7 +41,7 @@ pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
     Ok(unsafe { &*(ptr.cast()) })
 }
 
-#[inline]
+#[inline(always)]
 pub fn slice_iter<'a>(
     s: &'a [&'a (dyn ToSql + Sync)],
 ) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {

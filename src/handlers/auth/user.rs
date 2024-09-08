@@ -27,7 +27,7 @@ pub(crate) async fn register(
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let user_id = state.user_svc.create(&form).await?;
+    let user_id = state.user_svc.create(form).await?;
 
     let token = state
         .token_svc

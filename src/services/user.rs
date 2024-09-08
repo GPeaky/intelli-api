@@ -9,7 +9,7 @@ use crate::{
     error::{AppResult, UserError},
     repositories::UserRepository,
     structs::{TokenPurpose, UserRegistrationData, UserUpdateData},
-    utils::IdsGenerator,
+    utils::{slice_iter, IdsGenerator},
 };
 
 use super::TokenService;
@@ -61,73 +61,52 @@ impl UserService {
     ///
     /// # Returns
     /// The ID of the newly created user.
-    pub async fn create(&self, register: &UserRegistrationData) -> AppResult<i32> {
-        let user_exists = self.user_repo.user_exists(&register.email).await?;
-
-        if user_exists {
-            Err(UserError::AlreadyExists)?
+    pub async fn create(&self, registration_data: UserRegistrationData) -> AppResult<i32> {
+        if self.user_repo.user_exists(&registration_data.email).await? {
+            return Err(UserError::AlreadyExists)?;
         }
 
         let id = self.ids_generator.next();
+
+        let hashed_password = if let Some(pwd) = registration_data.password {
+            Some(self.user_repo.hash_password(pwd).await?)
+        } else {
+            None
+        };
+
+        let avatar = registration_data.avatar.unwrap_or_else(|| {
+            format!(
+                "https://ui-avatars.com/api/?name={}",
+                &registration_data.username
+            )
+        });
+
+        let provider = registration_data.provider.unwrap_or(Provider::Local);
+        let active = provider != Provider::Local;
+
         let conn = self.db.pg.get().await?;
+        let create_user_stmt = conn.prepare_cached(
+            r#"
+                INSERT INTO users (id, email, username, password, avatar, provider, discord_id, active)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+        ).await?;
 
-        match &register.provider {
-            Some(provider) if provider == &Provider::Discord => {
-                let create_discord_user_stmt = conn
-                    .prepare_cached(
-                        r#"
-                            INSERT INTO users (id, email, username, avatar, provider, discord_id, active)
-                            VALUES ($1,$2,$3,$4,$5,$6, true)
-                        "#,
-                    )
-                    .await?;
+        conn.execute_raw(
+            &create_user_stmt,
+            slice_iter(&[
+                &id,
+                &registration_data.email,
+                &registration_data.username,
+                &hashed_password,
+                &avatar,
+                &provider,
+                &registration_data.discord_id,
+                &active,
+            ]),
+        )
+        .await?;
 
-                conn.execute(
-                    &create_discord_user_stmt,
-                    &[
-                        &id,
-                        &register.email,
-                        &register.username,
-                        &register.avatar,
-                        provider,
-                        &register.discord_id,
-                    ],
-                )
-                .await?;
-            }
-
-            None => {
-                let hashed_password = self
-                    .user_repo
-                    .hash_password(register.password.clone().unwrap())
-                    .await?;
-
-                let create_user_stmt = conn
-                    .prepare_cached(
-                        r#"
-                            INSERT INTO users (id, email, username, password, avatar, active)
-                            VALUES ($1,$2,$3,$4,$5, false)
-                        "#,
-                    )
-                    .await?;
-
-                conn.execute(
-                    &create_user_stmt,
-                    &[
-                        &id,
-                        &register.email,
-                        &register.username,
-                        &hashed_password,
-                        &format!("https://ui-avatars.com/api/?name={}", &register.username),
-                    ],
-                )
-                .await?;
-            }
-
-            _ => Err(UserError::InvalidProvider)?,
-        }
-
-        info!("User created: {}", register.username);
         Ok(id)
     }
 
@@ -141,7 +120,7 @@ impl UserService {
     /// Result indicating success or failure.
     pub async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         if let Some(last_update) = user.updated_at {
-            if Utc::now().signed_duration_since(last_update) > Duration::days(7) {
+            if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
                 return Err(UserError::UpdateLimitExceeded)?;
             }
         }
@@ -152,7 +131,7 @@ impl UserService {
             let mut params: Vec<&(dyn ToSql + Sync)> = Vec::with_capacity(3);
 
             if let Some(username) = &form.username {
-                clauses.push(format!("name = ${}", params_counter));
+                clauses.push(format!("username = ${}", params_counter));
                 params.push(username);
                 params_counter += 1;
             }
@@ -164,20 +143,23 @@ impl UserService {
             }
 
             if clauses.is_empty() {
-                Err(UserError::InvalidUpdate)?
+                return Err(UserError::InvalidUpdate)?;
             }
 
             clauses.push("updated_at = CURRENT_TIMESTAMP".to_owned());
 
-            let clause = clauses.join(", ");
-            let query = format!("UPDATE users {} WHERE id = ${}", clause, params_counter);
+            let set_clause = clauses.join(", ");
+            let query = format!(
+                "UPDATE users SET {} WHERE id = ${}",
+                set_clause, params_counter
+            );
             params.push(&user.id);
 
             (query, params)
         };
 
         let conn = self.db.pg.get().await?;
-        conn.execute(&query, &params[..]).await?;
+        conn.execute_raw(&query, slice_iter(&params[..])).await?;
         self.cache.user.delete(user.id);
 
         Ok(())
@@ -211,10 +193,10 @@ impl UserService {
         let (delete_users_relations_stmt, delete_user_stmt) =
             tokio::try_join!(delete_users_relations_stmt_fut, delete_user_stmt_fut)?;
 
-        let binding: [&(dyn ToSql + Sync); 1] = [&id];
-        conn.execute(&delete_users_relations_stmt, &binding).await?;
+        conn.execute_raw(&delete_users_relations_stmt, &[&id])
+            .await?;
 
-        conn.execute(&delete_user_stmt, &binding).await?;
+        conn.execute_raw(&delete_user_stmt, &[&id]).await?;
         self.cache.user.delete(id);
         self.cache.championship.delete_by_user(id);
 
@@ -273,7 +255,7 @@ impl UserService {
             )
             .await?;
 
-        conn.execute(&activate_user_stmt, &[&id]).await?;
+        conn.execute_raw(&activate_user_stmt, &[&id]).await?;
         self.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
@@ -325,7 +307,7 @@ impl UserService {
             )
             .await?;
 
-        conn.execute(&deactivate_user_stmt, &[&id]).await?;
+        conn.execute_raw(&deactivate_user_stmt, &[&id]).await?;
         self.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
@@ -363,7 +345,7 @@ impl UserService {
             .await?;
 
         let hashed_password = self.user_repo.hash_password(password).await?;
-        conn.execute(&reset_password_stmt, &[&hashed_password, &id])
+        conn.execute_raw(&reset_password_stmt, slice_iter(&[&hashed_password, &id]))
             .await?;
 
         self.cache.user.delete(id);
