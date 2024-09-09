@@ -2,6 +2,8 @@
 // -------------- ORIGINAL GAME ----------------
 // ---------------------------------------------
 
+use core::str;
+
 use serde::Deserialize;
 
 use crate::error::{AppError, ChampionshipError};
@@ -965,5 +967,15 @@ impl TryFrom<u8> for PacketIds {
             14 => Ok(PacketIds::TimeTrial),
             _ => Err("Unknown packet id"),
         }
+    }
+}
+
+impl ParticipantData {
+    #[inline(always)]
+    pub fn steam_name(&self) -> Option<&str> {
+        let nul_position = memchr::memchr(0, &self.name)?;
+        str::from_utf8(&self.name[..nul_position])
+            .ok()
+            .filter(|s| !s.is_empty())
     }
 }

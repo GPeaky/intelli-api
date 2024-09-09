@@ -20,8 +20,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE drivers (
-    id INTEGER PRIMARY KEY,
-    steam_name VARCHAR(100) NOT NULL UNIQUE,
+    steam_name VARCHAR(100) PRIMARY KEY,
     nationality SMALLINT NOT NULL,
     user_id INTEGER UNIQUE REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -65,21 +64,19 @@ CREATE TABLE championship_users (
 );
 
 CREATE TABLE championship_drivers (
-    driver_id INTEGER NOT NULL REFERENCES drivers(id),
+    steam_name VARCHAR(100) NOT NULL REFERENCES drivers(steam_name),
     championship_id INTEGER NOT NULL REFERENCES championships(id),
-    team_id SMALLINT,
-    number SMALLINT,
+    team_id SMALLINT NOT NULL,
+    number SMALLINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ,
-    PRIMARY KEY (driver_id, championship_id)
+    PRIMARY KEY (steam_name, championship_id)
 );
-
 
 -- Optimized indexes
 CREATE INDEX idx_users_email ON users (email);
 CREATE INDEX idx_users_username ON users (username);
 CREATE INDEX idx_users_discord_id ON users (discord_id) WHERE discord_id IS NOT NULL;
-CREATE INDEX idx_drivers_steam_name ON drivers (steam_name);
 CREATE INDEX idx_drivers_user_id ON drivers (user_id) WHERE user_id IS NOT NULL;
 CREATE INDEX idx_championships_name ON championships (name);
 CREATE INDEX idx_championship_users ON championship_users (championship_id, role);
@@ -93,7 +90,7 @@ ON championship_id, user_id, role
 FROM championship_users;
 
 CREATE STATISTICS ext_stats_championship_drivers (dependencies)
-ON championship_id, driver_id, team_id
+ON championship_id, steam_name, team_id
 FROM championship_drivers;
 
 CREATE STATISTICS ext_stats_races (dependencies)

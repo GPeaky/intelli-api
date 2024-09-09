@@ -142,6 +142,7 @@ impl PacketCaching {
     ///
     /// # Returns
     /// Total count of headers in the cache.
+    #[inline(always)]
     fn total_headers(&self) -> usize {
         let base_count = 3;
         let history_estimate = self.history_data.len();

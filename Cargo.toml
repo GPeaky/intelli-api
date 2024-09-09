@@ -17,6 +17,7 @@ tracing = "0.1"
 bit-set = "0.8"
 base64 = "0.22"
 ntex-cors = "2"
+memchr = "2.7.4"
 dotenvy = "0.15"
 sailfish = "0.8"
 mimalloc = "0.1"
@@ -55,7 +56,6 @@ brotli = { version = "6", features = [
     "simd",
     "vector_scratch_space",
 ] }
-
 
 [profile.release]
 debug = false           # Added Debug for trying to get hot spots in the code

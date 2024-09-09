@@ -143,6 +143,24 @@ pub fn convert_event_data_details(
             })
         }
 
+        EventCode::SafetyCar => {
+            let safety_car = unsafe { &event_data_details.safety_car };
+
+            Details::SafetyCar(SafetyCar {
+                safety_car_type: safety_car.safety_car_type as u32,
+                event_type: safety_car.event_type as u32,
+            })
+        }
+
+        EventCode::Collision => {
+            let collision = unsafe { &event_data_details.collision };
+
+            Details::Collision(Collision {
+                vehicle1_idx: collision.vehicle1_idx as u32,
+                vehicle2_idx: collision.vehicle2_idx as u32,
+            })
+        }
+
         // This should never happen because we are filtering out these events
         _ => unreachable!(),
     };

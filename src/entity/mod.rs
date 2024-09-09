@@ -1,5 +1,4 @@
 pub use championship::*;
-#[allow(unused)]
 pub use driver::*;
 #[allow(unused)]
 pub use race::*;

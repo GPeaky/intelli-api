@@ -24,6 +24,8 @@ use crate::{
     },
     error::{AppResult, CommonError, F1ServiceError},
     protos::ToProtoMessage,
+    services::{ChampionshipServiceOperations, DriverServiceOperations},
+    states::F1State,
     structs::{
         F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
         PacketEventData, PacketExtraData, PacketFinalClassificationData, PacketMotionData,
@@ -32,11 +34,12 @@ use crate::{
     },
 };
 
-use super::{batching::PacketBatching, firewall::FirewallService, PacketCaching};
+use super::{batching::PacketBatching, PacketCaching};
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
     port: i32,
+    race_id: i32,
     championship_id: i32,
     port_partially_opened: bool,
     last_updates: LastUpdates,
@@ -45,8 +48,8 @@ pub struct F1Service {
     session_type: Option<SessionType>,
     car_lap_sector: AHashMap<u8, SectorsLaps>,
     packet_batching: PacketBatching,
-    firewall: &'static FirewallService,
     services: &'static DashMap<i32, F1ServiceData>,
+    f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance.
@@ -81,11 +84,12 @@ impl F1Service {
         tx: Sender<Bytes>,
         shutdown: oneshot::Receiver<()>,
         cache: Arc<RwLock<PacketCaching>>,
-        firewall: &'static FirewallService,
         services: &'static DashMap<i32, F1ServiceData>,
+        f1_state: &'static F1State,
     ) -> Self {
         F1Service {
             port: 0,
+            race_id: 0,
             championship_id: 0,
             port_partially_opened: false,
             last_updates: LastUpdates::new(),
@@ -94,8 +98,8 @@ impl F1Service {
             session_type: None,
             car_lap_sector: AHashMap::with_capacity(20),
             packet_batching: PacketBatching::new(tx, cache),
-            firewall,
             services,
+            f1_state,
         }
     }
 
@@ -107,7 +111,12 @@ impl F1Service {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    pub async fn initialize(&mut self, port: i32, championship_id: i32) -> AppResult<()> {
+    pub async fn initialize(
+        &mut self,
+        port: i32,
+        championship_id: i32,
+        race_id: i32,
+    ) -> AppResult<()> {
         let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
@@ -115,9 +124,11 @@ impl F1Service {
 
         self.port = port;
         self.socket = socket;
+        self.race_id = race_id;
         self.championship_id = championship_id;
 
-        self.firewall
+        self.f1_state
+            .firewall
             .open(self.championship_id, self.port as u16)
             .await?;
 
@@ -149,6 +160,7 @@ impl F1Service {
 
                             if !self.port_partially_opened {
                                 if self
+                                    .f1_state
                                     .firewall
                                     .restrict_to_ip(self.championship_id, address.ip().to_string())
                                     .await
@@ -217,6 +229,7 @@ impl F1Service {
             }
             F1PacketData::Participants(participants_data) => {
                 self.handle_participants_packet(participants_data, now)
+                    .await?
             }
             F1PacketData::Event(event_data) => self.handle_event_packet(event_data),
             F1PacketData::SessionHistory(session_history_data) => {
@@ -271,19 +284,67 @@ impl F1Service {
     }
 
     #[inline]
-    fn handle_participants_packet(
+    async fn handle_participants_packet(
         &mut self,
         participants_data: &PacketParticipantsData,
         now: Instant,
-    ) {
+    ) -> AppResult<()> {
         if now.duration_since(self.last_updates.participants) < SESSION_INTERVAL {
-            return;
+            return Ok(());
+        }
+
+        // TODO: Add tick to not run this code every minute
+        // Move this code to a specific function to separate the logic of handling the packet with this
+        for i in 0..participants_data.num_active_cars {
+            let participant = participants_data.participants[i as usize];
+
+            if participant.driver_id != 255 {
+                continue;
+            }
+
+            let steam_name = match participant.steam_name() {
+                Some(n) => n,
+                None => {
+                    error!("Error getting steam name");
+                    continue;
+                }
+            };
+
+            if steam_name == "Player" {
+                continue;
+            }
+
+            if self.f1_state.driver_repo.find(steam_name).await?.is_none() {
+                self.f1_state
+                    .driver_svc
+                    .create(steam_name, participant.nationality as i16, None)
+                    .await?;
+            }
+
+            if !self
+                .f1_state
+                .championship_repo
+                .is_driver_linked(self.championship_id, steam_name)
+                .await?
+            {
+                self.f1_state
+                    .championship_svc
+                    .add_driver(
+                        self.championship_id,
+                        steam_name,
+                        participant.team_id as i16,
+                        participant.race_number as i16,
+                    )
+                    .await?;
+            }
         }
 
         let packet = participants_data.to_packet_header().unwrap();
 
         self.last_updates.participants = now;
         self.packet_batching.push(packet);
+
+        Ok(())
     }
 
     #[inline]
@@ -352,11 +413,11 @@ impl F1Service {
         &mut self,
         _final_classification: &PacketFinalClassificationData,
     ) {
-        info!("FinalClassification data received");
+        // TODO: Save the Result in the db
 
-        // let packet = final_classification
-        //     .convert(PacketType::FinalClassificationData)
-        //     .unwrap();
+        // let packet = final_classification.to_packet_header().unwrap();
+
+        // let session_type = self.session_type.unwrap();
 
         // {
         //     info!("Session type: {:?}", self.session_type);
@@ -389,7 +450,13 @@ impl F1Service {
     /// Closes the F1 service, releasing resources and removing it from active services.
     #[inline]
     async fn close(&self) {
-        if self.firewall.close(self.championship_id).await.is_err() {
+        if self
+            .f1_state
+            .firewall
+            .close(self.championship_id)
+            .await
+            .is_err()
+        {
             error!("Error closing port in firewall");
         }
 

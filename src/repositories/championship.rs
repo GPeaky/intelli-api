@@ -139,6 +139,27 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
+    pub async fn is_driver_linked(&self, id: i32, steam_name: &str) -> AppResult<bool> {
+        let conn = self.db.pg.get().await?;
+
+        let driver_exists_stmt = conn
+            .prepare_cached(
+                r#"
+                    SELECT 1
+                    FROM championship_drivers
+                    WHERE steam_name = $1 AND championship_id = $2
+                    LIMIT 1
+                "#,
+            )
+            .await?;
+
+        let res = conn
+            .query_opt(&driver_exists_stmt, &[&steam_name, &id])
+            .await?;
+
+        Ok(res.is_some())
+    }
+
     /// Retrieves all used championship IDs.
     ///
     /// This method should only be called once.

@@ -2,8 +2,14 @@ use crate::{
     cache::ServiceCache,
     config::Database,
     error::AppResult,
-    repositories::{ChampionshipRepository, DiscordRepository, ServerRepository, UserRepository},
-    services::{ChampionshipService, EmailService, F1ServiceHandler, TokenService, UserService},
+    repositories::{
+        ChampionshipRepository, DiscordRepository, DriverRepository, ServerRepository,
+        UserRepository,
+    },
+    services::{
+        ChampionshipService, DriverService, EmailService, F1ServiceHandler, FirewallService,
+        TokenService, UserService,
+    },
 };
 
 #[derive(Clone)]
@@ -13,21 +19,54 @@ pub struct AppState {
     pub token_svc: &'static TokenService,
     pub championship_svc: &'static ChampionshipService,
     pub championship_repo: &'static ChampionshipRepository,
+    #[allow(unused)]
+    pub driver_repo: &'static DriverRepository,
+    #[allow(unused)]
+    pub driver_svc: &'static DriverService,
     pub email_svc: EmailService,
     pub f1_svc: F1ServiceHandler,
     pub discord_repo: &'static DiscordRepository,
     pub server_repo: ServerRepository,
 }
 
+pub struct F1State {
+    pub driver_svc: &'static DriverService,
+    pub firewall: &'static FirewallService,
+    pub driver_repo: &'static DriverRepository,
+    pub championship_repo: &'static ChampionshipRepository,
+    pub championship_svc: &'static ChampionshipService,
+}
+
+impl F1State {
+    pub fn new(
+        driver_svc: &'static DriverService,
+        driver_repo: &'static DriverRepository,
+        championship_repo: &'static ChampionshipRepository,
+        championship_svc: &'static ChampionshipService,
+    ) -> Self {
+        let firewall = Box::leak(Box::new(FirewallService::new()));
+
+        F1State {
+            firewall,
+            driver_svc,
+            driver_repo,
+            championship_repo,
+            championship_svc,
+        }
+    }
+}
+
 impl AppState {
     pub async fn new(db: &'static Database, cache: &'static ServiceCache) -> AppResult<Self> {
         // Repositories
         let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
-        let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
         let discord_repo = Box::leak(Box::new(DiscordRepository::new()));
+        let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
+        let driver_repo = Box::leak(Box::new(DriverRepository::new(db, cache)));
 
         // Services
         let token_svc = Box::leak(Box::from(TokenService::new(cache)));
+        let driver_svc = Box::leak(Box::new(DriverService::new(db, cache, driver_repo).await));
         let user_svc = Box::leak(Box::from(
             UserService::new(db, cache, user_repo, token_svc).await,
         ));
@@ -35,13 +74,23 @@ impl AppState {
             ChampionshipService::new(db, cache, user_repo, championship_repo).await?,
         ));
 
+        // Inner states
+        let f1_state = Box::leak(Box::new(F1State::new(
+            driver_svc,
+            driver_repo,
+            championship_repo,
+            championship_svc,
+        )));
+
         Ok(Self {
             user_svc,
-            f1_svc: F1ServiceHandler::new(),
+            f1_svc: F1ServiceHandler::new(f1_state),
             user_repo,
             token_svc,
             championship_svc,
             championship_repo,
+            driver_repo,
+            driver_svc,
             email_svc: EmailService::new(),
             discord_repo,
             server_repo: ServerRepository::new(db),

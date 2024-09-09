@@ -7,7 +7,7 @@ use crate::entity::Championship;
 use super::{EntityCache, CACHE_CAPACITY};
 
 pub struct ChampionshipCache {
-    cache: Cache<i32, Arc<Championship>>,
+    inner: Cache<i32, Arc<Championship>>,
     name_to_id: Cache<String, i32>,
     user_championships: Cache<i32, Vec<Arc<Championship>>>,
 }
@@ -15,7 +15,7 @@ pub struct ChampionshipCache {
 impl ChampionshipCache {
     pub fn new() -> Self {
         Self {
-            cache: Cache::new(CACHE_CAPACITY),
+            inner: Cache::new(CACHE_CAPACITY),
             name_to_id: Cache::new(CACHE_CAPACITY),
             user_championships: Cache::new(CACHE_CAPACITY),
         }
@@ -51,16 +51,16 @@ impl EntityCache for ChampionshipCache {
     type Entity = Championship;
 
     fn get(&self, id: i32) -> Option<Arc<Self::Entity>> {
-        self.cache.get(&id)
+        self.inner.get(&id)
     }
 
     fn set(&self, entity: Arc<Self::Entity>) {
-        self.cache.insert(entity.id, entity.clone());
+        self.inner.insert(entity.id, entity.clone());
         self.name_to_id.insert(entity.name.clone(), entity.id);
     }
 
     fn delete(&self, id: i32) {
-        if let Some((_, championship)) = self.cache.remove(&id) {
+        if let Some((_, championship)) = self.inner.remove(&id) {
             self.name_to_id.remove(&championship.name);
         }
     }

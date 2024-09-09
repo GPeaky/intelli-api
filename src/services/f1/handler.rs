@@ -10,10 +10,11 @@ use tracing::{info, warn};
 
 use crate::{
     error::{AppResult, F1ServiceError},
+    states::F1State,
     structs::ServiceStatus,
 };
 
-use super::{
+pub use super::{
     firewall::FirewallService,
     service::{F1Service, F1ServiceData},
 };
@@ -22,7 +23,7 @@ use super::{
 #[derive(Clone)]
 pub struct F1ServiceHandler {
     services: &'static DashMap<i32, F1ServiceData>,
-    firewall: &'static FirewallService,
+    f1_state: &'static F1State,
 }
 
 impl F1ServiceHandler {
@@ -30,11 +31,10 @@ impl F1ServiceHandler {
     ///
     /// # Returns
     /// A new F1ServiceHandler with initialized services and firewall.
-    pub fn new() -> Self {
-        let firewall = Box::leak(Box::new(FirewallService::new()));
+    pub fn new(f1_state: &'static F1State) -> Self {
         let services = Box::leak(Box::new(DashMap::with_capacity(100)));
 
-        Self { services, firewall }
+        Self { services, f1_state }
     }
 
     /// Retrieves the cache for a specific championship service.
@@ -167,12 +167,13 @@ impl F1ServiceHandler {
             tx,
             orx,
             service_data.cache.clone(),
-            self.firewall,
             self.services,
+            self.f1_state,
         )
         .await;
 
-        service.initialize(port, championship_id).await?;
+        // TODO: Add real race_id
+        service.initialize(port, championship_id, 0).await?;
 
         ntex::rt::spawn(async move { service.run().await });
 

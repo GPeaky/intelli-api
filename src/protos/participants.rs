@@ -1,5 +1,3 @@
-use std::ffi::CStr;
-
 use crate::structs::PacketParticipantsData as BPacketParticipantsData;
 
 use super::ToProtoMessage;
@@ -13,14 +11,7 @@ impl ToProtoMessage for BPacketParticipantsData {
         let mut participants = Vec::with_capacity(20);
 
         for participant in &self.participants {
-            let name = match CStr::from_bytes_until_nul(&participant.name) {
-                Ok(c_str) => match c_str.to_str() {
-                    Ok(valid_str) => valid_str.to_owned(),
-                    Err(_) => String::new(),
-                },
-
-                Err(_) => String::new(),
-            };
+            let name = participant.steam_name().unwrap_or("Driver");
 
             participants.push(ParticipantData {
                 ai_controlled: participant.ai_controlled as u32,
@@ -30,7 +21,7 @@ impl ToProtoMessage for BPacketParticipantsData {
                 my_team: participant.my_team as u32,
                 race_number: participant.race_number as u32,
                 nationality: participant.nationality as u32,
-                name,
+                name: name.to_owned(),
                 your_telemetry: participant.your_telemetry as u32,
                 show_online_names: participant.show_online_names as u32,
                 platform: participant.platform as u32,

@@ -9,7 +9,7 @@ use super::CACHE_CAPACITY;
 
 // TODO: Make this impl a bit more legible
 pub struct TokenCache {
-    cache: Cache<(String, TokenPurpose), Instant>,
+    inner: Cache<(String, TokenPurpose), Instant>,
     refresh_tokens: Cache<(i32, String), (Instant, String)>,
 }
 
@@ -17,14 +17,14 @@ pub struct TokenCache {
 impl TokenCache {
     pub fn new() -> Self {
         Self {
-            cache: Cache::new(CACHE_CAPACITY),
+            inner: Cache::new(CACHE_CAPACITY),
             refresh_tokens: Cache::new(CACHE_CAPACITY),
         }
     }
 
     pub fn set_token(&self, token: String, token_type: TokenPurpose) {
         let expiry = token_type.expiry_instant();
-        self.cache.insert((token, token_type), expiry)
+        self.inner.insert((token, token_type), expiry)
     }
 
     pub fn set_refresh_token(&self, user_id: i32, fingerprint: String, token: String) {
@@ -35,7 +35,7 @@ impl TokenCache {
     }
 
     pub fn get_token(&self, token: String, token_type: TokenPurpose) -> bool {
-        if let Some(expiry) = self.cache.get(&(token.clone(), token_type)) {
+        if let Some(expiry) = self.inner.get(&(token.clone(), token_type)) {
             if Instant::now() < expiry {
                 return true;
             } else {
@@ -59,7 +59,7 @@ impl TokenCache {
     }
 
     pub fn remove_token(&self, token: String, token_type: TokenPurpose) {
-        self.cache.remove(&(token, token_type));
+        self.inner.remove(&(token, token_type));
     }
 
     pub fn remove_refresh_token(&self, user_id: i32, fingerprint: String) {

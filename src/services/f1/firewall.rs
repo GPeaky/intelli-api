@@ -50,7 +50,6 @@ impl FirewallService {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    #[allow(unused)]
     pub async fn open(&self, id: i32, port: u16) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
@@ -92,7 +91,6 @@ impl FirewallService {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    #[allow(unused)]
     pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
@@ -100,7 +98,7 @@ impl FirewallService {
         }
 
         let mut rules = self.rules.write().await;
-        let mut rule = rules.get_mut(&id).ok_or(FirewallError::RuleNotFound)?;
+        let rule = rules.get_mut(&id).ok_or(FirewallError::RuleNotFound)?;
 
         Self::nft_command(&[
             "delete",

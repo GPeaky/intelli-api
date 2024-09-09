@@ -10,7 +10,8 @@ use ntex::{
 use tracing::error;
 
 use super::{
-    user::UserError, ChampionshipError, CommonError, F1ServiceError, FirewallError, TokenError,
+    driver::DriverError, user::UserError, ChampionshipError, CommonError, F1ServiceError,
+    FirewallError, TokenError,
 };
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -20,6 +21,7 @@ pub type AppResult<T> = Result<T, AppError>;
 pub enum AppError {
     User(UserError),
     Championship(ChampionshipError),
+    Driver(DriverError),
     Token(TokenError),
     Common(CommonError),
     F1(F1ServiceError),
@@ -70,6 +72,7 @@ impl AppError {
         match self {
             AppError::User(e) => e.status_code(),
             AppError::Championship(e) => e.status_code(),
+            AppError::Driver(e) => e.status_code(),
             AppError::Token(e) => e.status_code(),
             AppError::Common(e) => e.status_code(),
             AppError::F1(e) => e.status_code(),
@@ -85,6 +88,7 @@ impl AppError {
         match self {
             AppError::User(e) => e.error_message(),
             AppError::Championship(e) => e.error_message(),
+            AppError::Driver(e) => e.error_message(),
             AppError::Token(e) => e.error_message(),
             AppError::Common(e) => e.error_message(),
             AppError::F1(e) => e.error_message(),

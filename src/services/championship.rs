@@ -53,6 +53,26 @@ pub trait ChampionshipServiceOperations {
     async fn add_user(&self, id: i32, user_id: i32, form: ChampionshipUserAddForm)
         -> AppResult<()>;
 
+    /// Adds a driver to a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship.
+    /// * `steam_name` - The steam_name of the new driver.
+    /// * `team_id` - The team of the driver.
+    /// * `number` - The racing number of the driver.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship or driver is not found,
+    async fn add_driver(
+        &self,
+        id: i32,
+        steam_name: &str,
+        team_id: i16,
+        number: i16,
+    ) -> AppResult<()>;
+
     /// Removes a user from a championship.
     ///
     /// # Arguments
@@ -286,6 +306,30 @@ impl ChampionshipService {
         Ok(())
     }
 
+    async fn _add_driver(
+        &self,
+        id: i32,
+        steam_name: &str,
+        team_id: i16,
+        number: i16,
+    ) -> AppResult<()> {
+        let conn = self.db.pg.get().await?;
+
+        let add_driver_stmt = conn
+            .prepare_cached(
+                r#"
+                    INSERT INTO championship_drivers (steam_name, championship_id, team_id, number)
+                    VALUES ($1, $2, $3, $4)
+                "#,
+            )
+            .await?;
+
+        conn.execute(&add_driver_stmt, &[&steam_name, &id, &team_id, &number])
+            .await?;
+
+        Ok(())
+    }
+
     /// Internal method to remove a user from a championship.
     #[inline(always)]
     async fn _remove_user(&self, id: i32, remove_user_id: i32) -> AppResult<()> {
@@ -419,6 +463,17 @@ impl ChampionshipServiceOperations for ChampionshipService {
         }
 
         self._delete(id).await
+    }
+
+    async fn add_driver(
+        &self,
+        id: i32,
+        steam_name: &str,
+        team_id: i16,
+        number: i16,
+    ) -> AppResult<()> {
+        // TODO: Add check if championship and driver exists
+        self._add_driver(id, steam_name, team_id, number).await
     }
 }
 
