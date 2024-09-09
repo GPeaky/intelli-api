@@ -23,7 +23,7 @@ use crate::{
         SOCKET_TIMEOUT,
     },
     error::{AppResult, CommonError, F1ServiceError},
-    protos::{packet_header::PacketType, ToProtoMessage},
+    protos::ToProtoMessage,
     structs::{
         F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
         PacketEventData, PacketExtraData, PacketFinalClassificationData, PacketMotionData,
@@ -241,7 +241,7 @@ impl F1Service {
             return;
         }
 
-        let packet = motion_data.to_packet_header(PacketType::CarMotion).unwrap();
+        let packet = motion_data.to_packet_header().unwrap();
         self.last_updates.car_motion = now;
         self.packet_batching.push(packet);
     }
@@ -252,13 +252,12 @@ impl F1Service {
             return;
         }
 
-        // TODO: Activate this in production
-        // #[cfg(not(debug_assertions))]
-        // if session_data.network_game != 1 {
-        //     error!("Not Online Game, closing service");
-        //     self.close().await;
-        //     return;
-        // }
+        #[cfg(not(debug_assertions))]
+        if session_data.network_game != 1 {
+            error!("Not Online Game, closing service");
+            self.close().await;
+            return;
+        }
 
         let Ok(session_type) = SessionType::try_from(session_data.session_type) else {
             error!("Error deserializing F1 session type");
@@ -266,9 +265,7 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
-        let packet = session_data
-            .to_packet_header(PacketType::SessionData)
-            .unwrap();
+        let packet = session_data.to_packet_header().unwrap();
         self.last_updates.session = now;
         self.packet_batching.push(packet);
     }
@@ -283,9 +280,7 @@ impl F1Service {
             return;
         }
 
-        let packet = participants_data
-            .to_packet_header(PacketType::Participants)
-            .unwrap();
+        let packet = participants_data.to_packet_header().unwrap();
 
         self.last_updates.participants = now;
         self.packet_batching.push(packet);
@@ -301,7 +296,7 @@ impl F1Service {
             return;
         }
 
-        let Some(packet) = event_data.to_packet_header(PacketType::EventData) else {
+        let Some(packet) = event_data.to_packet_header() else {
             return;
         };
 
@@ -343,9 +338,7 @@ impl F1Service {
             }
 
             *last_sectors = sectors;
-            let packet = history_data
-                .to_packet_header(PacketType::SessionHistoryData)
-                .unwrap();
+            let packet = history_data.to_packet_header().unwrap();
 
             self.packet_batching.push_with_optional_parameter(
                 packet,

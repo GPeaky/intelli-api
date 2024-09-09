@@ -193,7 +193,6 @@ impl F1ServiceHandler {
             return Err(F1ServiceError::NotActive)?;
         }
 
-        // TODO: service.shutdown() also tries to remove the service from the map
         if let Some((_, mut service)) = self.services.remove(championship_id) {
             if service.shutdown().is_err() {
                 return Err(F1ServiceError::Shutdown)?;

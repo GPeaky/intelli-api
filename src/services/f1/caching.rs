@@ -77,7 +77,6 @@ impl PacketCaching {
             return None;
         }
 
-        // TODO: Try to avoid double match statements
         match ToProtoMessageBatched::batched_encoded(headers) {
             Some(bytes) => match compress_async(bytes).await {
                 Ok(compressed) => {
