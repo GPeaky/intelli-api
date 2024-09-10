@@ -34,12 +34,15 @@ use crate::{
     },
 };
 
+const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
+
 use super::{batching::PacketBatching, PacketCaching};
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
     port: i32,
     race_id: i32,
+    tick_counter: u8,
     championship_id: i32,
     port_partially_opened: bool,
     last_updates: LastUpdates,
@@ -91,6 +94,7 @@ impl F1Service {
             port: 0,
             race_id: 0,
             championship_id: 0,
+            tick_counter: 0,
             port_partially_opened: false,
             last_updates: LastUpdates::new(),
             shutdown,
@@ -207,7 +211,7 @@ impl F1Service {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    #[inline]
+    #[inline(always)]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
         let (header, packet) = match F1PacketData::parse_and_identify(buf) {
             Ok(result) => result,
@@ -248,7 +252,7 @@ impl F1Service {
         Ok(())
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_motion_packet(&mut self, motion_data: &PacketMotionData, now: Instant) {
         if now.duration_since(self.last_updates.car_motion) < MOTION_INTERVAL {
             return;
@@ -259,7 +263,7 @@ impl F1Service {
         self.packet_batching.push(packet);
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_session_packet(&mut self, session_data: &PacketSessionData, now: Instant) {
         if now.duration_since(self.last_updates.session) < SESSION_INTERVAL {
             return;
@@ -283,7 +287,7 @@ impl F1Service {
         self.packet_batching.push(packet);
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_participants_packet(
         &mut self,
         participants_data: &PacketParticipantsData,
@@ -293,50 +297,13 @@ impl F1Service {
             return Ok(());
         }
 
-        // TODO: Add tick to not run this code every minute
-        // Move this code to a specific function to separate the logic of handling the packet with this
-        for i in 0..participants_data.num_active_cars {
-            let participant = participants_data.participants[i as usize];
+        self.tick_counter += 1;
 
-            if participant.driver_id != 255 {
-                continue;
-            }
+        if self.tick_counter >= PARTICIPANTS_TICK_UPDATE {
+            self.tick_counter = 0;
 
-            let steam_name = match participant.steam_name() {
-                Some(n) => n,
-                None => {
-                    error!("Error getting steam name");
-                    continue;
-                }
-            };
-
-            if steam_name == "Player" {
-                continue;
-            }
-
-            if self.f1_state.driver_repo.find(steam_name).await?.is_none() {
-                self.f1_state
-                    .driver_svc
-                    .create(steam_name, participant.nationality as i16, None)
-                    .await?;
-            }
-
-            if !self
-                .f1_state
-                .championship_repo
-                .is_driver_linked(self.championship_id, steam_name)
-                .await?
-            {
-                self.f1_state
-                    .championship_svc
-                    .add_driver(
-                        self.championship_id,
-                        steam_name,
-                        participant.team_id as i16,
-                        participant.race_number as i16,
-                    )
-                    .await?;
-            }
+            self.ensure_participants_registered(participants_data)
+                .await?;
         }
 
         let packet = participants_data.to_packet_header().unwrap();
@@ -347,7 +314,7 @@ impl F1Service {
         Ok(())
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_event_packet(&mut self, event_data: &PacketEventData) {
         let Some(session_type) = &self.session_type else {
             return;
@@ -367,7 +334,7 @@ impl F1Service {
         )
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_session_history_packet(
         &mut self,
         history_data: &PacketSessionHistoryData,
@@ -408,7 +375,7 @@ impl F1Service {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_final_classification_packet(
         &mut self,
         _final_classification: &PacketFinalClassificationData,
@@ -432,23 +399,75 @@ impl F1Service {
         // self.packet_batching.push(packet);
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_car_damage_packet(&mut self, _car_damage: &PacketCarDamageData) {
         // info!("Car damage: {:?}", car_damage);
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_car_status_packet(&mut self, _car_status: &PacketCarStatusData) {
         // info!("Car status: {:?}", car_status);
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_car_telemetry_packet(&mut self, _car_telemetry: &PacketCarTelemetryData) {
         // info!("Car telemetry: {:?}", car_telemetry);
     }
 
+    #[inline(always)]
+    async fn ensure_participants_registered(
+        &self,
+        participants_data: &PacketParticipantsData,
+    ) -> AppResult<()> {
+        for index in 0..participants_data.num_active_cars {
+            let Some(participant) = participants_data.participants.get(index as usize) else {
+                error!("Participant id out of bounce");
+                continue;
+            };
+
+            if participant.driver_id != 255 {
+                continue;
+            }
+
+            let Some(steam_name) = participant.steam_name() else {
+                error!("Error getting steam name");
+                continue;
+            };
+
+            if steam_name == "Player" {
+                continue;
+            }
+
+            if self.f1_state.driver_repo.find(steam_name).await?.is_none() {
+                self.f1_state
+                    .driver_svc
+                    .create(steam_name, participant.nationality as i16, None)
+                    .await?;
+            }
+
+            //  TODO: Better to get all drivers linked to the championship saved upper and check locally if the driver is included instead of doing 1 call to the database for every driver
+            if !self
+                .f1_state
+                .championship_repo
+                .is_driver_linked(self.championship_id, steam_name)
+                .await?
+            {
+                self.f1_state
+                    .championship_svc
+                    .add_driver(
+                        self.championship_id,
+                        steam_name,
+                        participant.team_id as i16,
+                        participant.race_number as i16,
+                    )
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Closes the F1 service, releasing resources and removing it from active services.
-    #[inline]
     async fn close(&self) {
         if self
             .f1_state

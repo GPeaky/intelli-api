@@ -47,7 +47,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     // TODO - Make an recycle function to delete all unused data
-    let login_limit_visitors: &'static _ = Box::leak(Box::new(DashMap::with_capacity(10_000)));
+    let login_limit_visitors: &'static _ = Box::leak(Box::new(DashMap::with_capacity(1_000)));
 
     web::server(move || {
         web::App::new()

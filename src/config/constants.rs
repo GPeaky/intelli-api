@@ -20,7 +20,7 @@ pub const SOCKET_HOST: &str = "0.0.0.0";
 pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 pub const BATCHING_INTERVAL: Duration = Duration::from_millis(700);
 pub const F1_CACHING_DUR: Duration = Duration::from_secs(1);
-pub const BATCHING_CAPACITY: usize = 2048;
+pub const BATCHING_CAPACITY: usize = 16;
 
 // Session
 pub const HISTORY_INTERVAL: Duration = Duration::from_secs(1);

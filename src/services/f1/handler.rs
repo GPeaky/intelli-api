@@ -32,7 +32,7 @@ impl F1ServiceHandler {
     /// # Returns
     /// A new F1ServiceHandler with initialized services and firewall.
     pub fn new(f1_state: &'static F1State) -> Self {
-        let services = Box::leak(Box::new(DashMap::with_capacity(100)));
+        let services = Box::leak(Box::new(DashMap::with_capacity(10)));
 
         Self { services, f1_state }
     }
