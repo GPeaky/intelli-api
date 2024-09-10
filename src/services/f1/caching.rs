@@ -19,6 +19,7 @@ pub struct PacketCaching {
     car_motion: Option<ProstBytes>,
     session_data: Option<ProstBytes>,
     participants: Option<ProstBytes>,
+    final_classification: Option<ProstBytes>,
     history_data: AHashMap<u8, ProstBytes>,
     event_data: AHashSet<ProstBytes>,
     cache: RwLock<Option<CachedData>>,
@@ -31,6 +32,7 @@ impl PacketCaching {
             car_motion: None,
             session_data: None,
             participants: None,
+            final_classification: None,
             history_data: AHashMap::with_capacity(20),
             event_data: AHashSet::with_capacity(10),
             cache: RwLock::new(None),
@@ -64,6 +66,10 @@ impl PacketCaching {
         if let Some(header) = self.get_participants() {
             headers.push(header)
         };
+
+        if let Some(header) = self.get_final_classification() {
+            headers.push(header)
+        }
 
         if let Some(mut history_headers) = self.get_history_data() {
             headers.append(&mut history_headers)
@@ -111,6 +117,8 @@ impl PacketCaching {
             PacketType::CarMotion => self.set_car_motion(payload),
             PacketType::SessionData => self.set_session_data(payload),
             PacketType::Participants => self.set_participants(payload),
+            // TODO: See if we should delete cache after final_classification
+            PacketType::FinalClassificationData => self.set_final_classification(payload),
 
             PacketType::EventData => {
                 debug_assert!(extra_data.is_some());
@@ -131,10 +139,6 @@ impl PacketCaching {
                     error!("Error Receiving OptionalMessage");
                 }
             }
-
-            PacketType::FinalClassificationData => {
-                todo!()
-            }
         }
     }
 
@@ -144,7 +148,7 @@ impl PacketCaching {
     /// Total count of headers in the cache.
     #[inline(always)]
     fn total_headers(&self) -> usize {
-        let base_count = 3;
+        let base_count = 4;
         let history_estimate = self.history_data.len();
         let events_estimate = self.event_data.len();
 
@@ -157,7 +161,7 @@ impl PacketCaching {
         self.car_motion
             .as_ref()
             .map(|car_motion_data| PacketHeader {
-                r#type: PacketType::CarMotion.into(),
+                r#type: PacketType::CarMotion as i32,
                 payload: car_motion_data.clone(),
             })
     }
@@ -165,15 +169,24 @@ impl PacketCaching {
     #[inline(always)]
     fn get_participants(&self) -> Option<PacketHeader> {
         self.participants.as_ref().map(|participants| PacketHeader {
-            r#type: PacketType::Participants.into(),
+            r#type: PacketType::Participants as i32,
             payload: participants.clone(),
         })
+    }
+
+    fn get_final_classification(&self) -> Option<PacketHeader> {
+        self.final_classification
+            .as_ref()
+            .map(|final_classification| PacketHeader {
+                r#type: PacketType::FinalClassificationData as i32,
+                payload: final_classification.clone(),
+            })
     }
 
     #[inline(always)]
     fn get_session_data(&self) -> Option<PacketHeader> {
         self.session_data.as_ref().map(|session_data| PacketHeader {
-            r#type: PacketType::SessionData.into(),
+            r#type: PacketType::SessionData as i32,
             payload: session_data.clone(),
         })
     }
@@ -188,7 +201,7 @@ impl PacketCaching {
         let mut vec = Vec::with_capacity(len);
         for (_, session_history) in &self.history_data {
             vec.push(PacketHeader {
-                r#type: PacketType::SessionHistoryData.into(),
+                r#type: PacketType::SessionHistoryData as i32,
                 payload: session_history.clone(),
             })
         }
@@ -207,7 +220,7 @@ impl PacketCaching {
         let mut vec = Vec::with_capacity(len);
         for event in &self.event_data {
             vec.push(PacketHeader {
-                r#type: PacketType::EventData.into(),
+                r#type: PacketType::EventData as i32,
                 payload: event.clone(),
             })
         }
@@ -230,6 +243,13 @@ impl PacketCaching {
         data.extend_from_slice(payload);
 
         self.session_data = Some(data.freeze());
+    }
+
+    fn set_final_classification(&mut self, payload: &[u8]) {
+        let mut data = ProstBytesMut::with_capacity(payload.len());
+        data.extend_from_slice(payload);
+
+        self.final_classification = Some(data.freeze());
     }
 
     #[inline(always)]

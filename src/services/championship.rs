@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use postgres_types::ToSql;
 
 use crate::{
@@ -23,6 +23,24 @@ pub trait ChampionshipServiceOperations {
     ///
     /// Returns an error if the championship name already exists or if there's a database error.
     async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()>;
+
+    /// Creates a new race for a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship to which the race belongs.
+    /// * `track_id` - The ID of the track where the race will take place.
+    /// * `date` - The date and time when the race is scheduled.
+    ///
+    /// # Returns
+    ///
+    /// Returns the ID of the newly created race as an `i32`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found, the track ID is invalid,
+    /// or if there's a database error.
+    async fn create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32>;
 
     /// Updates an existing championship.
     ///
@@ -72,6 +90,20 @@ pub trait ChampionshipServiceOperations {
         team_id: i16,
         number: i16,
     ) -> AppResult<()>;
+
+    /// Adds a race result to a specific race in the championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `race_id` - The ID of the race to which the result belongs.
+    /// * `session_type` - The type of session (e.g., practice, qualifying, race).
+    /// * `data` - The raw data of the race result.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the race is not found, the session type is invalid,
+    /// or if there's a database error while storing the result.
+    async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()>;
 
     /// Removes a user from a championship.
     ///
@@ -223,6 +255,28 @@ impl ChampionshipService {
         Ok(())
     }
 
+    #[inline(always)]
+    async fn _create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
+        let conn = self.db.pg.get().await?;
+
+        let create_race_stmt = conn
+            .prepare_cached(
+                r#"
+                    INSERT INTO races (championship_id, track_id, date)
+                    VALUES ($1, $2, $3)
+                    RETURNING id
+                "#,
+            )
+            .await?;
+
+        let id: i32 = conn
+            .query_one(&create_race_stmt, &[&id, &track_id, &date])
+            .await?
+            .get(0);
+
+        Ok(id)
+    }
+
     /// Internal method to update a championship.
     #[inline(always)]
     async fn _update(&self, id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
@@ -330,6 +384,29 @@ impl ChampionshipService {
         Ok(())
     }
 
+    async fn _add_race_result(
+        &self,
+        race_id: i32,
+        session_type: i16,
+        data: &[u8],
+    ) -> AppResult<()> {
+        let conn = self.db.pg.get().await?;
+
+        let add_result_stmt = conn
+            .prepare_cached(
+                r#"
+                    INSERT INTO results (race_id, session_type, data)
+                    VALUES ($1, $2, $3)
+                "#,
+            )
+            .await?;
+
+        conn.execute(&add_result_stmt, &[&race_id, &session_type, &data])
+            .await?;
+
+        Ok(())
+    }
+
     /// Internal method to remove a user from a championship.
     #[inline(always)]
     async fn _remove_user(&self, id: i32, remove_user_id: i32) -> AppResult<()> {
@@ -392,6 +469,11 @@ impl ChampionshipService {
 impl ChampionshipServiceOperations for ChampionshipService {
     async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         self._create(payload, user_id).await
+    }
+
+    async fn create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
+        // TODO: Maybe add checks for championship_id
+        self._create_race(id, track_id, date).await
     }
 
     async fn update(&self, id: i32, user_id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
@@ -474,6 +556,11 @@ impl ChampionshipServiceOperations for ChampionshipService {
     ) -> AppResult<()> {
         // TODO: Add check if championship and driver exists
         self._add_driver(id, steam_name, team_id, number).await
+    }
+
+    async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()> {
+        // TODO: Maybe add checks for race_id
+        self._add_race_result(race_id, session_type, data).await
     }
 }
 

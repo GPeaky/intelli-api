@@ -38,9 +38,9 @@ CREATE TABLE championships (
 );
 
 CREATE TABLE races (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     championship_id INTEGER NOT NULL REFERENCES championships(id),
-    name VARCHAR(100) NOT NULL,
+    track_id SMALLINT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ

@@ -4,6 +4,7 @@ use std::sync::{
 };
 
 use ahash::AHashMap;
+use chrono::Utc;
 use dashmap::DashMap;
 use ntex::util::Bytes;
 use parking_lot::RwLock;
@@ -119,12 +120,19 @@ impl F1Service {
         &mut self,
         port: i32,
         championship_id: i32,
-        race_id: i32,
+        _race_id: i32,
     ) -> AppResult<()> {
         let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
         };
+
+        // Only for testing this should be send it in the initialize function
+        let race_id = self
+            .f1_state
+            .championship_svc
+            .create_race(championship_id, 10, Utc::now())
+            .await?;
 
         self.port = port;
         self.socket = socket;
@@ -241,6 +249,7 @@ impl F1Service {
             }
             F1PacketData::FinalClassification(final_classification) => {
                 self.handle_final_classification_packet(final_classification)
+                    .await?
             }
             F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage),
             F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status),
@@ -376,27 +385,28 @@ impl F1Service {
     }
 
     #[inline(always)]
-    fn handle_final_classification_packet(
+    async fn handle_final_classification_packet(
         &mut self,
-        _final_classification: &PacketFinalClassificationData,
-    ) {
-        // TODO: Save the Result in the db
+        final_classification: &PacketFinalClassificationData,
+    ) -> AppResult<()> {
+        info!("Final called");
 
-        // let packet = final_classification.to_packet_header().unwrap();
+        let Some(session_type) = self.session_type.take() else {
+            error!("Not defined session type when trying to save final_classification_data");
+            return Ok(());
+        };
 
-        // let session_type = self.session_type.unwrap();
+        let packet = final_classification.to_packet_header().unwrap();
 
-        // {
-        //     info!("Session type: {:?}", self.session_type);
+        // Only testing, we should save last lastHistoryData with the final_classification as a tuple or something
+        self.f1_state
+            .championship_svc
+            .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
+            .await?;
 
-        //     if let SessionType::R | SessionType::R2 | SessionType::R3 =
-        //         self.session_type.as_ref().unwrap()
-        //     {
-        //         info!("Race Finished, saving final classification data");
-        //     }
-        // }
+        self.packet_batching.push(packet);
 
-        // self.packet_batching.push(packet);
+        Ok(())
     }
 
     #[inline(always)]
