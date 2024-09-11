@@ -429,12 +429,21 @@ impl F1Service {
         &self,
         participants_data: &PacketParticipantsData,
     ) -> AppResult<()> {
+        let mut drivers = self
+            .f1_state
+            .championship_repo
+            .drivers_linked(self.championship_id)
+            .await?;
+
+        drivers.sort_unstable();
+
         for index in 0..participants_data.num_active_cars {
             let Some(participant) = participants_data.participants.get(index as usize) else {
                 error!("Participant id out of bounce");
                 continue;
             };
 
+            // 255 means an online driver
             if participant.driver_id != 255 {
                 continue;
             }
@@ -455,12 +464,9 @@ impl F1Service {
                     .await?;
             }
 
-            //  TODO: Better to get all drivers linked to the championship saved upper and check locally if the driver is included instead of doing 1 call to the database for every driver
-            if !self
-                .f1_state
-                .championship_repo
-                .is_driver_linked(self.championship_id, steam_name)
-                .await?
+            if drivers
+                .binary_search_by(|probe| probe.as_str().cmp(steam_name))
+                .is_err()
             {
                 self.f1_state
                     .championship_svc

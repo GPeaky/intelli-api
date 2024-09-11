@@ -13,6 +13,7 @@ pub trait DriverServiceOperations {
         user_id: Option<i32>,
     ) -> AppResult<()>;
 
+    // TODO: Implement driver update
     // async fn update(&self, form: DriverUpdateData) -> AppResult<()>;
 }
 
@@ -63,21 +64,29 @@ impl DriverService {
         Ok(())
     }
 
-    // TODO: Delete all driver relations before deleting the driver itself
     async fn _delete(&self, steam_name: &str) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
-        let delete_driver_stmt = conn
-            .prepare_cached(
-                r#"
+        let delete_driver_rel_stmt = conn.prepare_cached(
+            r#"
+                DELETE FROM championship_drivers
+                WHERE steam_name = $1
+            "#,
+        );
+
+        let delete_driver_stmt = conn.prepare_cached(
+            r#"
                 DELETE FROM drivers
                 WHERE steam_name = $1
             "#,
-            )
-            .await?;
+        );
 
-        conn.execute_raw(&delete_driver_stmt, &[&steam_name])
-            .await?;
+        let (delete_driver_rel, delete_driver) =
+            tokio::try_join!(delete_driver_rel_stmt, delete_driver_stmt)?;
+
+        conn.execute_raw(&delete_driver_rel, &[&steam_name]).await?;
+
+        conn.execute_raw(&delete_driver, &[&steam_name]).await?;
 
         self.cache.driver.delete(steam_name);
 

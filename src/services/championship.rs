@@ -119,6 +119,9 @@ pub trait ChampionshipServiceOperations {
     /// or if attempting to remove the owner.
     async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()>;
 
+    #[allow(unused)]
+    async fn remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()>;
+
     /// Deletes a championship.
     ///
     /// # Arguments
@@ -431,6 +434,11 @@ impl ChampionshipService {
         Ok(())
     }
 
+    #[inline(always)]
+    async fn _remove_driver(&self, _id: i32, _steam_name: &str) -> AppResult<()> {
+        todo!()
+    }
+
     /// Internal method to delete a championship.
     #[inline(always)]
     async fn _delete(&self, id: i32) -> AppResult<()> {
@@ -515,6 +523,22 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._add_user(id, form).await
     }
 
+    async fn add_driver(
+        &self,
+        id: i32,
+        steam_name: &str,
+        team_id: i16,
+        number: i16,
+    ) -> AppResult<()> {
+        // TODO: Add check if championship and driver exists
+        self._add_driver(id, steam_name, team_id, number).await
+    }
+
+    async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()> {
+        // TODO: Maybe add checks for race_id
+        self._add_race_result(race_id, session_type, data).await
+    }
+
     async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
@@ -533,6 +557,11 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._remove_user(id, remove_user_id).await
     }
 
+    async fn remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()> {
+        // Maybe do some checks
+        self._remove_driver(id, steam_name).await
+    }
+
     async fn delete(&self, id: i32, user_id: i32) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
@@ -545,22 +574,6 @@ impl ChampionshipServiceOperations for ChampionshipService {
         }
 
         self._delete(id).await
-    }
-
-    async fn add_driver(
-        &self,
-        id: i32,
-        steam_name: &str,
-        team_id: i16,
-        number: i16,
-    ) -> AppResult<()> {
-        // TODO: Add check if championship and driver exists
-        self._add_driver(id, steam_name, team_id, number).await
-    }
-
-    async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()> {
-        // TODO: Maybe add checks for race_id
-        self._add_race_result(race_id, session_type, data).await
     }
 }
 

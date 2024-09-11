@@ -139,25 +139,32 @@ impl ChampionshipRepository {
         Ok(users)
     }
 
-    pub async fn is_driver_linked(&self, id: i32, steam_name: &str) -> AppResult<bool> {
-        let conn = self.db.pg.get().await?;
+    pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<String>> {
+        let stream = {
+            let conn = self.db.pg.get().await?;
 
-        let driver_exists_stmt = conn
-            .prepare_cached(
-                r#"
-                    SELECT 1
-                    FROM championship_drivers
-                    WHERE steam_name = $1 AND championship_id = $2
-                    LIMIT 1
-                "#,
-            )
-            .await?;
+            let linked_drivers_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT steam_name
+                        FROM championship_drivers
+                        WHERE championship_id = $1
+                    "#,
+                )
+                .await?;
 
-        let res = conn
-            .query_opt(&driver_exists_stmt, &[&steam_name, &id])
-            .await?;
+            conn.query_raw(&linked_drivers_stmt, &[&id]).await?
+        };
 
-        Ok(res.is_some())
+        let mut drivers = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        tokio::pin!(stream);
+
+        while let Some(row) = stream.try_next().await? {
+            drivers.push(row.get(0));
+        }
+
+        Ok(drivers)
     }
 
     /// Retrieves all used championship IDs.
