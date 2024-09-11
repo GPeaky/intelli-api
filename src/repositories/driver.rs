@@ -23,9 +23,9 @@ impl DriverRepository {
             let find_driver_stmt = conn
                 .prepare_cached(
                     r#"
-                    SELECT * FROM drivers
-                    WHERE steam_name = $1
-                "#,
+                        SELECT * FROM drivers
+                        WHERE steam_name = $1
+                    "#,
                 )
                 .await?;
 

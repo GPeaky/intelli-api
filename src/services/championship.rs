@@ -119,6 +119,16 @@ pub trait ChampionshipServiceOperations {
     /// or if attempting to remove the owner.
     async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()>;
 
+    /// Removes a driver from a championship.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the championship.
+    /// * `steam_name` - The steam_name of the new driver.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the championship is not found or driver is not found,
     #[allow(unused)]
     async fn remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()>;
 
@@ -215,16 +225,16 @@ impl ChampionshipService {
 
         let create_championship_stmt_fut = conn.prepare_cached(
             r#"
-                    INSERT INTO championships (id, port, name, category, owner_id)
-                    VALUES ($1,$2,$3,$4,$5)
-                "#,
+                INSERT INTO championships (id, port, name, category, owner_id)
+                VALUES ($1,$2,$3,$4,$5)
+            "#,
         );
 
         let relate_user_with_championship_stmt_fut = conn.prepare_cached(
             r#"
-                    INSERT INTO championship_users (user_id, championship_id, role)
-                    VALUES ($1,$2, 'Admin')
-                "#,
+                INSERT INTO championship_users (user_id, championship_id, role)
+                VALUES ($1,$2, 'Admin')
+            "#,
         );
 
         let (create_championship_stmt, relate_user_with_championship_stmt) = tokio::try_join!(
@@ -422,21 +432,37 @@ impl ChampionshipService {
         let remove_user_stmt = conn
             .prepare_cached(
                 r#"
-                    DELETE FROM championship_users WHERE user_id = $1 AND championship_id = $2
+                    DELETE FROM championship_users
+                    WHERE user_id = $1 AND championship_id = $2
                 "#,
             )
             .await?;
 
         conn.execute_raw(&remove_user_stmt, &[&remove_user_id, &id])
             .await?;
+
         self.cache.championship.delete_by_user(remove_user_id);
 
         Ok(())
     }
 
     #[inline(always)]
-    async fn _remove_driver(&self, _id: i32, _steam_name: &str) -> AppResult<()> {
-        todo!()
+    async fn _remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()> {
+        let conn = self.db.pg.get().await?;
+
+        let remove_driver_stmt = conn
+            .prepare_cached(
+                r#"
+                    DELETE FROM championship_users
+                    WHERE championship_id = $1 AND steam_name = $2
+                "#,
+            )
+            .await?;
+
+        conn.execute(&remove_driver_stmt, &[&id, &steam_name])
+            .await?;
+
+        Ok(())
     }
 
     /// Internal method to delete a championship.
