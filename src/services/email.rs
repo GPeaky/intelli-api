@@ -5,7 +5,7 @@ use lettre::{
     transport::smtp::{authentication::Credentials, PoolConfig},
     Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-use sailfish::TemplateOnce;
+use sailfish::TemplateSimple;
 
 use crate::{config::constants::MAX_CONCURRENT_EMAILS, entity::SharedUser, error::AppResult};
 
@@ -51,7 +51,7 @@ impl EmailService {
         body: T,
     ) -> AppResult<()>
     where
-        T: TemplateOnce,
+        T: TemplateSimple,
     {
         let message = MessageBuilder::new()
             .from(Mailbox::new(

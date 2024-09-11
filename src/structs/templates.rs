@@ -1,22 +1,22 @@
-use sailfish::TemplateOnce;
+use sailfish::TemplateSimple;
 
 // Email Templates
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "verify_email.stpl")]
-pub struct EmailVerificationTemplate<'a> {
-    pub verification_link: &'a str,
+pub struct EmailVerificationTemplate {
+    pub verification_link: String,
 }
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "email_verified.stpl")]
 pub struct EmailVerificationConfirmationTemplate {}
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "reset_password.stpl")]
-pub struct PasswordResetTemplate<'a> {
-    pub reset_password_link: &'a str,
+pub struct PasswordResetTemplate {
+    pub reset_password_link: String,
 }
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "password_changed.stpl")]
 pub struct PasswordChangeConfirmationTemplate {}

@@ -40,7 +40,7 @@ pub(crate) async fn register(
     let user = state.user_repo.find(user_id).await?.unwrap();
 
     let template = EmailVerificationTemplate {
-        verification_link: &format!(
+        verification_link: format!(
             "https://intellitelemetry.live/auth/verify-email?token={}",
             token
         ),
@@ -154,7 +154,7 @@ pub(crate) async fn forgot_password(
         .generate_token(user.id, TokenPurpose::PasswordReset)?;
 
     let template = PasswordResetTemplate {
-        reset_password_link: &format!(
+        reset_password_link: format!(
             "https://intellitelemetry.live/auth/reset-password?token={}",
             token
         ),
