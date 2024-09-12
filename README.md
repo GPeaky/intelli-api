@@ -4,86 +4,80 @@
 <h1 align="center">Intelli Telemetry</h1>
 
 ## Table of Contents
-
-- [Build With](#build-with)
+- [About](#about)
+- [Built With](#built-with)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
 - [Usage](#usage)
-- [RoadMap](#roadmap)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 - [Authors](#authors)
 
-## Build With
+## About
+Intelli Telemetry is a high-performance, real-time data collection and management system for F1 leagues. It provides comprehensive race session data, championship management, and analytics for teams, spectators, and league organizers.
 
-The main Libraries/Frameworks/Language that i used to build this package
+## Built With
+The project is built using cutting-edge technologies and libraries optimized for performance:
 
-- [Rust](https://www.rust-lang.org)
-- [Tokio](https://tokio.rs/)
-- [Axum](https://crates.io/crates/axum)
-- [Postgresql](https://www.postgresql.org/)
-- [Redis](https://redis.io/)
+- [Rust](https://www.rust-lang.org) - Systems programming language known for safety and performance
+- [Tokio](https://tokio.rs/) - Asynchronous runtime for Rust
+- [Ntex](https://ntex.rs/) - Actor framework for Rust
+- [PostgreSQL](https://www.postgresql.org/) - Advanced open-source relational database
 
 ## Getting Started
 
 ### Prerequisites
-
-- Rust
-- Email Service
-- Postgresql Database
-- Redis Database
-
-```sh
-cargo run
-```
+Before you begin, ensure you have the following installed:
+- [Rust](https://www.rust-lang.org/tools/install) (latest stable version)
+- [PostgreSQL](https://www.postgresql.org/download/) (13.0 or higher)
+- An email service account (for notifications)
 
 ### Installation
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/Intelli-Telemetry/api.git
+   cd api
+   ```
 
-Installation Command
+2. Set up your PostgreSQL database.
 
-```sh
-git clone https://github.com/GPeaky/intelli-api.git
-```
+3. Create a `.env` file in the project root with the following content:
+   ```env
+   HOST=0.0.0.0
+   DATABASE_URL=postgres://username:password@localhost/database_name
+   EMAIL_HOST=smtp.your-email-provider.com
+   EMAIL_FROM=your-email@example.com
+   EMAIL_NAME=Your Name
+   EMAIL_PASS=your-email-password
+   DISCORD_CLIENT_ID=your-discord-client-id
+   DISCORD_CLIENT_SECRET=your-discord-client-secret
+   DISCORD_REDIRECT_URI=http://localhost:3000/auth/discord/callback
+   ```
+   Replace the placeholders with your actual credentials and settings.
 
-You need a .env to run the project. This is an example of what that .env should have
-
-```env
-HOST=
-REDIS_URL=
-DATABASE_URL=
-EMAIL_HOST=
-EMAIL_FROM=
-EMAIL_NAME=
-EMAIL_PASS=
-```
+4. Build and run the project:
+   ```sh
+   cargo run --release
+   ```
 
 ## Usage
+Intelli Telemetry provides a comprehensive solution for F1 leagues, offering:
 
-This project is created to provide a new solution to f1 leagues, to have real time data about their races sessions,
-Championship Manager, and everything about an F1 League. At the same time we want to give all for free
+- Real-time race session data
+- Live timing and telemetry
+- Automated championship standings
+- Penalty and incident reporting system
+- Detailed analytics for teams and drivers
 
-[Documentation](https://gerardjoven2020.gitbook.io/intelli-api/)
+For detailed API documentation, visit our [GitBook](https://gerardjoven2020.gitbook.io/intelli-api/).
 
-## RoadMap
-
-See the [open issues](https://github.com/GPeaky/intelli-api/issues) for list of proposed features and fix errors (and
-known issues).
+## Roadmap
+See the [open issues](https://github.com/GPeaky/intelli-api/issues) for a list of proposed features and known issues.
 
 ## Contributing
-
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any
-contributions you make are **greatly appreciated**.
-
-- If you have suggestions for adding or removing projects, feel free
-  to [open an issue](https://github.com/GPeaky/intelli-api/issues/new) to discuss it, or directly create a pull request
-  after you edit the _README.md_ file with necessary changes.
-- Please make sure you check your spelling and grammar.
-- Create individual PR for each suggestion.
-- Please also read through the [Code Of Conduct](https://github.com/GPeaky/intelli-api/blob/main/CODE_OF_CONDUCT.md)
-  before posting your first idea as well.
-
-### Creating A Pull Request
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -91,11 +85,10 @@ contributions you make are **greatly appreciated**.
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
+Please read through our [Code of Conduct](https://github.com/GPeaky/intelli-api/blob/main/CODE_OF_CONDUCT.md) before contributing.
 
-Distributed under the MIT License. See [LICENSE](https://github.com/GPeaky/intelli-api/blob/main/LICENSE.md) for more
-information.
+## License
+Distributed under the MIT License. See [LICENSE](https://github.com/GPeaky/intelli-api/blob/main/LICENSE.md) for more information.
 
 ## Authors
-
-- **Gerard Zinn** - **[Gerard Zinn](https://github.com/GPeaky)**
+- **Gerard Zinn** - [GitHub Profile](https://github.com/GPeaky)
