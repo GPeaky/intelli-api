@@ -1,3 +1,4 @@
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
 
