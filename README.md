@@ -10,18 +10,19 @@
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
 - [Usage](#usage)
+- [Performance Optimizations](#performance-optimizations)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 - [Authors](#authors)
 
 ## About
-Intelli Telemetry is a high-performance, real-time data collection and management system for F1 leagues. It provides comprehensive race session data, championship management, and analytics for teams, spectators, and league organizers.
+Intelli Telemetry is a high-performance, real-time data collection and management system for F1 leagues. It provides comprehensive race session data, championship management, and analytics for teams, spectators, and league organizers, with a focus on maximum efficiency and minimal latency.
 
 ## Built With
 The project is built using cutting-edge technologies and libraries optimized for performance:
 
-- [Rust](https://www.rust-lang.org) - Systems programming language known for safety and performance
+- [Rust](https://www.rust-lang.org) (nightly) - Systems programming language known for safety and performance
 - [Tokio](https://tokio.rs/) - Asynchronous runtime for Rust
 - [Ntex](https://ntex.rs/) - Actor framework for Rust
 - [PostgreSQL](https://www.postgresql.org/) - Advanced open-source relational database
@@ -30,20 +31,25 @@ The project is built using cutting-edge technologies and libraries optimized for
 
 ### Prerequisites
 Before you begin, ensure you have the following installed:
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable version)
+- [Rust](https://www.rust-lang.org/tools/install) (nightly version)
 - [PostgreSQL](https://www.postgresql.org/download/) (13.0 or higher)
 - An email service account (for notifications)
 
 ### Installation
-1. Clone the repository:
+1. Install Rust nightly:
+   ```sh
+   rustup default nightly
+   ```
+
+2. Clone the repository:
    ```sh
    git clone https://github.com/Intelli-Telemetry/api.git
    cd api
    ```
 
-2. Set up your PostgreSQL database.
+3. Set up your PostgreSQL database.
 
-3. Create a `.env` file in the project root with the following content:
+4. Create a `.env` file in the project root with the following content:
    ```env
    HOST=0.0.0.0
    DATABASE_URL=postgres://username:password@localhost/database_name
@@ -57,7 +63,7 @@ Before you begin, ensure you have the following installed:
    ```
    Replace the placeholders with your actual credentials and settings.
 
-4. Build and run the project:
+5. Build and run the project:
    ```sh
    cargo run --release
    ```
@@ -65,13 +71,27 @@ Before you begin, ensure you have the following installed:
 ## Usage
 Intelli Telemetry provides a comprehensive solution for F1 leagues, offering:
 
-- Real-time race session data
-- Live timing and telemetry
+- Real-time race session data with microsecond precision
+- Live timing and telemetry with minimal latency
 - Automated championship standings
 - Penalty and incident reporting system
 - Detailed analytics for teams and drivers
 
 For detailed API documentation, visit our [GitBook](https://gerardjoven2020.gitbook.io/intelli-api/).
+
+## Performance Optimizations
+Intelli Telemetry is designed for maximum performance:
+
+- Zero-copy deserialization for incoming data streams
+- Lock-free concurrent data structures for high-throughput scenarios
+- Custom memory allocator (mimalloc) for improved memory management
+- Aggressive inlining and SIMD optimizations where applicable
+- Careful use of `unsafe` code in performance-critical paths, thoroughly tested and documented
+
+To enable all optimizations, build with:
+```sh
+RUSTFLAGS="-C target-cpu=native" cargo build --release
+```
 
 ## Roadmap
 See the [open issues](https://github.com/GPeaky/intelli-api/issues) for a list of proposed features and known issues.
