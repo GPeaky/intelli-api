@@ -43,7 +43,7 @@ impl UserRepository {
     /// # Returns
     /// An Option containing the user if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<SharedUser>> {
-        if let Some(user) = self.cache.user.get(id) {
+        if let Some(user) = self.cache.user.get(&id) {
             return Ok(Some(user));
         };
 
@@ -119,7 +119,7 @@ impl UserRepository {
     /// # Returns
     /// A vector of Championships associated with the user.
     pub async fn championships(&self, id: i32) -> AppResult<Vec<Arc<Championship>>> {
-        if let Some(championships) = self.cache.championship.get_user_championships(id) {
+        if let Some(championships) = self.cache.championship.get_user_championships(&id) {
             return Ok(championships);
         };
 

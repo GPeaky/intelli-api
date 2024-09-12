@@ -22,7 +22,7 @@ impl UserCache {
     /// Retrieves a user by their email address.
     pub fn get_by_email(&self, email: &str) -> Option<SharedUser> {
         if let Some(id) = self.email_to_id.get(email) {
-            return self.get(id);
+            return self.get(&id);
         }
 
         None
@@ -32,8 +32,8 @@ impl UserCache {
 impl EntityCache for UserCache {
     type Entity = User;
 
-    fn get(&self, id: i32) -> Option<Arc<Self::Entity>> {
-        self.inner.get(&id)
+    fn get(&self, id: &i32) -> Option<Arc<Self::Entity>> {
+        self.inner.get(id)
     }
 
     fn set(&self, entity: Arc<Self::Entity>) {

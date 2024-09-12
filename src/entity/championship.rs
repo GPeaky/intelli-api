@@ -8,6 +8,9 @@ use tokio_stream::StreamExt;
 
 use crate::error::AppResult;
 
+/// Shared reference to a User
+pub type SharedChampionship = Arc<Championship>;
+
 /// Championship roles
 #[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql)]
 #[postgres(name = "championship_role")]

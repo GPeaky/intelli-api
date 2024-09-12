@@ -5,7 +5,7 @@ use tokio_stream::StreamExt;
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::Championship,
+    entity::{Championship, Race},
     error::AppResult,
     utils::slice_iter,
 };
@@ -37,7 +37,7 @@ impl ChampionshipRepository {
     /// # Returns
     /// An Option containing the Championship if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<Arc<Championship>>> {
-        if let Some(championship) = self.cache.championship.get(id) {
+        if let Some(championship) = self.cache.championship.get(&id) {
             return Ok(Some(championship));
         };
 
@@ -65,6 +65,39 @@ impl ChampionshipRepository {
 
             None => Ok(None),
         }
+    }
+
+    pub async fn races(&self, id: i32) -> AppResult<Vec<Arc<Race>>> {
+        if let Some(races) = self.cache.championship.get_races(&id) {
+            return Ok(races);
+        }
+
+        let stream = {
+            let conn = self.db.pg.get().await?;
+
+            let championship_races_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT * FROM races
+                        WHERE championship_id = $1
+                    "#,
+                )
+                .await?;
+
+            conn.query_raw(&championship_races_stmt, &[&id]).await?
+        };
+
+        tokio::pin!(stream);
+
+        let mut races = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+
+        while let Some(row) = stream.try_next().await? {
+            races.push(Race::from_row_arc(&row))
+        }
+
+        self.cache.championship.set_races(id, races.clone());
+
+        Ok(races)
     }
 
     /// Finds a championship by its name.

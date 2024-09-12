@@ -15,7 +15,7 @@ pub(crate) mod core {
         services::ChampionshipServiceOperations,
         states::AppState,
         structs::{
-            ChampionshipAndUserId, ChampionshipCreationData, ChampionshipId,
+            ChampionshipAndUserId, ChampionshipCreationData, ChampionshipData, ChampionshipId,
             ChampionshipUpdateData, ChampionshipUserAddForm,
         },
     };
@@ -117,14 +117,16 @@ pub(crate) mod core {
         state: State<AppState>,
         path: Path<ChampionshipId>,
     ) -> AppResult<HttpResponse> {
-        if path.validate().is_err() {
-            Err(CommonError::ValidationFailed)?
-        }
+        path.validate().map_err(|_| CommonError::ValidationFailed)?;
 
-        let Some(championship) = state.championship_repo.find(path.0).await? else {
-            Err(ChampionshipError::NotFound)?
-        };
+        let (championship, races) = tokio::try_join!(
+            state.championship_repo.find(path.0),
+            state.championship_repo.races(path.0)
+        )?;
 
-        Ok(HttpResponse::Ok().json(&championship))
+        Ok(HttpResponse::Ok().json(&ChampionshipData {
+            championship: championship.ok_or(ChampionshipError::NotFound)?,
+            races,
+        }))
     }
 }

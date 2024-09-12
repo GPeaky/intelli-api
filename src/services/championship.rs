@@ -264,7 +264,7 @@ impl ChampionshipService {
         conn.execute_raw(&relate_user_with_championship_stmt, &[&user_id, &id])
             .await?;
 
-        self.cache.championship.delete_by_user(user_id);
+        self.cache.championship.delete_by_user(&user_id);
         Ok(())
     }
 
@@ -282,10 +282,12 @@ impl ChampionshipService {
             )
             .await?;
 
-        let id: i32 = conn
+        let id = conn
             .query_one(&create_race_stmt, &[&id, &track_id, &date])
             .await?
             .get(0);
+
+        self.cache.championship.delete_races(&id);
 
         Ok(id)
     }
@@ -368,7 +370,7 @@ impl ChampionshipService {
         )
         .await?;
 
-        self.cache.championship.delete_by_user(bind_user_id);
+        self.cache.championship.delete_by_user(&bind_user_id);
 
         Ok(())
     }
@@ -441,7 +443,7 @@ impl ChampionshipService {
         conn.execute_raw(&remove_user_stmt, &[&remove_user_id, &id])
             .await?;
 
-        self.cache.championship.delete_by_user(remove_user_id);
+        self.cache.championship.delete_by_user(&remove_user_id);
 
         Ok(())
     }

@@ -437,8 +437,8 @@ impl F1Service {
 
         drivers.sort_unstable();
 
-        for index in 0..participants_data.num_active_cars {
-            let Some(participant) = participants_data.participants.get(index as usize) else {
+        for idx in 0..participants_data.num_active_cars {
+            let Some(participant) = participants_data.participants.get(idx as usize) else {
                 error!("Participant id out of bounce");
                 continue;
             };

@@ -262,7 +262,7 @@ impl UserService {
 
         conn.execute_raw(&delete_user_stmt, &[&id]).await?;
         self.cache.user.delete(id);
-        self.cache.championship.delete_by_user(id);
+        self.cache.championship.delete_by_user(&id);
 
         info!("User deleted with success: {}", id);
 

@@ -2,7 +2,7 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::{option_string_trim, string_trim};
 
-use crate::entity::{Category, ChampionshipRole};
+use crate::entity::{Category, ChampionshipRole, SharedChampionship, SharedRace};
 
 use super::TeamIds;
 
@@ -54,4 +54,10 @@ pub struct ChampionshipAndUserId {
     pub championship_id: i32,
     #[garde(range(min = 600000000, max = 699999999))]
     pub user_id: i32,
+}
+
+#[derive(Serialize)]
+pub struct ChampionshipData {
+    pub championship: SharedChampionship,
+    pub races: Vec<SharedRace>,
 }
