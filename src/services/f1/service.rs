@@ -7,7 +7,7 @@ use ahash::AHashMap;
 use chrono::Utc;
 use dashmap::DashMap;
 use ntex::util::Bytes;
-use parking_lot::RwLock;
+// use parking_lot::RwLock;
 use tokio::{
     net::UdpSocket,
     sync::{
@@ -37,7 +37,7 @@ use crate::{
 
 const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
 
-use super::{batching::PacketBatching, PacketCaching};
+// use super::{batching::PacketBatching, PacketCaching};
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
@@ -51,14 +51,14 @@ pub struct F1Service {
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
     car_lap_sector: AHashMap<u8, SectorsLaps>,
-    packet_batching: PacketBatching,
+    // packet_batching: PacketBatching,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
-    pub cache: Arc<RwLock<PacketCaching>>,
+    // pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
@@ -85,9 +85,9 @@ impl F1Service {
     /// # Returns
     /// A new F1Service instance.
     pub async fn new(
-        tx: Sender<Bytes>,
+        _tx: Sender<Bytes>,
         shutdown: oneshot::Receiver<()>,
-        cache: Arc<RwLock<PacketCaching>>,
+        // cache: Arc<RwLock<PacketCaching>>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
     ) -> Self {
@@ -102,7 +102,7 @@ impl F1Service {
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
             car_lap_sector: AHashMap::with_capacity(20),
-            packet_batching: PacketBatching::new(tx, cache),
+            // packet_batching: PacketBatching::new(tx, cache),
             services,
             f1_state,
         }
@@ -269,7 +269,7 @@ impl F1Service {
 
         let packet = motion_data.to_packet_header().unwrap();
         self.last_updates.car_motion = now;
-        self.packet_batching.push(packet);
+        // self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -291,9 +291,10 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
-        let packet = session_data.to_packet_header().unwrap();
+        let _packet = session_data.to_packet_header().unwrap();
+
         self.last_updates.session = now;
-        self.packet_batching.push(packet);
+        // self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -315,10 +316,10 @@ impl F1Service {
                 .await?;
         }
 
-        let packet = participants_data.to_packet_header().unwrap();
+        let _packet = participants_data.to_packet_header().unwrap();
 
         self.last_updates.participants = now;
-        self.packet_batching.push(packet);
+        // self.packet_batching.push(packet);
 
         Ok(())
     }
@@ -333,14 +334,14 @@ impl F1Service {
             return;
         }
 
-        let Some(packet) = event_data.to_packet_header() else {
+        let Some(_packet) = event_data.to_packet_header() else {
             return;
         };
 
-        self.packet_batching.push_with_optional_parameter(
-            packet,
-            Some(PacketExtraData::EventCode(event_data.event_string_code)),
-        )
+        // self.packet_batching.push_with_optional_parameter(
+        //     packet,
+        //     Some(PacketExtraData::EventCode(event_data.event_string_code)),
+        // )
     }
 
     #[inline(always)]
@@ -375,12 +376,12 @@ impl F1Service {
             }
 
             *last_sectors = sectors;
-            let packet = history_data.to_packet_header().unwrap();
+            let _packet = history_data.to_packet_header().unwrap();
 
-            self.packet_batching.push_with_optional_parameter(
-                packet,
-                Some(PacketExtraData::CarNumber(history_data.car_idx)),
-            )
+            // self.packet_batching.push_with_optional_parameter(
+            //     packet,
+            //     Some(PacketExtraData::CarNumber(history_data.car_idx)),
+            // )
         }
     }
 
@@ -396,7 +397,7 @@ impl F1Service {
             return Ok(());
         };
 
-        let packet = final_classification.to_packet_header().unwrap();
+        let _packet = final_classification.to_packet_header().unwrap();
 
         // Only testing, we should save last lastHistoryData with the final_classification as a tuple or something
         self.f1_state
@@ -404,7 +405,7 @@ impl F1Service {
             .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
             .await?;
 
-        self.packet_batching.push(packet);
+        // self.packet_batching.push(packet);
 
         Ok(())
     }
@@ -509,10 +510,10 @@ impl F1ServiceData {
     /// # Returns
     /// A new F1ServiceData instance.
     pub fn new(channel: Arc<Receiver<Bytes>>, shutdown: oneshot::Sender<()>) -> Self {
-        let cache = Arc::new(RwLock::new(PacketCaching::new()));
+        // let cache = Arc::new(RwLock::new(PacketCaching::new()));
 
         Self {
-            cache,
+            // cache,
             channel,
             shutdown: Some(shutdown),
             counter: Arc::new(AtomicU32::new(0)),

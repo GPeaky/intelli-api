@@ -46,10 +46,10 @@ impl F1ServiceHandler {
     /// Some(Bytes) if cache exists, None otherwise.
     #[allow(unused)]
     pub async fn cache(&self, championship_id: &i32) -> Option<Bytes> {
-        if let Some(service) = self.services.get(championship_id) {
-            let cache = service.cache.read_arc();
-            return cache.get().await;
-        }
+        // if let Some(service) = self.services.get(championship_id) {
+        //     let cache = service.cache.read_arc();
+        //     return cache.get().await;
+        // }
 
         None
     }
@@ -76,15 +76,15 @@ impl F1ServiceHandler {
     /// Some((Option<Bytes>, Receiver<Bytes>)) if service exists, None otherwise.
     pub async fn cache_and_subscribe(
         &self,
-        championship_id: &i32,
+        _championship_id: &i32,
     ) -> Option<(Option<Bytes>, Receiver<Bytes>)> {
-        if let Some(service) = self.services.get(championship_id) {
-            let cache = service.cache.read_arc();
-            let data = cache.get().await;
-            let receiver = service.subscribe();
+        // if let Some(service) = self.services.get(championship_id) {
+        //     let cache = service.cache.read_arc();
+        //     let data = cache.get().await;
+        //     let receiver = service.subscribe();
 
-            return Some((data, receiver));
-        }
+        //     return Some((data, receiver));
+        // }
 
         None
     }
@@ -166,7 +166,7 @@ impl F1ServiceHandler {
         let mut service = F1Service::new(
             tx,
             orx,
-            service_data.cache.clone(),
+            // service_data.cache.clone(),
             self.services,
             self.f1_state,
         )

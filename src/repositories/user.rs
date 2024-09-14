@@ -243,8 +243,7 @@ impl UserRepository {
         let stream = conn.query_raw(&user_ids_stmt, slice_iter(&[])).await?;
 
         tokio::pin!(stream);
-
-        let mut used_ids = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+        let mut used_ids = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             used_ids.push(row.get(0));
