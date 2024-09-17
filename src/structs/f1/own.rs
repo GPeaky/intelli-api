@@ -1,15 +1,9 @@
 use crate::{
     error::{AppResult, F1ServiceError},
-    protos::packet_header::PacketType,
     utils::cast,
 };
 
 use super::game::*;
-
-pub enum PacketExtraData {
-    EventCode([u8; 4]),
-    CarNumber(u8),
-}
 
 pub enum F1PacketData<'a> {
     Motion(&'a PacketMotionData),
@@ -54,52 +48,5 @@ impl<'a> F1PacketData<'a> {
         }?;
 
         Ok((header, packet))
-    }
-}
-
-// TODO: Search a better way to avoid sending packet type into the function call
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum F1PacketTypeTag {
-    Motion,
-    Participants,
-    Session,
-    Event,
-    SessionHistory,
-    FinalClassification,
-}
-
-pub trait F1PacketTypeTagged {
-    const PACKET_TYPE_TAG: F1PacketTypeTag;
-}
-
-macro_rules! impl_f1_packet_type_tagged {
-    ($($t:ty => $tag:expr),* $(,)?) => {
-        $(
-            impl F1PacketTypeTagged for $t {
-                const PACKET_TYPE_TAG: F1PacketTypeTag = $tag;
-            }
-        )*
-    };
-}
-
-impl_f1_packet_type_tagged! {
-    PacketMotionData => F1PacketTypeTag::Motion,
-    PacketParticipantsData => F1PacketTypeTag::Participants,
-    PacketSessionData => F1PacketTypeTag::Session,
-    PacketEventData => F1PacketTypeTag::Event,
-    PacketSessionHistoryData => F1PacketTypeTag::SessionHistory,
-    PacketFinalClassificationData => F1PacketTypeTag::FinalClassification,
-}
-
-#[inline(always)]
-pub const fn get_f1_packet_type<T: F1PacketTypeTagged>() -> Option<PacketType> {
-    match T::PACKET_TYPE_TAG {
-        F1PacketTypeTag::Motion => Some(PacketType::CarMotion),
-        F1PacketTypeTag::Participants => Some(PacketType::Participants),
-        F1PacketTypeTag::Session => Some(PacketType::SessionData),
-        F1PacketTypeTag::Event => Some(PacketType::EventData),
-        F1PacketTypeTag::SessionHistory => Some(PacketType::SessionHistoryData),
-        F1PacketTypeTag::FinalClassification => Some(PacketType::FinalClassificationData),
     }
 }

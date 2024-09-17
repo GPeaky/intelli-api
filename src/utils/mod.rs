@@ -3,11 +3,9 @@ pub(crate) use ids_generator::IdsGenerator;
 pub(crate) use password_hash::*;
 pub(crate) use ports::MachinePorts;
 
-use brotli::CompressorWriter;
-use ntex::util::Bytes;
 use postgres_types::ToSql;
 use serde::{Deserialize, Deserializer};
-use std::{io::Write, mem};
+use std::mem;
 
 mod ids_generator;
 mod password_hash;
@@ -46,21 +44,4 @@ pub fn slice_iter<'a>(
     s: &'a [&'a (dyn ToSql + Sync)],
 ) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
     s.iter().map(|s| *s as _)
-}
-
-#[inline(always)]
-pub async fn compress_async(data: Bytes) -> AppResult<Bytes> {
-    ntex::rt::spawn_blocking(move || compress(&data)).await?
-}
-
-#[inline(always)]
-fn compress(data: &[u8]) -> AppResult<Bytes> {
-    let mut compressed_data = Vec::with_capacity(data.len());
-
-    {
-        let mut compressor = CompressorWriter::new(&mut compressed_data, 4096, 3, 22);
-        compressor.write_all(data).unwrap();
-    }
-
-    Ok(Bytes::from(compressed_data))
 }

@@ -1,13 +1,15 @@
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
+use std::{
+    net::SocketAddr,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
 };
 
 use ahash::AHashMap;
 use chrono::Utc;
 use dashmap::DashMap;
 use ntex::util::Bytes;
-// use parking_lot::RwLock;
 use tokio::{
     net::UdpSocket,
     sync::{
@@ -24,20 +26,16 @@ use crate::{
         SOCKET_TIMEOUT,
     },
     error::{AppResult, CommonError, F1ServiceError},
-    protos::ToProtoMessage,
     services::{ChampionshipServiceOperations, DriverServiceOperations},
     states::F1State,
     structs::{
         F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
-        PacketEventData, PacketExtraData, PacketFinalClassificationData, PacketMotionData,
-        PacketParticipantsData, PacketSessionData, PacketSessionHistoryData, SectorsLaps,
-        SessionType,
+        PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
+        PacketSessionData, PacketSessionHistoryData, SectorsLaps, SessionType,
     },
 };
 
 const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
-
-// use super::{batching::PacketBatching, PacketCaching};
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
@@ -51,14 +49,12 @@ pub struct F1Service {
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
     car_lap_sector: AHashMap<u8, SectorsLaps>,
-    // packet_batching: PacketBatching,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
-    // pub cache: Arc<RwLock<PacketCaching>>,
     channel: Arc<Receiver<Bytes>>,
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
@@ -87,7 +83,6 @@ impl F1Service {
     pub async fn new(
         _tx: Sender<Bytes>,
         shutdown: oneshot::Receiver<()>,
-        // cache: Arc<RwLock<PacketCaching>>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
     ) -> Self {
@@ -102,7 +97,6 @@ impl F1Service {
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
             car_lap_sector: AHashMap::with_capacity(20),
-            // packet_batching: PacketBatching::new(tx, cache),
             services,
             f1_state,
         }
@@ -122,7 +116,7 @@ impl F1Service {
         championship_id: i32,
         _race_id: i32,
     ) -> AppResult<()> {
-        let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
+        let Ok(socket) = UdpSocket::bind(SocketAddr::new(SOCKET_HOST, port as u16)).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
         };
@@ -262,14 +256,12 @@ impl F1Service {
     }
 
     #[inline(always)]
-    fn handle_motion_packet(&mut self, motion_data: &PacketMotionData, now: Instant) {
+    fn handle_motion_packet(&mut self, _motion_data: &PacketMotionData, now: Instant) {
         if now.duration_since(self.last_updates.car_motion) < MOTION_INTERVAL {
             return;
         }
 
-        let packet = motion_data.to_packet_header().unwrap();
         self.last_updates.car_motion = now;
-        // self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -291,10 +283,7 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
-        let _packet = session_data.to_packet_header().unwrap();
-
         self.last_updates.session = now;
-        // self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -316,27 +305,24 @@ impl F1Service {
                 .await?;
         }
 
-        let _packet = participants_data.to_packet_header().unwrap();
-
         self.last_updates.participants = now;
-        // self.packet_batching.push(packet);
 
         Ok(())
     }
 
     #[inline(always)]
-    fn handle_event_packet(&mut self, event_data: &PacketEventData) {
-        let Some(session_type) = &self.session_type else {
+    fn handle_event_packet(&mut self, _event_data: &PacketEventData) {
+        let Some(_session_type) = &self.session_type else {
             return;
         };
 
-        if ![SessionType::R, SessionType::R2, SessionType::R3].contains(session_type) {
-            return;
-        }
+        // if ![SessionType::R, SessionType::R2, SessionType::R3].contains(session_type) {
+        //     return;
+        // }
 
-        let Some(_packet) = event_data.to_packet_header() else {
-            return;
-        };
+        // let Some(_packet) = event_data.to_packet_header() else {
+        //     return;
+        // };
 
         // self.packet_batching.push_with_optional_parameter(
         //     packet,
@@ -376,36 +362,24 @@ impl F1Service {
             }
 
             *last_sectors = sectors;
-            let _packet = history_data.to_packet_header().unwrap();
-
-            // self.packet_batching.push_with_optional_parameter(
-            //     packet,
-            //     Some(PacketExtraData::CarNumber(history_data.car_idx)),
-            // )
         }
     }
 
     #[inline(always)]
     async fn handle_final_classification_packet(
         &mut self,
-        final_classification: &PacketFinalClassificationData,
+        _final_classification: &PacketFinalClassificationData,
     ) -> AppResult<()> {
-        info!("Final called");
-
-        let Some(session_type) = self.session_type.take() else {
+        let Some(_session_type) = self.session_type.take() else {
             error!("Not defined session type when trying to save final_classification_data");
             return Ok(());
         };
 
-        let _packet = final_classification.to_packet_header().unwrap();
-
         // Only testing, we should save last lastHistoryData with the final_classification as a tuple or something
-        self.f1_state
-            .championship_svc
-            .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
-            .await?;
-
-        // self.packet_batching.push(packet);
+        // self.f1_state
+        //     .championship_svc
+        //     .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
+        //     .await?;
 
         Ok(())
     }
