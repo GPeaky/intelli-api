@@ -3,3 +3,4 @@ pub(crate) use own::*;
 
 mod game;
 mod own;
+pub mod protos;

@@ -90,7 +90,7 @@ impl F1Service {
             port: 0,
             race_id: 0,
             championship_id: 0,
-            tick_counter: 0,
+            tick_counter: 10,
             port_partially_opened: false,
             last_updates: LastUpdates::new(),
             shutdown,
