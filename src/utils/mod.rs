@@ -21,22 +21,16 @@ where
 
 #[inline(always)]
 pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
-    if bytes.len() < mem::size_of::<T>() {
+    if mem::size_of::<T>() > bytes.len() {
         Err(F1ServiceError::CastingError)?;
     }
 
-    let ptr = bytes.as_ptr();
-    let alignment = mem::align_of::<T>();
-
-    if (ptr as usize) % alignment != 0 {
-        panic!(
-            "Error: Unable to cast because the alignment of type '{}' is {} bytes, but the pointer address is not properly aligned.",
-            std::any::type_name::<T>(),
-            alignment
-        );
-    }
-
-    Ok(unsafe { &*(ptr.cast()) })
+    // SAFETY:
+    // - We've verified there are enough bytes for T.
+    // - The structure is packed, so there are no alignment requirements.
+    // - We assume the data is little-endian (valid for F1 2023/2024 on player PCs).
+    // - We're only performing reads, no writes
+    Ok(unsafe { &*(bytes.as_ptr() as *const T) })
 }
 
 #[inline(always)]

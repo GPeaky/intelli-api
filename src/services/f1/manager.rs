@@ -1,10 +1,11 @@
 use ahash::AHashMap;
 
 use crate::structs::{
-    protos::*, PacketEventData, PacketMotionData, PacketParticipantsData, PacketSessionData,
-    PacketSessionHistoryData,
+    protos::*, PacketCarTelemetryData, PacketEventData, PacketMotionData, PacketParticipantsData,
+    PacketSessionData, PacketSessionHistoryData,
 };
 
+// TODO: Prune data at the end of the session 
 struct F1DataManager {
     id_to_name: AHashMap<usize, Box<str>>,
     general: F1GeneralInfo,
@@ -31,6 +32,11 @@ impl F1DataManager {
             let Some(motion_data) = packet.car_motion_data.get(index) else {
                 continue;
             };
+
+            // TODO: Check if we can break here
+            if motion_data.world_position_x == 0f32 {
+                continue;
+            }
 
             if let Some(steam_name) = self.id_to_name.get(&index) {
                 if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
@@ -82,6 +88,11 @@ impl F1DataManager {
 
             player_info.update_participant_info(participant);
         }
+    }
+
+    #[allow(unused)]
+    pub fn save_car_telemetry(&mut self, packet: &PacketCarTelemetryData) {
+        // packet.car_telemetry_data.iter().enumerate()
     }
 
     // TODO: add final_classification data an telemetry
