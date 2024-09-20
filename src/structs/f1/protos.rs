@@ -1,5 +1,5 @@
 use prost::{Message, Oneof};
-use std::collections::HashMap;
+use std::{collections::HashMap, ptr::addr_of};
 
 use super::{
     CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
@@ -329,70 +329,70 @@ pub struct PlayerTelemetry {
 
 #[derive(Clone, PartialEq, Message)]
 pub struct CarTelemetryData {
-    #[prost(uint32, tag = "1")]
-    pub speed: u32,
-    #[prost(float, tag = "2")]
-    pub throttle: f32,
-    #[prost(float, tag = "3")]
-    pub steer: f32,
-    #[prost(float, tag = "4")]
-    pub brake: f32,
-    #[prost(sint32, tag = "6")]
-    pub gear: i32,
-    #[prost(uint32, tag = "7")]
-    pub engine_rpm: u32,
-    #[prost(bool, tag = "8")]
-    pub drs: bool,
+    #[prost(uint32, optional, tag = "1")]
+    pub speed: Option<u32>,
+    #[prost(float, optional, tag = "2")]
+    pub throttle: Option<f32>,
+    #[prost(float, optional, tag = "3")]
+    pub steer: Option<f32>,
+    #[prost(float, optional, tag = "4")]
+    pub brake: Option<f32>,
+    #[prost(sint32, optional, tag = "6")]
+    pub gear: Option<i32>,
+    #[prost(uint32, optional, tag = "7")]
+    pub engine_rpm: Option<u32>,
+    #[prost(bool, optional, tag = "8")]
+    pub drs: Option<bool>,
     #[prost(uint32, repeated, packed = "true", tag = "9")]
     pub brakes_temperature: Vec<u32>,
     #[prost(uint32, repeated, tag = "10")]
     pub tyres_surface_temperature: Vec<u32>,
     #[prost(uint32, repeated, tag = "11")]
     pub tyres_inner_temperature: Vec<u32>,
-    #[prost(uint32, tag = "12")]
-    pub engine_temperature: u32,
+    #[prost(uint32, optional, tag = "12")]
+    pub engine_temperature: Option<u32>,
     #[prost(float, repeated, packed = "true", tag = "13")]
     pub tyres_pressure: Vec<f32>,
 }
 
 #[derive(Clone, PartialEq, Message)]
 pub struct CarStatusData {
-    #[prost(uint32, tag = "1")]
-    pub fuel_mix: u32,
-    #[prost(uint32, tag = "2")]
-    pub front_brake_bias: u32,
-    #[prost(float, tag = "3")]
-    pub fuel_in_tank: f32,
-    #[prost(float, tag = "4")]
-    pub fuel_capacity: f32,
-    #[prost(float, tag = "5")]
-    pub fuel_remaining_laps: f32,
-    #[prost(bool, tag = "6")]
-    pub drs_allowed: bool,
-    #[prost(uint32, tag = "7")]
-    pub drs_activation_distance: u32,
-    #[prost(uint32, tag = "8")]
-    pub actual_tyre_compound: u32,
-    #[prost(uint32, tag = "9")]
-    pub visual_tyre_compound: u32,
-    #[prost(uint32, tag = "10")]
-    pub tyres_age_laps: u32,
-    #[prost(sint32, tag = "11")]
-    pub vehicle_fia_flags: i32,
-    #[prost(float, tag = "12")]
-    pub engine_power_ice: f32,
-    #[prost(float, tag = "13")]
-    pub engine_power_mguk: f32,
-    #[prost(float, tag = "14")]
-    pub ers_store_energy: f32,
-    #[prost(uint32, tag = "15")]
-    pub ers_deploy_mode: u32,
-    #[prost(float, tag = "16")]
-    pub ers_harvested_this_lap_mguk: f32,
-    #[prost(float, tag = "17")]
-    pub ers_harvested_this_lap_mguh: f32,
-    #[prost(float, tag = "18")]
-    pub ers_deployed_this_lap: f32,
+    #[prost(uint32, optional, tag = "1")]
+    pub fuel_mix: Option<u32>,
+    #[prost(uint32, optional, tag = "2")]
+    pub front_brake_bias: Option<u32>,
+    #[prost(float, optional, tag = "3")]
+    pub fuel_in_tank: Option<f32>,
+    #[prost(float, optional, tag = "4")]
+    pub fuel_capacity: Option<f32>,
+    #[prost(float, optional, tag = "5")]
+    pub fuel_remaining_laps: Option<f32>,
+    #[prost(bool, optional, tag = "6")]
+    pub drs_allowed: Option<bool>,
+    #[prost(uint32, optional, tag = "7")]
+    pub drs_activation_distance: Option<u32>,
+    #[prost(uint32, optional, tag = "8")]
+    pub actual_tyre_compound: Option<u32>,
+    #[prost(uint32, optional, tag = "9")]
+    pub visual_tyre_compound: Option<u32>,
+    #[prost(uint32, optional, tag = "10")]
+    pub tyres_age_laps: Option<u32>,
+    #[prost(sint32, optional, tag = "11")]
+    pub vehicle_fia_flags: Option<i32>,
+    #[prost(float, optional, tag = "12")]
+    pub engine_power_ice: Option<f32>,
+    #[prost(float, optional, tag = "13")]
+    pub engine_power_mguk: Option<f32>,
+    #[prost(float, optional, tag = "14")]
+    pub ers_store_energy: Option<f32>,
+    #[prost(uint32, optional, tag = "15")]
+    pub ers_deploy_mode: Option<u32>,
+    #[prost(float, optional, tag = "16")]
+    pub ers_harvested_this_lap_mguk: Option<f32>,
+    #[prost(float, optional, tag = "17")]
+    pub ers_harvested_this_lap_mguh: Option<f32>,
+    #[prost(float, optional, tag = "18")]
+    pub ers_deployed_this_lap: Option<f32>,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -403,42 +403,42 @@ pub struct CarDamageData {
     pub tyres_damage: Vec<u32>,
     #[prost(uint32, repeated, tag = "3")]
     pub brakes_damage: Vec<u32>,
-    #[prost(uint32, tag = "4")]
-    pub front_left_wing_damage: u32,
-    #[prost(uint32, tag = "5")]
-    pub front_right_wing_damage: u32,
-    #[prost(uint32, tag = "6")]
-    pub rear_wing_damage: u32,
-    #[prost(uint32, tag = "7")]
-    pub floor_damage: u32,
-    #[prost(uint32, tag = "8")]
-    pub diffuser_damage: u32,
-    #[prost(uint32, tag = "9")]
-    pub sidepod_damage: u32,
-    #[prost(bool, tag = "10")]
-    pub drs_fault: bool,
-    #[prost(bool, tag = "11")]
-    pub ers_fault: bool,
-    #[prost(uint32, tag = "12")]
-    pub gear_box_damage: u32,
-    #[prost(uint32, tag = "13")]
-    pub engine_damage: u32,
-    #[prost(uint32, tag = "14")]
-    pub engine_mguh_wear: u32,
-    #[prost(uint32, tag = "15")]
-    pub engine_es_wear: u32,
-    #[prost(uint32, tag = "16")]
-    pub engine_ce_wear: u32,
-    #[prost(uint32, tag = "17")]
-    pub engine_ice_wear: u32,
-    #[prost(uint32, tag = "18")]
-    pub engine_mguk_wear: u32,
-    #[prost(uint32, tag = "19")]
-    pub engine_tc_wear: u32,
-    #[prost(bool, tag = "20")]
-    pub engine_blown: bool,
-    #[prost(bool, tag = "21")]
-    pub engine_seized: bool,
+    #[prost(uint32, optional, tag = "4")]
+    pub front_left_wing_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "5")]
+    pub front_right_wing_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "6")]
+    pub rear_wing_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "7")]
+    pub floor_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "8")]
+    pub diffuser_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "9")]
+    pub sidepod_damage: Option<u32>,
+    #[prost(bool, optional, tag = "10")]
+    pub drs_fault: Option<bool>,
+    #[prost(bool, optional, tag = "11")]
+    pub ers_fault: Option<bool>,
+    #[prost(uint32, optional, tag = "12")]
+    pub gear_box_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "13")]
+    pub engine_damage: Option<u32>,
+    #[prost(uint32, optional, tag = "14")]
+    pub engine_mguh_wear: Option<u32>,
+    #[prost(uint32, optional, tag = "15")]
+    pub engine_es_wear: Option<u32>,
+    #[prost(uint32, optional, tag = "16")]
+    pub engine_ce_wear: Option<u32>,
+    #[prost(uint32, optional, tag = "17")]
+    pub engine_ice_wear: Option<u32>,
+    #[prost(uint32, optional, tag = "18")]
+    pub engine_mguk_wear: Option<u32>,
+    #[prost(uint32, optional, tag = "19")]
+    pub engine_tc_wear: Option<u32>,
+    #[prost(bool, optional, tag = "20")]
+    pub engine_blown: Option<bool>,
+    #[prost(bool, optional, tag = "21")]
+    pub engine_seized: Option<bool>,
 }
 
 impl HistoryData {
@@ -536,18 +536,106 @@ impl PlayerInfo {
 
 impl PlayerTelemetry {
     #[inline]
-    pub fn update_car_damage(&mut self, _data: &F1CarDamageData) {
-        todo!()
+    pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
+        let car_damage = self.car_damage.get_or_insert_with(Default::default);
+
+        unsafe {
+            let tyres_wear_ptr = addr_of!(data.tyres_wear);
+            car_damage.tyres_wear.extend_from_slice(&*tyres_wear_ptr);
+        }
+
+        car_damage.tyres_damage.clear();
+        car_damage
+            .tyres_damage
+            .extend(data.tyres_damage.iter().map(|&x| x as u32));
+
+        car_damage.brakes_damage.clear();
+        car_damage
+            .brakes_damage
+            .extend(data.brakes_damage.iter().map(|&x| x as u32));
+
+        car_damage.front_left_wing_damage = Some(data.front_left_wing_damage as u32);
+        car_damage.front_right_wing_damage = Some(data.front_right_wing_damage as u32);
+        car_damage.rear_wing_damage = Some(data.rear_wing_damage as u32);
+        car_damage.floor_damage = Some(data.floor_damage as u32);
+        car_damage.diffuser_damage = Some(data.diffuser_damage as u32);
+        car_damage.sidepod_damage = Some(data.sidepod_damage as u32);
+        car_damage.drs_fault = Some(data.drs_fault != 0);
+        car_damage.ers_fault = Some(data.ers_fault != 0);
+        car_damage.gear_box_damage = Some(data.gear_box_damage as u32);
+        car_damage.engine_damage = Some(data.engine_damage as u32);
+        car_damage.engine_mguh_wear = Some(data.engine_mguh_wear as u32);
+        car_damage.engine_es_wear = Some(data.engine_es_wear as u32);
+        car_damage.engine_ce_wear = Some(data.engine_ce_wear as u32);
+        car_damage.engine_ice_wear = Some(data.engine_ice_wear as u32);
+        car_damage.engine_mguk_wear = Some(data.engine_mguk_wear as u32);
+        car_damage.engine_tc_wear = Some(data.engine_tc_wear as u32);
+        car_damage.engine_blown = Some(data.engine_blown != 0);
+        car_damage.engine_seized = Some(data.engine_seized != 0);
     }
 
     #[inline]
-    pub fn update_car_status(&mut self, _data: &F1CarStatusData) {
-        todo!()
+    pub fn update_car_status(&mut self, data: &F1CarStatusData) {
+        let car_status = self.car_status.get_or_insert_with(Default::default);
+
+        car_status.fuel_mix = Some(data.fuel_mix as u32);
+        car_status.front_brake_bias = Some(data.front_brake_bias as u32);
+        car_status.fuel_in_tank = Some(data.fuel_in_tank);
+        car_status.fuel_capacity = Some(data.fuel_capacity);
+        car_status.fuel_remaining_laps = Some(data.fuel_remaining_laps);
+        car_status.drs_allowed = Some(data.drs_allowed != 0);
+        car_status.drs_activation_distance = Some(data.drs_activation_distance as u32);
+        car_status.actual_tyre_compound = Some(data.actual_tyre_compound as u32);
+        car_status.visual_tyre_compound = Some(data.visual_tyre_compound as u32);
+        car_status.tyres_age_laps = Some(data.tyres_age_laps as u32);
+        car_status.vehicle_fia_flags = Some(data.vehicle_fia_flags as i32);
+        car_status.engine_power_ice = Some(data.engine_power_ice);
+        car_status.engine_power_mguk = Some(data.engine_power_mguk);
+        car_status.ers_store_energy = Some(data.ers_store_energy);
+        car_status.ers_deploy_mode = Some(data.ers_deploy_mode as u32);
+        car_status.ers_harvested_this_lap_mguk = Some(data.ers_harvested_this_lap_mguk);
+        car_status.ers_harvested_this_lap_mguh = Some(data.ers_harvested_this_lap_mguh);
+        car_status.ers_deployed_this_lap = Some(data.ers_deployed_this_lap);
     }
 
     #[inline]
-    pub fn update_car_telemetry(&mut self, _data: &F1CarTelemetryData) {
-        todo!()
+    pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
+        let telemetry = self.car_telemetry.get_or_insert_with(Default::default);
+
+        telemetry.speed = Some(data.speed as u32);
+        telemetry.throttle = Some(data.throttle);
+        telemetry.steer = Some(data.steer);
+        telemetry.brake = Some(data.brake);
+        telemetry.gear = Some(data.gear as i32);
+        telemetry.engine_rpm = Some(data.engine_rpm as u32);
+        telemetry.drs = Some(data.drs != 0);
+        telemetry.engine_temperature = Some(data.engine_temperature as u32);
+
+        telemetry.brakes_temperature.clear();
+        unsafe {
+            let brakes_temp_ptr = addr_of!(data.brakes_temperature);
+            telemetry
+                .brakes_temperature
+                .extend((*brakes_temp_ptr).iter().map(|&x| x as u32));
+        }
+
+        telemetry.tyres_surface_temperature.clear();
+        telemetry
+            .tyres_surface_temperature
+            .extend(data.tyres_surface_temperature.iter().map(|&x| x as u32));
+
+        telemetry.tyres_inner_temperature.clear();
+        telemetry
+            .tyres_inner_temperature
+            .extend(data.tyres_inner_temperature.iter().map(|&x| x as u32));
+
+        telemetry.tyres_pressure.clear();
+        unsafe {
+            let tyres_pressure_ptr = addr_of!(data.tyres_pressure);
+            telemetry
+                .tyres_pressure
+                .extend_from_slice(&*tyres_pressure_ptr);
+        }
     }
 }
 
