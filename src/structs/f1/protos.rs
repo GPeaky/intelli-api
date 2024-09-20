@@ -2,9 +2,10 @@ use prost::{Message, Oneof};
 use std::collections::HashMap;
 
 use super::{
-    CarMotionData as F1CarMotionData, LapHistoryData as F1LapHistoryData, PacketSessionData,
-    PacketSessionHistoryData, ParticipantData as F1ParticipantData,
-    TyreStintHistoryData as F1TyreStintHistoryData,
+    CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
+    CarStatusData as F1CarStatusData, CarTelemetryData as F1CarTelemetryData,
+    LapHistoryData as F1LapHistoryData, PacketSessionData, PacketSessionHistoryData,
+    ParticipantData as F1ParticipantData, TyreStintHistoryData as F1TyreStintHistoryData,
 };
 
 // TODO: Implement manual PartialEq
@@ -443,7 +444,6 @@ pub struct CarDamageData {
 impl HistoryData {
     #[inline]
     fn update(&mut self, packet: &PacketSessionHistoryData) {
-        // Update general data
         self.num_laps = Some(packet.num_laps as u32);
         self.num_tyre_stints = Some(packet.num_tyre_stints as u32);
         self.best_lap_time_lap_num = Some(packet.best_lap_time_lap_num as u32);
@@ -451,25 +451,23 @@ impl HistoryData {
         self.best_s2_lap_num = Some(packet.best_sector2_lap_num as u32);
         self.best_s3_lap_num = Some(packet.best_sector3_lap_num as u32);
 
-        // Update lap data
         let current_lap = packet.num_laps as usize;
         if current_lap > 1 && self.lap_history_data.len() >= current_lap - 1 {
-            // Update last lap
-            let previous_lap_data = &packet.lap_history_data[current_lap - 2];
-            self.lap_history_data[current_lap - 2].update(previous_lap_data);
+            self.lap_history_data[current_lap - 2]
+                .update(&packet.lap_history_data[current_lap - 2]);
         }
+
         if current_lap > 0 {
-            // Update or add current lap
-            let current_lap_data = &packet.lap_history_data[current_lap - 1];
             if current_lap > self.lap_history_data.len() {
-                self.lap_history_data
-                    .push(LapHistoryData::from_f1(current_lap_data));
+                self.lap_history_data.push(LapHistoryData::from_f1(
+                    &packet.lap_history_data[current_lap - 1],
+                ));
             } else {
-                self.lap_history_data[current_lap - 1].update(current_lap_data);
+                self.lap_history_data[current_lap - 1]
+                    .update(&packet.lap_history_data[current_lap - 1]);
             }
         }
 
-        // Update tyre stints
         let num_stints = packet.num_tyre_stints as usize;
         if num_stints > self.tyre_stints_history_data.len() {
             for i in self.tyre_stints_history_data.len()..num_stints {
@@ -484,7 +482,7 @@ impl HistoryData {
 impl TyreStintsHistoryData {
     #[inline]
     fn from_f1(stints_data: &F1TyreStintHistoryData) -> Self {
-        TyreStintsHistoryData {
+        Self {
             actual_compound: Some(stints_data.tyre_actual_compound as u32),
             visual_compound: Some(stints_data.tyre_visual_compound as u32),
             end_lap: Some(stints_data.end_lap as u32),
@@ -495,7 +493,7 @@ impl TyreStintsHistoryData {
 impl LapHistoryData {
     #[inline]
     fn from_f1(lap_data: &F1LapHistoryData) -> Self {
-        LapHistoryData {
+        Self {
             lap_time: Some(lap_data.lap_time_in_ms),
             s1_time: Some(lap_data.sector1_time_in_ms as u32),
             s2_time: Some(lap_data.sector2_time_in_ms as u32),
@@ -506,18 +504,14 @@ impl LapHistoryData {
 
     #[inline]
     fn update(&mut self, lap_data: &F1LapHistoryData) {
-        self.lap_time = Some(lap_data.lap_time_in_ms);
-        self.s1_time = Some(lap_data.sector1_time_in_ms as u32);
-        self.s2_time = Some(lap_data.sector2_time_in_ms as u32);
-        self.s3_time = Some(lap_data.sector3_time_in_ms as u32);
-        self.lap_valid_bit_flag = Some(lap_data.lap_valid_bit_flags as u32);
+        *self = Self::from_f1(lap_data);
     }
 }
 
 impl PlayerInfo {
     #[inline]
     pub fn update_car_motion(&mut self, incoming_motion: &F1CarMotionData) {
-        let car_motion = self.car_motion.get_or_insert(CarMotionData::default());
+        let car_motion = self.car_motion.get_or_insert_with(Default::default);
         car_motion.x = Some(incoming_motion.world_position_x);
         car_motion.y = Some(incoming_motion.world_position_y);
         car_motion.yaw = Some(incoming_motion.yaw);
@@ -525,12 +519,14 @@ impl PlayerInfo {
 
     #[inline]
     pub fn update_session_history(&mut self, packet: &PacketSessionHistoryData) {
-        let history = self.lap_history.get_or_insert(HistoryData::default());
-        history.update(packet);
+        self.lap_history
+            .get_or_insert_with(Default::default)
+            .update(packet);
     }
 
+    #[inline]
     pub fn update_participant_info(&mut self, incoming_participant: &F1ParticipantData) {
-        let participant = self.participant.get_or_insert(ParticipantData::default());
+        let participant = self.participant.get_or_insert_with(Default::default);
         participant.team_id = Some(incoming_participant.team_id as u32);
         participant.race_number = Some(incoming_participant.race_number as u32);
         participant.nationality = Some(incoming_participant.nationality as u32);
@@ -538,9 +534,27 @@ impl PlayerInfo {
     }
 }
 
+impl PlayerTelemetry {
+    #[inline]
+    pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
+        todo!()
+    }
+
+    #[inline]
+    pub fn update_car_status(&mut self, data: &F1CarStatusData) {
+        todo!()
+    }
+
+    #[inline]
+    pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
+        todo!()
+    }
+}
+
 impl F1GeneralInfo {
+    #[inline]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
-        let session = self.session.get_or_insert(SessionData::default());
+        let session = self.session.get_or_insert_with(Default::default);
 
         session.weather = Some(packet.weather as u32);
         session.track_temperature = Some(packet.track_temperature as i32);
@@ -560,6 +574,6 @@ impl F1GeneralInfo {
         session.s3_lap_distance_start = Some(packet.sector3_lap_distance_start);
 
         // Todo: implement this
-        // session.weekend_structure = Some(packet.weekend_structure)
+        // session.weekend_structure = packet.weekend_structure.to_vec();
     }
 }

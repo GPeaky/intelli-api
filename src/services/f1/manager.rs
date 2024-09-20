@@ -1,44 +1,45 @@
-use ahash::AHashMap;
-
 use crate::structs::{
-    protos::*, PacketCarTelemetryData, PacketEventData, PacketMotionData, PacketParticipantsData,
-    PacketSessionData, PacketSessionHistoryData,
+    protos::*, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData, PacketEventData,
+    PacketFinalClassificationData, PacketMotionData, PacketParticipantsData, PacketSessionData,
+    PacketSessionHistoryData,
 };
+use ahash::AHashMap;
+use tracing_log::log::error;
 
-// TODO: Prune data at the end of the session 
-struct F1DataManager {
+// TODO: Prune data at the end of the session
+pub struct F1SessionDataManager {
     id_to_name: AHashMap<usize, Box<str>>,
     general: F1GeneralInfo,
     telemetry: F1TelemetryInfo,
 }
 
-impl F1DataManager {
+#[allow(unused)]
+impl F1SessionDataManager {
     pub fn new() -> Self {
-        F1DataManager {
+        Self {
             id_to_name: AHashMap::new(),
             general: F1GeneralInfo::default(),
             telemetry: F1TelemetryInfo::default(),
         }
     }
 
-    #[allow(unused)]
     pub fn push_event(&self, _event: &PacketEventData) {
         // TODO: Convert from PacketEventData and push it
     }
 
-    #[allow(unused)]
-    pub fn save_motion_packet(&mut self, packet: &PacketMotionData) {
-        for index in 0..packet.car_motion_data.len() {
-            let Some(motion_data) = packet.car_motion_data.get(index) else {
+    // Not using process_general_packet cause a middle check
+    pub fn save_motion(&mut self, packet: &PacketMotionData) {
+        for i in 0..packet.car_motion_data.len() {
+            let Some(motion_data) = packet.car_motion_data.get(i) else {
                 continue;
             };
 
-            // TODO: Check if we can break here
+
             if motion_data.world_position_x == 0f32 {
                 continue;
             }
 
-            if let Some(steam_name) = self.id_to_name.get(&index) {
+            if let Some(steam_name) = self.id_to_name.get(&i) {
                 if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
                     player.update_car_motion(motion_data);
                 }
@@ -46,54 +47,97 @@ impl F1DataManager {
         }
     }
 
-    #[allow(unused)]
-    pub fn save_session_packet(&mut self, packet: &PacketSessionData) {
+    pub fn save_session(&mut self, packet: &PacketSessionData) {
         self.general.update_session(packet);
     }
 
-    #[allow(unused)]
     pub fn save_lap_history(&mut self, packet: &PacketSessionHistoryData) {
-        let player = self
-            .id_to_name
-            .get(&(packet.car_idx as usize))
-            .and_then(|steam_name| self.general.players.get_mut(steam_name.as_ref()));
-
-        if let Some(player) = player {
-            player.update_session_history(packet);
+        if let Some(steam_name) = self.id_to_name.get(&(packet.car_idx as usize)) {
+            if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
+                player.update_session_history(packet);
+            }
         }
     }
 
-    #[allow(unused)]
-    pub fn save_participants_packet(&mut self, packet: &PacketParticipantsData) {
+    pub fn save_participants(&mut self, packet: &PacketParticipantsData) {
         for i in 0..packet.num_active_cars as usize {
             let Some(participant) = packet.participants.get(i) else {
-                continue;
+                error!(
+                    "num_active_cars ({}) exceeds array bound ({})",
+                    packet.num_active_cars,
+                    packet.participants.len()
+                );
+
+                break;
             };
 
-            let steam_name = match self.id_to_name.get(&i) {
-                Some(steam) => steam.as_ref(),
-                None => {
-                    let name = participant.steam_name().unwrap();
-                    self.id_to_name.insert(i, name.into());
+            let steam_name = self
+                .id_to_name
+                .entry(i)
+                .or_insert_with(|| participant.steam_name().unwrap().into());
 
-                    name
-                }
-            };
-
-            let player_info = self
-                .general
-                .players
-                .entry(steam_name.to_owned()) // Avoid creating string
+            self.telemetry
+                .player_telemetry
+                .entry(steam_name.as_ref().to_owned())
                 .or_default();
 
-            player_info.update_participant_info(participant);
+            self.general
+                .players
+                .entry(steam_name.as_ref().to_owned())
+                .or_default()
+                .update_participant_info(participant);
         }
     }
 
-    #[allow(unused)]
-    pub fn save_car_telemetry(&mut self, packet: &PacketCarTelemetryData) {
-        // packet.car_telemetry_data.iter().enumerate()
+    pub fn save_car_damage(&mut self, packet: &PacketCarDamageData) {
+        self.process_telemetry_packet(&packet.car_damage_data, |player_telemetry, data| {
+            player_telemetry.update_car_damage(data);
+        });
     }
 
-    // TODO: add final_classification data an telemetry
+    pub fn save_car_status(&mut self, packet: &PacketCarStatusData) {
+        self.process_telemetry_packet(&packet.car_status_data, |player_telemetry, data| {
+            player_telemetry.update_car_status(data);
+        });
+    }
+
+    pub fn save_car_telemetry(&mut self, packet: &PacketCarTelemetryData) {
+        self.process_telemetry_packet(&packet.car_telemetry_data, |player_telemetry, data| {
+            player_telemetry.update_car_telemetry(data);
+        });
+    }
+
+    pub fn save_final_classification(&mut self, _packet: &PacketFinalClassificationData) {
+        // TODO: Implement final classification logic
+    }
+
+    #[inline(always)]
+    fn process_general_packet<T, F>(&mut self, packet_data: &[T], mut process_fn: F)
+    where
+        F: FnMut(&mut PlayerInfo, &T),
+    {
+        for (i, data) in packet_data.iter().enumerate() {
+            if let Some(steam_name) = self.id_to_name.get(&i) {
+                if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
+                    process_fn(player, data);
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
+    fn process_telemetry_packet<T, F>(&mut self, packet_data: &[T], mut process_fn: F)
+    where
+        F: FnMut(&mut PlayerTelemetry, &T),
+    {
+        for (i, data) in packet_data.iter().enumerate() {
+            if let Some(steam_name) = self.id_to_name.get(&i) {
+                if let Some(player_telemetry) =
+                    self.telemetry.player_telemetry.get_mut(steam_name.as_ref())
+                {
+                    process_fn(player_telemetry, data);
+                }
+            }
+        }
+    }
 }
