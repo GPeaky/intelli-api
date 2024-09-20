@@ -30,9 +30,7 @@ impl F1SessionDataManager {
     // Not using process_general_packet cause a middle check
     pub fn save_motion(&mut self, packet: &PacketMotionData) {
         for i in 0..packet.car_motion_data.len() {
-            let Some(motion_data) = packet.car_motion_data.get(i) else {
-                continue;
-            };
+            let motion_data = &packet.car_motion_data[i];
 
             if motion_data.world_position_x == 0f32 {
                 continue;
@@ -106,8 +104,13 @@ impl F1SessionDataManager {
         });
     }
 
-    pub fn save_final_classification(&mut self, _packet: &PacketFinalClassificationData) {
-        // TODO: Implement final classification logic
+    pub fn save_final_classification(&mut self, packet: &PacketFinalClassificationData) {
+        self.process_general_packet(
+            &packet.classification_data,
+            |player_info, classification_data| {
+                player_info.update_classification_data(classification_data);
+            },
+        );
     }
 
     #[inline(always)]

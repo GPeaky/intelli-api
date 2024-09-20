@@ -4,8 +4,9 @@ use std::{collections::HashMap, ptr::addr_of};
 use super::{
     CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
     CarStatusData as F1CarStatusData, CarTelemetryData as F1CarTelemetryData,
-    LapHistoryData as F1LapHistoryData, PacketSessionData, PacketSessionHistoryData,
-    ParticipantData as F1ParticipantData, TyreStintHistoryData as F1TyreStintHistoryData,
+    FinalClassificationData as F1FinalClassificationData, LapHistoryData as F1LapHistoryData,
+    PacketSessionData, PacketSessionHistoryData, ParticipantData as F1ParticipantData,
+    TyreStintHistoryData as F1TyreStintHistoryData,
 };
 
 // TODO: Implement manual PartialEq
@@ -531,6 +532,48 @@ impl PlayerInfo {
         participant.race_number = Some(incoming_participant.race_number as u32);
         participant.nationality = Some(incoming_participant.nationality as u32);
         participant.platform = Some(incoming_participant.platform as u32);
+    }
+
+    #[inline]
+    pub fn update_classification_data(&mut self, packet: &F1FinalClassificationData) {
+        let final_classification = self
+            .final_classification
+            .get_or_insert_with(Default::default);
+
+        final_classification.position = Some(packet.position as u32);
+        final_classification.laps = Some(packet.num_laps as u32);
+        final_classification.grid_position = Some(packet.grid_position as u32);
+        final_classification.points = Some(packet.points as u32);
+        final_classification.pit_stops = Some(packet.num_pit_stops as u32);
+        final_classification.result_status = Some(packet.result_status as u32);
+        final_classification.best_lap_time = Some(packet.best_lap_time_in_ms);
+        final_classification.race_time = Some(packet.total_race_time);
+        final_classification.penalties_time = Some(packet.penalties_time as u32);
+        final_classification.num_penalties = Some(packet.num_penalties as u32);
+
+        // Manejar tyre_stints_actual
+        final_classification.tyre_stints_actual.clear();
+        final_classification.tyre_stints_actual.extend(
+            packet.tyre_stints_actual[..packet.num_tyre_stints as usize]
+                .iter()
+                .map(|&x| x as u32),
+        );
+
+        // Manejar tyre_stints_visual
+        final_classification.tyre_stints_visual.clear();
+        final_classification.tyre_stints_visual.extend(
+            packet.tyre_stints_visual[..packet.num_tyre_stints as usize]
+                .iter()
+                .map(|&x| x as u32),
+        );
+
+        // Manejar tyre_stints_end_laps
+        final_classification.tyre_stints_end_laps.clear();
+        final_classification.tyre_stints_end_laps.extend(
+            packet.tyre_stints_end_laps[..packet.num_tyre_stints as usize]
+                .iter()
+                .map(|&x| x as u32),
+        );
     }
 }
 
