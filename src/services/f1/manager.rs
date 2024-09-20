@@ -23,9 +23,8 @@ impl F1SessionDataManager {
         }
     }
 
-    pub fn push_event(&self, _event: &PacketEventData) {
-        // TODO: Convert from PacketEventData and push it
-    }
+    // TODO: Finish this impl and check if all the data is being saved as it should
+    pub fn push_event(&self, _event: &PacketEventData) {}
 
     // Not using process_general_packet cause a middle check
     pub fn save_motion(&mut self, packet: &PacketMotionData) {
