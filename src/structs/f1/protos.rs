@@ -536,17 +536,17 @@ impl PlayerInfo {
 
 impl PlayerTelemetry {
     #[inline]
-    pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
+    pub fn update_car_damage(&mut self, _data: &F1CarDamageData) {
         todo!()
     }
 
     #[inline]
-    pub fn update_car_status(&mut self, data: &F1CarStatusData) {
+    pub fn update_car_status(&mut self, _data: &F1CarStatusData) {
         todo!()
     }
 
     #[inline]
-    pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
+    pub fn update_car_telemetry(&mut self, _data: &F1CarTelemetryData) {
         todo!()
     }
 }

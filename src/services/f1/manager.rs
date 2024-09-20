@@ -34,7 +34,6 @@ impl F1SessionDataManager {
                 continue;
             };
 
-
             if motion_data.world_position_x == 0f32 {
                 continue;
             }
