@@ -643,7 +643,6 @@ impl F1GeneralInfo {
     #[inline]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
         let session = self.session.get_or_insert_with(Default::default);
-
         session.weather = Some(packet.weather as u32);
         session.track_temperature = Some(packet.track_temperature as i32);
         session.air_temperature = Some(packet.air_temperature as i32);
@@ -661,7 +660,11 @@ impl F1GeneralInfo {
         session.s2_lap_distance_start = Some(packet.sector2_lap_distance_start);
         session.s3_lap_distance_start = Some(packet.sector3_lap_distance_start);
 
-        // Todo: implement this
-        // session.weekend_structure = packet.weekend_structure.to_vec();
+        session.weekend_structure.clear();
+        session.weekend_structure.extend(
+            packet.weekend_structure[..packet.num_sessions_in_weekend as usize]
+                .iter()
+                .map(|&x| x as u32),
+        );
     }
 }
