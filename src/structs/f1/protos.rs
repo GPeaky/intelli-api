@@ -551,7 +551,6 @@ impl PlayerInfo {
         final_classification.penalties_time = Some(packet.penalties_time as u32);
         final_classification.num_penalties = Some(packet.num_penalties as u32);
 
-        // Manejar tyre_stints_actual
         final_classification.tyre_stints_actual.clear();
         final_classification.tyre_stints_actual.extend(
             packet.tyre_stints_actual[..packet.num_tyre_stints as usize]
@@ -559,7 +558,6 @@ impl PlayerInfo {
                 .map(|&x| x as u32),
         );
 
-        // Manejar tyre_stints_visual
         final_classification.tyre_stints_visual.clear();
         final_classification.tyre_stints_visual.extend(
             packet.tyre_stints_visual[..packet.num_tyre_stints as usize]
@@ -567,7 +565,6 @@ impl PlayerInfo {
                 .map(|&x| x as u32),
         );
 
-        // Manejar tyre_stints_end_laps
         final_classification.tyre_stints_end_laps.clear();
         final_classification.tyre_stints_end_laps.extend(
             packet.tyre_stints_end_laps[..packet.num_tyre_stints as usize]
@@ -582,9 +579,13 @@ impl PlayerTelemetry {
     pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
         let car_damage = self.car_damage.get_or_insert_with(Default::default);
 
+        car_damage.tyres_wear.clear();
         unsafe {
-            let tyres_wear_ptr = addr_of!(data.tyres_wear);
-            car_damage.tyres_wear.extend_from_slice(&*tyres_wear_ptr);
+            let brakes_temp_ptr = addr_of!(data.tyres_wear);
+
+            car_damage
+                .tyres_wear
+                .extend_from_slice(&brakes_temp_ptr.read_unaligned());
         }
 
         car_damage.tyres_damage.clear();
@@ -657,9 +658,11 @@ impl PlayerTelemetry {
         telemetry.brakes_temperature.clear();
         unsafe {
             let brakes_temp_ptr = addr_of!(data.brakes_temperature);
+            let brakes_temp = brakes_temp_ptr.read_unaligned();
+
             telemetry
                 .brakes_temperature
-                .extend((*brakes_temp_ptr).iter().map(|&x| x as u32));
+                .extend(brakes_temp.iter().map(|&x| x as u32));
         }
 
         telemetry.tyres_surface_temperature.clear();
@@ -675,9 +678,10 @@ impl PlayerTelemetry {
         telemetry.tyres_pressure.clear();
         unsafe {
             let tyres_pressure_ptr = addr_of!(data.tyres_pressure);
+
             telemetry
                 .tyres_pressure
-                .extend_from_slice(&*tyres_pressure_ptr);
+                .extend_from_slice(&tyres_pressure_ptr.read_unaligned());
         }
     }
 }

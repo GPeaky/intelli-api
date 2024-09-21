@@ -4,8 +4,9 @@ use crate::structs::{
     PacketSessionHistoryData,
 };
 use ahash::AHashMap;
-use tracing_log::log::error;
+use tracing::error;
 
+#[derive(Debug)]
 struct DriverInfo {
     name: Box<str>,
     #[allow(unused)]
@@ -13,6 +14,7 @@ struct DriverInfo {
 }
 
 // TODO: Prune data at the end of the session
+#[derive(Debug)]
 pub struct F1SessionDataManager {
     driver_info: AHashMap<usize, DriverInfo>,
     general: F1GeneralInfo,
@@ -73,39 +75,31 @@ impl F1SessionDataManager {
                 break;
             };
 
-            let driver_info = self.driver_info.entry(i).or_insert_with(|| DriverInfo {
-                name: participant.steam_name().unwrap().into(),
+            let steam_name = match participant.steam_name() {
+                Some(name) if name != "Player" => name,
+                _ => continue,
+            };
+
+            self.driver_info.entry(i).or_insert_with(|| DriverInfo {
+                name: steam_name.into(),
                 team_id: participant.team_id,
             });
 
-            let steam_name = driver_info.name.as_ref();
-
-            if self
-                .telemetry
-                .player_telemetry
-                .get_mut(steam_name)
-                .is_none()
-            {
-                self.telemetry
-                    .player_telemetry
-                    .insert(steam_name.to_string(), Default::default());
-            }
-
-            match self.general.players.get_mut(steam_name) {
-                Some(player) => {
-                    player.update_participant_info(participant);
-                }
-
-                None => {
+            self.general
+                .players
+                .entry(steam_name.to_string())
+                .and_modify(|player| player.update_participant_info(participant))
+                .or_insert_with(|| {
                     let mut new_player = PlayerInfo::default();
-
                     new_player.update_participant_info(participant);
 
-                    self.general
-                        .players
-                        .insert(steam_name.to_string(), new_player);
-                }
-            }
+                    self.telemetry
+                        .player_telemetry
+                        .entry(steam_name.to_string())
+                        .or_default();
+
+                    new_player
+                });
         }
     }
 

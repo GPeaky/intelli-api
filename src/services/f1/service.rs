@@ -380,14 +380,14 @@ impl F1Service {
     // TODO: Limit updates to 11hz or something
     #[inline(always)]
     fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
-        if now.duration_since(self.last_updates.car_damage) < TELEMETRY_INTERVAL {
+        if now.duration_since(self.last_updates.car_damage) > TELEMETRY_INTERVAL {
             self.data_manager.save_car_damage(car_damage);
         }
     }
 
     #[inline(always)]
     fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData, now: Instant) {
-        if now.duration_since(self.last_updates.car_status) < TELEMETRY_INTERVAL {
+        if now.duration_since(self.last_updates.car_status) > TELEMETRY_INTERVAL {
             self.data_manager.save_car_status(car_status);
         }
     }
@@ -398,7 +398,7 @@ impl F1Service {
         car_telemetry: &PacketCarTelemetryData,
         now: Instant,
     ) {
-        if now.duration_since(self.last_updates.car_telemetry) < TELEMETRY_INTERVAL {
+        if now.duration_since(self.last_updates.car_telemetry) > TELEMETRY_INTERVAL {
             self.data_manager.save_car_telemetry(car_telemetry);
         }
     }
