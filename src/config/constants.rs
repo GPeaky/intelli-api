@@ -23,12 +23,13 @@ pub const MAX_CONCURRENT_EMAILS: usize = 10;
 pub const BUFFER_SIZE: usize = 1460;
 pub const SOCKET_HOST: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+pub const GENERAL_INTERVAL: Duration = Duration::from_millis(700);
+pub const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 // Session
 pub const HISTORY_INTERVAL: Duration = Duration::from_secs(1);
 pub const SESSION_INTERVAL: Duration = Duration::from_secs(10);
 pub const MOTION_INTERVAL: Duration = Duration::from_millis(700);
-pub const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 // Utils
 // Ports Handler

@@ -163,14 +163,7 @@ impl F1ServiceHandler {
         let (otx, orx) = oneshot::channel::<()>();
         let (tx, rx) = channel::<Bytes>(50);
         let service_data = F1ServiceData::new(Arc::new(rx), otx);
-        let mut service = F1Service::new(
-            tx,
-            orx,
-            // service_data.cache.clone(),
-            self.services,
-            self.f1_state,
-        )
-        .await;
+        let mut service = F1Service::new(tx, orx, self.services, self.f1_state).await;
 
         // TODO: Add real race_id
         service.initialize(port, championship_id, 0).await?;

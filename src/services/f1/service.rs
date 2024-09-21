@@ -86,7 +86,7 @@ impl F1Service {
     /// # Returns
     /// A new F1Service instance.
     pub async fn new(
-        _tx: Sender<Bytes>,
+        tx: Sender<Bytes>,
         shutdown: oneshot::Receiver<()>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
@@ -101,7 +101,7 @@ impl F1Service {
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
-            data_manager: F1SessionDataManager::new(),
+            data_manager: F1SessionDataManager::new(tx),
             services,
             f1_state,
         }
