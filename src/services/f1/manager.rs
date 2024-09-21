@@ -14,7 +14,10 @@ use ntex::{
 use parking_lot::RwLock;
 use prost::Message;
 use std::sync::Arc;
-use tokio::sync::{broadcast::Sender, oneshot};
+use tokio::sync::{
+    broadcast::{Receiver, Sender},
+    oneshot,
+};
 use tracing::error;
 
 #[derive(Debug)]
@@ -50,36 +53,14 @@ impl F1SessionDataManager {
         instance
     }
 
-    fn spawn_update_task(&mut self, tx: Sender<Bytes>) {
-        let (stop_sender, mut stop_receiver) = oneshot::channel();
-        self.stop_sender = Some(stop_sender);
-
-        let driver_info = self.driver_info.clone();
-        let general = self.general.clone();
-        let telemetry = self.telemetry.clone();
-        let last_general = self.last_general.clone();
-        let last_telemetry = self.last_telemetry.clone();
-        let team_senders = self.team_senders.clone();
-
-        ntex::rt::spawn(async move {
-            let general_interval = interval(GENERAL_INTERVAL);
-            let telemetry_interval = interval(TELEMETRY_INTERVAL);
-
-            loop {
-                tokio::select! {
-                    _ = &mut stop_receiver => break,
-                    _ = general_interval.tick() => {
-                        Self::send_general_updates(&general, &last_general, &tx);
-                    }
-                    _ = telemetry_interval.tick() => {
-                        Self::send_telemetry_updates(&driver_info, &telemetry, &last_telemetry, &team_senders);
-                    }
-                }
-            }
-        });
+    #[allow(unused)]
+    pub fn get_team_receiver(&self, team_id: u8) -> Option<Receiver<Bytes>> {
+        let team_senders = self.team_senders.read();
+        team_senders.get(&team_id).map(|sender| sender.subscribe())
     }
 
     #[inline(always)]
+    #[allow(unused)]
     pub fn push_event(&self, _event: &PacketEventData) {
         // TODO: Implement event handling
     }
@@ -158,6 +139,14 @@ impl F1SessionDataManager {
                         .or_default();
                     new_player
                 });
+
+            // Ensure there's a sender for this team
+            self.team_senders
+                .write()
+                .entry(participant.team_id)
+                .or_insert_with(|| {
+                    Sender::new(100) // Adjust buffer size as needed
+                });
         }
     }
 
@@ -190,6 +179,35 @@ impl F1SessionDataManager {
                 player_info.update_classification_data(classification_data);
             },
         );
+    }
+
+    fn spawn_update_task(&mut self, tx: Sender<Bytes>) {
+        let (stop_sender, mut stop_receiver) = oneshot::channel();
+        self.stop_sender = Some(stop_sender);
+
+        let driver_info = self.driver_info.clone();
+        let general = self.general.clone();
+        let telemetry = self.telemetry.clone();
+        let last_general = self.last_general.clone();
+        let last_telemetry = self.last_telemetry.clone();
+        let team_senders = self.team_senders.clone();
+
+        ntex::rt::spawn(async move {
+            let general_interval = interval(GENERAL_INTERVAL);
+            let telemetry_interval = interval(TELEMETRY_INTERVAL);
+
+            loop {
+                tokio::select! {
+                    _ = &mut stop_receiver => break,
+                    _ = general_interval.tick() => {
+                        Self::send_general_updates(&general, &last_general, &tx);
+                    }
+                    _ = telemetry_interval.tick() => {
+                        Self::send_telemetry_updates(&driver_info, &telemetry, &last_telemetry, &team_senders);
+                    }
+                }
+            }
+        });
     }
 
     #[inline(always)]
