@@ -468,13 +468,6 @@ pub struct CarDamageData {
 // ------------ CUSTOM GAME TYPES --------------
 // ---------------------------------------------
 
-#[derive(Clone, Copy, PartialEq)]
-pub struct SectorsLaps {
-    pub s1: u16,
-    pub s2: u16,
-    pub s3: u16,
-}
-
 pub enum PacketIds {
     Motion,
     Session,

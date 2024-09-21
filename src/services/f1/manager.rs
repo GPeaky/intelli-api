@@ -6,9 +6,9 @@ use crate::structs::{
 use ahash::AHashMap;
 use tracing_log::log::error;
 
-#[allow(unused)]
 struct DriverInfo {
     name: Box<str>,
+    #[allow(unused)]
     team_id: u8,
 }
 
@@ -19,7 +19,6 @@ pub struct F1SessionDataManager {
     telemetry: F1TelemetryInfo,
 }
 
-#[allow(unused)]
 impl F1SessionDataManager {
     pub fn new() -> Self {
         Self {
@@ -30,6 +29,7 @@ impl F1SessionDataManager {
     }
 
     // TODO: Finish this impl and check if all the data is being saved as it should
+    #[allow(unused)]
     pub fn push_event(&self, _event: &PacketEventData) {}
 
     // Not using process_general_packet cause a middle check

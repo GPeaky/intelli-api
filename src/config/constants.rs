@@ -28,6 +28,7 @@ pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 pub const HISTORY_INTERVAL: Duration = Duration::from_secs(1);
 pub const SESSION_INTERVAL: Duration = Duration::from_secs(10);
 pub const MOTION_INTERVAL: Duration = Duration::from_millis(700);
+pub const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 // Utils
 // Ports Handler

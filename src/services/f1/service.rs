@@ -23,7 +23,7 @@ use tracing::{error, info, info_span};
 use crate::{
     config::constants::{
         BUFFER_SIZE, HISTORY_INTERVAL, MOTION_INTERVAL, SESSION_INTERVAL, SOCKET_HOST,
-        SOCKET_TIMEOUT,
+        SOCKET_TIMEOUT, TELEMETRY_INTERVAL,
     },
     error::{AppResult, CommonError, F1ServiceError},
     services::{ChampionshipServiceOperations, DriverServiceOperations},
@@ -31,9 +31,11 @@ use crate::{
     structs::{
         F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
         PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
-        PacketSessionData, PacketSessionHistoryData, SectorsLaps, SessionType,
+        PacketSessionData, PacketSessionHistoryData, SessionType,
     },
 };
+
+use super::manager::F1SessionDataManager;
 
 const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
 
@@ -48,7 +50,7 @@ pub struct F1Service {
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    car_lap_sector: AHashMap<u8, SectorsLaps>,
+    data_manager: F1SessionDataManager,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
@@ -64,6 +66,9 @@ pub struct F1ServiceData {
 struct LastUpdates {
     session: Instant,
     car_motion: Instant,
+    car_status: Instant,
+    car_damage: Instant,
+    car_telemetry: Instant,
     participants: Instant,
     car_lap: AHashMap<u8, Instant>,
 }
@@ -96,7 +101,7 @@ impl F1Service {
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
-            car_lap_sector: AHashMap::with_capacity(20),
+            data_manager: F1SessionDataManager::new(),
             services,
             f1_state,
         }
@@ -245,10 +250,10 @@ impl F1Service {
                 self.handle_final_classification_packet(final_classification)
                     .await?
             }
-            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage),
-            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status),
+            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage, now),
+            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status, now),
             F1PacketData::CarTelemetry(car_telemetry) => {
-                self.handle_car_telemetry_packet(car_telemetry)
+                self.handle_car_telemetry_packet(car_telemetry, now)
             }
         }
 
@@ -256,11 +261,12 @@ impl F1Service {
     }
 
     #[inline(always)]
-    fn handle_motion_packet(&mut self, _motion_data: &PacketMotionData, now: Instant) {
+    fn handle_motion_packet(&mut self, motion_data: &PacketMotionData, now: Instant) {
         if now.duration_since(self.last_updates.car_motion) < MOTION_INTERVAL {
             return;
         }
 
+        self.data_manager.save_motion(motion_data);
         self.last_updates.car_motion = now;
     }
 
@@ -283,6 +289,7 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
+        self.data_manager.save_session(session_data);
         self.last_updates.session = now;
     }
 
@@ -305,8 +312,8 @@ impl F1Service {
                 .await?;
         }
 
+        self.data_manager.save_participants(participants_data);
         self.last_updates.participants = now;
-
         Ok(())
     }
 
@@ -343,32 +350,15 @@ impl F1Service {
             .or_insert(now);
 
         if now.duration_since(*last_update) > HISTORY_INTERVAL {
-            let lap = (history_data.num_laps as usize) - 1;
-
-            let sectors = SectorsLaps {
-                s1: history_data.lap_history_data[lap].sector1_time_in_ms,
-                s2: history_data.lap_history_data[lap].sector2_time_in_ms,
-                s3: history_data.lap_history_data[lap].sector3_time_in_ms,
-            };
-
-            let last_sectors = self
-                .car_lap_sector
-                .entry(history_data.car_idx)
-                .or_insert(sectors);
-
-            if sectors == *last_sectors {
-                *last_update = now;
-                return;
-            }
-
-            *last_sectors = sectors;
+            self.data_manager.save_lap_history(history_data);
+            *last_update = now;
         }
     }
 
     #[inline(always)]
     async fn handle_final_classification_packet(
         &mut self,
-        _final_classification: &PacketFinalClassificationData,
+        final_classification: &PacketFinalClassificationData,
     ) -> AppResult<()> {
         let Some(_session_type) = self.session_type.take() else {
             error!("Not defined session type when trying to save final_classification_data");
@@ -381,22 +371,36 @@ impl F1Service {
         //     .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
         //     .await?;
 
+        self.data_manager
+            .save_final_classification(final_classification);
+
         Ok(())
     }
 
+    // TODO: Limit updates to 11hz or something
     #[inline(always)]
-    fn handle_car_damage_packet(&mut self, _car_damage: &PacketCarDamageData) {
-        // info!("Car damage: {:?}", car_damage);
+    fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
+        if now.duration_since(self.last_updates.car_damage) < TELEMETRY_INTERVAL {
+            self.data_manager.save_car_damage(car_damage);
+        }
     }
 
     #[inline(always)]
-    fn handle_car_status_packet(&mut self, _car_status: &PacketCarStatusData) {
-        // info!("Car status: {:?}", car_status);
+    fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData, now: Instant) {
+        if now.duration_since(self.last_updates.car_status) < TELEMETRY_INTERVAL {
+            self.data_manager.save_car_status(car_status);
+        }
     }
 
     #[inline(always)]
-    fn handle_car_telemetry_packet(&mut self, _car_telemetry: &PacketCarTelemetryData) {
-        // info!("Car telemetry: {:?}", car_telemetry);
+    fn handle_car_telemetry_packet(
+        &mut self,
+        car_telemetry: &PacketCarTelemetryData,
+        now: Instant,
+    ) {
+        if now.duration_since(self.last_updates.car_telemetry) < TELEMETRY_INTERVAL {
+            self.data_manager.save_car_telemetry(car_telemetry);
+        }
     }
 
     #[inline(always)]
@@ -534,6 +538,9 @@ impl LastUpdates {
             session: time,
             car_motion: time,
             participants: time,
+            car_damage: time,
+            car_status: time,
+            car_telemetry: time,
             car_lap: AHashMap::with_capacity(20),
         }
     }
