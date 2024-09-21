@@ -32,6 +32,7 @@ pub struct F1SessionDataManager {
     general: Arc<RwLock<F1GeneralInfo>>,
     telemetry: Arc<RwLock<F1TelemetryInfo>>,
     last_general: Arc<RwLock<F1GeneralInfo>>,
+    last_general_encoded: Arc<RwLock<Option<Bytes>>>,
     last_telemetry: Arc<RwLock<F1TelemetryInfo>>,
     team_senders: Arc<RwLock<AHashMap<u8, Sender<Bytes>>>>,
     stop_sender: Option<oneshot::Sender<()>>,
@@ -44,6 +45,7 @@ impl F1SessionDataManager {
             general: Arc::new(RwLock::new(F1GeneralInfo::default())),
             telemetry: Arc::new(RwLock::new(F1TelemetryInfo::default())),
             last_general: Arc::new(RwLock::new(F1GeneralInfo::default())),
+            last_general_encoded: Arc::new(RwLock::new(None)),
             last_telemetry: Arc::new(RwLock::new(F1TelemetryInfo::default())),
             team_senders: Arc::new(RwLock::new(AHashMap::new())),
             stop_sender: None,
@@ -53,14 +55,19 @@ impl F1SessionDataManager {
         instance
     }
 
+    #[inline(always)]
+    pub fn cache(&self) -> Option<Bytes> {
+        self.last_general_encoded.read().clone()
+    }
+
     #[allow(unused)]
+    #[inline(always)]
     pub fn get_team_receiver(&self, team_id: u8) -> Option<Receiver<Bytes>> {
         let team_senders = self.team_senders.read();
         team_senders.get(&team_id).map(|sender| sender.subscribe())
     }
 
     #[inline(always)]
-    #[allow(unused)]
     pub fn push_event(&self, event: &PacketEventData) {
         let participants = self.driver_info.read();
 
@@ -150,13 +157,10 @@ impl F1SessionDataManager {
                     new_player
                 });
 
-            // Ensure there's a sender for this team
             self.team_senders
                 .write()
                 .entry(participant.team_id)
-                .or_insert_with(|| {
-                    Sender::new(100) // Adjust buffer size as needed
-                });
+                .or_insert_with(|| Sender::new(50));
         }
     }
 
@@ -199,6 +203,7 @@ impl F1SessionDataManager {
         let general = self.general.clone();
         let telemetry = self.telemetry.clone();
         let last_general = self.last_general.clone();
+        let last_general_encoded = self.last_general_encoded.clone();
         let last_telemetry = self.last_telemetry.clone();
         let team_senders = self.team_senders.clone();
 
@@ -210,7 +215,7 @@ impl F1SessionDataManager {
                 tokio::select! {
                     _ = &mut stop_receiver => break,
                     _ = general_interval.tick() => {
-                        Self::send_general_updates(&general, &last_general, &tx);
+                        Self::send_general_updates(&general, &last_general, &last_general_encoded, &tx);
                     }
                     _ = telemetry_interval.tick() => {
                         Self::send_telemetry_updates(&driver_info, &telemetry, &last_telemetry, &team_senders);
@@ -224,6 +229,7 @@ impl F1SessionDataManager {
     fn send_general_updates(
         general: &Arc<RwLock<F1GeneralInfo>>,
         last_general: &Arc<RwLock<F1GeneralInfo>>,
+        last_general_encoded: &Arc<RwLock<Option<Bytes>>>,
         tx: &Sender<Bytes>,
     ) {
         if tx.receiver_count() == 0 {
@@ -232,12 +238,15 @@ impl F1SessionDataManager {
 
         let current_general = general.read();
         let mut last_general = last_general.write();
+        let mut last_general_encoded = last_general_encoded.write();
 
         if let Some(diff) = Self::diff_general(&current_general, &last_general) {
-            if tx.send(diff).is_err() {
+            if tx.send(diff.clone()).is_err() {
                 error!("Failed to send general update");
             }
+
             *last_general = current_general.clone();
+            *last_general_encoded = Some(diff);
         }
     }
 
@@ -297,7 +306,8 @@ impl F1SessionDataManager {
     #[inline(always)]
     fn diff_general(_current: &F1GeneralInfo, _last: &F1GeneralInfo) -> Option<Bytes> {
         // TODO: Implement efficient diff logic
-        unimplemented!()
+        // unimplemented!()
+        None
     }
 
     #[inline(always)]
@@ -306,7 +316,8 @@ impl F1SessionDataManager {
         _last: &PlayerTelemetry,
     ) -> Option<PlayerTelemetry> {
         // TODO: Implement efficient diff logic
-        unimplemented!()
+        // unimplemented!()
+        None
     }
 
     #[inline(always)]

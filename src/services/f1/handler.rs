@@ -16,6 +16,7 @@ use crate::{
 
 pub use super::{
     firewall::FirewallService,
+    manager::F1SessionDataManager,
     service::{F1Service, F1ServiceData},
 };
 
@@ -45,11 +46,10 @@ impl F1ServiceHandler {
     /// # Returns
     /// Some(Bytes) if cache exists, None otherwise.
     #[allow(unused)]
-    pub async fn cache(&self, championship_id: &i32) -> Option<Bytes> {
-        // if let Some(service) = self.services.get(championship_id) {
-        //     let cache = service.cache.read_arc();
-        //     return cache.get().await;
-        // }
+    pub fn cache(&self, championship_id: &i32) -> Option<Bytes> {
+        if let Some(service) = self.services.get(championship_id) {
+            return service.cache();
+        }
 
         None
     }
@@ -74,17 +74,16 @@ impl F1ServiceHandler {
     ///
     /// # Returns
     /// Some((Option<Bytes>, Receiver<Bytes>)) if service exists, None otherwise.
-    pub async fn cache_and_subscribe(
+    pub fn cache_and_subscribe(
         &self,
-        _championship_id: &i32,
+        championship_id: &i32,
     ) -> Option<(Option<Bytes>, Receiver<Bytes>)> {
-        // if let Some(service) = self.services.get(championship_id) {
-        //     let cache = service.cache.read_arc();
-        //     let data = cache.get().await;
-        //     let receiver = service.subscribe();
+        if let Some(service) = self.services.get(championship_id) {
+            let cache = service.cache();
+            let receiver = service.subscribe();
 
-        //     return Some((data, receiver));
-        // }
+            return Some((cache, receiver));
+        }
 
         None
     }
@@ -162,8 +161,9 @@ impl F1ServiceHandler {
 
         let (otx, orx) = oneshot::channel::<()>();
         let (tx, rx) = channel::<Bytes>(50);
-        let service_data = F1ServiceData::new(Arc::new(rx), otx);
-        let mut service = F1Service::new(tx, orx, self.services, self.f1_state).await;
+        let session_manager = Arc::new(F1SessionDataManager::new(tx));
+        let service_data = F1ServiceData::new(session_manager.clone(), Arc::new(rx), otx);
+        let mut service = F1Service::new(session_manager, orx, self.services, self.f1_state).await;
 
         // TODO: Add real race_id
         service.initialize(port, championship_id, 0).await?;

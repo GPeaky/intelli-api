@@ -461,7 +461,7 @@ pub struct CarDamageData {
 }
 
 impl HistoryData {
-    #[inline]
+    #[inline(always)]
     fn update(&mut self, packet: &PacketSessionHistoryData) {
         self.num_laps = Some(packet.num_laps as u32);
         self.num_tyre_stints = Some(packet.num_tyre_stints as u32);
@@ -499,7 +499,7 @@ impl HistoryData {
 }
 
 impl TyreStintsHistoryData {
-    #[inline]
+    #[inline(always)]
     fn from_f1(stints_data: &F1TyreStintHistoryData) -> Self {
         Self {
             actual_compound: Some(stints_data.tyre_actual_compound as u32),
@@ -510,7 +510,7 @@ impl TyreStintsHistoryData {
 }
 
 impl LapHistoryData {
-    #[inline]
+    #[inline(always)]
     fn from_f1(lap_data: &F1LapHistoryData) -> Self {
         Self {
             lap_time: Some(lap_data.lap_time_in_ms),
@@ -521,14 +521,14 @@ impl LapHistoryData {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn update(&mut self, lap_data: &F1LapHistoryData) {
         *self = Self::from_f1(lap_data);
     }
 }
 
 impl PlayerInfo {
-    #[inline]
+    #[inline(always)]
     pub fn update_car_motion(&mut self, incoming_motion: &F1CarMotionData) {
         let car_motion = self.car_motion.get_or_insert_with(Default::default);
         car_motion.x = Some(incoming_motion.world_position_x);
@@ -536,14 +536,14 @@ impl PlayerInfo {
         car_motion.yaw = Some(incoming_motion.yaw);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn update_session_history(&mut self, packet: &PacketSessionHistoryData) {
         self.lap_history
             .get_or_insert_with(Default::default)
             .update(packet);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn update_participant_info(&mut self, incoming_participant: &F1ParticipantData) {
         let participant = self.participant.get_or_insert_with(Default::default);
         participant.team_id = Some(incoming_participant.team_id as u32);
@@ -552,7 +552,7 @@ impl PlayerInfo {
         participant.platform = Some(incoming_participant.platform as u32);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn update_classification_data(&mut self, packet: &F1FinalClassificationData) {
         let final_classification = self
             .final_classification
@@ -593,7 +593,7 @@ impl PlayerInfo {
 }
 
 impl PlayerTelemetry {
-    #[inline]
+    #[inline(always)]
     pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
         let car_damage = self.car_damage.get_or_insert_with(Default::default);
 
@@ -636,7 +636,7 @@ impl PlayerTelemetry {
         car_damage.engine_seized = Some(data.engine_seized != 0);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn update_car_status(&mut self, data: &F1CarStatusData) {
         let car_status = self.car_status.get_or_insert_with(Default::default);
 
@@ -660,7 +660,7 @@ impl PlayerTelemetry {
         car_status.ers_deployed_this_lap = Some(data.ers_deployed_this_lap);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
         let telemetry = self.car_telemetry.get_or_insert_with(Default::default);
 

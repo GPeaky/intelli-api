@@ -12,10 +12,7 @@ use dashmap::DashMap;
 use ntex::util::Bytes;
 use tokio::{
     net::UdpSocket,
-    sync::{
-        broadcast::{Receiver, Sender},
-        oneshot,
-    },
+    sync::{broadcast::Receiver, oneshot},
     time::{timeout, Instant},
 };
 use tracing::{error, info, info_span};
@@ -50,13 +47,14 @@ pub struct F1Service {
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    data_manager: F1SessionDataManager,
+    data_manager: Arc<F1SessionDataManager>,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
+    session_manager: Arc<F1SessionDataManager>,
     channel: Arc<Receiver<Bytes>>,
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
@@ -86,7 +84,7 @@ impl F1Service {
     /// # Returns
     /// A new F1Service instance.
     pub async fn new(
-        tx: Sender<Bytes>,
+        data_manager: Arc<F1SessionDataManager>,
         shutdown: oneshot::Receiver<()>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
@@ -101,7 +99,7 @@ impl F1Service {
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
-            data_manager: F1SessionDataManager::new(tx),
+            data_manager,
             services,
             f1_state,
         }
@@ -318,23 +316,16 @@ impl F1Service {
     }
 
     #[inline(always)]
-    fn handle_event_packet(&mut self, _event_data: &PacketEventData) {
-        let Some(_session_type) = &self.session_type else {
+    fn handle_event_packet(&mut self, event_data: &PacketEventData) {
+        let Some(session_type) = &self.session_type else {
             return;
         };
 
-        // if ![SessionType::R, SessionType::R2, SessionType::R3].contains(session_type) {
-        //     return;
-        // }
+        if ![SessionType::R, SessionType::R2, SessionType::R3].contains(session_type) {
+            return;
+        }
 
-        // let Some(_packet) = event_data.to_packet_header() else {
-        //     return;
-        // };
-
-        // self.packet_batching.push_with_optional_parameter(
-        //     packet,
-        //     Some(PacketExtraData::EventCode(event_data.event_string_code)),
-        // )
+        self.data_manager.push_event(event_data);
     }
 
     #[inline(always)]
@@ -487,15 +478,21 @@ impl F1ServiceData {
     ///
     /// # Returns
     /// A new F1ServiceData instance.
-    pub fn new(channel: Arc<Receiver<Bytes>>, shutdown: oneshot::Sender<()>) -> Self {
-        // let cache = Arc::new(RwLock::new(PacketCaching::new()));
-
+    pub fn new(
+        session_manager: Arc<F1SessionDataManager>,
+        channel: Arc<Receiver<Bytes>>,
+        shutdown: oneshot::Sender<()>,
+    ) -> Self {
         Self {
-            // cache,
+            session_manager,
             channel,
             shutdown: Some(shutdown),
             counter: Arc::new(AtomicU32::new(0)),
         }
+    }
+
+    pub fn cache(&self) -> Option<Bytes> {
+        self.session_manager.cache()
     }
 
     /// Subscribes to the service's broadcast channel.

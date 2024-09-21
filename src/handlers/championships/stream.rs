@@ -44,7 +44,7 @@ pub async fn stream_live_session(
         Err(CommonError::ValidationFailed)?
     }
 
-    let Some((cached_data, rx)) = state.f1_svc.cache_and_subscribe(&path.0).await else {
+    let Some((cached_data, rx)) = state.f1_svc.cache_and_subscribe(&path.0) else {
         Err(F1ServiceError::NotActive)?
     };
 

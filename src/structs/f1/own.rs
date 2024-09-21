@@ -1,6 +1,6 @@
 use crate::{
     error::{AppResult, F1ServiceError},
-    utils::cast,
+    utils::{cast, header_cast},
 };
 
 use super::game::*;
@@ -18,31 +18,28 @@ pub enum F1PacketData<'a> {
 }
 
 impl<'a> F1PacketData<'a> {
-    pub fn parse_and_identify(raw_data: &[u8]) -> AppResult<(&PacketHeader, F1PacketData)> {
-        let header = cast::<PacketHeader>(raw_data)?;
+    pub fn parse_and_identify(data: &[u8]) -> AppResult<(&PacketHeader, F1PacketData)> {
+        let header = header_cast(data)?;
         let packet_id = PacketIds::try_from(header.packet_id).unwrap();
 
         let packet = match packet_id {
-            PacketIds::Event => cast::<PacketEventData>(raw_data).map(F1PacketData::Event),
-            PacketIds::Motion => cast::<PacketMotionData>(raw_data).map(F1PacketData::Motion),
-            PacketIds::Session => cast::<PacketSessionData>(raw_data).map(F1PacketData::Session),
-            PacketIds::CarDamage => {
-                cast::<PacketCarDamageData>(raw_data).map(F1PacketData::CarDamage)
-            }
-            PacketIds::CarStatus => {
-                cast::<PacketCarStatusData>(raw_data).map(F1PacketData::CarStatus)
-            }
+            PacketIds::Event => cast::<PacketEventData>(data).map(F1PacketData::Event),
+            PacketIds::Motion => cast::<PacketMotionData>(data).map(F1PacketData::Motion),
+            PacketIds::Session => cast::<PacketSessionData>(data).map(F1PacketData::Session),
+            PacketIds::CarDamage => cast::<PacketCarDamageData>(data).map(F1PacketData::CarDamage),
+            PacketIds::CarStatus => cast::<PacketCarStatusData>(data).map(F1PacketData::CarStatus),
             PacketIds::CarTelemetry => {
-                cast::<PacketCarTelemetryData>(raw_data).map(F1PacketData::CarTelemetry)
+                cast::<PacketCarTelemetryData>(data).map(F1PacketData::CarTelemetry)
             }
             PacketIds::Participants => {
-                cast::<PacketParticipantsData>(raw_data).map(F1PacketData::Participants)
+                cast::<PacketParticipantsData>(data).map(F1PacketData::Participants)
             }
             PacketIds::SessionHistory => {
-                cast::<PacketSessionHistoryData>(raw_data).map(F1PacketData::SessionHistory)
+                cast::<PacketSessionHistoryData>(data).map(F1PacketData::SessionHistory)
             }
-            PacketIds::FinalClassification => cast::<PacketFinalClassificationData>(raw_data)
-                .map(F1PacketData::FinalClassification),
+            PacketIds::FinalClassification => {
+                cast::<PacketFinalClassificationData>(data).map(F1PacketData::FinalClassification)
+            }
 
             _ => Err(F1ServiceError::InvalidPacketType)?,
         }?;
