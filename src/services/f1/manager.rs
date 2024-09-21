@@ -6,11 +6,15 @@ use crate::structs::{
 use ahash::AHashMap;
 use tracing_log::log::error;
 
-
+#[allow(unused)]
+struct DriverInfo {
+    name: Box<str>,
+    team_id: u8,
+}
 
 // TODO: Prune data at the end of the session
 pub struct F1SessionDataManager {
-    id_to_name: AHashMap<usize, Box<str>>,
+    driver_info: AHashMap<usize, DriverInfo>,
     general: F1GeneralInfo,
     telemetry: F1TelemetryInfo,
 }
@@ -19,7 +23,7 @@ pub struct F1SessionDataManager {
 impl F1SessionDataManager {
     pub fn new() -> Self {
         Self {
-            id_to_name: AHashMap::new(),
+            driver_info: AHashMap::new(),
             general: F1GeneralInfo::default(),
             telemetry: F1TelemetryInfo::default(),
         }
@@ -37,8 +41,8 @@ impl F1SessionDataManager {
                 continue;
             }
 
-            if let Some(steam_name) = self.id_to_name.get(&i) {
-                if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
+            if let Some(driver_info) = self.driver_info.get(&i) {
+                if let Some(player) = self.general.players.get_mut(driver_info.name.as_ref()) {
                     player.update_car_motion(motion_data);
                 }
             }
@@ -50,8 +54,8 @@ impl F1SessionDataManager {
     }
 
     pub fn save_lap_history(&mut self, packet: &PacketSessionHistoryData) {
-        if let Some(steam_name) = self.id_to_name.get(&(packet.car_idx as usize)) {
-            if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
+        if let Some(driver_info) = self.driver_info.get(&(packet.car_idx as usize)) {
+            if let Some(player) = self.general.players.get_mut(driver_info.name.as_ref()) {
                 player.update_session_history(packet);
             }
         }
@@ -69,12 +73,12 @@ impl F1SessionDataManager {
                 break;
             };
 
-            let steam_name = self
-                .id_to_name
-                .entry(i)
-                .or_insert_with(|| participant.steam_name().unwrap().into());
+            let driver_info = self.driver_info.entry(i).or_insert_with(|| DriverInfo {
+                name: participant.steam_name().unwrap().into(),
+                team_id: participant.team_id,
+            });
 
-            let steam_name = steam_name.as_ref();
+            let steam_name = driver_info.name.as_ref();
 
             if self
                 .telemetry
@@ -138,8 +142,8 @@ impl F1SessionDataManager {
         F: FnMut(&mut PlayerInfo, &T),
     {
         for (i, data) in packet_data.iter().enumerate() {
-            if let Some(steam_name) = self.id_to_name.get(&i) {
-                if let Some(player) = self.general.players.get_mut(steam_name.as_ref()) {
+            if let Some(driver_info) = self.driver_info.get(&i) {
+                if let Some(player) = self.general.players.get_mut(driver_info.name.as_ref()) {
                     process_fn(player, data);
                 }
             }
@@ -152,9 +156,11 @@ impl F1SessionDataManager {
         F: FnMut(&mut PlayerTelemetry, &T),
     {
         for (i, data) in packet_data.iter().enumerate() {
-            if let Some(steam_name) = self.id_to_name.get(&i) {
-                if let Some(player_telemetry) =
-                    self.telemetry.player_telemetry.get_mut(steam_name.as_ref())
+            if let Some(driver_info) = self.driver_info.get(&i) {
+                if let Some(player_telemetry) = self
+                    .telemetry
+                    .player_telemetry
+                    .get_mut(driver_info.name.as_ref())
                 {
                     process_fn(player_telemetry, data);
                 }
