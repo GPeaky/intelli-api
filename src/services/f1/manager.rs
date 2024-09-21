@@ -6,6 +6,8 @@ use crate::structs::{
 use ahash::AHashMap;
 use tracing_log::log::error;
 
+
+
 // TODO: Prune data at the end of the session
 pub struct F1SessionDataManager {
     id_to_name: AHashMap<usize, Box<str>>,
@@ -72,16 +74,34 @@ impl F1SessionDataManager {
                 .entry(i)
                 .or_insert_with(|| participant.steam_name().unwrap().into());
 
-            self.telemetry
-                .player_telemetry
-                .entry(steam_name.as_ref().to_owned())
-                .or_default();
+            let steam_name = steam_name.as_ref();
 
-            self.general
-                .players
-                .entry(steam_name.as_ref().to_owned())
-                .or_default()
-                .update_participant_info(participant);
+            if self
+                .telemetry
+                .player_telemetry
+                .get_mut(steam_name)
+                .is_none()
+            {
+                self.telemetry
+                    .player_telemetry
+                    .insert(steam_name.to_string(), Default::default());
+            }
+
+            match self.general.players.get_mut(steam_name) {
+                Some(player) => {
+                    player.update_participant_info(participant);
+                }
+
+                None => {
+                    let mut new_player = PlayerInfo::default();
+
+                    new_player.update_participant_info(participant);
+
+                    self.general
+                        .players
+                        .insert(steam_name.to_string(), new_player);
+                }
+            }
         }
     }
 
