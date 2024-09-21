@@ -1,13 +1,31 @@
+use ahash::AHashMap;
 use prost::{Message, Oneof};
 use std::{collections::HashMap, ptr::addr_of};
+use tracing::warn;
 
-use super::{
-    CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
-    CarStatusData as F1CarStatusData, CarTelemetryData as F1CarTelemetryData,
-    FinalClassificationData as F1FinalClassificationData, LapHistoryData as F1LapHistoryData,
-    PacketSessionData, PacketSessionHistoryData, ParticipantData as F1ParticipantData,
-    TyreStintHistoryData as F1TyreStintHistoryData,
+use crate::{
+    services::DriverInfo,
+    structs::{
+        CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
+        CarStatusData as F1CarStatusData, CarTelemetryData as F1CarTelemetryData, EventCode,
+        EventDataDetails as F1EventDataDetails,
+        FinalClassificationData as F1FinalClassificationData, LapHistoryData as F1LapHistoryData,
+        PacketEventData as F1PacketEventData, PacketSessionData, PacketSessionHistoryData,
+        ParticipantData as F1ParticipantData, TyreStintHistoryData as F1TyreStintHistoryData,
+    },
 };
+
+const NOT_SEND_EVENTS: [EventCode; 9] = [
+    EventCode::ButtonStatus,
+    EventCode::TeamMateInPits,
+    EventCode::Flashback,
+    EventCode::SessionEnded,
+    EventCode::DRSEnabled,
+    EventCode::DRSDisabled,
+    EventCode::ChequeredFlag,
+    EventCode::RedFlag,
+    EventCode::LightsOut,
+];
 
 // TODO: Implement manual PartialEq
 
@@ -687,7 +705,6 @@ impl PlayerTelemetry {
 }
 
 impl F1GeneralInfo {
-    #[inline]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
         let session = self.session.get_or_insert_with(Default::default);
         session.weather = Some(packet.weather as u32);
@@ -713,5 +730,134 @@ impl F1GeneralInfo {
                 .iter()
                 .map(|&x| x as u32),
         );
+    }
+}
+impl EventData {
+    pub fn from_f1(
+        f1_event: &F1PacketEventData,
+        participants: &AHashMap<usize, DriverInfo>,
+    ) -> Option<Self> {
+        let Ok(event_code) = EventCode::try_from(&f1_event.event_string_code) else {
+            warn!("Unknown event code: {:?}", f1_event.event_string_code);
+            return None;
+        };
+
+        if NOT_SEND_EVENTS.contains(&event_code) {
+            return None;
+        }
+
+        Some(EventData {
+            string_code: f1_event.event_string_code.to_vec(),
+            event_details: Some(Self::convert_event_data_details(
+                &event_code,
+                &f1_event.event_details,
+                participants,
+            )),
+        })
+    }
+
+    fn get_steam_name(participants: &AHashMap<usize, DriverInfo>, vehicle_idx: u8) -> String {
+        participants
+            .get(&(vehicle_idx as usize))
+            .map(|participant| participant.name.to_string())
+            .unwrap_or_else(|| format!("Unknown Driver {}", vehicle_idx))
+    }
+
+    fn convert_event_data_details(
+        event_code: &EventCode,
+        event_data_details: &F1EventDataDetails,
+        participants: &AHashMap<usize, DriverInfo>,
+    ) -> EventDataDetails {
+        let details = match event_code {
+            EventCode::FastestLap => {
+                let fastest_lap = unsafe { &event_data_details.fastest_lap };
+                EventDataDetailsOneof::FastestLap(FastestLap {
+                    steam_name: Self::get_steam_name(participants, fastest_lap.vehicle_idx),
+                    lap_time: fastest_lap.lap_time,
+                })
+            }
+            EventCode::Retirement => {
+                let retirement = unsafe { &event_data_details.retirement };
+                EventDataDetailsOneof::Retirement(Retirement {
+                    steam_name: Self::get_steam_name(participants, retirement.vehicle_idx),
+                })
+            }
+            EventCode::RaceWinner => {
+                let race_winner = unsafe { &event_data_details.race_winner };
+                EventDataDetailsOneof::RaceWinner(RaceWinner {
+                    steam_name: Self::get_steam_name(participants, race_winner.vehicle_idx),
+                })
+            }
+            EventCode::PenaltyIssued => {
+                let penalty = unsafe { &event_data_details.penalty };
+                EventDataDetailsOneof::Penalty(Penalty {
+                    penalty_type: penalty.penalty_type as u32,
+                    infringement_type: penalty.infringement_type as u32,
+                    steam_name: Self::get_steam_name(participants, penalty.vehicle_idx),
+                    other_steam_name: Self::get_steam_name(participants, penalty.other_vehicle_idx),
+                    time: penalty.time as u32,
+                    lap_num: penalty.lap_num as u32,
+                    places_gained: penalty.places_gained as u32,
+                })
+            }
+            EventCode::SpeedTrapTriggered => {
+                let speed_trap = unsafe { &event_data_details.speed_trap };
+                EventDataDetailsOneof::SpeedTrap(SpeedTrap {
+                    steam_name: Self::get_steam_name(participants, speed_trap.vehicle_idx),
+                    speed: speed_trap.speed,
+                    is_overall_fastest_in_session: speed_trap.is_overall_fastest_in_session as u32,
+                    is_driver_fastest_in_session: speed_trap.is_driver_fastest_in_session as u32,
+                    fastest_driver_in_session: Self::get_steam_name(
+                        participants,
+                        speed_trap.fastest_vehicle_idx_in_session,
+                    ),
+                    fastest_speed_in_session: speed_trap.fastest_speed_in_session,
+                })
+            }
+            EventCode::StartLights => {
+                let start_lights = unsafe { &event_data_details.start_lights };
+                EventDataDetailsOneof::StartLights(StartLights {
+                    num_lights: start_lights.num_lights as u32,
+                })
+            }
+            EventCode::DriveThroughServed => {
+                let drive_through = unsafe { &event_data_details.drive_through_penalty_served };
+                EventDataDetailsOneof::DriveThroughPenaltyServed(DriveThroughPenaltyServed {
+                    steam_name: Self::get_steam_name(participants, drive_through.vehicle_idx),
+                })
+            }
+            EventCode::StopGoServed => {
+                let stop_go = unsafe { &event_data_details.stop_go_penalty_served };
+                EventDataDetailsOneof::StopGoPenaltyServed(StopGoPenaltyServed {
+                    steam_name: Self::get_steam_name(participants, stop_go.vehicle_idx),
+                })
+            }
+            EventCode::Overtake => {
+                let overtake = unsafe { &event_data_details.overtake };
+                EventDataDetailsOneof::Overtake(Overtake {
+                    overtaking_vehicle_idx: overtake.overtaking_vehicle_idx as u32,
+                    being_overtaken_vehicle_idx: overtake.being_overtaken_vehicle_idx as u32,
+                })
+            }
+            EventCode::SafetyCar => {
+                let safety_car = unsafe { &event_data_details.safety_car };
+                EventDataDetailsOneof::SafetyCar(SafetyCar {
+                    safety_car_type: safety_car.safety_car_type as u32,
+                    event_type: safety_car.event_type as u32,
+                })
+            }
+            EventCode::Collision => {
+                let collision = unsafe { &event_data_details.collision };
+                EventDataDetailsOneof::Collision(Collision {
+                    vehicle1_idx: collision.vehicle1_idx as u32,
+                    vehicle2_idx: collision.vehicle2_idx as u32,
+                })
+            }
+            _ => return EventDataDetails { details: None },
+        };
+
+        EventDataDetails {
+            details: Some(details),
+        }
     }
 }

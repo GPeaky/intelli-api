@@ -13,7 +13,7 @@ use ntex::{
 };
 use parking_lot::RwLock;
 use prost::Message;
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 use tokio::sync::{
     broadcast::{Receiver, Sender},
     oneshot,
@@ -21,9 +21,9 @@ use tokio::sync::{
 use tracing::error;
 
 #[derive(Debug)]
-struct DriverInfo {
-    name: Box<str>,
-    team_id: u8,
+pub struct DriverInfo {
+    pub(crate) name: Box<str>,
+    pub(crate) team_id: u8,
 }
 
 #[derive(Debug)]
@@ -61,8 +61,18 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     #[allow(unused)]
-    pub fn push_event(&self, _event: &PacketEventData) {
-        // TODO: Implement event handling
+    pub fn push_event(&self, event: &PacketEventData) {
+        let participants = self.driver_info.read();
+
+        if let Some(event_data) = EventData::from_f1(event, participants.deref()) {
+            let mut general = self.general.write();
+
+            general
+                .events
+                .get_or_insert_with(PacketsEventsData::default)
+                .events
+                .push(event_data);
+        }
     }
 
     #[inline(always)]
