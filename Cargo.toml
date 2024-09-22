@@ -51,14 +51,9 @@ lettre = { version = "0.11", default-features = false, features = [
     "builder",
     "pool",
 ] }
-brotli = { version = "6", features = [
-    "disable-timer",
-    "simd",
-    "vector_scratch_space",
-] }
 
 [profile.release]
-debug = false           # Added Debug for trying to get hot spots in the code
+debug = false
 lto = "fat"
 opt-level = 3
 codegen-units = 1

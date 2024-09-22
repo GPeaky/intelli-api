@@ -1,4 +1,9 @@
-use std::{num::NonZeroU32, ops::Range, time::Duration};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    num::NonZeroU32,
+    ops::Range,
+    time::Duration,
+};
 
 use ring::pbkdf2;
 
@@ -16,11 +21,10 @@ pub const MAX_CONCURRENT_EMAILS: usize = 10;
 
 // F1 Service
 pub const BUFFER_SIZE: usize = 1460;
-pub const SOCKET_HOST: &str = "0.0.0.0";
+pub const SOCKET_HOST: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);
-pub const BATCHING_INTERVAL: Duration = Duration::from_millis(700);
-pub const F1_CACHING_DUR: Duration = Duration::from_secs(1);
-pub const BATCHING_CAPACITY: usize = 16;
+pub const GENERAL_INTERVAL: Duration = Duration::from_millis(700);
+pub const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 // Session
 pub const HISTORY_INTERVAL: Duration = Duration::from_secs(1);

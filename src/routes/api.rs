@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use dashmap::DashMap;
-use ntex::web::{delete, get, post, put, resource, scope, ServiceConfig};
+use ntex::web::{self, delete, get, post, put, resource, scope, ServiceConfig};
 
 use crate::{
     handlers::{auth, championships, system_health_check, user},
@@ -70,8 +70,15 @@ pub(crate) fn api_routes(cfg: &mut ServiceConfig, visitors: &'static DashMap<IpA
 
     cfg.service(scope("/system").route("/health-check", get().to(system_health_check)));
 
-    cfg.service(scope("/stream").route(
-        "/championships/{id}",
-        get().to(championships::stream::stream_live_session),
-    ));
+    cfg.service(
+        scope("/stream").service(
+            scope("/championships/{championship_id}")
+                .route("", get().to(championships::stream::stream_live_session))
+                .service(
+                    web::resource("/telemetry")
+                        .wrap(Authentication)
+                        .route(get().to(championships::stream::stream_telemetry_session)),
+                ),
+        ),
+    );
 }

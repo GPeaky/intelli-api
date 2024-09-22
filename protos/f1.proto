@@ -1,0 +1,232 @@
+syntax = "proto3";
+
+package f1telemetry;
+
+// General Info
+message F1GeneralInfo {
+  map<string, PlayerInfo> players = 1;
+  optional SessionData session = 2;
+  optional PacketsEventsData events = 3;
+}
+
+message PlayerInfo {
+  optional ParticipantData participant = 1;
+  optional CarMotionData car_motion = 2;
+  optional HistoryData lap_history = 3;
+  optional FinalClassificationData final_classification = 4;
+}
+
+message ParticipantData {
+  optional uint32 team_id = 1;
+  optional uint32 race_number = 2;
+  optional uint32 nationality = 3;
+  optional uint32 platform = 4;
+}
+
+message CarMotionData {
+  optional float x = 1;
+  optional float y = 2;
+  optional float yaw = 3;
+}
+
+message HistoryData {
+  optional uint32 num_laps = 1;
+  optional uint32 num_tyre_stints = 2;
+  optional uint32 best_lap_time_lap_num = 3;
+  optional uint32 best_s1_lap_num = 4;
+  optional uint32 best_s2_lap_num = 5;
+  optional uint32 best_s3_lap_num = 6;
+  repeated LapHistoryData lap_history_data = 7;
+  repeated TyreStintsHistoryData tyre_stints_history_data = 8;
+}
+
+message LapHistoryData {
+  optional uint32 lap_time = 1;
+  optional uint32 s1_time = 2;
+  optional uint32 s2_time = 3;
+  optional uint32 s3_time = 4;
+  optional uint32 lap_valid_bit_flag = 5;
+}
+
+message TyreStintsHistoryData {
+  optional uint32 end_lap = 1;
+  optional uint32 actual_compound = 2;
+  optional uint32 visual_compound = 3;
+}
+
+message FinalClassificationData {
+  optional uint32 position = 1;
+  optional uint32 laps = 2;
+  optional uint32 grid_position = 3;
+  optional uint32 points = 4;
+  optional uint32 pit_stops = 5;
+  optional uint32 result_status = 6;
+  optional uint32 best_lap_time = 7;
+  optional double race_time = 8;
+  optional uint32 penalties_time = 9;
+  optional uint32 num_penalties = 10;
+  repeated uint32 tyre_stints_actual = 11;
+  repeated uint32 tyre_stints_visual = 12;
+  repeated uint32 tyre_stints_end_laps = 13;
+}
+
+message SessionData {
+  optional uint32 weather = 1;
+  optional int32 track_temperature = 2;
+  optional int32 air_temperature = 3;
+  optional uint32 total_laps = 4;
+  optional uint32 track_length = 5;
+  optional uint32 session_type = 6;
+  optional int32 track_id = 7;
+  optional uint32 session_time_left = 8;
+  optional uint32 session_duration = 9;
+  optional uint32 safety_car_status = 10;
+  optional uint32 session_length = 11;
+  optional uint32 num_safety_car = 12;
+  optional uint32 num_virtual_safety_car = 13;
+  optional uint32 num_red_flags = 14;
+  repeated uint32 weekend_structure = 15;
+  optional float s2_lap_distance_start = 16;
+  optional float s3_lap_distance_start = 17;
+}
+
+message PacketsEventsData { repeated EventData events = 1; }
+
+message EventData {
+  bytes string_code = 1;
+  optional EventDataDetails event_details = 2;
+}
+
+message EventDataDetails {
+  oneof details {
+    FastestLap fastest_lap = 1;
+    Retirement retirement = 2;
+    RaceWinner race_winner = 3;
+    Penalty penalty = 4;
+    SpeedTrap speed_trap = 5;
+    StartLights start_lights = 6;
+    DriveThroughPenaltyServed drive_through_penalty_served = 7;
+    StopGoPenaltyServed stop_go_penalty_served = 8;
+    Overtake overtake = 9;
+    SafetyCar safety_car = 10;
+    Collision collision = 11;
+  }
+}
+
+message FastestLap {
+  string steam_name = 1;
+  float lap_time = 2;
+}
+
+message Retirement { string steam_name = 1; }
+
+message RaceWinner { string steam_name = 1; }
+
+message Penalty {
+  uint32 penalty_type = 1;
+  uint32 infringement_type = 2;
+  string steam_name = 3;
+  string other_steam_name = 4;
+  uint32 time = 5;
+  uint32 lap_num = 6;
+  uint32 places_gained = 7;
+}
+
+message SpeedTrap {
+  string steam_name = 1;
+  float speed = 2;
+  uint32 is_overall_fastest_in_session = 3;
+  uint32 is_driver_fastest_in_session = 4;
+  string fastest_driver_in_session = 5;
+  float fastest_speed_in_session = 6;
+}
+
+message StartLights { uint32 num_lights = 1; }
+
+message DriveThroughPenaltyServed { string steam_name = 1; }
+
+message StopGoPenaltyServed { string steam_name = 1; }
+
+message Overtake {
+  uint32 overtaking_vehicle_idx = 1;
+  uint32 being_overtaken_vehicle_idx = 2;
+}
+
+message SafetyCar {
+  uint32 safety_car_type = 1;
+  uint32 event_type = 2;
+}
+
+message Collision {
+  uint32 vehicle1_idx = 1;
+  uint32 vehicle2_idx = 2;
+}
+
+// Sensible Telemetry
+message F1TelemetryInfo { map<string, PlayerTelemetry> player_telemetry = 1; }
+
+message PlayerTelemetry {
+  optional CarTelemetryData car_telemetry = 1;
+  optional CarStatusData car_status = 2;
+  optional CarDamageData car_damage = 3;
+}
+
+message CarTelemetryData {
+  optional uint32 speed = 1;
+  optional float throttle = 2;
+  optional float steer = 3;
+  optional float brake = 4;
+  optional int32 gear = 6;
+  optional uint32 engine_rpm = 7;
+  optional bool drs = 8;
+  repeated uint32 brakes_temperature = 9 [ packed = true ];
+  repeated uint32 tyres_surface_temperature = 10;
+  repeated uint32 tyres_inner_temperature = 11;
+  optional uint32 engine_temperature = 12;
+  repeated float tyres_pressure = 13 [ packed = true ];
+}
+
+message CarStatusData {
+  optional uint32 fuel_mix = 1;
+  optional uint32 front_brake_bias = 2;
+  optional float fuel_in_tank = 3;
+  optional float fuel_capacity = 4;
+  optional float fuel_remaining_laps = 5;
+  optional bool drs_allowed = 6;
+  optional uint32 drs_activation_distance = 7;
+  optional uint32 actual_tyre_compound = 8;
+  optional uint32 visual_tyre_compound = 9;
+  optional uint32 tyres_age_laps = 10;
+  optional int32 vehicle_fia_flags = 11;
+  optional float engine_power_ice = 12;
+  optional float engine_power_mguk = 13;
+  optional float ers_store_energy = 14;
+  optional uint32 ers_deploy_mode = 15;
+  optional float ers_harvested_this_lap_mguk = 16;
+  optional float ers_harvested_this_lap_mguh = 17;
+  optional float ers_deployed_this_lap = 18;
+}
+
+message CarDamageData {
+  repeated float tyres_wear = 1;
+  repeated uint32 tyres_damage = 2;
+  repeated uint32 brakes_damage = 3;
+  optional uint32 front_left_wing_damage = 4;
+  optional uint32 front_right_wing_damage = 5;
+  optional uint32 rear_wing_damage = 6;
+  optional uint32 floor_damage = 7;
+  optional uint32 diffuser_damage = 8;
+  optional uint32 sidepod_damage = 9;
+  optional bool drs_fault = 10;
+  optional bool ers_fault = 11;
+  optional uint32 gear_box_damage = 12;
+  optional uint32 engine_damage = 13;
+  optional uint32 engine_mguh_wear = 14;
+  optional uint32 engine_es_wear = 15;
+  optional uint32 engine_ce_wear = 16;
+  optional uint32 engine_ice_wear = 17;
+  optional uint32 engine_mguk_wear = 18;
+  optional uint32 engine_tc_wear = 19;
+  optional bool engine_blown = 20;
+  optional bool engine_seized = 21;
+}

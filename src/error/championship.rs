@@ -17,6 +17,7 @@ pub enum ChampionshipError {
     IntervalNotReached,
     NoPortsAvailable,
     InvalidTeamId,
+    NotEngineer,
 }
 
 impl std::error::Error for ChampionshipError {}
@@ -38,6 +39,7 @@ impl ChampionshipError {
             ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NoPortsAvailable => StatusCode::SERVICE_UNAVAILABLE,
             ChampionshipError::InvalidTeamId => StatusCode::BAD_REQUEST,
+            ChampionshipError::NotEngineer => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -51,6 +53,7 @@ impl ChampionshipError {
             ChampionshipError::IntervalNotReached => "Interval update time not reached",
             ChampionshipError::NoPortsAvailable => "No ports available",
             ChampionshipError::InvalidTeamId => "Invalid Team Id",
+            ChampionshipError::NotEngineer => "Not an engineer",
         }
     }
 }

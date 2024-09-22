@@ -1,13 +1,14 @@
-use crate::error::{AppResult, F1ServiceError};
+use crate::{
+    error::{AppResult, F1ServiceError},
+    structs::PacketHeader,
+};
 pub(crate) use ids_generator::IdsGenerator;
 pub(crate) use password_hash::*;
 pub(crate) use ports::MachinePorts;
 
-use brotli::CompressorWriter;
-use ntex::util::Bytes;
 use postgres_types::ToSql;
 use serde::{Deserialize, Deserializer};
-use std::{io::Write, mem};
+use std::mem;
 
 mod ids_generator;
 mod password_hash;
@@ -21,24 +22,31 @@ where
     s.parse().map_err(serde::de::Error::custom)
 }
 
-#[inline(always)]
-pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
-    if bytes.len() < mem::size_of::<T>() {
+pub fn header_cast(bytes: &[u8]) -> AppResult<&PacketHeader> {
+    if mem::size_of::<PacketHeader>() > bytes.len() {
         Err(F1ServiceError::CastingError)?;
     }
 
-    let ptr = bytes.as_ptr();
-    let alignment = mem::align_of::<T>();
+    // SAFETY:
+    // - We've verified there are enough bytes for T.
+    // - The structure is packed, so there are no alignment requirements.
+    // - We assume the data is little-endian (valid for F1 2023/2024 on player PCs).
+    // - We're only performing reads, no writes
+    Ok(unsafe { &*(bytes.as_ptr() as *const PacketHeader) })
+}
 
-    if (ptr as usize) % alignment != 0 {
-        panic!(
-            "Error: Unable to cast because the alignment of type '{}' is {} bytes, but the pointer address is not properly aligned.",
-            std::any::type_name::<T>(),
-            alignment
-        );
+#[inline(always)]
+pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
+    if !mem::size_of::<T>() == bytes.len() {
+        Err(F1ServiceError::CastingError)?;
     }
 
-    Ok(unsafe { &*(ptr.cast()) })
+    // SAFETY:
+    // - We've verified there are enough bytes for T.
+    // - The structure is packed, so there are no alignment requirements.
+    // - We assume the data is little-endian (valid for F1 2023/2024 on player PCs).
+    // - We're only performing reads, no writes
+    Ok(unsafe { &*(bytes.as_ptr() as *const T) })
 }
 
 #[inline(always)]
@@ -46,21 +54,4 @@ pub fn slice_iter<'a>(
     s: &'a [&'a (dyn ToSql + Sync)],
 ) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
     s.iter().map(|s| *s as _)
-}
-
-#[inline(always)]
-pub async fn compress_async(data: Bytes) -> AppResult<Bytes> {
-    ntex::rt::spawn_blocking(move || compress(&data)).await?
-}
-
-#[inline(always)]
-fn compress(data: &[u8]) -> AppResult<Bytes> {
-    let mut compressed_data = Vec::with_capacity(data.len());
-
-    {
-        let mut compressor = CompressorWriter::new(&mut compressed_data, 4096, 3, 22);
-        compressor.write_all(data).unwrap();
-    }
-
-    Ok(Bytes::from(compressed_data))
 }

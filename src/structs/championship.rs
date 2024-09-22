@@ -41,7 +41,8 @@ pub struct ChampionshipUpdateData {
 #[derive(Debug, Serialize)]
 pub struct ServiceStatus {
     pub active: bool,
-    pub connections: u32,
+    pub general_conn: u32,
+    pub engineer_conn: u32,
 }
 
 // Path Parameters

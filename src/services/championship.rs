@@ -103,6 +103,7 @@ pub trait ChampionshipServiceOperations {
     ///
     /// Returns an error if the race is not found, the session type is invalid,
     /// or if there's a database error while storing the result.
+    #[allow(unused)]
     async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()>;
 
     /// Removes a user from a championship.

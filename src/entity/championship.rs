@@ -12,7 +12,7 @@ use crate::error::AppResult;
 pub type SharedChampionship = Arc<Championship>;
 
 /// Championship roles
-#[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql)]
+#[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql, PartialEq)]
 #[postgres(name = "championship_role")]
 pub enum ChampionshipRole {
     #[default]
@@ -32,6 +32,11 @@ pub enum Category {
     F1,
     #[postgres(name = "F2")]
     F2,
+}
+
+pub struct ChampionshipRelation {
+    pub role: ChampionshipRole,
+    pub team_id: Option<i16>,
 }
 
 /// Represents a championship
@@ -72,7 +77,7 @@ impl Championship {
     #[inline]
     pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Self>>> {
         tokio::pin!(it);
-        let mut championships = Vec::with_capacity(it.rows_affected().unwrap_or(0) as usize);
+        let mut championships = Vec::new();
 
         while let Some(row) = it.try_next().await? {
             championships.push(Championship::from_row_arc(&row))

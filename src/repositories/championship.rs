@@ -5,7 +5,7 @@ use tokio_stream::StreamExt;
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::{Championship, Race},
+    entity::{Championship, ChampionshipRelation, Race},
     error::AppResult,
     utils::slice_iter,
 };
@@ -88,8 +88,7 @@ impl ChampionshipRepository {
         };
 
         tokio::pin!(stream);
-
-        let mut races = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
+        let mut races = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             races.push(Race::from_row_arc(&row))
@@ -161,15 +160,45 @@ impl ChampionshipRepository {
             conn.query_raw(&championship_users_stmt, &[&id]).await?
         };
 
-        let mut users = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
-
         tokio::pin!(stream);
+        let mut users = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             users.push(row.get(0));
         }
 
         Ok(users)
+    }
+
+    /// Returns the relation between the user and the championship
+    pub async fn user_relation(
+        &self,
+        id: i32,
+        user_id: i32,
+    ) -> AppResult<Option<ChampionshipRelation>> {
+        let row = {
+            let conn = self.db.pg.get().await?;
+
+            let user_rel_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT role, team_id FROM championship_users
+                        WHERE championship_id = $1 AND user_id = $2
+                    "#,
+                )
+                .await?;
+
+            conn.query_opt(&user_rel_stmt, &[&id, &user_id]).await?
+        };
+
+        match row {
+            Some(row) => Ok(Some(ChampionshipRelation {
+                role: row.get(0),
+                team_id: row.get(1),
+            })),
+
+            None => Ok(None),
+        }
     }
 
     pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<String>> {
@@ -189,9 +218,8 @@ impl ChampionshipRepository {
             conn.query_raw(&linked_drivers_stmt, &[&id]).await?
         };
 
-        let mut drivers = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
-
         tokio::pin!(stream);
+        let mut drivers = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             drivers.push(row.get(0));
@@ -221,9 +249,8 @@ impl ChampionshipRepository {
             .query_raw(&championship_ids_stmt, slice_iter(&[]))
             .await?;
 
-        let mut championships = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
-
         tokio::pin!(stream);
+        let mut championships = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             championships.push(row.get(0));
@@ -251,9 +278,8 @@ impl ChampionshipRepository {
             conn.query_raw(&ports_in_use_stmt, slice_iter(&[])).await?
         };
 
-        let mut ports = Vec::with_capacity(stream.rows_affected().unwrap_or(0) as usize);
-
         tokio::pin!(stream);
+        let mut ports = Vec::new();
 
         while let Some(row) = stream.try_next().await? {
             ports.push(row.get(0));

@@ -1,6 +1,10 @@
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
+use std::{
+    net::SocketAddr,
+    ops::Deref,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
 };
 
 use ahash::AHashMap;
@@ -21,23 +25,21 @@ use tracing::{error, info, info_span};
 use crate::{
     config::constants::{
         BUFFER_SIZE, HISTORY_INTERVAL, MOTION_INTERVAL, SESSION_INTERVAL, SOCKET_HOST,
-        SOCKET_TIMEOUT,
+        SOCKET_TIMEOUT, TELEMETRY_INTERVAL,
     },
     error::{AppResult, CommonError, F1ServiceError},
-    protos::ToProtoMessage,
     services::{ChampionshipServiceOperations, DriverServiceOperations},
     states::F1State,
     structs::{
         F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
-        PacketEventData, PacketExtraData, PacketFinalClassificationData, PacketMotionData,
-        PacketParticipantsData, PacketSessionData, PacketSessionHistoryData, SectorsLaps,
-        SessionType,
+        PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
+        PacketSessionData, PacketSessionHistoryData, SessionType,
     },
 };
 
-const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
+use super::manager::F1SessionDataManager;
 
-use super::{batching::PacketBatching, PacketCaching};
+const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
@@ -50,24 +52,39 @@ pub struct F1Service {
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    car_lap_sector: AHashMap<u8, SectorsLaps>,
-    packet_batching: PacketBatching,
+    data_manager: F1SessionDataManager,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
 
+pub struct F1ServiceDataInner {
+    global_channel: Sender<Bytes>,
+    global_subscribers: AtomicU32,
+    team_subscribers: RwLock<AHashMap<u8, u32>>,
+}
+
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
-    pub cache: Arc<RwLock<PacketCaching>>,
-    channel: Arc<Receiver<Bytes>>,
-    counter: Arc<AtomicU32>,
+    inner: Arc<F1ServiceDataInner>,
+    session_manager: F1SessionDataManager,
     shutdown: Option<oneshot::Sender<()>>,
+}
+
+impl Deref for F1ServiceData {
+    type Target = F1ServiceDataInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 /// Tracks the last update times for various packet types.
 struct LastUpdates {
     session: Instant,
     car_motion: Instant,
+    car_status: Instant,
+    car_damage: Instant,
+    car_telemetry: Instant,
     participants: Instant,
     car_lap: AHashMap<u8, Instant>,
 }
@@ -85,9 +102,8 @@ impl F1Service {
     /// # Returns
     /// A new F1Service instance.
     pub async fn new(
-        tx: Sender<Bytes>,
+        data_manager: F1SessionDataManager,
         shutdown: oneshot::Receiver<()>,
-        cache: Arc<RwLock<PacketCaching>>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
     ) -> Self {
@@ -95,14 +111,13 @@ impl F1Service {
             port: 0,
             race_id: 0,
             championship_id: 0,
-            tick_counter: 0,
+            tick_counter: 10,
             port_partially_opened: false,
             last_updates: LastUpdates::new(),
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
-            car_lap_sector: AHashMap::with_capacity(20),
-            packet_batching: PacketBatching::new(tx, cache),
+            data_manager,
             services,
             f1_state,
         }
@@ -122,7 +137,7 @@ impl F1Service {
         championship_id: i32,
         _race_id: i32,
     ) -> AppResult<()> {
-        let Ok(socket) = UdpSocket::bind(format!("{SOCKET_HOST}:{port}")).await else {
+        let Ok(socket) = UdpSocket::bind(SocketAddr::new(SOCKET_HOST, port as u16)).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
         };
@@ -251,10 +266,10 @@ impl F1Service {
                 self.handle_final_classification_packet(final_classification)
                     .await?
             }
-            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage),
-            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status),
+            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage, now),
+            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status, now),
             F1PacketData::CarTelemetry(car_telemetry) => {
-                self.handle_car_telemetry_packet(car_telemetry)
+                self.handle_car_telemetry_packet(car_telemetry, now)
             }
         }
 
@@ -267,9 +282,8 @@ impl F1Service {
             return;
         }
 
-        let packet = motion_data.to_packet_header().unwrap();
+        self.data_manager.save_motion(motion_data);
         self.last_updates.car_motion = now;
-        self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -291,9 +305,8 @@ impl F1Service {
         };
 
         self.session_type = Some(session_type);
-        let packet = session_data.to_packet_header().unwrap();
+        self.data_manager.save_session(session_data);
         self.last_updates.session = now;
-        self.packet_batching.push(packet);
     }
 
     #[inline(always)]
@@ -315,11 +328,8 @@ impl F1Service {
                 .await?;
         }
 
-        let packet = participants_data.to_packet_header().unwrap();
-
+        self.data_manager.save_participants(participants_data);
         self.last_updates.participants = now;
-        self.packet_batching.push(packet);
-
         Ok(())
     }
 
@@ -333,14 +343,7 @@ impl F1Service {
             return;
         }
 
-        let Some(packet) = event_data.to_packet_header() else {
-            return;
-        };
-
-        self.packet_batching.push_with_optional_parameter(
-            packet,
-            Some(PacketExtraData::EventCode(event_data.event_string_code)),
-        )
+        self.data_manager.push_event(event_data);
     }
 
     #[inline(always)]
@@ -356,31 +359,8 @@ impl F1Service {
             .or_insert(now);
 
         if now.duration_since(*last_update) > HISTORY_INTERVAL {
-            let lap = (history_data.num_laps as usize) - 1;
-
-            let sectors = SectorsLaps {
-                s1: history_data.lap_history_data[lap].sector1_time_in_ms,
-                s2: history_data.lap_history_data[lap].sector2_time_in_ms,
-                s3: history_data.lap_history_data[lap].sector3_time_in_ms,
-            };
-
-            let last_sectors = self
-                .car_lap_sector
-                .entry(history_data.car_idx)
-                .or_insert(sectors);
-
-            if sectors == *last_sectors {
-                *last_update = now;
-                return;
-            }
-
-            *last_sectors = sectors;
-            let packet = history_data.to_packet_header().unwrap();
-
-            self.packet_batching.push_with_optional_parameter(
-                packet,
-                Some(PacketExtraData::CarNumber(history_data.car_idx)),
-            )
+            self.data_manager.save_lap_history(history_data);
+            *last_update = now;
         }
     }
 
@@ -389,39 +369,47 @@ impl F1Service {
         &mut self,
         final_classification: &PacketFinalClassificationData,
     ) -> AppResult<()> {
-        info!("Final called");
-
-        let Some(session_type) = self.session_type.take() else {
+        let Some(_session_type) = self.session_type.take() else {
             error!("Not defined session type when trying to save final_classification_data");
             return Ok(());
         };
 
-        let packet = final_classification.to_packet_header().unwrap();
-
         // Only testing, we should save last lastHistoryData with the final_classification as a tuple or something
-        self.f1_state
-            .championship_svc
-            .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
-            .await?;
+        // self.f1_state
+        //     .championship_svc
+        //     .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
+        //     .await?;
 
-        self.packet_batching.push(packet);
+        self.data_manager
+            .save_final_classification(final_classification);
 
         Ok(())
     }
 
+    // TODO: Limit updates to 11hz or something
     #[inline(always)]
-    fn handle_car_damage_packet(&mut self, _car_damage: &PacketCarDamageData) {
-        // info!("Car damage: {:?}", car_damage);
+    fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
+        if now.duration_since(self.last_updates.car_damage) > TELEMETRY_INTERVAL {
+            self.data_manager.save_car_damage(car_damage);
+        }
     }
 
     #[inline(always)]
-    fn handle_car_status_packet(&mut self, _car_status: &PacketCarStatusData) {
-        // info!("Car status: {:?}", car_status);
+    fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData, now: Instant) {
+        if now.duration_since(self.last_updates.car_status) > TELEMETRY_INTERVAL {
+            self.data_manager.save_car_status(car_status);
+        }
     }
 
     #[inline(always)]
-    fn handle_car_telemetry_packet(&mut self, _car_telemetry: &PacketCarTelemetryData) {
-        // info!("Car telemetry: {:?}", car_telemetry);
+    fn handle_car_telemetry_packet(
+        &mut self,
+        car_telemetry: &PacketCarTelemetryData,
+        now: Instant,
+    ) {
+        if now.duration_since(self.last_updates.car_telemetry) > TELEMETRY_INTERVAL {
+            self.data_manager.save_car_telemetry(car_telemetry);
+        }
     }
 
     #[inline(always)]
@@ -501,50 +489,76 @@ impl F1Service {
 
 impl F1ServiceData {
     /// Creates a new F1ServiceData instance.
-    ///
-    /// # Arguments
-    /// - `channel`: Receiver for broadcast channel.
-    /// - `shutdown`: Sender for shutdown signal.
-    ///
-    /// # Returns
-    /// A new F1ServiceData instance.
-    pub fn new(channel: Arc<Receiver<Bytes>>, shutdown: oneshot::Sender<()>) -> Self {
-        let cache = Arc::new(RwLock::new(PacketCaching::new()));
+    pub fn new(
+        session_manager: F1SessionDataManager,
+        global_channel: Sender<Bytes>,
+        shutdown: oneshot::Sender<()>,
+    ) -> Self {
+        let inner = Arc::new(F1ServiceDataInner {
+            global_channel,
+            global_subscribers: AtomicU32::new(0),
+            team_subscribers: RwLock::new(AHashMap::new()),
+        });
 
         Self {
-            cache,
-            channel,
+            inner,
+            session_manager,
             shutdown: Some(shutdown),
-            counter: Arc::new(AtomicU32::new(0)),
         }
     }
 
-    /// Subscribes to the service's broadcast channel.
-    ///
-    /// # Returns
-    /// A new Receiver for the broadcast channel.
-    pub fn subscribe(&self) -> Receiver<Bytes> {
-        self.counter.fetch_add(1, Ordering::Relaxed);
-        self.channel.resubscribe()
+    /// Retrieves the cached data from the session manager.
+    #[inline(always)]
+    pub fn cache(&self) -> Option<Bytes> {
+        self.session_manager.cache()
     }
 
-    /// Gets the current number of subscribers.
-    ///
-    /// # Returns
-    /// The number of active subscribers.
-    pub fn subscribers_count(&self) -> u32 {
-        self.counter.load(Ordering::Relaxed)
+    /// Subscribes to the global broadcast channel.
+    pub fn global_sub(&self) -> Receiver<Bytes> {
+        self.global_subscribers.fetch_add(1, Ordering::Relaxed);
+        self.global_channel.subscribe()
     }
 
-    /// Decrements the subscriber count when a client unsubscribes.
-    pub fn unsubscribe(&self) {
-        self.counter.fetch_sub(1, Ordering::Relaxed);
+    /// Subscribes to a team-specific broadcast channel.
+    pub fn team_sub(&self, team_id: u8) -> Option<Receiver<Bytes>> {
+        let receiver = self.session_manager.get_team_receiver(team_id)?;
+        let mut team_subs = self.team_subscribers.write();
+        *team_subs.entry(team_id).or_insert(0) += 1;
+        Some(receiver)
+    }
+
+    /// Gets the current number of global subscribers.
+    pub fn global_count(&self) -> u32 {
+        self.global_subscribers.load(Ordering::Relaxed)
+    }
+
+    /// Gets the current number of subscribers for all teams.
+    pub fn all_team_count(&self) -> u32 {
+        self.team_subscribers.read().values().sum()
+    }
+
+    /// Gets the current number of subscribers for a specific team.
+    #[allow(unused)]
+    pub fn team_count(&self, team_id: u8) -> u32 {
+        *self.team_subscribers.read().get(&team_id).unwrap_or(&0)
+    }
+
+    /// Decrements the global subscriber count.
+    pub fn global_unsub(&self) {
+        self.global_subscribers.fetch_sub(1, Ordering::Relaxed);
+    }
+
+    /// Decrements the team subscriber count.
+    pub fn team_unsub(&self, team_id: u8) {
+        let mut team_subs = self.team_subscribers.write();
+        if let Some(count) = team_subs.get_mut(&team_id) {
+            if *count > 0 {
+                *count -= 1;
+            }
+        }
     }
 
     /// Initiates the shutdown process for the service.
-    ///
-    /// # Returns
-    /// Result indicating success or failure of sending the shutdown signal.
     pub fn shutdown(&mut self) -> Result<(), ()> {
         self.shutdown.take().unwrap().send(())
     }
@@ -559,6 +573,9 @@ impl LastUpdates {
             session: time,
             car_motion: time,
             participants: time,
+            car_damage: time,
+            car_status: time,
+            car_telemetry: time,
             car_lap: AHashMap::with_capacity(20),
         }
     }
