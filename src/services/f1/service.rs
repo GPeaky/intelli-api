@@ -10,6 +10,7 @@ use ahash::AHashMap;
 use chrono::Utc;
 use dashmap::DashMap;
 use ntex::util::Bytes;
+use parking_lot::RwLock;
 use tokio::{
     net::UdpSocket,
     sync::{
@@ -55,11 +56,16 @@ pub struct F1Service {
     f1_state: &'static F1State,
 }
 
+struct F1ServiceDataInner {
+    global_channel: Sender<Bytes>,
+    global_subscribers: AtomicU32,
+    team_subscribers: RwLock<AHashMap<u8, u32>>,
+}
+
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
+    inner: Arc<F1ServiceDataInner>,
     session_manager: F1SessionDataManager,
-    channel: Arc<Sender<Bytes>>,
-    counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
 }
 
@@ -474,57 +480,80 @@ impl F1Service {
 
 impl F1ServiceData {
     /// Creates a new F1ServiceData instance.
-    ///
-    /// # Arguments
-    /// - `channel`: Receiver for broadcast channel.
-    /// - `shutdown`: Sender for shutdown signal.
-    ///
-    /// # Returns
-    /// A new F1ServiceData instance.
     pub fn new(
         session_manager: F1SessionDataManager,
-        channel: Arc<Sender<Bytes>>,
+        global_channel: Sender<Bytes>,
         shutdown: oneshot::Sender<()>,
     ) -> Self {
+        let inner = Arc::new(F1ServiceDataInner {
+            global_channel,
+            global_subscribers: AtomicU32::new(0),
+            team_subscribers: RwLock::new(AHashMap::new()),
+        });
+
         Self {
+            inner,
             session_manager,
-            channel,
             shutdown: Some(shutdown),
-            counter: Arc::new(AtomicU32::new(0)),
         }
     }
 
+    /// Retrieves the cached data from the session manager.
     #[inline(always)]
     pub fn cache(&self) -> Option<Bytes> {
         self.session_manager.cache()
     }
 
-    /// Subscribes to the service's broadcast channel.
-    ///
-    /// # Returns
-    /// A new Receiver for the broadcast channel.
-    pub fn subscribe(&self) -> Receiver<Bytes> {
-        self.counter.fetch_add(1, Ordering::Relaxed);
-        self.channel.subscribe()
+    /// Subscribes to the global broadcast channel.
+    pub fn global_sub(&self) -> Receiver<Bytes> {
+        self.inner
+            .global_subscribers
+            .fetch_add(1, Ordering::Relaxed);
+        self.inner.global_channel.subscribe()
     }
 
-    /// Gets the current number of subscribers.
-    ///
-    /// # Returns
-    /// The number of active subscribers.
-    pub fn subscribers_count(&self) -> u32 {
-        self.counter.load(Ordering::Relaxed)
+    /// Subscribes to a team-specific broadcast channel.
+    pub fn team_sub(&self, team_id: u8) -> Option<Receiver<Bytes>> {
+        let receiver = self.session_manager.get_team_receiver(team_id)?;
+        let mut team_subs = self.inner.team_subscribers.write();
+        *team_subs.entry(team_id).or_insert(0) += 1;
+        Some(receiver)
     }
 
-    /// Decrements the subscriber count when a client unsubscribes.
-    pub fn unsubscribe(&self) {
-        self.counter.fetch_sub(1, Ordering::Relaxed);
+    /// Gets the current number of global subscribers.
+    pub fn global_count(&self) -> u32 {
+        self.inner.global_subscribers.load(Ordering::Relaxed)
+    }
+
+    /// Gets the current number of subscribers for a specific team.
+    #[allow(unused)]
+    pub fn team_count(&self, team_id: u8) -> u32 {
+        *self
+            .inner
+            .team_subscribers
+            .read()
+            .get(&team_id)
+            .unwrap_or(&0)
+    }
+
+    /// Decrements the global subscriber count.
+    pub fn global_unsub(&self) {
+        self.inner
+            .global_subscribers
+            .fetch_sub(1, Ordering::Relaxed);
+    }
+
+    /// Decrements the team subscriber count.
+    pub fn team_unsub(&self, team_id: u8) {
+        let mut team_subs = self.inner.team_subscribers.write();
+        if let Some(count) = team_subs.get_mut(&team_id) {
+            if *count > 0 {
+                *count -= 1;
+            }
+        }
     }
 
     /// Initiates the shutdown process for the service.
-    ///
-    /// # Returns
-    /// Result indicating success or failure of sending the shutdown signal.
     pub fn shutdown(&mut self) -> Result<(), ()> {
         self.shutdown.take().unwrap().send(())
     }

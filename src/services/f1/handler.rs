@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use dashmap::DashMap;
 use ntex::util::Bytes;
 use tokio::sync::{
@@ -47,11 +45,9 @@ impl F1ServiceHandler {
     /// Some(Bytes) if cache exists, None otherwise.
     #[allow(unused)]
     pub fn cache(&self, championship_id: &i32) -> Option<Bytes> {
-        if let Some(service) = self.services.get(championship_id) {
-            return service.cache();
-        }
-
-        None
+        self.services
+            .get(championship_id)
+            .and_then(|service| service.cache())
     }
 
     /// Subscribes to a channel for a specific championship service.
@@ -63,8 +59,17 @@ impl F1ServiceHandler {
     /// Some(Receiver<Bytes>) if service exists, None otherwise.
     #[allow(unused)]
     pub fn subscribe(&self, championship_id: &i32) -> Option<Receiver<Bytes>> {
-        let service = self.services.get(championship_id)?;
-        Some(service.subscribe())
+        self.services
+            .get(championship_id)
+            .map(|service| service.global_sub())
+    }
+
+    /// Subscribes to a team-specific channel for a championship service.
+    #[allow(unused)]
+    pub fn subscribe_team(&self, championship_id: &i32, team_id: u8) -> Option<Receiver<Bytes>> {
+        self.services
+            .get(championship_id)
+            .and_then(|service| service.team_sub(team_id))
     }
 
     /// Retrieves cache and subscribes to a channel for a specific championship service.
@@ -78,14 +83,9 @@ impl F1ServiceHandler {
         &self,
         championship_id: &i32,
     ) -> Option<(Option<Bytes>, Receiver<Bytes>)> {
-        if let Some(service) = self.services.get(championship_id) {
-            let cache = service.cache();
-            let receiver = service.subscribe();
-
-            return Some((cache, receiver));
-        }
-
-        None
+        self.services
+            .get(championship_id)
+            .map(|service| (service.cache(), service.global_sub()))
     }
 
     /// Unsubscribes from a championship service.
@@ -94,7 +94,15 @@ impl F1ServiceHandler {
     /// - `championship_id`: The ID of the championship.
     pub fn unsubscribe(&self, championship_id: &i32) {
         if let Some(service) = self.services.get(championship_id) {
-            service.unsubscribe();
+            service.global_unsub();
+        }
+    }
+
+    /// Unsubscribes from the team-specific channel of a championship service.
+    #[allow(unused)]
+    pub fn unsubscribe_team(&self, championship_id: &i32, team_id: u8) {
+        if let Some(service) = self.services.get(championship_id) {
+            service.team_unsub(team_id);
         }
     }
 
@@ -138,7 +146,7 @@ impl F1ServiceHandler {
             };
         };
 
-        let connections = service.subscribers_count();
+        let connections = service.global_count();
 
         ServiceStatus {
             active: true,
@@ -162,7 +170,7 @@ impl F1ServiceHandler {
         let (otx, orx) = oneshot::channel::<()>();
         let (tx, _) = channel::<Bytes>(50);
         let session_manager = F1SessionDataManager::new(tx.clone());
-        let service_data = F1ServiceData::new(session_manager.clone(), Arc::new(tx), otx);
+        let service_data = F1ServiceData::new(session_manager.clone(), tx, otx);
         let mut service = F1Service::new(session_manager, orx, self.services, self.f1_state).await;
 
         // TODO: Add real race_id

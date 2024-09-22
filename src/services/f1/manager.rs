@@ -7,7 +7,10 @@ use ntex::{
 };
 use parking_lot::{Mutex, RwLock};
 use prost::Message;
-use tokio::sync::{broadcast, oneshot};
+use tokio::sync::{
+    broadcast::{self, Receiver},
+    oneshot,
+};
 use tracing::error;
 
 use crate::{
@@ -66,7 +69,7 @@ impl F1SessionDataManager {
     }
 
     #[allow(unused)]
-    pub fn get_team_receiver(&self, team_id: u8) -> Option<broadcast::Receiver<Bytes>> {
+    pub fn get_team_receiver(&self, team_id: u8) -> Option<Receiver<Bytes>> {
         self.inner
             .team_senders
             .read()

@@ -17,6 +17,7 @@ use crate::{
 
 include!(concat!(env!("OUT_DIR"), "/f1telemetry.rs"));
 
+/// Events that are not sent to avoid unnecessary data transmission.
 const NOT_SEND_EVENTS: [EventCode; 9] = [
     EventCode::ButtonStatus,
     EventCode::TeamMateInPits,
@@ -30,6 +31,14 @@ const NOT_SEND_EVENTS: [EventCode; 9] = [
 ];
 
 impl HistoryData {
+    /// Updates the history data with new packet information.
+    ///
+    /// This method updates various fields of the HistoryData struct, including
+    /// lap counts, tyre stints, and best lap times for different sectors.
+    ///
+    /// # Arguments
+    ///
+    /// * `packet` - A reference to PacketSessionHistoryData containing new session history information.
     #[inline(always)]
     fn update(&mut self, packet: &PacketSessionHistoryData) {
         self.num_laps = Some(packet.num_laps as u32);
@@ -68,6 +77,15 @@ impl HistoryData {
 }
 
 impl TyreStintsHistoryData {
+    /// Creates a new TyreStintsHistoryData from F1 data.
+    ///
+    /// # Arguments
+    ///
+    /// * `stints_data` - A reference to F1TyreStintHistoryData containing tyre stint information.
+    ///
+    /// # Returns
+    ///
+    /// A new TyreStintsHistoryData instance populated with data from the input.
     #[inline(always)]
     fn from_f1(stints_data: &F1TyreStintHistoryData) -> Self {
         Self {
@@ -79,6 +97,15 @@ impl TyreStintsHistoryData {
 }
 
 impl LapHistoryData {
+    /// Creates a new LapHistoryData from F1 data.
+    ///
+    /// # Arguments
+    ///
+    /// * `lap_data` - A reference to F1LapHistoryData containing lap history information.
+    ///
+    /// # Returns
+    ///
+    /// A new LapHistoryData instance populated with data from the input.
     #[inline(always)]
     fn from_f1(lap_data: &F1LapHistoryData) -> Self {
         Self {
@@ -90,6 +117,11 @@ impl LapHistoryData {
         }
     }
 
+    /// Updates the lap history data with new information.
+    ///
+    /// # Arguments
+    ///
+    /// * `lap_data` - A reference to F1LapHistoryData containing new lap history information.
     #[inline(always)]
     fn update(&mut self, lap_data: &F1LapHistoryData) {
         *self = Self::from_f1(lap_data);
@@ -97,6 +129,11 @@ impl LapHistoryData {
 }
 
 impl PlayerInfo {
+    /// Updates car motion data for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `incoming_motion` - A reference to F1CarMotionData containing new motion information.
     #[inline(always)]
     pub fn update_car_motion(&mut self, incoming_motion: &F1CarMotionData) {
         let car_motion = self.car_motion.get_or_insert_with(Default::default);
@@ -105,6 +142,11 @@ impl PlayerInfo {
         car_motion.yaw = Some(incoming_motion.yaw);
     }
 
+    /// Updates session history for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `packet` - A reference to PacketSessionHistoryData containing new session history.
     #[inline(always)]
     pub fn update_session_history(&mut self, packet: &PacketSessionHistoryData) {
         self.lap_history
@@ -112,6 +154,11 @@ impl PlayerInfo {
             .update(packet);
     }
 
+    /// Updates participant information for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `incoming_participant` - A reference to F1ParticipantData with new participant info.
     #[inline(always)]
     pub fn update_participant_info(&mut self, incoming_participant: &F1ParticipantData) {
         let participant = self.participant.get_or_insert_with(Default::default);
@@ -121,6 +168,11 @@ impl PlayerInfo {
         participant.platform = Some(incoming_participant.platform as u32);
     }
 
+    /// Updates classification data for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `packet` - A reference to F1FinalClassificationData with new classification info.
     #[inline(always)]
     pub fn update_classification_data(&mut self, packet: &F1FinalClassificationData) {
         let final_classification = self
@@ -162,6 +214,11 @@ impl PlayerInfo {
 }
 
 impl PlayerTelemetry {
+    /// Updates car damage data for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - A reference to F1CarDamageData containing new damage information.
     #[inline(always)]
     pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
         let car_damage = self.car_damage.get_or_insert_with(Default::default);
@@ -205,6 +262,11 @@ impl PlayerTelemetry {
         car_damage.engine_seized = Some(data.engine_seized != 0);
     }
 
+    /// Updates car status data for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - A reference to F1CarStatusData containing new status information.
     #[inline(always)]
     pub fn update_car_status(&mut self, data: &F1CarStatusData) {
         let car_status = self.car_status.get_or_insert_with(Default::default);
@@ -229,6 +291,11 @@ impl PlayerTelemetry {
         car_status.ers_deployed_this_lap = Some(data.ers_deployed_this_lap);
     }
 
+    /// Updates car telemetry data for the player.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - A reference to F1CarTelemetryData containing new telemetry information.
     #[inline(always)]
     pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
         let telemetry = self.car_telemetry.get_or_insert_with(Default::default);
@@ -272,6 +339,17 @@ impl PlayerTelemetry {
         }
     }
 
+    /// Computes the difference between two PlayerTelemetry instances.
+    ///
+    /// This method is used to determine what has changed between two states of PlayerTelemetry.
+    ///
+    /// # Arguments
+    ///
+    /// * `last` - A reference to the previous PlayerTelemetry state to compare against.
+    ///
+    /// # Returns
+    ///
+    /// An Option containing a new PlayerTelemetry instance with only the changed fields, or None if no changes.
     #[inline(always)]
     pub fn diff(&self, last: &Self) -> Option<Self> {
         let mut diff = PlayerTelemetry::default();
@@ -429,6 +507,11 @@ impl PlayerTelemetry {
 }
 
 impl F1GeneralInfo {
+    /// Updates session data with new information.
+    ///
+    /// # Arguments
+    ///
+    /// * `packet` - A reference to PacketSessionData containing new session information.
     #[inline(always)]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
         let session = self.session.get_or_insert_with(Default::default);
@@ -457,6 +540,17 @@ impl F1GeneralInfo {
         );
     }
 
+    /// Computes the difference between two F1GeneralInfo instances.
+    ///
+    /// This method is used to determine what has changed between two states of F1GeneralInfo.
+    ///
+    /// # Arguments
+    ///
+    /// * `last` - A reference to the previous F1GeneralInfo state to compare against.
+    ///
+    /// # Returns
+    ///
+    /// An Option containing a new F1GeneralInfo instance with only the changed fields, or None if no changes.
     #[inline(always)]
     pub fn diff(&self, last: &Self) -> Option<Self> {
         let mut diff = F1GeneralInfo::default();
@@ -630,6 +724,16 @@ impl F1GeneralInfo {
 }
 
 impl EventData {
+    /// Creates a new EventData from F1 event data.
+    ///
+    /// # Arguments
+    ///
+    /// * `f1_event` - A reference to F1PacketEventData containing the event information.
+    /// * `participants` - A reference to a HashMap of participant information.
+    ///
+    /// # Returns
+    ///
+    /// An Option containing the new EventData, or None if the event should not be sent.
     #[inline(always)]
     pub fn from_f1(
         f1_event: &F1PacketEventData,
@@ -654,6 +758,16 @@ impl EventData {
         })
     }
 
+    /// Gets the Steam name for a given vehicle index.
+    ///
+    /// # Arguments
+    ///
+    /// * `participants` - A reference to a HashMap of participant information.
+    /// * `vehicle_idx` - The index of the vehicle to look up.
+    ///
+    /// # Returns
+    ///
+    /// A String containing the Steam name of the driver, or a placeholder if not found.
     #[inline(always)]
     fn get_steam_name(participants: &AHashMap<usize, DriverInfo>, vehicle_idx: u8) -> String {
         participants
@@ -662,6 +776,20 @@ impl EventData {
             .unwrap_or_else(|| format!("Unknown Driver {}", vehicle_idx))
     }
 
+    /// Converts F1 event data details to EventDataDetails.
+    ///
+    /// This method handles the conversion of various event types to their corresponding
+    /// EventDataDetails representation.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_code` - A reference to the EventCode indicating the type of event.
+    /// * `event_data_details` - A reference to F1EventDataDetails containing the event details.
+    /// * `participants` - A reference to a HashMap of participant information.
+    ///
+    /// # Returns
+    ///
+    /// An EventDataDetails instance containing the converted event information.
     #[inline(always)]
     fn convert_event_data_details(
         event_code: &EventCode,
