@@ -12,7 +12,7 @@ use crate::error::AppResult;
 pub type SharedChampionship = Arc<Championship>;
 
 /// Championship roles
-#[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql)]
+#[derive(Debug, Default, Serialize, Deserialize, FromSql, ToSql, PartialEq)]
 #[postgres(name = "championship_role")]
 pub enum ChampionshipRole {
     #[default]
@@ -32,6 +32,11 @@ pub enum Category {
     F1,
     #[postgres(name = "F2")]
     F2,
+}
+
+pub struct ChampionshipRelation {
+    pub role: ChampionshipRole,
+    pub team_id: Option<i16>,
 }
 
 /// Represents a championship

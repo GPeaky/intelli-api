@@ -5,7 +5,7 @@ use tokio_stream::StreamExt;
 use crate::{
     cache::{EntityCache, ServiceCache},
     config::Database,
-    entity::{Championship, Race},
+    entity::{Championship, ChampionshipRelation, Race},
     error::AppResult,
     utils::slice_iter,
 };
@@ -168,6 +168,37 @@ impl ChampionshipRepository {
         }
 
         Ok(users)
+    }
+
+    /// Returns the relation between the user and the championship
+    pub async fn user_relation(
+        &self,
+        id: i32,
+        user_id: i32,
+    ) -> AppResult<Option<ChampionshipRelation>> {
+        let row = {
+            let conn = self.db.pg.get().await?;
+
+            let user_rel_stmt = conn
+                .prepare_cached(
+                    r#"
+                        SELECT role, team_id FROM championship_users
+                        WHERE championship_id = $1 AND user_id = $2
+                    "#,
+                )
+                .await?;
+
+            conn.query_opt(&user_rel_stmt, &[&id, &user_id]).await?
+        };
+
+        match row {
+            Some(row) => Ok(Some(ChampionshipRelation {
+                role: row.get(0),
+                team_id: row.get(1),
+            })),
+
+            None => Ok(None),
+        }
     }
 
     pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<String>> {
