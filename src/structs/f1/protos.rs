@@ -1,6 +1,6 @@
 use ahash::AHashMap;
-use prost::{Message, Oneof};
-use std::{collections::HashMap, ptr::addr_of};
+use event_data_details::Details;
+use std::ptr::addr_of;
 use tracing::warn;
 
 use crate::{
@@ -15,6 +15,8 @@ use crate::{
     },
 };
 
+include!(concat!(env!("OUT_DIR"), "/f1telemetry.rs"));
+
 const NOT_SEND_EVENTS: [EventCode; 9] = [
     EventCode::ButtonStatus,
     EventCode::TeamMateInPits,
@@ -26,439 +28,6 @@ const NOT_SEND_EVENTS: [EventCode; 9] = [
     EventCode::RedFlag,
     EventCode::LightsOut,
 ];
-
-// TODO: Implement manual PartialEq
-
-#[derive(Clone, PartialEq, Message)]
-pub struct F1GeneralInfo {
-    #[prost(map = "string, message", tag = "1")]
-    pub players: HashMap<String, PlayerInfo>,
-    #[prost(message, optional, tag = "2")]
-    pub session: Option<SessionData>,
-    #[prost(message, optional, tag = "3")]
-    pub events: Option<PacketsEventsData>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct PlayerInfo {
-    #[prost(message, optional, tag = "1")]
-    pub participant: Option<ParticipantData>,
-    #[prost(message, optional, tag = "2")]
-    pub car_motion: Option<CarMotionData>,
-    #[prost(message, optional, tag = "3")]
-    pub lap_history: Option<HistoryData>,
-    #[prost(message, optional, tag = "4")]
-    pub final_classification: Option<FinalClassificationData>,
-}
-
-#[derive(Clone, Copy, PartialEq, Message)]
-pub struct ParticipantData {
-    #[prost(uint32, optional, tag = "1")]
-    pub team_id: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub race_number: Option<u32>,
-    #[prost(uint32, optional, tag = "3")]
-    pub nationality: Option<u32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub platform: Option<u32>,
-}
-
-#[derive(Clone, Copy, PartialEq, Message)]
-pub struct CarMotionData {
-    #[prost(float, optional, tag = "1")]
-    pub x: Option<f32>,
-    #[prost(float, optional, tag = "2")]
-    pub y: Option<f32>,
-    #[prost(float, optional, tag = "3")]
-    pub yaw: Option<f32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct HistoryData {
-    #[prost(uint32, optional, tag = "1")]
-    pub num_laps: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub num_tyre_stints: Option<u32>,
-    #[prost(uint32, optional, tag = "3")]
-    pub best_lap_time_lap_num: Option<u32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub best_s1_lap_num: Option<u32>,
-    #[prost(uint32, optional, tag = "5")]
-    pub best_s2_lap_num: Option<u32>,
-    #[prost(uint32, optional, tag = "6")]
-    pub best_s3_lap_num: Option<u32>,
-    #[prost(message, repeated, tag = "7")]
-    pub lap_history_data: Vec<LapHistoryData>,
-    #[prost(message, repeated, tag = "8")]
-    pub tyre_stints_history_data: Vec<TyreStintsHistoryData>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct LapHistoryData {
-    #[prost(uint32, optional, tag = "1")]
-    pub lap_time: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub s1_time: Option<u32>,
-    #[prost(uint32, optional, tag = "3")]
-    pub s2_time: Option<u32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub s3_time: Option<u32>,
-    #[prost(uint32, optional, tag = "5")]
-    pub lap_valid_bit_flag: Option<u32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct TyreStintsHistoryData {
-    #[prost(uint32, optional, tag = "1")]
-    pub end_lap: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub actual_compound: Option<u32>,
-    #[prost(uint32, optional, tag = "3")]
-    pub visual_compound: Option<u32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct FinalClassificationData {
-    #[prost(uint32, optional, tag = "1")]
-    pub position: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub laps: Option<u32>,
-    #[prost(uint32, optional, tag = "3")]
-    pub grid_position: Option<u32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub points: Option<u32>,
-    #[prost(uint32, optional, tag = "5")]
-    pub pit_stops: Option<u32>,
-    #[prost(uint32, optional, tag = "6")]
-    pub result_status: Option<u32>,
-    #[prost(uint32, optional, tag = "7")]
-    pub best_lap_time: Option<u32>,
-    #[prost(double, optional, tag = "8")]
-    pub race_time: Option<f64>,
-    #[prost(uint32, optional, tag = "9")]
-    pub penalties_time: Option<u32>,
-    #[prost(uint32, optional, tag = "10")]
-    pub num_penalties: Option<u32>,
-    #[prost(uint32, repeated, tag = "11")]
-    pub tyre_stints_actual: Vec<u32>,
-    #[prost(uint32, repeated, tag = "12")]
-    pub tyre_stints_visual: Vec<u32>,
-    #[prost(uint32, repeated, tag = "13")]
-    pub tyre_stints_end_laps: Vec<u32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct SessionData {
-    #[prost(uint32, optional, tag = "1")]
-    pub weather: Option<u32>,
-    #[prost(int32, optional, tag = "2")]
-    pub track_temperature: Option<i32>,
-    #[prost(int32, optional, tag = "3")]
-    pub air_temperature: Option<i32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub total_laps: Option<u32>,
-    #[prost(uint32, optional, tag = "5")]
-    pub track_length: Option<u32>,
-    #[prost(uint32, optional, tag = "6")]
-    pub session_type: Option<u32>,
-    #[prost(int32, optional, tag = "7")]
-    pub track_id: Option<i32>,
-    #[prost(uint32, optional, tag = "8")]
-    pub session_time_left: Option<u32>,
-    #[prost(uint32, optional, tag = "9")]
-    pub session_duration: Option<u32>,
-    #[prost(uint32, optional, tag = "10")]
-    pub safety_car_status: Option<u32>,
-    #[prost(uint32, optional, tag = "11")]
-    pub session_length: Option<u32>,
-    #[prost(uint32, optional, tag = "12")]
-    pub num_safety_car: Option<u32>,
-    #[prost(uint32, optional, tag = "13")]
-    pub num_virtual_safety_car: Option<u32>,
-    #[prost(uint32, optional, tag = "14")]
-    pub num_red_flags: Option<u32>,
-    #[prost(uint32, repeated, tag = "15")]
-    pub weekend_structure: Vec<u32>,
-    #[prost(float, optional, tag = "16")]
-    pub s2_lap_distance_start: Option<f32>,
-    #[prost(float, optional, tag = "17")]
-    pub s3_lap_distance_start: Option<f32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct PacketsEventsData {
-    #[prost(message, repeated, tag = "1")]
-    pub events: Vec<EventData>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct EventData {
-    #[prost(bytes, tag = "1")]
-    pub string_code: Vec<u8>,
-    #[prost(message, optional, tag = "2")]
-    pub event_details: Option<EventDataDetails>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct EventDataDetails {
-    #[prost(
-        oneof = "EventDataDetailsOneof",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11"
-    )]
-    pub details: Option<EventDataDetailsOneof>,
-}
-
-#[derive(Clone, PartialEq, Oneof)]
-pub enum EventDataDetailsOneof {
-    #[prost(message, tag = "1")]
-    FastestLap(FastestLap),
-    #[prost(message, tag = "2")]
-    Retirement(Retirement),
-    #[prost(message, tag = "3")]
-    RaceWinner(RaceWinner),
-    #[prost(message, tag = "4")]
-    Penalty(Penalty),
-    #[prost(message, tag = "5")]
-    SpeedTrap(SpeedTrap),
-    #[prost(message, tag = "6")]
-    StartLights(StartLights),
-    #[prost(message, tag = "7")]
-    DriveThroughPenaltyServed(DriveThroughPenaltyServed),
-    #[prost(message, tag = "8")]
-    StopGoPenaltyServed(StopGoPenaltyServed),
-    #[prost(message, tag = "9")]
-    Overtake(Overtake),
-    #[prost(message, tag = "10")]
-    SafetyCar(SafetyCar),
-    #[prost(message, tag = "11")]
-    Collision(Collision),
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct FastestLap {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-    #[prost(float, tag = "2")]
-    pub lap_time: f32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct Retirement {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct RaceWinner {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct Penalty {
-    #[prost(uint32, tag = "1")]
-    pub penalty_type: u32,
-    #[prost(uint32, tag = "2")]
-    pub infringement_type: u32,
-    #[prost(string, tag = "3")]
-    pub steam_name: String,
-    #[prost(string, tag = "4")]
-    pub other_steam_name: String,
-    #[prost(uint32, tag = "5")]
-    pub time: u32,
-    #[prost(uint32, tag = "6")]
-    pub lap_num: u32,
-    #[prost(uint32, tag = "7")]
-    pub places_gained: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct SpeedTrap {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-    #[prost(float, tag = "2")]
-    pub speed: f32,
-    #[prost(uint32, tag = "3")]
-    pub is_overall_fastest_in_session: u32,
-    #[prost(uint32, tag = "4")]
-    pub is_driver_fastest_in_session: u32,
-    #[prost(string, tag = "5")]
-    pub fastest_driver_in_session: String,
-    #[prost(float, tag = "6")]
-    pub fastest_speed_in_session: f32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct StartLights {
-    #[prost(uint32, tag = "1")]
-    pub num_lights: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct DriveThroughPenaltyServed {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct StopGoPenaltyServed {
-    #[prost(string, tag = "1")]
-    pub steam_name: String,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct Overtake {
-    #[prost(uint32, tag = "1")]
-    pub overtaking_vehicle_idx: u32,
-    #[prost(uint32, tag = "2")]
-    pub being_overtaken_vehicle_idx: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct SafetyCar {
-    #[prost(uint32, tag = "1")]
-    pub safety_car_type: u32,
-    #[prost(uint32, tag = "2")]
-    pub event_type: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct Collision {
-    #[prost(uint32, tag = "1")]
-    pub vehicle1_idx: u32,
-    #[prost(uint32, tag = "2")]
-    pub vehicle2_idx: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct F1TelemetryInfo {
-    #[prost(map = "string, message", tag = "1")]
-    pub player_telemetry: HashMap<String, PlayerTelemetry>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct PlayerTelemetry {
-    #[prost(message, optional, tag = "1")]
-    pub car_telemetry: Option<CarTelemetryData>,
-    #[prost(message, optional, tag = "2")]
-    pub car_status: Option<CarStatusData>,
-    #[prost(message, optional, tag = "3")]
-    pub car_damage: Option<CarDamageData>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct CarTelemetryData {
-    #[prost(uint32, optional, tag = "1")]
-    pub speed: Option<u32>,
-    #[prost(float, optional, tag = "2")]
-    pub throttle: Option<f32>,
-    #[prost(float, optional, tag = "3")]
-    pub steer: Option<f32>,
-    #[prost(float, optional, tag = "4")]
-    pub brake: Option<f32>,
-    #[prost(sint32, optional, tag = "6")]
-    pub gear: Option<i32>,
-    #[prost(uint32, optional, tag = "7")]
-    pub engine_rpm: Option<u32>,
-    #[prost(bool, optional, tag = "8")]
-    pub drs: Option<bool>,
-    #[prost(uint32, repeated, packed = "true", tag = "9")]
-    pub brakes_temperature: Vec<u32>,
-    #[prost(uint32, repeated, tag = "10")]
-    pub tyres_surface_temperature: Vec<u32>,
-    #[prost(uint32, repeated, tag = "11")]
-    pub tyres_inner_temperature: Vec<u32>,
-    #[prost(uint32, optional, tag = "12")]
-    pub engine_temperature: Option<u32>,
-    #[prost(float, repeated, packed = "true", tag = "13")]
-    pub tyres_pressure: Vec<f32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct CarStatusData {
-    #[prost(uint32, optional, tag = "1")]
-    pub fuel_mix: Option<u32>,
-    #[prost(uint32, optional, tag = "2")]
-    pub front_brake_bias: Option<u32>,
-    #[prost(float, optional, tag = "3")]
-    pub fuel_in_tank: Option<f32>,
-    #[prost(float, optional, tag = "4")]
-    pub fuel_capacity: Option<f32>,
-    #[prost(float, optional, tag = "5")]
-    pub fuel_remaining_laps: Option<f32>,
-    #[prost(bool, optional, tag = "6")]
-    pub drs_allowed: Option<bool>,
-    #[prost(uint32, optional, tag = "7")]
-    pub drs_activation_distance: Option<u32>,
-    #[prost(uint32, optional, tag = "8")]
-    pub actual_tyre_compound: Option<u32>,
-    #[prost(uint32, optional, tag = "9")]
-    pub visual_tyre_compound: Option<u32>,
-    #[prost(uint32, optional, tag = "10")]
-    pub tyres_age_laps: Option<u32>,
-    #[prost(sint32, optional, tag = "11")]
-    pub vehicle_fia_flags: Option<i32>,
-    #[prost(float, optional, tag = "12")]
-    pub engine_power_ice: Option<f32>,
-    #[prost(float, optional, tag = "13")]
-    pub engine_power_mguk: Option<f32>,
-    #[prost(float, optional, tag = "14")]
-    pub ers_store_energy: Option<f32>,
-    #[prost(uint32, optional, tag = "15")]
-    pub ers_deploy_mode: Option<u32>,
-    #[prost(float, optional, tag = "16")]
-    pub ers_harvested_this_lap_mguk: Option<f32>,
-    #[prost(float, optional, tag = "17")]
-    pub ers_harvested_this_lap_mguh: Option<f32>,
-    #[prost(float, optional, tag = "18")]
-    pub ers_deployed_this_lap: Option<f32>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct CarDamageData {
-    #[prost(float, repeated, tag = "1")]
-    pub tyres_wear: Vec<f32>,
-    #[prost(uint32, repeated, tag = "2")]
-    pub tyres_damage: Vec<u32>,
-    #[prost(uint32, repeated, tag = "3")]
-    pub brakes_damage: Vec<u32>,
-    #[prost(uint32, optional, tag = "4")]
-    pub front_left_wing_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "5")]
-    pub front_right_wing_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "6")]
-    pub rear_wing_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "7")]
-    pub floor_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "8")]
-    pub diffuser_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "9")]
-    pub sidepod_damage: Option<u32>,
-    #[prost(bool, optional, tag = "10")]
-    pub drs_fault: Option<bool>,
-    #[prost(bool, optional, tag = "11")]
-    pub ers_fault: Option<bool>,
-    #[prost(uint32, optional, tag = "12")]
-    pub gear_box_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "13")]
-    pub engine_damage: Option<u32>,
-    #[prost(uint32, optional, tag = "14")]
-    pub engine_mguh_wear: Option<u32>,
-    #[prost(uint32, optional, tag = "15")]
-    pub engine_es_wear: Option<u32>,
-    #[prost(uint32, optional, tag = "16")]
-    pub engine_ce_wear: Option<u32>,
-    #[prost(uint32, optional, tag = "17")]
-    pub engine_ice_wear: Option<u32>,
-    #[prost(uint32, optional, tag = "18")]
-    pub engine_mguk_wear: Option<u32>,
-    #[prost(uint32, optional, tag = "19")]
-    pub engine_tc_wear: Option<u32>,
-    #[prost(bool, optional, tag = "20")]
-    pub engine_blown: Option<bool>,
-    #[prost(bool, optional, tag = "21")]
-    pub engine_seized: Option<bool>,
-}
 
 impl HistoryData {
     #[inline(always)]
@@ -1102,26 +671,26 @@ impl EventData {
         let details = match event_code {
             EventCode::FastestLap => {
                 let fastest_lap = unsafe { &event_data_details.fastest_lap };
-                EventDataDetailsOneof::FastestLap(FastestLap {
+                Details::FastestLap(FastestLap {
                     steam_name: Self::get_steam_name(participants, fastest_lap.vehicle_idx),
                     lap_time: fastest_lap.lap_time,
                 })
             }
             EventCode::Retirement => {
                 let retirement = unsafe { &event_data_details.retirement };
-                EventDataDetailsOneof::Retirement(Retirement {
+                Details::Retirement(Retirement {
                     steam_name: Self::get_steam_name(participants, retirement.vehicle_idx),
                 })
             }
             EventCode::RaceWinner => {
                 let race_winner = unsafe { &event_data_details.race_winner };
-                EventDataDetailsOneof::RaceWinner(RaceWinner {
+                Details::RaceWinner(RaceWinner {
                     steam_name: Self::get_steam_name(participants, race_winner.vehicle_idx),
                 })
             }
             EventCode::PenaltyIssued => {
                 let penalty = unsafe { &event_data_details.penalty };
-                EventDataDetailsOneof::Penalty(Penalty {
+                Details::Penalty(Penalty {
                     penalty_type: penalty.penalty_type as u32,
                     infringement_type: penalty.infringement_type as u32,
                     steam_name: Self::get_steam_name(participants, penalty.vehicle_idx),
@@ -1133,7 +702,7 @@ impl EventData {
             }
             EventCode::SpeedTrapTriggered => {
                 let speed_trap = unsafe { &event_data_details.speed_trap };
-                EventDataDetailsOneof::SpeedTrap(SpeedTrap {
+                Details::SpeedTrap(SpeedTrap {
                     steam_name: Self::get_steam_name(participants, speed_trap.vehicle_idx),
                     speed: speed_trap.speed,
                     is_overall_fastest_in_session: speed_trap.is_overall_fastest_in_session as u32,
@@ -1147,39 +716,39 @@ impl EventData {
             }
             EventCode::StartLights => {
                 let start_lights = unsafe { &event_data_details.start_lights };
-                EventDataDetailsOneof::StartLights(StartLights {
+                Details::StartLights(StartLights {
                     num_lights: start_lights.num_lights as u32,
                 })
             }
             EventCode::DriveThroughServed => {
                 let drive_through = unsafe { &event_data_details.drive_through_penalty_served };
-                EventDataDetailsOneof::DriveThroughPenaltyServed(DriveThroughPenaltyServed {
+                Details::DriveThroughPenaltyServed(DriveThroughPenaltyServed {
                     steam_name: Self::get_steam_name(participants, drive_through.vehicle_idx),
                 })
             }
             EventCode::StopGoServed => {
                 let stop_go = unsafe { &event_data_details.stop_go_penalty_served };
-                EventDataDetailsOneof::StopGoPenaltyServed(StopGoPenaltyServed {
+                Details::StopGoPenaltyServed(StopGoPenaltyServed {
                     steam_name: Self::get_steam_name(participants, stop_go.vehicle_idx),
                 })
             }
             EventCode::Overtake => {
                 let overtake = unsafe { &event_data_details.overtake };
-                EventDataDetailsOneof::Overtake(Overtake {
+                Details::Overtake(Overtake {
                     overtaking_vehicle_idx: overtake.overtaking_vehicle_idx as u32,
                     being_overtaken_vehicle_idx: overtake.being_overtaken_vehicle_idx as u32,
                 })
             }
             EventCode::SafetyCar => {
                 let safety_car = unsafe { &event_data_details.safety_car };
-                EventDataDetailsOneof::SafetyCar(SafetyCar {
+                Details::SafetyCar(SafetyCar {
                     safety_car_type: safety_car.safety_car_type as u32,
                     event_type: safety_car.event_type as u32,
                 })
             }
             EventCode::Collision => {
                 let collision = unsafe { &event_data_details.collision };
-                EventDataDetailsOneof::Collision(Collision {
+                Details::Collision(Collision {
                     vehicle1_idx: collision.vehicle1_idx as u32,
                     vehicle2_idx: collision.vehicle2_idx as u32,
                 })
