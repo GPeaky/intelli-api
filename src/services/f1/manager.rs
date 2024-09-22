@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use ahash::{AHashMap, AHashSet};
 use ntex::{
@@ -8,7 +8,7 @@ use ntex::{
 use parking_lot::{Mutex, RwLock};
 use prost::Message;
 use tokio::sync::{
-    broadcast::{self, Receiver},
+    broadcast::{Receiver, Sender},
     oneshot,
 };
 use tracing::error;
@@ -29,14 +29,14 @@ pub struct DriverInfo {
 }
 
 #[derive(Debug)]
-struct F1SessionDataManagerInner {
+pub struct F1SessionDataManagerInner {
     driver_info: RwLock<AHashMap<usize, DriverInfo>>,
     general: RwLock<F1GeneralInfo>,
     telemetry: RwLock<F1TelemetryInfo>,
     last_general: RwLock<F1GeneralInfo>,
     last_general_encoded: RwLock<Option<Bytes>>,
     last_telemetry: RwLock<F1TelemetryInfo>,
-    team_senders: RwLock<AHashMap<u8, broadcast::Sender<Bytes>>>,
+    team_senders: RwLock<AHashMap<u8, Sender<Bytes>>>,
     stop_sender: Mutex<Option<oneshot::Sender<()>>>,
 }
 
@@ -45,8 +45,16 @@ pub struct F1SessionDataManager {
     inner: Arc<F1SessionDataManagerInner>,
 }
 
+impl Deref for F1SessionDataManager {
+    type Target = F1SessionDataManagerInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl F1SessionDataManager {
-    pub fn new(tx: broadcast::Sender<Bytes>) -> Self {
+    pub fn new(tx: Sender<Bytes>) -> Self {
         let inner = Arc::new(F1SessionDataManagerInner {
             driver_info: RwLock::new(AHashMap::new()),
             general: RwLock::new(F1GeneralInfo::default()),
@@ -65,13 +73,12 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn cache(&self) -> Option<Bytes> {
-        self.inner.last_general_encoded.read().clone()
+        self.last_general_encoded.read().clone()
     }
 
     #[allow(unused)]
     pub fn get_team_receiver(&self, team_id: u8) -> Option<Receiver<Bytes>> {
-        self.inner
-            .team_senders
+        self.team_senders
             .read()
             .get(&team_id)
             .map(|sender| sender.subscribe())
@@ -79,9 +86,9 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn push_event(&self, event: &PacketEventData) {
-        let driver_info = self.inner.driver_info.read();
+        let driver_info = self.driver_info.read();
         if let Some(event_data) = EventData::from_f1(event, &driver_info) {
-            let mut general = self.inner.general.write();
+            let mut general = self.general.write();
             general
                 .events
                 .get_or_insert_with(PacketsEventsData::default)
@@ -92,8 +99,9 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn save_motion(&self, packet: &PacketMotionData) {
-        let driver_info = self.inner.driver_info.read();
-        let mut general = self.inner.general.write();
+        let driver_info = self.driver_info.read();
+        let mut general = self.general.write();
+
         for (i, motion_data) in packet.car_motion_data.iter().enumerate() {
             if motion_data.world_position_x == 0f32 {
                 continue;
@@ -109,15 +117,16 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn save_session(&self, packet: &PacketSessionData) {
-        let mut general = self.inner.general.write();
+        let mut general = self.general.write();
         general.update_session(packet);
     }
 
     #[inline(always)]
     pub fn save_lap_history(&self, packet: &PacketSessionHistoryData) {
-        let driver_info = self.inner.driver_info.read();
+        let driver_info = self.driver_info.read();
+
         if let Some(driver) = driver_info.get(&(packet.car_idx as usize)) {
-            let mut general = self.inner.general.write();
+            let mut general = self.general.write();
             if let Some(player) = general.players.get_mut(driver.name.as_ref()) {
                 player.update_session_history(packet);
             }
@@ -126,10 +135,10 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn save_participants(&self, packet: &PacketParticipantsData) {
-        let mut driver_info = self.inner.driver_info.write();
-        let mut general = self.inner.general.write();
-        let mut telemetry = self.inner.telemetry.write();
-        let mut team_senders = self.inner.team_senders.write();
+        let mut driver_info = self.driver_info.write();
+        let mut general = self.general.write();
+        let mut telemetry = self.telemetry.write();
+        let mut team_senders = self.team_senders.write();
 
         for i in 0..packet.num_active_cars as usize {
             let Some(participant) = packet.participants.get(i) else {
@@ -167,7 +176,7 @@ impl F1SessionDataManager {
 
             team_senders
                 .entry(participant.team_id)
-                .or_insert_with(|| broadcast::Sender::new(50));
+                .or_insert_with(|| Sender::new(30));
         }
     }
 
@@ -194,8 +203,9 @@ impl F1SessionDataManager {
 
     #[inline(always)]
     pub fn save_final_classification(&self, packet: &PacketFinalClassificationData) {
-        let driver_info = self.inner.driver_info.read();
-        let mut general = self.inner.general.write();
+        let driver_info = self.driver_info.read();
+        let mut general = self.general.write();
+
         for (i, classification_data) in packet.classification_data.iter().enumerate() {
             if let Some(driver) = driver_info.get(&i) {
                 if let Some(player) = general.players.get_mut(driver.name.as_ref()) {
@@ -210,8 +220,8 @@ impl F1SessionDataManager {
     where
         F: FnMut(&mut PlayerTelemetry, &T),
     {
-        let driver_info = self.inner.driver_info.read();
-        let mut telemetry = self.inner.telemetry.write();
+        let driver_info = self.driver_info.read();
+        let mut telemetry = self.telemetry.write();
 
         for (i, data) in packet_data.iter().enumerate() {
             if let Some(driver) = driver_info.get(&i) {
@@ -225,7 +235,7 @@ impl F1SessionDataManager {
     }
 
     #[inline(always)]
-    fn spawn_update_task(&mut self, tx: broadcast::Sender<Bytes>) {
+    fn spawn_update_task(&mut self, tx: Sender<Bytes>) {
         let (stop_sender, mut stop_receiver) = oneshot::channel();
         *self.inner.stop_sender.lock() = Some(stop_sender);
 
@@ -250,7 +260,7 @@ impl F1SessionDataManager {
     }
 
     #[inline(always)]
-    fn send_general_updates(inner: &Arc<F1SessionDataManagerInner>, tx: &broadcast::Sender<Bytes>) {
+    fn send_general_updates(inner: &Arc<F1SessionDataManagerInner>, tx: &Sender<Bytes>) {
         if tx.receiver_count() == 0 {
             return;
         }
@@ -342,7 +352,7 @@ impl F1SessionDataManager {
 
 impl Drop for F1SessionDataManager {
     fn drop(&mut self) {
-        if let Some(sender) = self.inner.stop_sender.lock().take() {
+        if let Some(sender) = self.stop_sender.lock().take() {
             let _ = sender.send(());
         }
     }

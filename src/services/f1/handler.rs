@@ -142,15 +142,18 @@ impl F1ServiceHandler {
         let Some(service) = self.services.get(id) else {
             return ServiceStatus {
                 active: false,
-                connections: 0,
+                general_conn: 0,
+                engineer_conn: 0,
             };
         };
 
-        let connections = service.global_count();
+        let general_conn = service.global_count();
+        let engineer_conn = service.all_team_count();
 
         ServiceStatus {
             active: true,
-            connections,
+            general_conn,
+            engineer_conn,
         }
     }
 

@@ -1,5 +1,6 @@
 use std::{
     net::SocketAddr,
+    ops::Deref,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
@@ -56,7 +57,7 @@ pub struct F1Service {
     f1_state: &'static F1State,
 }
 
-struct F1ServiceDataInner {
+pub struct F1ServiceDataInner {
     global_channel: Sender<Bytes>,
     global_subscribers: AtomicU32,
     team_subscribers: RwLock<AHashMap<u8, u32>>,
@@ -67,6 +68,14 @@ pub struct F1ServiceData {
     inner: Arc<F1ServiceDataInner>,
     session_manager: F1SessionDataManager,
     shutdown: Option<oneshot::Sender<()>>,
+}
+
+impl Deref for F1ServiceData {
+    type Target = F1ServiceDataInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 /// Tracks the last update times for various packet types.
@@ -506,46 +515,42 @@ impl F1ServiceData {
 
     /// Subscribes to the global broadcast channel.
     pub fn global_sub(&self) -> Receiver<Bytes> {
-        self.inner
-            .global_subscribers
-            .fetch_add(1, Ordering::Relaxed);
-        self.inner.global_channel.subscribe()
+        self.global_subscribers.fetch_add(1, Ordering::Relaxed);
+        self.global_channel.subscribe()
     }
 
     /// Subscribes to a team-specific broadcast channel.
     pub fn team_sub(&self, team_id: u8) -> Option<Receiver<Bytes>> {
         let receiver = self.session_manager.get_team_receiver(team_id)?;
-        let mut team_subs = self.inner.team_subscribers.write();
+        let mut team_subs = self.team_subscribers.write();
         *team_subs.entry(team_id).or_insert(0) += 1;
         Some(receiver)
     }
 
     /// Gets the current number of global subscribers.
     pub fn global_count(&self) -> u32 {
-        self.inner.global_subscribers.load(Ordering::Relaxed)
+        self.global_subscribers.load(Ordering::Relaxed)
+    }
+
+    /// Gets the current number of subscribers for all teams.
+    pub fn all_team_count(&self) -> u32 {
+        self.team_subscribers.read().values().sum()
     }
 
     /// Gets the current number of subscribers for a specific team.
     #[allow(unused)]
     pub fn team_count(&self, team_id: u8) -> u32 {
-        *self
-            .inner
-            .team_subscribers
-            .read()
-            .get(&team_id)
-            .unwrap_or(&0)
+        *self.team_subscribers.read().get(&team_id).unwrap_or(&0)
     }
 
     /// Decrements the global subscriber count.
     pub fn global_unsub(&self) {
-        self.inner
-            .global_subscribers
-            .fetch_sub(1, Ordering::Relaxed);
+        self.global_subscribers.fetch_sub(1, Ordering::Relaxed);
     }
 
     /// Decrements the team subscriber count.
     pub fn team_unsub(&self, team_id: u8) {
-        let mut team_subs = self.inner.team_subscribers.write();
+        let mut team_subs = self.team_subscribers.write();
         if let Some(count) = team_subs.get_mut(&team_id) {
             if *count > 0 {
                 *count -= 1;
