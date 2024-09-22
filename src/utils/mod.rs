@@ -23,7 +23,7 @@ where
 }
 
 pub fn header_cast(bytes: &[u8]) -> AppResult<&PacketHeader> {
-    if !mem::size_of::<PacketHeader>() >= bytes.len() {
+    if mem::size_of::<PacketHeader>() > bytes.len() {
         Err(F1ServiceError::CastingError)?;
     }
 

@@ -702,9 +702,165 @@ impl PlayerTelemetry {
                 .extend_from_slice(&tyres_pressure_ptr.read_unaligned());
         }
     }
+
+    #[inline(always)]
+    pub fn diff(&self, last: &Self) -> Option<Self> {
+        let mut diff = PlayerTelemetry::default();
+        let mut has_changes = false;
+
+        // Compare car_telemetry
+        if let (Some(cur_telemetry), Some(last_telemetry)) =
+            (&self.car_telemetry, &last.car_telemetry)
+        {
+            let mut diff_telemetry = CarTelemetryData::default();
+            let mut telemetry_changed = false;
+
+            macro_rules! diff_telemetry_field {
+                ($field:ident) => {
+                    if cur_telemetry.$field != last_telemetry.$field {
+                        diff_telemetry.$field = cur_telemetry.$field;
+                        telemetry_changed = true;
+                    }
+                };
+            }
+
+            diff_telemetry_field!(speed);
+            diff_telemetry_field!(throttle);
+            diff_telemetry_field!(steer);
+            diff_telemetry_field!(brake);
+            diff_telemetry_field!(gear);
+            diff_telemetry_field!(engine_rpm);
+            diff_telemetry_field!(drs);
+            diff_telemetry_field!(engine_temperature);
+
+            if cur_telemetry.brakes_temperature != last_telemetry.brakes_temperature {
+                diff_telemetry.brakes_temperature = cur_telemetry.brakes_temperature.clone();
+                telemetry_changed = true;
+            }
+
+            if cur_telemetry.tyres_surface_temperature != last_telemetry.tyres_surface_temperature {
+                diff_telemetry.tyres_surface_temperature =
+                    cur_telemetry.tyres_surface_temperature.clone();
+                telemetry_changed = true;
+            }
+
+            if cur_telemetry.tyres_inner_temperature != last_telemetry.tyres_inner_temperature {
+                diff_telemetry.tyres_inner_temperature =
+                    cur_telemetry.tyres_inner_temperature.clone();
+                telemetry_changed = true;
+            }
+
+            if cur_telemetry.tyres_pressure != last_telemetry.tyres_pressure {
+                diff_telemetry.tyres_pressure = cur_telemetry.tyres_pressure.clone();
+                telemetry_changed = true;
+            }
+
+            if telemetry_changed {
+                diff.car_telemetry = Some(diff_telemetry);
+                has_changes = true;
+            }
+        } else if self.car_telemetry != last.car_telemetry {
+            diff.car_telemetry = self.car_telemetry.clone();
+            has_changes = true;
+        }
+
+        // Compare car_status
+        if let (Some(cur_status), Some(last_status)) = (&self.car_status, &last.car_status) {
+            let mut diff_status = CarStatusData::default();
+            let mut status_changed = false;
+
+            macro_rules! diff_status_field {
+                ($field:ident) => {
+                    if cur_status.$field != last_status.$field {
+                        diff_status.$field = cur_status.$field;
+                        status_changed = true;
+                    }
+                };
+            }
+
+            diff_status_field!(fuel_mix);
+            diff_status_field!(front_brake_bias);
+            diff_status_field!(fuel_in_tank);
+            diff_status_field!(fuel_capacity);
+            diff_status_field!(fuel_remaining_laps);
+            diff_status_field!(drs_allowed);
+            diff_status_field!(drs_activation_distance);
+            diff_status_field!(actual_tyre_compound);
+            diff_status_field!(visual_tyre_compound);
+            diff_status_field!(tyres_age_laps);
+            diff_status_field!(vehicle_fia_flags);
+            diff_status_field!(engine_power_ice);
+            diff_status_field!(engine_power_mguk);
+            diff_status_field!(ers_store_energy);
+            diff_status_field!(ers_deploy_mode);
+            diff_status_field!(ers_harvested_this_lap_mguk);
+            diff_status_field!(ers_harvested_this_lap_mguh);
+            diff_status_field!(ers_deployed_this_lap);
+
+            if status_changed {
+                diff.car_status = Some(diff_status);
+                has_changes = true;
+            }
+        } else if self.car_status != last.car_status {
+            diff.car_status = self.car_status.clone();
+            has_changes = true;
+        }
+
+        // Compare car_damage
+        if let (Some(cur_damage), Some(last_damage)) = (&self.car_damage, &last.car_damage) {
+            let mut diff_damage = CarDamageData::default();
+            let mut damage_changed = false;
+
+            macro_rules! diff_damage_field {
+                ($field:ident) => {
+                    if cur_damage.$field != last_damage.$field {
+                        diff_damage.$field = cur_damage.$field.clone();
+                        damage_changed = true;
+                    }
+                };
+            }
+
+            diff_damage_field!(tyres_wear);
+            diff_damage_field!(tyres_damage);
+            diff_damage_field!(brakes_damage);
+            diff_damage_field!(front_left_wing_damage);
+            diff_damage_field!(front_right_wing_damage);
+            diff_damage_field!(rear_wing_damage);
+            diff_damage_field!(floor_damage);
+            diff_damage_field!(diffuser_damage);
+            diff_damage_field!(sidepod_damage);
+            diff_damage_field!(drs_fault);
+            diff_damage_field!(ers_fault);
+            diff_damage_field!(gear_box_damage);
+            diff_damage_field!(engine_damage);
+            diff_damage_field!(engine_mguh_wear);
+            diff_damage_field!(engine_es_wear);
+            diff_damage_field!(engine_ce_wear);
+            diff_damage_field!(engine_ice_wear);
+            diff_damage_field!(engine_mguk_wear);
+            diff_damage_field!(engine_tc_wear);
+            diff_damage_field!(engine_blown);
+            diff_damage_field!(engine_seized);
+
+            if damage_changed {
+                diff.car_damage = Some(diff_damage);
+                has_changes = true;
+            }
+        } else if self.car_damage != last.car_damage {
+            diff.car_damage = self.car_damage.clone();
+            has_changes = true;
+        }
+
+        if has_changes {
+            Some(diff)
+        } else {
+            None
+        }
+    }
 }
 
 impl F1GeneralInfo {
+    #[inline(always)]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
         let session = self.session.get_or_insert_with(Default::default);
         session.weather = Some(packet.weather as u32);
@@ -731,8 +887,181 @@ impl F1GeneralInfo {
                 .map(|&x| x as u32),
         );
     }
+
+    #[inline(always)]
+    pub fn diff(&self, last: &Self) -> Option<Self> {
+        let mut diff = F1GeneralInfo::default();
+        let mut has_changes = false;
+
+        // Optimized session diff
+        if let (Some(cur_session), Some(last_session)) = (&self.session, &last.session) {
+            let mut diff_session = SessionData::default();
+            let mut session_changed = false;
+
+            macro_rules! diff_session_field {
+                ($field:ident) => {
+                    if cur_session.$field != last_session.$field {
+                        diff_session.$field = cur_session.$field;
+                        session_changed = true;
+                    }
+                };
+            }
+
+            diff_session_field!(weather);
+            diff_session_field!(track_temperature);
+            diff_session_field!(air_temperature);
+            diff_session_field!(total_laps);
+            diff_session_field!(track_length);
+            diff_session_field!(session_type);
+            diff_session_field!(track_id);
+            diff_session_field!(session_time_left);
+            diff_session_field!(session_duration);
+            diff_session_field!(safety_car_status);
+            diff_session_field!(session_length);
+            diff_session_field!(num_safety_car);
+            diff_session_field!(num_virtual_safety_car);
+            diff_session_field!(num_red_flags);
+            diff_session_field!(s2_lap_distance_start);
+            diff_session_field!(s3_lap_distance_start);
+
+            // Optimized weekend_structure diff
+            if cur_session.weekend_structure.len() > last_session.weekend_structure.len() {
+                diff_session.weekend_structure =
+                    cur_session.weekend_structure[last_session.weekend_structure.len()..].to_vec();
+                session_changed = true;
+            }
+
+            if session_changed {
+                diff.session = Some(diff_session);
+                has_changes = true;
+            }
+        } else if self.session != last.session {
+            diff.session = self.session.clone();
+            has_changes = true;
+        }
+
+        // Optimized events diff
+        if let (Some(cur_events), Some(last_events)) = (&self.events, &last.events) {
+            let mut diff_events = Vec::new();
+            let cur_event_map: AHashMap<_, _> = cur_events
+                .events
+                .iter()
+                .map(|e| (&e.string_code, e))
+                .collect();
+            let last_event_map: AHashMap<_, _> = last_events
+                .events
+                .iter()
+                .map(|e| (&e.string_code, e))
+                .collect();
+
+            for (code, cur_event) in &cur_event_map {
+                if !last_event_map.contains_key(code) {
+                    diff_events.push((*cur_event).clone());
+                }
+            }
+
+            if !diff_events.is_empty() {
+                diff.events = Some(PacketsEventsData {
+                    events: diff_events,
+                });
+                has_changes = true;
+            }
+        } else if self.events != last.events {
+            diff.events = self.events.clone();
+            has_changes = true;
+        }
+
+        // Optimized players diff
+        for (key, cur_player) in &self.players {
+            if let Some(last_player) = last.players.get(key) {
+                let mut diff_player = PlayerInfo::default();
+                let mut player_changed = false;
+
+                if cur_player.participant != last_player.participant {
+                    diff_player.participant = cur_player.participant;
+                    player_changed = true;
+                }
+
+                if cur_player.car_motion != last_player.car_motion {
+                    diff_player.car_motion = cur_player.car_motion;
+                    player_changed = true;
+                }
+
+                if let (Some(cur_history), Some(last_history)) =
+                    (&cur_player.lap_history, &last_player.lap_history)
+                {
+                    let mut diff_history = HistoryData::default();
+                    let mut history_changed = false;
+
+                    macro_rules! diff_history_field {
+                        ($field:ident) => {
+                            if cur_history.$field != last_history.$field {
+                                diff_history.$field = cur_history.$field;
+                                history_changed = true;
+                            }
+                        };
+                    }
+
+                    diff_history_field!(num_laps);
+                    diff_history_field!(num_tyre_stints);
+                    diff_history_field!(best_lap_time_lap_num);
+                    diff_history_field!(best_s1_lap_num);
+                    diff_history_field!(best_s2_lap_num);
+                    diff_history_field!(best_s3_lap_num);
+
+                    // Only add new lap history data
+                    if cur_history.lap_history_data.len() > last_history.lap_history_data.len() {
+                        diff_history.lap_history_data = cur_history.lap_history_data
+                            [last_history.lap_history_data.len()..]
+                            .to_vec();
+                        history_changed = true;
+                    }
+
+                    // Only add new tyre stint history data
+                    if cur_history.tyre_stints_history_data.len()
+                        > last_history.tyre_stints_history_data.len()
+                    {
+                        diff_history.tyre_stints_history_data = cur_history
+                            .tyre_stints_history_data
+                            [last_history.tyre_stints_history_data.len()..]
+                            .to_vec();
+                        history_changed = true;
+                    }
+
+                    if history_changed {
+                        diff_player.lap_history = Some(diff_history);
+                        player_changed = true;
+                    }
+                } else if cur_player.lap_history != last_player.lap_history {
+                    diff_player.lap_history = cur_player.lap_history.clone();
+                    player_changed = true;
+                }
+
+                if cur_player.final_classification != last_player.final_classification {
+                    diff_player.final_classification = cur_player.final_classification.clone();
+                    player_changed = true;
+                }
+
+                if player_changed {
+                    diff.players.insert(key.clone(), diff_player);
+                    has_changes = true;
+                }
+            } else {
+                diff.players.insert(key.clone(), cur_player.clone());
+                has_changes = true;
+            }
+        }
+
+        if has_changes {
+            Some(diff)
+        } else {
+            None
+        }
+    }
 }
+
 impl EventData {
+    #[inline(always)]
     pub fn from_f1(
         f1_event: &F1PacketEventData,
         participants: &AHashMap<usize, DriverInfo>,
@@ -756,6 +1085,7 @@ impl EventData {
         })
     }
 
+    #[inline(always)]
     fn get_steam_name(participants: &AHashMap<usize, DriverInfo>, vehicle_idx: u8) -> String {
         participants
             .get(&(vehicle_idx as usize))
@@ -763,6 +1093,7 @@ impl EventData {
             .unwrap_or_else(|| format!("Unknown Driver {}", vehicle_idx))
     }
 
+    #[inline(always)]
     fn convert_event_data_details(
         event_code: &EventCode,
         event_data_details: &F1EventDataDetails,

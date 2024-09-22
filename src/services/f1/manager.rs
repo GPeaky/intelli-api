@@ -5,7 +5,7 @@ use ntex::{
     time::interval,
     util::{Bytes, BytesMut},
 };
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use prost::Message;
 use tokio::sync::{broadcast, oneshot};
 use tracing::error;
@@ -21,10 +21,11 @@ use crate::{
 
 #[derive(Debug)]
 pub struct DriverInfo {
-    pub(crate) name: Box<str>,
-    pub(crate) team_id: u8,
+    pub name: Box<str>,
+    pub team_id: u8,
 }
 
+#[derive(Debug)]
 struct F1SessionDataManagerInner {
     driver_info: RwLock<AHashMap<usize, DriverInfo>>,
     general: RwLock<F1GeneralInfo>,
@@ -33,11 +34,12 @@ struct F1SessionDataManagerInner {
     last_general_encoded: RwLock<Option<Bytes>>,
     last_telemetry: RwLock<F1TelemetryInfo>,
     team_senders: RwLock<AHashMap<u8, broadcast::Sender<Bytes>>>,
+    stop_sender: Mutex<Option<oneshot::Sender<()>>>,
 }
 
+#[derive(Clone)]
 pub struct F1SessionDataManager {
     inner: Arc<F1SessionDataManagerInner>,
-    stop_sender: Option<oneshot::Sender<()>>,
 }
 
 impl F1SessionDataManager {
@@ -50,13 +52,10 @@ impl F1SessionDataManager {
             last_general_encoded: RwLock::new(None),
             last_telemetry: RwLock::new(F1TelemetryInfo::default()),
             team_senders: RwLock::new(AHashMap::new()),
+            stop_sender: Mutex::new(None),
         });
 
-        let mut instance = Self {
-            inner,
-            stop_sender: None,
-        };
-
+        let mut instance = Self { inner };
         instance.spawn_update_task(tx);
         instance
     }
@@ -210,6 +209,7 @@ impl F1SessionDataManager {
     {
         let driver_info = self.inner.driver_info.read();
         let mut telemetry = self.inner.telemetry.write();
+
         for (i, data) in packet_data.iter().enumerate() {
             if let Some(driver) = driver_info.get(&i) {
                 if let Some(player_telemetry) =
@@ -224,7 +224,7 @@ impl F1SessionDataManager {
     #[inline(always)]
     fn spawn_update_task(&mut self, tx: broadcast::Sender<Bytes>) {
         let (stop_sender, mut stop_receiver) = oneshot::channel();
-        self.stop_sender = Some(stop_sender);
+        *self.inner.stop_sender.lock() = Some(stop_sender);
 
         let inner = self.inner.clone();
 
@@ -314,21 +314,32 @@ impl F1SessionDataManager {
         *last_telemetry = telemetry.clone();
     }
 
-    fn diff_general(_current: &F1GeneralInfo, _last: &F1GeneralInfo) -> Option<Bytes> {
+    #[inline(always)]
+    fn diff_general(current: &F1GeneralInfo, last: &F1GeneralInfo) -> Option<Bytes> {
+        let diff = current.diff(last);
+
+        if let Some(diff) = diff {
+            let mut buf = BytesMut::with_capacity(diff.encoded_len());
+            diff.encode_raw(&mut buf);
+
+            return Some(buf.freeze());
+        }
+
         None
     }
 
+    #[inline(always)]
     fn diff_player_telemetry(
-        _current: &PlayerTelemetry,
-        _last: &PlayerTelemetry,
+        current: &PlayerTelemetry,
+        last: &PlayerTelemetry,
     ) -> Option<PlayerTelemetry> {
-        None
+        current.diff(last)
     }
 }
 
 impl Drop for F1SessionDataManager {
     fn drop(&mut self) {
-        if let Some(sender) = self.stop_sender.take() {
+        if let Some(sender) = self.inner.stop_sender.lock().take() {
             let _ = sender.send(());
         }
     }

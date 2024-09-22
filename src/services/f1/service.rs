@@ -47,14 +47,14 @@ pub struct F1Service {
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    data_manager: Arc<F1SessionDataManager>,
+    data_manager: F1SessionDataManager,
     services: &'static DashMap<i32, F1ServiceData>,
     f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
-    session_manager: Arc<F1SessionDataManager>,
+    session_manager: F1SessionDataManager,
     channel: Arc<Receiver<Bytes>>,
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
@@ -84,7 +84,7 @@ impl F1Service {
     /// # Returns
     /// A new F1Service instance.
     pub async fn new(
-        data_manager: Arc<F1SessionDataManager>,
+        data_manager: F1SessionDataManager,
         shutdown: oneshot::Receiver<()>,
         services: &'static DashMap<i32, F1ServiceData>,
         f1_state: &'static F1State,
@@ -479,7 +479,7 @@ impl F1ServiceData {
     /// # Returns
     /// A new F1ServiceData instance.
     pub fn new(
-        session_manager: Arc<F1SessionDataManager>,
+        session_manager: F1SessionDataManager,
         channel: Arc<Receiver<Bytes>>,
         shutdown: oneshot::Sender<()>,
     ) -> Self {
