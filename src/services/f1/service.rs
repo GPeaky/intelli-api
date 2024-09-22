@@ -12,7 +12,10 @@ use dashmap::DashMap;
 use ntex::util::Bytes;
 use tokio::{
     net::UdpSocket,
-    sync::{broadcast::Receiver, oneshot},
+    sync::{
+        broadcast::{Receiver, Sender},
+        oneshot,
+    },
     time::{timeout, Instant},
 };
 use tracing::{error, info, info_span};
@@ -55,7 +58,7 @@ pub struct F1Service {
 /// Holds data related to an F1 service instance.
 pub struct F1ServiceData {
     session_manager: F1SessionDataManager,
-    channel: Arc<Receiver<Bytes>>,
+    channel: Arc<Sender<Bytes>>,
     counter: Arc<AtomicU32>,
     shutdown: Option<oneshot::Sender<()>>,
 }
@@ -480,7 +483,7 @@ impl F1ServiceData {
     /// A new F1ServiceData instance.
     pub fn new(
         session_manager: F1SessionDataManager,
-        channel: Arc<Receiver<Bytes>>,
+        channel: Arc<Sender<Bytes>>,
         shutdown: oneshot::Sender<()>,
     ) -> Self {
         Self {
@@ -491,6 +494,7 @@ impl F1ServiceData {
         }
     }
 
+    #[inline(always)]
     pub fn cache(&self) -> Option<Bytes> {
         self.session_manager.cache()
     }
@@ -501,7 +505,7 @@ impl F1ServiceData {
     /// A new Receiver for the broadcast channel.
     pub fn subscribe(&self) -> Receiver<Bytes> {
         self.counter.fetch_add(1, Ordering::Relaxed);
-        self.channel.resubscribe()
+        self.channel.subscribe()
     }
 
     /// Gets the current number of subscribers.

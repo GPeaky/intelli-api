@@ -371,7 +371,7 @@ impl PlayerTelemetry {
                 has_changes = true;
             }
         } else if self.car_status != last.car_status {
-            diff.car_status = self.car_status.clone();
+            diff.car_status = self.car_status;
             has_changes = true;
         }
 

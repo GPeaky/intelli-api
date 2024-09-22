@@ -160,9 +160,9 @@ impl F1ServiceHandler {
         }
 
         let (otx, orx) = oneshot::channel::<()>();
-        let (tx, rx) = channel::<Bytes>(50);
-        let session_manager = F1SessionDataManager::new(tx);
-        let service_data = F1ServiceData::new(session_manager.clone(), Arc::new(rx), otx);
+        let (tx, _) = channel::<Bytes>(50);
+        let session_manager = F1SessionDataManager::new(tx.clone());
+        let service_data = F1ServiceData::new(session_manager.clone(), Arc::new(tx), otx);
         let mut service = F1Service::new(session_manager, orx, self.services, self.f1_state).await;
 
         // TODO: Add real race_id
