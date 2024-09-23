@@ -1,5 +1,4 @@
 use crate::config::constants::IDS_POOL_SIZE;
-use crate::utils::bitset::Bitset;
 use ahash::AHashSet;
 use parking_lot::Mutex;
 use ring::rand::{SecureRandom, SystemRandom};
@@ -8,46 +7,71 @@ use std::{
     simd::{i32x16, num::SimdInt, Simd},
 };
 
-// Enums
-#[derive(PartialEq)]
+/// A structure to manage a set of bits efficiently.
+struct Bitset {
+    bits: Vec<u8>,
+    range: Range<i32>,
+}
+
+impl Bitset {
+    /// Creates a new Bitset for the given range.
+    fn new(range: Range<i32>) -> Self {
+        let size = ((range.end - range.start) as usize + 7) / 8;
+
+        Self {
+            bits: vec![0; size],
+            range,
+        }
+    }
+
+    /// Checks if the bit is set, and if not, sets it.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as unsafe because it uses unchecked indexing.
+    /// It assumes that the value is always within the range provided during the creation of the Bitset.
+    unsafe fn insert(&mut self, value: i32) -> bool {
+        let index = (value - self.range.start) as usize;
+        let byte = self.bits.get_unchecked_mut(index / 8);
+        let mask = 1 << (index % 8);
+
+        if *byte & mask == 0 {
+            *byte |= mask;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+/// Enum to represent the type of container used for storing IDs.
 pub enum ContainerType {
     HashSet,
     BitSet,
 }
 
+/// Enum to represent the internal container for storing IDs.
 enum IdsContainer {
-    HashSet(AHashSet<i32>, Range<i32>, usize), // TODO: Try to remove metadata
+    HashSet(AHashSet<i32>, Range<i32>, usize),
     BitSet(Bitset),
 }
 
-// Structs
-/// Generates unique IDs within a specified range.
-#[derive(Clone)]
+/// Structure to hold the IDs data.
+struct IdsData {
+    ids: Vec<i32>,
+    container: IdsContainer,
+}
+
+/// Generator for unique IDs within a specified range.
 pub struct IdsGenerator {
     data: &'static Mutex<IdsData>,
     range: Range<i32>,
     valid_range: i32,
 }
 
-struct IdsData {
-    ids: Vec<i32>,
-    container: IdsContainer,
-}
-
-// Implementations
 impl IdsContainer {
     /// Creates a new `IdsContainer`.
-    ///
-    /// # Arguments
-    ///
-    /// * `range` - The range of valid IDs.
-    /// * `in_use_ids` - A vector of IDs already in use.
-    /// * `valid_range` - The range of valid IDs.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `IdsContainer`.
-    pub fn new(range: Range<i32>, in_use_ids: Vec<i32>, valid_range: i32) -> Self {
+    fn new(range: Range<i32>, in_use_ids: Vec<i32>, valid_range: i32) -> Self {
         let threshold = (valid_range as usize + 7) / 8;
 
         if in_use_ids.len() * 9 > threshold {
@@ -67,9 +91,8 @@ impl IdsContainer {
         }
     }
 
-    /// Checks if the number of used IDs exceeds a threshold.
-    #[inline]
-    pub fn check_threshold(&mut self) {
+    /// Checks if the number of used IDs exceeds a threshold and converts to BitSet if necessary.
+    fn check_threshold(&mut self) {
         if let IdsContainer::HashSet(ref hashset, range, threshold) = self {
             if hashset.len() * 9 > *threshold {
                 let mut bitset = Bitset::new(range.clone());
@@ -84,24 +107,15 @@ impl IdsContainer {
     }
 
     /// Inserts a new ID into the container.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ID to insert.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the ID was successfully inserted, `false` otherwise.
-    #[inline]
-    pub fn insert(&mut self, id: i32) -> bool {
+    fn insert(&mut self, id: i32) -> bool {
         match self {
             IdsContainer::BitSet(bitset) => unsafe { bitset.insert(id) },
             IdsContainer::HashSet(hashset, _, _) => hashset.insert(id),
         }
     }
 
-    #[allow(unused)]
-    pub fn container_type(&self) -> ContainerType {
+    /// Returns the type of the container.
+    fn container_type(&self) -> ContainerType {
         match self {
             IdsContainer::HashSet(..) => ContainerType::HashSet,
             IdsContainer::BitSet(..) => ContainerType::BitSet,
@@ -111,15 +125,6 @@ impl IdsContainer {
 
 impl IdsGenerator {
     /// Creates a new `IdsGenerator`.
-    ///
-    /// # Arguments
-    ///
-    /// * `range` - A range of integers within which IDs will be generated.
-    /// * `in_use_ids` - A vector of IDs that are already in use and should not be generated.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `IdsGenerator`.
     pub fn new(range: Range<i32>, in_use_ids: Vec<i32>) -> Self {
         let valid_range = range.end - range.start;
         let container = IdsContainer::new(range.clone(), in_use_ids, valid_range);
@@ -166,11 +171,19 @@ impl IdsGenerator {
         }
     }
 
+    /// Returns the current type of container being used.
+    ///
+    /// # Note
+    ///
+    /// This method should be used sparingly, primarily for debugging or logging purposes.
+    /// Frequent calls may impact performance due to locking.
+    #[allow(unused)]
+    pub fn container_type(&self) -> ContainerType {
+        let data = self.data.lock();
+        data.container.container_type()
+    }
+
     /// Refills the pool of available IDs.
-    ///
-    /// # Arguments
-    ///
-    /// * `ids` - A mutable reference to a vector of IDs to be refilled.
     fn refill(&self, data: &mut IdsData) {
         let rng = SystemRandom::new();
         let mut buf = [0i32; IDS_POOL_SIZE];
@@ -203,7 +216,6 @@ impl IdsGenerator {
     }
 }
 
-// Tests module
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -253,7 +265,6 @@ mod tests {
         let generator = IdsGenerator::new(range.clone(), vec![]);
 
         for _ in 0..99 {
-            // Generate only up to the range size
             let id = generator.next();
             assert!(range.contains(&id), "ID {} is out of range {:?}", id, range);
         }
@@ -288,7 +299,6 @@ mod tests {
         let generator = IdsGenerator::new(range, vec![]);
 
         for _ in 0..11 {
-            // Try to generate one more ID than the range allows
             generator.next();
         }
     }

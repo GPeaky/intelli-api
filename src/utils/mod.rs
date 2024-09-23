@@ -10,7 +10,6 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Deserializer};
 use std::mem;
 
-mod bitset;
 mod ids_generator;
 mod password_hash;
 mod ports;
