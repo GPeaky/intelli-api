@@ -44,12 +44,7 @@ impl EmailService {
     ///
     /// # Returns
     /// `AppResult<()>`: Ok if successfully queued, Err otherwise.
-    pub async fn send_mail<'a, T>(
-        &self,
-        user: SharedUser,
-        subject: &'a str,
-        body: T,
-    ) -> AppResult<()>
+    pub async fn send_mail<T>(&self, user: SharedUser, subject: &str, body: T) -> AppResult<()>
     where
         T: TemplateSimple,
     {

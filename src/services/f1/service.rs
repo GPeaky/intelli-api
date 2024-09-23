@@ -39,7 +39,7 @@ use crate::{
 
 use super::manager::F1SessionDataManager;
 
-const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minutes)
+const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minute)
 
 /// Represents an F1 service that processes and manages F1 telemetry data.
 pub struct F1Service {
@@ -142,7 +142,7 @@ impl F1Service {
             return Err(CommonError::InternalServerError)?;
         };
 
-        // Only for testing this should be send it in the initialize function
+        // Only for testing this should send it in the initialize function
         let race_id = self
             .f1_state
             .championship_svc

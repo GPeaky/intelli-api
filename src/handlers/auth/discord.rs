@@ -35,7 +35,7 @@ pub async fn discord_callback(
                 .create(UserRegistrationData::from_discord_user_info(discord_info))
                 .await?;
 
-            state.user_repo.find(id).await.unwrap().unwrap()
+            state.user_repo.find(id).await?.unwrap()
         }
     };
 

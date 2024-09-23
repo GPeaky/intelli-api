@@ -36,7 +36,7 @@ pub(crate) async fn register(
 
     state.token_svc.save_email_token(token.clone());
 
-    // Should be safe to unwrap the option cause we just created the user above
+    // Should be safe to unwrap the option because we just created the user above
     let user = state.user_repo.find(user_id).await?.unwrap();
 
     let template = EmailVerificationTemplate {

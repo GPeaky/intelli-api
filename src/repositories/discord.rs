@@ -11,7 +11,7 @@ use crate::{
 #[derive(Clone)]
 pub struct DiscordRepository {
     client_id: &'static str,
-    cliente_secret: &'static str,
+    client_secret: &'static str,
     redirect_uri: &'static str,
     client: Client,
 }
@@ -22,7 +22,7 @@ impl DiscordRepository {
     /// Initializes the repository with Discord API credentials from environment variables.
     ///
     /// # Panics
-    /// Panics if any of the required environment variables are missing.
+    /// if any of the required environment variables are missing.
     ///
     /// # Returns
     /// A new DiscordRepository instance.
@@ -32,7 +32,7 @@ impl DiscordRepository {
                 .expect("Missing DISCORD_CLIENT_ID")
                 .leak(),
 
-            cliente_secret: var("DISCORD_CLIENT_SECRET")
+            client_secret: var("DISCORD_CLIENT_SECRET")
                 .expect("Missing DISCORD_CLIENT_SECRET")
                 .leak(),
 
@@ -54,7 +54,7 @@ impl DiscordRepository {
     pub async fn account_info(&self, code: &str) -> AppResult<DiscordUserInfo> {
         let discord_exchange = DiscordExchangeRequest {
             client_id: self.client_id,
-            client_secret: self.cliente_secret,
+            client_secret: self.client_secret,
             grant_type: "authorization_code",
             code,
             redirect_uri: self.redirect_uri,

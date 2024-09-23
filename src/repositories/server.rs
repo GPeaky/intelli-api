@@ -20,13 +20,13 @@ impl ServerRepository {
 
     /// Retrieves the status of active database pools.
     ///
-    /// This method queries the status of the PostgreSQL connection pool
+    /// This method queries the status of the PostgresSQL connection pool
     /// managed by the server. It can be used to monitor the health and
     /// availability of the database resources.
     ///
     /// # Returns
     /// A ConnectionPoolStatus struct containing the status information
-    /// for the PostgreSQL pool.
+    /// for the PostgresSQL pool.
     pub fn active_pools(&self) -> ConnectionPoolStatus {
         let pg_pool = self.db.pg.status();
         pg_pool.into()

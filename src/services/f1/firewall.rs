@@ -231,7 +231,7 @@ impl FirewallService {
         Ok(ruleset)
     }
 
-    /// Executes an nft command with the given arguments.
+    /// Executes a nft command with the given arguments.
     ///
     /// # Arguments
     /// - `args`: Slice of command arguments.
@@ -247,7 +247,7 @@ impl FirewallService {
             .expect("Failed to execute process");
 
         if !output.status.success() {
-            error!("{:?}", std::str::from_utf8(&output.stderr));
+            error!("{:?}", str::from_utf8(&output.stderr));
             Err(FirewallError::ExecutionError)?
         }
 
