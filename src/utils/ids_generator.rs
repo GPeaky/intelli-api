@@ -1,13 +1,26 @@
+use crate::config::constants::IDS_POOL_SIZE;
+use crate::utils::bitset::Bitset;
+use ahash::AHashSet;
+use parking_lot::Mutex;
+use ring::rand::{SecureRandom, SystemRandom};
 use std::{
     ops::Range,
     simd::{i32x16, num::SimdInt, Simd},
 };
 
-use crate::config::constants::IDS_POOL_SIZE;
-use bit_set::BitSet;
-use parking_lot::Mutex;
-use ring::rand::{SecureRandom, SystemRandom};
+// Enums
+#[derive(PartialEq)]
+pub enum ContainerType {
+    HashSet,
+    BitSet,
+}
 
+enum IdsContainer {
+    HashSet(AHashSet<i32>, Range<i32>, usize), // TODO: Try to remove metadata
+    BitSet(Bitset),
+}
+
+// Structs
 /// Generates unique IDs within a specified range.
 #[derive(Clone)]
 pub struct IdsGenerator {
@@ -18,7 +31,82 @@ pub struct IdsGenerator {
 
 struct IdsData {
     ids: Vec<i32>,
-    used_ids: BitSet,
+    container: IdsContainer,
+}
+
+// Implementations
+impl IdsContainer {
+    /// Creates a new `IdsContainer`.
+    ///
+    /// # Arguments
+    ///
+    /// * `range` - The range of valid IDs.
+    /// * `in_use_ids` - A vector of IDs already in use.
+    /// * `valid_range` - The range of valid IDs.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `IdsContainer`.
+    pub fn new(range: Range<i32>, in_use_ids: Vec<i32>, valid_range: i32) -> Self {
+        let threshold = (valid_range as usize + 7) / 8;
+
+        if in_use_ids.len() * 9 > threshold {
+            let mut bitset = Bitset::new(range.clone());
+            for id in in_use_ids {
+                unsafe {
+                    bitset.insert(id);
+                }
+            }
+            IdsContainer::BitSet(bitset)
+        } else {
+            let mut hashset = AHashSet::with_capacity(in_use_ids.len());
+            for id in in_use_ids {
+                hashset.insert(id);
+            }
+            IdsContainer::HashSet(hashset, range, threshold)
+        }
+    }
+
+    /// Checks if the number of used IDs exceeds a threshold.
+    #[inline]
+    pub fn check_threshold(&mut self) {
+        if let IdsContainer::HashSet(ref hashset, range, threshold) = self {
+            if hashset.len() * 9 > *threshold {
+                let mut bitset = Bitset::new(range.clone());
+                for id in hashset {
+                    unsafe {
+                        bitset.insert(*id);
+                    }
+                }
+                *self = IdsContainer::BitSet(bitset)
+            }
+        }
+    }
+
+    /// Inserts a new ID into the container.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID to insert.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the ID was successfully inserted, `false` otherwise.
+    #[inline]
+    pub fn insert(&mut self, id: i32) -> bool {
+        match self {
+            IdsContainer::BitSet(bitset) => unsafe { bitset.insert(id) },
+            IdsContainer::HashSet(hashset, _, _) => hashset.insert(id),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn container_type(&self) -> ContainerType {
+        match self {
+            IdsContainer::HashSet(..) => ContainerType::HashSet,
+            IdsContainer::BitSet(..) => ContainerType::BitSet,
+        }
+    }
 }
 
 impl IdsGenerator {
@@ -34,15 +122,11 @@ impl IdsGenerator {
     /// A new instance of `IdsGenerator`.
     pub fn new(range: Range<i32>, in_use_ids: Vec<i32>) -> Self {
         let valid_range = range.end - range.start;
-        let mut used_ids = BitSet::with_capacity(in_use_ids.len());
-
-        for id in in_use_ids {
-            used_ids.insert(id as usize);
-        }
+        let container = IdsContainer::new(range.clone(), in_use_ids, valid_range);
 
         let data = Box::leak(Box::new(Mutex::new(IdsData {
             ids: Vec::with_capacity(IDS_POOL_SIZE),
-            used_ids,
+            container,
         })));
 
         let generator = IdsGenerator {
@@ -94,22 +178,13 @@ impl IdsGenerator {
         let byte_buf = unsafe {
             std::slice::from_raw_parts_mut(
                 buf.as_mut_ptr() as *mut u8,
-                buf.len() * size_of::<i32>(),
+                buf.len() * std::mem::size_of::<i32>(),
             )
         };
 
         rng.fill(byte_buf).expect("Failed to generate random byte");
 
-        // Check if we need to increase the capacity of the used IDs bitset
-        {
-            let current_capacity = data.used_ids.capacity();
-            let desired_capacity = data.used_ids.len() + IDS_POOL_SIZE;
-
-            if current_capacity < desired_capacity {
-                data.used_ids
-                    .reserve_len(desired_capacity - data.used_ids.len());
-            }
-        }
+        data.container.check_threshold();
 
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);
@@ -120,8 +195,7 @@ impl IdsGenerator {
 
             for i in 0..ids_simd.len() {
                 let id = ids_simd[i];
-
-                if data.used_ids.insert(id as usize) {
+                if data.container.insert(id) {
                     data.ids.push(id);
                 }
             }
@@ -129,6 +203,7 @@ impl IdsGenerator {
     }
 }
 
+// Tests module
 #[cfg(test)]
 mod tests {
     use super::*;

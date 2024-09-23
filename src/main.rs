@@ -35,15 +35,10 @@ async fn main() -> std::io::Result<()> {
         AppState::new(db, service_cache).await.unwrap()
     };
 
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
 
-    builder
-        .set_private_key_file("certs/key.pem", SslFiletype::PEM)
-        .unwrap();
-
-    builder
-        .set_certificate_chain_file("certs/cert.pem")
-        .unwrap();
+    builder.set_private_key_file("certs/key.pem", SslFiletype::PEM)?;
+    builder.set_certificate_chain_file("certs/cert.pem")?;
 
     // TODO - Make an recycle function to delete all unused data
     let login_limit_visitors: &'static _ = Box::leak(Box::new(DashMap::with_capacity(1_000)));
