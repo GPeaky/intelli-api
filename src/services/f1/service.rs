@@ -20,7 +20,7 @@ use tokio::{
     },
     time::{timeout, Instant},
 };
-use tracing::{error, info, info_span};
+use tracing::{error, info, info_span, warn};
 
 use crate::{
     config::constants::{
@@ -86,7 +86,7 @@ struct LastUpdates {
     car_damage: Instant,
     car_telemetry: Instant,
     participants: Instant,
-    car_lap: AHashMap<u8, Instant>,
+    car_lap: [Instant; 22],
 }
 
 impl F1Service {
@@ -352,11 +352,14 @@ impl F1Service {
         history_data: &PacketSessionHistoryData,
         now: Instant,
     ) {
-        let last_update = self
+        let Some(last_update) = self
             .last_updates
             .car_lap
-            .entry(history_data.car_idx)
-            .or_insert(now);
+            .get_mut(history_data.car_idx as usize)
+        else {
+            warn!("CarIdx out of bounds");
+            return;
+        };
 
         if now.duration_since(*last_update) > HISTORY_INTERVAL {
             self.data_manager.save_lap_history(history_data);
@@ -441,6 +444,7 @@ impl F1Service {
                 continue;
             };
 
+            // Player have not enabled public names
             if steam_name == "Player" {
                 continue;
             }
@@ -576,7 +580,7 @@ impl LastUpdates {
             car_damage: time,
             car_status: time,
             car_telemetry: time,
-            car_lap: AHashMap::with_capacity(20),
+            car_lap: [time; 22],
         }
     }
 }

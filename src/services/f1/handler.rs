@@ -36,36 +36,7 @@ impl F1ServiceHandler {
         Self { services, f1_state }
     }
 
-    /// Retrieves the cache for a specific championship service.
-    ///
-    /// # Arguments
-    /// - `championship_id`: The ID of the championship.
-    ///
-    /// # Returns
-    /// Some(Bytes) if cache exists, None otherwise.
-    #[allow(unused)]
-    pub fn cache(&self, championship_id: &i32) -> Option<Bytes> {
-        self.services
-            .get(championship_id)
-            .and_then(|service| service.cache())
-    }
-
-    /// Subscribes to a channel for a specific championship service.
-    ///
-    /// # Arguments
-    /// - `championship_id`: The ID of the championship.
-    ///
-    /// # Returns
-    /// Some(Receiver<Bytes>) if service exists, None otherwise.
-    #[allow(unused)]
-    pub fn subscribe(&self, championship_id: &i32) -> Option<Receiver<Bytes>> {
-        self.services
-            .get(championship_id)
-            .map(|service| service.global_sub())
-    }
-
     /// Subscribes to a team-specific channel for a championship service.
-    #[allow(unused)]
     pub fn subscribe_team(&self, championship_id: &i32, team_id: u8) -> Option<Receiver<Bytes>> {
         self.services
             .get(championship_id)
@@ -99,7 +70,6 @@ impl F1ServiceHandler {
     }
 
     /// Unsubscribes from the team-specific channel of a championship service.
-    #[allow(unused)]
     pub fn unsubscribe_team(&self, championship_id: &i32, team_id: u8) {
         if let Some(service) = self.services.get(championship_id) {
             service.team_unsub(team_id);
