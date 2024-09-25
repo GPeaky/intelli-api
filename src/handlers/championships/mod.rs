@@ -5,7 +5,7 @@ pub(crate) mod stream;
 pub(crate) mod core {
     use garde::Validate;
     use ntex::web::{
-        types::{Form, Path, State},
+        types::{Json, Path, State},
         HttpRequest, HttpResponse,
     };
 
@@ -24,9 +24,9 @@ pub(crate) mod core {
     pub async fn create(
         req: HttpRequest,
         state: State<AppState>,
-        Form(form): Form<ChampionshipCreationData>,
+        Json(championship_creation): Json<ChampionshipCreationData>,
     ) -> AppResult<HttpResponse> {
-        if form.validate().is_err() {
+        if championship_creation.validate().is_err() {
             return Err(CommonError::ValidationFailed)?;
         }
 
@@ -49,7 +49,10 @@ pub(crate) mod core {
             Role::Admin => {}
         }
 
-        state.championship_svc.create(form, user.id).await?;
+        state
+            .championship_svc
+            .create(championship_creation, user.id)
+            .await?;
         Ok(HttpResponse::Created().finish())
     }
 
@@ -57,17 +60,17 @@ pub(crate) mod core {
     pub async fn update(
         req: HttpRequest,
         state: State<AppState>,
-        form: Form<ChampionshipUpdateData>,
+        championship_update: Json<ChampionshipUpdateData>,
         path: Path<ChampionshipId>,
     ) -> AppResult<HttpResponse> {
-        if form.validate().is_err() || path.validate().is_err() {
+        if championship_update.validate().is_err() || path.validate().is_err() {
             Err(CommonError::ValidationFailed)?
         }
 
         let user_id = req.user_id()?;
         state
             .championship_svc
-            .update(path.0, user_id, &form)
+            .update(path.0, user_id, &championship_update)
             .await?;
 
         Ok(HttpResponse::Ok().finish())
@@ -77,17 +80,17 @@ pub(crate) mod core {
     pub async fn add_user(
         req: HttpRequest,
         state: State<AppState>,
-        Form(form): Form<ChampionshipUserAddForm>,
+        Json(add_user): Json<ChampionshipUserAddForm>,
         path: Path<ChampionshipId>,
     ) -> AppResult<HttpResponse> {
-        if form.validate().is_err() || path.validate().is_err() {
+        if add_user.validate().is_err() || path.validate().is_err() {
             Err(CommonError::ValidationFailed)?
         }
 
         let user_id = req.user_id()?;
         state
             .championship_svc
-            .add_user(path.0, user_id, form)
+            .add_user(path.0, user_id, add_user)
             .await?;
 
         Ok(HttpResponse::Ok().finish())

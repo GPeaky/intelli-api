@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use garde::Validate;
 use ntex::web::{
-    types::{Form, Query, State},
+    types::{Json, Query, State},
     HttpRequest, HttpResponse,
 };
 
@@ -22,13 +22,13 @@ use crate::{
 #[inline(always)]
 pub(crate) async fn register(
     state: State<AppState>,
-    Form(form): Form<UserRegistrationData>,
+    Json(user_registration): Json<UserRegistrationData>,
 ) -> AppResult<HttpResponse> {
-    if form.validate().is_err() {
+    if user_registration.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let user_id = state.user_svc.create(form).await?;
+    let user_id = state.user_svc.create(user_registration).await?;
 
     let token = state
         .token_svc
@@ -58,13 +58,17 @@ pub(crate) async fn register(
 pub(crate) async fn login(
     state: State<AppState>,
     Query(query): Query<ClientFingerprint>,
-    Form(form): Form<LoginCredentials>,
+    Json(login_credentials): Json<LoginCredentials>,
 ) -> AppResult<HttpResponse> {
-    if form.validate().is_err() {
+    if login_credentials.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let Some(user) = state.user_repo.find_by_email(&form.email).await? else {
+    let Some(user) = state
+        .user_repo
+        .find_by_email(&login_credentials.email)
+        .await?
+    else {
         return Err(UserError::NotFound)?;
     };
 
@@ -79,7 +83,7 @@ pub(crate) async fn login(
 
     if !state
         .user_repo
-        .validate_password(form.password, user.password.clone().unwrap())
+        .validate_password(login_credentials.password, user.password.clone().unwrap())
         .await?
     {
         return Err(UserError::InvalidCredentials)?;
@@ -133,13 +137,13 @@ pub(crate) async fn logout(
 #[inline(always)]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
-    form: Form<PasswordResetRequest>,
+    password_reset: Json<PasswordResetRequest>,
 ) -> AppResult<HttpResponse> {
-    if form.validate().is_err() {
+    if password_reset.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
-    let Some(user) = state.user_repo.find_by_email(&form.email).await? else {
+    let Some(user) = state.user_repo.find_by_email(&password_reset.email).await? else {
         return Err(UserError::NotFound)?;
     };
 
@@ -175,15 +179,15 @@ pub(crate) async fn forgot_password(
 pub async fn reset_password(
     state: State<AppState>,
     Query(query): Query<TokenVerification>,
-    Form(form): Form<PasswordUpdateData>,
+    Json(password_update): Json<PasswordUpdateData>,
 ) -> AppResult<HttpResponse> {
-    if form.validate().is_err() {
+    if password_update.validate().is_err() {
         return Err(CommonError::ValidationFailed)?;
     }
 
     let user_id = state
         .user_svc
-        .reset_password(query.token, form.password)
+        .reset_password(query.token, password_update.password)
         .await?;
 
     let Some(user) = state.user_repo.find(user_id).await? else {

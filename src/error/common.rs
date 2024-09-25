@@ -27,7 +27,7 @@ impl CommonError {
 
     pub const fn error_message(&self) -> &'static str {
         match self {
-            CommonError::ValidationFailed => "Form validation failed",
+            CommonError::ValidationFailed => "Data validation failed",
             CommonError::InternalServerError => "Internal Server Error",
             CommonError::HashingFailed => "Hashing Failed",
             CommonError::NotValidUpdate => "Not valid Update",

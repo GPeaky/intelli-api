@@ -1,6 +1,6 @@
 use garde::Validate;
 use ntex::web::{
-    types::{Form, State},
+    types::{Json, State},
     HttpRequest, HttpResponse,
 };
 
@@ -29,14 +29,14 @@ pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<H
 pub(crate) async fn update(
     req: HttpRequest,
     state: State<AppState>,
-    form: Form<UserUpdateData>,
+    user_update: Json<UserUpdateData>,
 ) -> AppResult<HttpResponse> {
-    if form.validate().is_err() {
+    if user_update.validate().is_err() {
         Err(CommonError::ValidationFailed)?
     };
 
     let user = req.user()?;
-    state.user_svc.update(user, &form).await?;
+    state.user_svc.update(user, &user_update).await?;
     Ok(HttpResponse::Ok().finish())
 }
 
