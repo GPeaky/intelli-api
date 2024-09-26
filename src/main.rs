@@ -12,7 +12,6 @@ mod states;
 mod structs;
 mod utils;
 
-use cache::ServiceCache;
 use config::{initialize_tracing_subscriber, Database};
 use dashmap::DashMap;
 use dotenvy::{dotenv, var};
@@ -31,8 +30,7 @@ async fn main() -> std::io::Result<()> {
     initialize_tracing_subscriber();
     let app_state = {
         let db = Box::leak(Box::from(Database::new().await));
-        let service_cache = Box::leak(Box::new(ServiceCache::new()));
-        AppState::new(db, service_cache).await.unwrap()
+        AppState::new(db).await.unwrap()
     };
 
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;

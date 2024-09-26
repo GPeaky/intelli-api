@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio_stream::StreamExt;
 
 use crate::{
-    cache::{EntityCache, ServiceCache},
+    cache::EntityCache,
     config::Database,
     entity::{Championship, ChampionshipRelation, Race},
     error::AppResult,
@@ -13,7 +13,6 @@ use crate::{
 /// Repository for managing championship data with caching support.
 pub struct ChampionshipRepository {
     db: &'static Database,
-    cache: &'static ServiceCache,
 }
 
 impl ChampionshipRepository {
@@ -25,8 +24,8 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// A new ChampionshipRepository instance.
-    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
-        Self { db, cache }
+    pub fn new(db: &'static Database) -> Self {
+        Self { db }
     }
 
     /// Finds a championship by its ID.
@@ -37,7 +36,7 @@ impl ChampionshipRepository {
     /// # Returns
     /// An Option containing the Championship if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<Arc<Championship>>> {
-        if let Some(championship) = self.cache.championship.get(&id) {
+        if let Some(championship) = self.db.cache.championship.get(&id) {
             return Ok(Some(championship));
         };
 
@@ -59,7 +58,7 @@ impl ChampionshipRepository {
         match row {
             Some(ref row) => {
                 let championship = Championship::from_row_arc(row);
-                self.cache.championship.set(championship.clone());
+                self.db.cache.championship.set(championship.clone());
                 Ok(Some(championship))
             }
 
@@ -68,7 +67,7 @@ impl ChampionshipRepository {
     }
 
     pub async fn races(&self, id: i32) -> AppResult<Vec<Arc<Race>>> {
-        if let Some(races) = self.cache.championship.get_races(&id) {
+        if let Some(races) = self.db.cache.championship.get_races(&id) {
             return Ok(races);
         }
 
@@ -94,7 +93,7 @@ impl ChampionshipRepository {
             races.push(Race::from_row_arc(&row))
         }
 
-        self.cache.championship.set_races(id, races.clone());
+        self.db.cache.championship.set_races(id, races.clone());
 
         Ok(races)
     }
@@ -107,7 +106,7 @@ impl ChampionshipRepository {
     /// # Returns
     /// An Option containing the Championship if found.
     pub async fn find_by_name(&self, name: &str) -> AppResult<Option<Arc<Championship>>> {
-        if let Some(championship) = self.cache.championship.get_by_name(name) {
+        if let Some(championship) = self.db.cache.championship.get_by_name(name) {
             return Ok(Some(championship));
         };
 
@@ -129,7 +128,7 @@ impl ChampionshipRepository {
         match row {
             Some(ref row) => {
                 let championship = Championship::from_row_arc(row);
-                self.cache.championship.set(championship.clone());
+                self.db.cache.championship.set(championship.clone());
                 Ok(Some(championship))
             }
 

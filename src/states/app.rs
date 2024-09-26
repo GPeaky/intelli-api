@@ -1,5 +1,4 @@
 use crate::{
-    cache::ServiceCache,
     config::Database,
     error::AppResult,
     repositories::{
@@ -57,21 +56,21 @@ impl F1State {
 }
 
 impl AppState {
-    pub async fn new(db: &'static Database, cache: &'static ServiceCache) -> AppResult<Self> {
+    pub async fn new(db: &'static Database) -> AppResult<Self> {
         // Repositories
-        let user_repo = Box::leak(Box::new(UserRepository::new(db, cache)));
+        let user_repo = Box::leak(Box::new(UserRepository::new(db)));
         let discord_repo = Box::leak(Box::new(DiscordRepository::new()));
-        let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db, cache)));
-        let driver_repo = Box::leak(Box::new(DriverRepository::new(db, cache)));
+        let championship_repo = Box::leak(Box::new(ChampionshipRepository::new(db)));
+        let driver_repo = Box::leak(Box::new(DriverRepository::new(db)));
 
         // Services
-        let token_svc = Box::leak(Box::from(TokenService::new(cache)));
-        let driver_svc = Box::leak(Box::new(DriverService::new(db, cache, driver_repo).await));
+        let token_svc = Box::leak(Box::from(TokenService::new(db)));
+        let driver_svc = Box::leak(Box::new(DriverService::new(db, driver_repo).await));
         let user_svc = Box::leak(Box::from(
-            UserService::new(db, cache, user_repo, token_svc).await,
+            UserService::new(db, user_repo, token_svc).await,
         ));
         let championship_svc = Box::leak(Box::from(
-            ChampionshipService::new(db, cache, user_repo, championship_repo).await?,
+            ChampionshipService::new(db, user_repo, championship_repo).await?,
         ));
 
         // Inner states

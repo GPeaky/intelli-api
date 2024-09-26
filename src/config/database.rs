@@ -8,11 +8,14 @@ use dotenvy::var;
 use refinery::embed_migrations;
 use tracing::info;
 
+use crate::cache::ServiceCache;
+
 embed_migrations!("migrations");
 
 /// Encapsulates Postgres database connections.
 pub struct Database {
     pub pg: Pool,
+    pub cache: ServiceCache,
 }
 
 impl Database {
@@ -35,7 +38,9 @@ impl Database {
 
         Self::run_migrations(&pg).await;
 
-        Self { pg }
+        let cache = ServiceCache::new();
+
+        Self { pg, cache }
     }
 
     /// Runs database migrations.

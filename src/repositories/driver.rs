@@ -1,19 +1,18 @@
 use std::sync::Arc;
 
-use crate::{cache::ServiceCache, config::Database, entity::Driver, error::AppResult};
+use crate::{config::Database, entity::Driver, error::AppResult};
 
 pub struct DriverRepository {
     db: &'static Database,
-    cache: &'static ServiceCache,
 }
 
 impl DriverRepository {
-    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
-        DriverRepository { db, cache }
+    pub fn new(db: &'static Database) -> Self {
+        DriverRepository { db }
     }
 
     pub async fn find(&self, steam_name: &str) -> AppResult<Option<Arc<Driver>>> {
-        if let Some(driver) = self.cache.driver.get(steam_name) {
+        if let Some(driver) = self.db.cache.driver.get(steam_name) {
             return Ok(Some(driver));
         }
 
@@ -35,7 +34,7 @@ impl DriverRepository {
         match row {
             Some(ref row) => {
                 let driver = Driver::from_row_arc(row);
-                self.cache.driver.set(driver.clone());
+                self.db.cache.driver.set(driver.clone());
                 Ok(Some(driver))
             }
 

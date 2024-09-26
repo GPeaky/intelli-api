@@ -1,5 +1,4 @@
 use crate::{
-    cache::ServiceCache,
     config::Database,
     error::{AppResult, DriverError},
     repositories::DriverRepository,
@@ -24,21 +23,12 @@ pub trait DriverAdminServiceOperations: DriverServiceOperations {
 
 pub struct DriverService {
     db: &'static Database,
-    cache: &'static ServiceCache,
     driver_repo: &'static DriverRepository,
 }
 
 impl DriverService {
-    pub async fn new(
-        db: &'static Database,
-        cache: &'static ServiceCache,
-        driver_repo: &'static DriverRepository,
-    ) -> Self {
-        DriverService {
-            db,
-            cache,
-            driver_repo,
-        }
+    pub async fn new(db: &'static Database, driver_repo: &'static DriverRepository) -> Self {
+        DriverService { db, driver_repo }
     }
 
     async fn _create(
@@ -88,7 +78,7 @@ impl DriverService {
 
         conn.execute_raw(&delete_driver, &[&steam_name]).await?;
 
-        self.cache.driver.delete(steam_name);
+        self.db.cache.driver.delete(steam_name);
 
         Ok(())
     }

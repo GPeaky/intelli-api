@@ -1,5 +1,5 @@
 use crate::{
-    cache::ServiceCache,
+    config::Database,
     error::{AppResult, TokenError},
     structs::{TokenPayload, TokenPurpose},
 };
@@ -15,14 +15,14 @@ pub struct TokenService {
     validation: Validation,
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
-    cache: &'static ServiceCache,
+    db: &'static Database,
 }
 
 impl TokenService {
     /// Creates a new `TokenService` instance.
-    pub fn new(cache: &'static ServiceCache) -> Self {
+    pub fn new(db: &'static Database) -> Self {
         Self {
-            cache,
+            db,
             header: Header::new(jsonwebtoken::Algorithm::RS256),
             encoding_key: EncodingKey::from_rsa_pem(
                 &fs::read("certs/jsonwebtoken.key").expect("Unable to read key"),
@@ -50,7 +50,8 @@ impl TokenService {
 
     /// Saves a reset password token to the cache.
     pub fn save_reset_password_token(&self, token: String) {
-        self.cache
+        self.db
+            .cache
             .token
             .set_token(token, TokenPurpose::PasswordReset);
     }
@@ -58,7 +59,8 @@ impl TokenService {
     /// Saves an email verification token to the cache.
     #[inline]
     pub fn save_email_token(&self, token: String) {
-        self.cache
+        self.db
+            .cache
             .token
             .set_token(token, TokenPurpose::EmailVerification);
     }
@@ -76,13 +78,17 @@ impl TokenService {
 
     /// Removes a refresh token from the cache.
     pub fn remove_refresh_token(&self, user_id: i32, fingerprint: String) {
-        self.cache.token.remove_refresh_token(user_id, fingerprint);
+        self.db
+            .cache
+            .token
+            .remove_refresh_token(user_id, fingerprint);
     }
 
     /// Generates a new refresh token for a user.
     pub fn generate_refresh_token(&self, user_id: i32, fingerprint: String) -> AppResult<String> {
         let token = self.generate_token(user_id, TokenPurpose::RefreshAuthentication)?;
-        self.cache
+        self.db
+            .cache
             .token
             .set_refresh_token(user_id, fingerprint, token.clone());
         Ok(token)
@@ -102,7 +108,7 @@ impl TokenService {
             token.claims.subject_id
         };
 
-        let Some(db_token) = self.cache.token.get_refresh_token(id, fingerprint) else {
+        let Some(db_token) = self.db.cache.token.get_refresh_token(id, fingerprint) else {
             Err(TokenError::MissingToken)?
         };
 

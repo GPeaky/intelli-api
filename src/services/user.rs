@@ -3,7 +3,7 @@ use postgres_types::ToSql;
 use tracing::info;
 
 use crate::{
-    cache::{EntityCache, ServiceCache},
+    cache::EntityCache,
     config::Database,
     entity::{Provider, SharedUser},
     error::{AppResult, TokenError, UserError},
@@ -101,7 +101,6 @@ pub trait UserAdminServiceOperations: UserServiceOperations {
 
 /// Implements the user service logic.
 pub struct UserService {
-    cache: &'static ServiceCache,
     db: &'static Database,
     user_repo: &'static UserRepository,
     token_svc: &'static TokenService,
@@ -114,7 +113,6 @@ impl UserService {
     /// # Arguments
     ///
     /// * `db` - The database connection.
-    /// * `cache` - The service cache.
     /// * `user_repo` - The user repository.
     /// * `token_svc` - The token service.
     ///
@@ -123,7 +121,6 @@ impl UserService {
     /// Returns an error if there's an issue initializing the service components.
     pub async fn new(
         db: &'static Database,
-        cache: &'static ServiceCache,
         user_repo: &'static UserRepository,
         token_svc: &'static TokenService,
     ) -> Self {
@@ -133,7 +130,6 @@ impl UserService {
         };
 
         Self {
-            cache,
             db,
             token_svc,
             user_repo,
@@ -230,7 +226,7 @@ impl UserService {
 
         let conn = self.db.pg.get().await?;
         conn.execute_raw(&query, slice_iter(&params[..])).await?;
-        self.cache.user.delete(user.id);
+        self.db.cache.user.delete(user.id);
 
         Ok(())
     }
@@ -261,8 +257,8 @@ impl UserService {
             .await?;
 
         conn.execute_raw(&delete_user_stmt, &[&id]).await?;
-        self.cache.user.delete(id);
-        self.cache.championship.delete_by_user(&id);
+        self.db.cache.user.delete(id);
+        self.db.cache.championship.delete_by_user(&id);
 
         info!("User deleted with success: {}", id);
 
@@ -297,7 +293,7 @@ impl UserService {
         conn.execute_raw(&reset_password_stmt, slice_iter(&[&hashed_password, &id]))
             .await?;
 
-        self.cache.user.delete(id);
+        self.db.cache.user.delete(id);
 
         info!("User password reseated with success: {}", id);
         Ok(())
@@ -319,7 +315,7 @@ impl UserService {
             .await?;
 
         conn.execute_raw(&activate_user_stmt, &[&id]).await?;
-        self.cache.user.delete(id);
+        self.db.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
 
@@ -341,7 +337,7 @@ impl UserService {
             .await?;
 
         conn.execute_raw(&deactivate_user_stmt, &[&id]).await?;
-        self.cache.user.delete(id);
+        self.db.cache.user.delete(id);
 
         info!("User activated with success: {}", id);
         Ok(())
@@ -369,6 +365,7 @@ impl UserServiceOperations for UserService {
 
     async fn reset_password(&self, token: String, password: String) -> AppResult<i32> {
         if !self
+            .db
             .cache
             .token
             .get_token(token.clone(), TokenPurpose::PasswordReset)
@@ -380,7 +377,8 @@ impl UserServiceOperations for UserService {
 
         self._reset_password(user_id, password).await?;
 
-        self.cache
+        self.db
+            .cache
             .token
             .remove_token(token, TokenPurpose::PasswordReset);
 
@@ -389,6 +387,7 @@ impl UserServiceOperations for UserService {
 
     async fn activate(&self, token: String) -> AppResult<i32> {
         if !self
+            .db
             .cache
             .token
             .get_token(token.clone(), TokenPurpose::EmailVerification)
@@ -400,7 +399,8 @@ impl UserServiceOperations for UserService {
 
         self._activate(user_id).await?;
 
-        self.cache
+        self.db
+            .cache
             .token
             .remove_token(token, TokenPurpose::EmailVerification);
 

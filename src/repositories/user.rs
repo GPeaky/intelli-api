@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio_stream::StreamExt;
 
 use crate::{
-    cache::{EntityCache, ServiceCache},
+    cache::EntityCache,
     config::Database,
     entity::{Championship, SharedUser, User},
     error::AppResult,
@@ -13,7 +13,6 @@ use crate::{
 /// Repository for managing user data with database and cache integration.
 pub struct UserRepository {
     db: &'static Database,
-    cache: &'static ServiceCache,
     password_hasher: PasswordHasher,
 }
 
@@ -22,14 +21,12 @@ impl UserRepository {
     ///
     /// # Arguments
     /// - `db`: Database connection.
-    /// - `cache`: Service cache.
     ///
     /// # Returns
     /// A new UserRepository instance.
-    pub fn new(db: &'static Database, cache: &'static ServiceCache) -> Self {
+    pub fn new(db: &'static Database) -> Self {
         let password_hasher = PasswordHasher::new(30);
         Self {
-            cache,
             db,
             password_hasher,
         }
@@ -43,7 +40,7 @@ impl UserRepository {
     /// # Returns
     /// An Option containing the user if found.
     pub async fn find(&self, id: i32) -> AppResult<Option<SharedUser>> {
-        if let Some(user) = self.cache.user.get(&id) {
+        if let Some(user) = self.db.cache.user.get(&id) {
             return Ok(Some(user));
         };
 
@@ -65,7 +62,7 @@ impl UserRepository {
         match row {
             Some(ref row) => {
                 let user = User::from_row_arc(row);
-                self.cache.user.set(user.clone());
+                self.db.cache.user.set(user.clone());
                 Ok(Some(user))
             }
 
@@ -81,7 +78,7 @@ impl UserRepository {
     /// # Returns
     /// An Option containing the user if found.
     pub async fn find_by_email(&self, email: &str) -> AppResult<Option<SharedUser>> {
-        if let Some(user) = self.cache.user.get_by_email(email) {
+        if let Some(user) = self.db.cache.user.get_by_email(email) {
             return Ok(Some(user));
         };
 
@@ -103,7 +100,7 @@ impl UserRepository {
         match row {
             Some(ref row) => {
                 let user = User::from_row_arc(row);
-                self.cache.user.set(user.clone());
+                self.db.cache.user.set(user.clone());
                 Ok(Some(user))
             }
 
@@ -119,7 +116,7 @@ impl UserRepository {
     /// # Returns
     /// A vector of Championships associated with the user.
     pub async fn championships(&self, id: i32) -> AppResult<Vec<Arc<Championship>>> {
-        if let Some(championships) = self.cache.championship.get_user_championships(&id) {
+        if let Some(championships) = self.db.cache.championship.get_user_championships(&id) {
             return Ok(championships);
         };
 
@@ -142,7 +139,8 @@ impl UserRepository {
 
         let championships = Championship::from_row_stream(stream).await?;
 
-        self.cache
+        self.db
+            .cache
             .championship
             .set_user_championships(id, championships.clone());
 

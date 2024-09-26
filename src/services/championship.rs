@@ -2,7 +2,6 @@ use chrono::{DateTime, Duration, Utc};
 use postgres_types::ToSql;
 
 use crate::{
-    cache::ServiceCache,
     config::Database,
     error::{AppResult, ChampionshipError, CommonError, UserError},
     repositories::{ChampionshipRepository, UserRepository},
@@ -164,7 +163,6 @@ pub trait ChampionshipAdminServiceOperations: ChampionshipServiceOperations {
 /// Implements the championship service logic.
 pub struct ChampionshipService {
     db: &'static Database,
-    cache: &'static ServiceCache,
     machine_ports: MachinePorts,
     user_repo: &'static UserRepository,
     championship_repo: &'static ChampionshipRepository,
@@ -177,7 +175,6 @@ impl ChampionshipService {
     /// # Arguments
     ///
     /// * `db` - The database connection.
-    /// * `cache` - The service cache.
     /// * `user_repo` - The user repository.
     /// * `championship_repo` - The championship repository.
     ///
@@ -186,7 +183,6 @@ impl ChampionshipService {
     /// Returns an error if there's an issue initializing the service components.
     pub async fn new(
         db: &'static Database,
-        cache: &'static ServiceCache,
         user_repo: &'static UserRepository,
         championship_repo: &'static ChampionshipRepository,
     ) -> AppResult<Self> {
@@ -202,7 +198,6 @@ impl ChampionshipService {
 
         Ok(Self {
             db,
-            cache,
             user_repo,
             championship_repo,
             machine_ports,
@@ -265,7 +260,7 @@ impl ChampionshipService {
         conn.execute_raw(&relate_user_with_championship_stmt, &[&user_id, &id])
             .await?;
 
-        self.cache.championship.delete_by_user(&user_id);
+        self.db.cache.championship.delete_by_user(&user_id);
         Ok(())
     }
 
@@ -288,7 +283,7 @@ impl ChampionshipService {
             .await?
             .get(0);
 
-        self.cache.championship.delete_races(&id);
+        self.db.cache.championship.delete_races(&id);
 
         Ok(id)
     }
@@ -336,7 +331,7 @@ impl ChampionshipService {
         }
 
         let users = self.championship_repo.users(id).await?;
-        self.cache.championship.prune(id, users);
+        self.db.cache.championship.prune(id, users);
 
         Ok(())
     }
@@ -371,7 +366,7 @@ impl ChampionshipService {
         )
         .await?;
 
-        self.cache.championship.delete_by_user(&bind_user_id);
+        self.db.cache.championship.delete_by_user(&bind_user_id);
 
         Ok(())
     }
@@ -444,7 +439,7 @@ impl ChampionshipService {
         conn.execute_raw(&remove_user_stmt, &[&remove_user_id, &id])
             .await?;
 
-        self.cache.championship.delete_by_user(&remove_user_id);
+        self.db.cache.championship.delete_by_user(&remove_user_id);
 
         Ok(())
     }
@@ -495,7 +490,7 @@ impl ChampionshipService {
         conn.execute_raw(&delete_championship_relations_stmt, &[&id])
             .await?;
 
-        self.cache.championship.prune(id, users);
+        self.db.cache.championship.prune(id, users);
 
         conn.execute_raw(&delete_championship_stmt, &[&id]).await?;
 
