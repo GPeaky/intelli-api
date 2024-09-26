@@ -66,9 +66,7 @@ impl AppState {
         // Services
         let token_svc = Box::leak(Box::from(TokenService::new(db)));
         let driver_svc = Box::leak(Box::new(DriverService::new(db, driver_repo).await));
-        let user_svc = Box::leak(Box::from(
-            UserService::new(db, user_repo, token_svc).await,
-        ));
+        let user_svc = Box::leak(Box::from(UserService::new(db, user_repo, token_svc).await));
         let championship_svc = Box::leak(Box::from(
             ChampionshipService::new(db, user_repo, championship_repo).await?,
         ));
