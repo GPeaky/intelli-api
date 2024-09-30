@@ -9,7 +9,6 @@ use serde::Deserialize;
 use crate::error::{AppError, ChampionshipError};
 
 #[repr(C, packed)]
-#[derive(Debug, Clone, Copy)]
 pub struct PacketHeader {
     pub packet_format: u16,             // 2024
     pub game_year: u8,                  // Game year - last two digits e.g. 23
@@ -46,7 +45,6 @@ pub struct PacketFinalClassificationData {
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct PacketParticipantsData {
     pub header: PacketHeader, // Header
     pub num_active_cars: u8, // Number of active cars in the data – should match number of cars on HUD
@@ -61,21 +59,18 @@ pub struct TyreStintHistoryData {
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct PacketCarStatusData {
     pub header: PacketHeader,                 // Header
     pub car_status_data: [CarStatusData; 22], // 22
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct PacketCarDamageData {
     pub header: PacketHeader,                 // Header
     pub car_damage_data: [CarDamageData; 22], // 22
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct PacketCarTelemetryData {
     pub header: PacketHeader,                       // Header
     pub car_telemetry_data: [CarTelemetryData; 22], // 22
@@ -339,7 +334,6 @@ pub struct Collision {
 }
 
 #[repr(C, packed)]
-#[derive(Debug, Clone, Copy)]
 pub struct ParticipantData {
     pub ai_controlled: u8, // Whether the vehicle is AI (1) or Human (0) controlled
     pub driver_id: u8,     // Driver id - see appendix, 255 if network human
@@ -387,7 +381,6 @@ pub struct LapHistoryData {
 }
 
 #[repr(C, packed)]
-#[derive(Debug, Clone, Copy)]
 pub struct CarTelemetryData {
     pub speed: u16,                         // Speed of car in km/h
     pub throttle: f32,                      // 0.0 - 1.0
@@ -408,8 +401,6 @@ pub struct CarTelemetryData {
 }
 
 #[repr(C, packed)]
-#[derive(Debug, Clone, Copy)]
-
 pub struct CarStatusData {
     pub traction_control: u8, // Traction control - 0 = off, 1 = medium, 2 = full
     pub anti_lock_brakes: u8, // 0 (off) - 1 (on)
@@ -439,7 +430,6 @@ pub struct CarStatusData {
 }
 
 #[repr(C, packed)]
-#[derive(Debug, Clone, Copy)]
 pub struct CarDamageData {
     pub tyres_wear: [f32; 4],        // Tyre wear (percentage)
     pub tyres_damage: [u8; 4],       // Tyre damage (percentage)
@@ -661,7 +651,7 @@ pub enum Ruleset {
     RivalDuel,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[repr(i16)]
 pub enum TeamIds {
     Mercedes = 0,
