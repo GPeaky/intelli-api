@@ -13,13 +13,13 @@ use crate::{
 // TODO: implement a method to update championship info
 // TODO: implement an addUser and removeUser for admin
 
-#[inline(always)]
+#[inline]
 pub async fn active_championships(state: State<AppState>) -> AppResult<HttpResponse> {
     let services = state.f1_svc.services();
     Ok(HttpResponse::Ok().json(&services))
 }
 
-#[inline(always)]
+#[inline]
 pub async fn delete_championship(
     state: State<AppState>,
     path: Path<ChampionshipId>,

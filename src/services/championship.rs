@@ -206,7 +206,7 @@ impl ChampionshipService {
     }
 
     /// Internal method to create a championship.
-    #[inline(always)]
+    #[inline]
     async fn _create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         if self
             .championship_repo
@@ -264,7 +264,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    #[inline(always)]
+    #[inline]
     async fn _create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
         let conn = self.db.pg.get().await?;
 
@@ -289,7 +289,7 @@ impl ChampionshipService {
     }
 
     /// Internal method to update a championship.
-    #[inline(always)]
+    #[inline]
     async fn _update(&self, id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
         let (query, params) = {
             let mut params_counter = 1u8;
@@ -337,7 +337,7 @@ impl ChampionshipService {
     }
 
     /// Internal method to add a user to a championship.
-    #[inline(always)]
+    #[inline]
     async fn _add_user(&self, id: i32, form: ChampionshipUserAddForm) -> AppResult<()> {
         let bind_user_id = {
             let Some(bind_user) = self.user_repo.find_by_email(&form.email).await? else {
@@ -419,7 +419,7 @@ impl ChampionshipService {
     }
 
     /// Internal method to remove a user from a championship.
-    #[inline(always)]
+    #[inline]
     async fn _remove_user(&self, id: i32, remove_user_id: i32) -> AppResult<()> {
         if self.user_repo.find(remove_user_id).await?.is_none() {
             Err(UserError::NotFound)?
@@ -444,7 +444,7 @@ impl ChampionshipService {
         Ok(())
     }
 
-    #[inline(always)]
+    #[inline]
     async fn _remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -464,7 +464,7 @@ impl ChampionshipService {
     }
 
     /// Internal method to delete a championship.
-    #[inline(always)]
+    #[inline]
     async fn _delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 

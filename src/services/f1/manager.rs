@@ -71,7 +71,7 @@ impl F1SessionDataManager {
         instance
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn cache(&self) -> Option<Bytes> {
         self.last_general_encoded.read().clone()
     }
@@ -84,7 +84,7 @@ impl F1SessionDataManager {
             .map(|sender| sender.subscribe())
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn push_event(&self, event: &PacketEventData) {
         let driver_info = self.driver_info.read();
         if let Some(event_data) = EventData::from_f1(event, &driver_info) {
@@ -97,7 +97,7 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_motion(&self, packet: &PacketMotionData) {
         let driver_info = self.driver_info.read();
         let mut general = self.general.write();
@@ -115,13 +115,13 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_session(&self, packet: &PacketSessionData) {
         let mut general = self.general.write();
         general.update_session(packet);
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_lap_history(&self, packet: &PacketSessionHistoryData) {
         let driver_info = self.driver_info.read();
 
@@ -133,7 +133,7 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_participants(&self, packet: &PacketParticipantsData) {
         let mut driver_info = self.driver_info.write();
         let mut general = self.general.write();
@@ -180,28 +180,28 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_car_damage(&self, packet: &PacketCarDamageData) {
         self.process_telemetry_packet(&packet.car_damage_data, |player_telemetry, data| {
             player_telemetry.update_car_damage(data);
         });
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_car_status(&self, packet: &PacketCarStatusData) {
         self.process_telemetry_packet(&packet.car_status_data, |player_telemetry, data| {
             player_telemetry.update_car_status(data);
         });
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_car_telemetry(&self, packet: &PacketCarTelemetryData) {
         self.process_telemetry_packet(&packet.car_telemetry_data, |player_telemetry, data| {
             player_telemetry.update_car_telemetry(data);
         });
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn save_final_classification(&self, packet: &PacketFinalClassificationData) {
         let driver_info = self.driver_info.read();
         let mut general = self.general.write();
@@ -215,7 +215,7 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn process_telemetry_packet<T, F>(&self, packet_data: &[T], mut process_fn: F)
     where
         F: FnMut(&mut PlayerTelemetry, &T),
@@ -234,7 +234,7 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn spawn_update_task(&mut self, tx: Sender<Bytes>) {
         let (stop_sender, mut stop_receiver) = oneshot::channel();
         *self.inner.stop_sender.lock() = Some(stop_sender);
@@ -259,7 +259,7 @@ impl F1SessionDataManager {
         });
     }
 
-    #[inline(always)]
+    #[inline]
     fn send_general_updates(inner: &Arc<F1SessionDataManagerInner>, tx: &Sender<Bytes>) {
         if tx.receiver_count() == 0 {
             return;
@@ -279,7 +279,7 @@ impl F1SessionDataManager {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn send_telemetry_updates(inner: &Arc<F1SessionDataManagerInner>) {
         let driver_info = inner.driver_info.read();
         let telemetry = inner.telemetry.read();
@@ -327,7 +327,7 @@ impl F1SessionDataManager {
         *last_telemetry = telemetry.clone();
     }
 
-    #[inline(always)]
+    #[inline]
     fn diff_general(current: &F1GeneralInfo, last: &F1GeneralInfo) -> Option<Bytes> {
         let diff = current.diff(last);
 
@@ -341,7 +341,7 @@ impl F1SessionDataManager {
         None
     }
 
-    #[inline(always)]
+    #[inline]
     fn diff_player_telemetry(
         current: &PlayerTelemetry,
         last: &PlayerTelemetry,

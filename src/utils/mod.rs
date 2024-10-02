@@ -35,7 +35,7 @@ pub fn header_cast(bytes: &[u8]) -> AppResult<&PacketHeader> {
     Ok(unsafe { &*(bytes.as_ptr() as *const PacketHeader) })
 }
 
-#[inline(always)]
+#[inline]
 pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
     if !mem::size_of::<T>() == bytes.len() {
         Err(F1ServiceError::CastingError)?;
@@ -49,7 +49,7 @@ pub fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
     Ok(unsafe { &*(bytes.as_ptr() as *const T) })
 }
 
-#[inline(always)]
+#[inline]
 pub fn slice_iter<'a>(
     s: &'a [&'a (dyn ToSql + Sync)],
 ) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {

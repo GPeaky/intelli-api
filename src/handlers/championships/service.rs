@@ -10,7 +10,7 @@ use crate::{
     structs::ChampionshipId,
 };
 
-#[inline(always)]
+#[inline]
 pub async fn start(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -28,7 +28,7 @@ pub async fn start(state: State<AppState>, path: Path<ChampionshipId>) -> AppRes
     Ok(HttpResponse::Created().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub async fn status(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -43,7 +43,7 @@ pub async fn status(state: State<AppState>, path: Path<ChampionshipId>) -> AppRe
     Ok(HttpResponse::Ok().json(&service_status))
 }
 
-#[inline(always)]
+#[inline]
 pub async fn stop(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?

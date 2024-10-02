@@ -10,7 +10,7 @@ use crate::{
     structs::{EmailVerificationConfirmationTemplate, TokenVerification},
 };
 
-#[inline(always)]
+#[inline]
 pub async fn verify_email(
     state: State<AppState>,
     Query(query): Query<TokenVerification>,

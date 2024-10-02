@@ -234,7 +234,7 @@ impl F1Service {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    #[inline(always)]
+    #[inline]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
         let (header, packet) = match F1PacketData::parse_and_identify(buf) {
             Ok(result) => result,
@@ -276,7 +276,7 @@ impl F1Service {
         Ok(())
     }
 
-    #[inline(always)]
+    #[inline]
     fn handle_motion_packet(&mut self, motion_data: &PacketMotionData, now: Instant) {
         if now.duration_since(self.last_updates.car_motion) < MOTION_INTERVAL {
             return;
@@ -286,7 +286,7 @@ impl F1Service {
         self.last_updates.car_motion = now;
     }
 
-    #[inline(always)]
+    #[inline]
     async fn handle_session_packet(&mut self, session_data: &PacketSessionData, now: Instant) {
         if now.duration_since(self.last_updates.session) < SESSION_INTERVAL {
             return;
@@ -309,7 +309,7 @@ impl F1Service {
         self.last_updates.session = now;
     }
 
-    #[inline(always)]
+    #[inline]
     async fn handle_participants_packet(
         &mut self,
         participants_data: &PacketParticipantsData,
@@ -333,7 +333,7 @@ impl F1Service {
         Ok(())
     }
 
-    #[inline(always)]
+    #[inline]
     fn handle_event_packet(&mut self, event_data: &PacketEventData) {
         let Some(session_type) = &self.session_type else {
             return;
@@ -346,7 +346,7 @@ impl F1Service {
         self.data_manager.push_event(event_data);
     }
 
-    #[inline(always)]
+    #[inline]
     fn handle_session_history_packet(
         &mut self,
         history_data: &PacketSessionHistoryData,
@@ -367,7 +367,7 @@ impl F1Service {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     async fn handle_final_classification_packet(
         &mut self,
         final_classification: &PacketFinalClassificationData,
@@ -390,21 +390,21 @@ impl F1Service {
     }
 
     // TODO: Limit updates to 11hz or something
-    #[inline(always)]
+    #[inline]
     fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
         if now.duration_since(self.last_updates.car_damage) > TELEMETRY_INTERVAL {
             self.data_manager.save_car_damage(car_damage);
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData, now: Instant) {
         if now.duration_since(self.last_updates.car_status) > TELEMETRY_INTERVAL {
             self.data_manager.save_car_status(car_status);
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn handle_car_telemetry_packet(
         &mut self,
         car_telemetry: &PacketCarTelemetryData,
@@ -415,7 +415,7 @@ impl F1Service {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     async fn ensure_participants_registered(
         &self,
         participants_data: &PacketParticipantsData,
@@ -512,7 +512,7 @@ impl F1ServiceData {
     }
 
     /// Retrieves the cached data from the session manager.
-    #[inline(always)]
+    #[inline]
     pub fn cache(&self) -> Option<Bytes> {
         self.session_manager.cache()
     }

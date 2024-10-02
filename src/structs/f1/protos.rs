@@ -39,7 +39,7 @@ impl HistoryData {
     /// # Arguments
     ///
     /// * `packet` - A reference to PacketSessionHistoryData containing new session history information.
-    #[inline(always)]
+    #[inline]
     fn update(&mut self, packet: &PacketSessionHistoryData) {
         self.num_laps = Some(packet.num_laps as u32);
         self.num_tyre_stints = Some(packet.num_tyre_stints as u32);
@@ -86,7 +86,7 @@ impl TyreStintsHistoryData {
     /// # Returns
     ///
     /// A new TyreStintsHistoryData instance populated with data from the input.
-    #[inline(always)]
+    #[inline]
     fn from_f1(stints_data: &F1TyreStintHistoryData) -> Self {
         Self {
             actual_compound: Some(stints_data.tyre_actual_compound as u32),
@@ -106,7 +106,7 @@ impl LapHistoryData {
     /// # Returns
     ///
     /// A new LapHistoryData instance populated with data from the input.
-    #[inline(always)]
+    #[inline]
     fn from_f1(lap_data: &F1LapHistoryData) -> Self {
         Self {
             lap_time: Some(lap_data.lap_time_in_ms),
@@ -122,7 +122,7 @@ impl LapHistoryData {
     /// # Arguments
     ///
     /// * `lap_data` - A reference to F1LapHistoryData containing new lap history information.
-    #[inline(always)]
+    #[inline]
     fn update(&mut self, lap_data: &F1LapHistoryData) {
         *self = Self::from_f1(lap_data);
     }
@@ -134,7 +134,7 @@ impl PlayerInfo {
     /// # Arguments
     ///
     /// * `incoming_motion` - A reference to F1CarMotionData containing new motion information.
-    #[inline(always)]
+    #[inline]
     pub fn update_car_motion(&mut self, incoming_motion: &F1CarMotionData) {
         let car_motion = self.car_motion.get_or_insert_with(Default::default);
         car_motion.x = Some(incoming_motion.world_position_x);
@@ -147,7 +147,7 @@ impl PlayerInfo {
     /// # Arguments
     ///
     /// * `packet` - A reference to PacketSessionHistoryData containing new session history.
-    #[inline(always)]
+    #[inline]
     pub fn update_session_history(&mut self, packet: &PacketSessionHistoryData) {
         self.lap_history
             .get_or_insert_with(Default::default)
@@ -159,7 +159,7 @@ impl PlayerInfo {
     /// # Arguments
     ///
     /// * `incoming_participant` - A reference to F1ParticipantData with new participant info.
-    #[inline(always)]
+    #[inline]
     pub fn update_participant_info(&mut self, incoming_participant: &F1ParticipantData) {
         let participant = self.participant.get_or_insert_with(Default::default);
         participant.team_id = Some(incoming_participant.team_id as u32);
@@ -173,7 +173,7 @@ impl PlayerInfo {
     /// # Arguments
     ///
     /// * `packet` - A reference to F1FinalClassificationData with new classification info.
-    #[inline(always)]
+    #[inline]
     pub fn update_classification_data(&mut self, packet: &F1FinalClassificationData) {
         let final_classification = self
             .final_classification
@@ -219,7 +219,7 @@ impl PlayerTelemetry {
     /// # Arguments
     ///
     /// * `data` - A reference to F1CarDamageData containing new damage information.
-    #[inline(always)]
+    #[inline]
     pub fn update_car_damage(&mut self, data: &F1CarDamageData) {
         let car_damage = self.car_damage.get_or_insert_with(Default::default);
 
@@ -267,7 +267,7 @@ impl PlayerTelemetry {
     /// # Arguments
     ///
     /// * `data` - A reference to F1CarStatusData containing new status information.
-    #[inline(always)]
+    #[inline]
     pub fn update_car_status(&mut self, data: &F1CarStatusData) {
         let car_status = self.car_status.get_or_insert_with(Default::default);
 
@@ -296,7 +296,7 @@ impl PlayerTelemetry {
     /// # Arguments
     ///
     /// * `data` - A reference to F1CarTelemetryData containing new telemetry information.
-    #[inline(always)]
+    #[inline]
     pub fn update_car_telemetry(&mut self, data: &F1CarTelemetryData) {
         let telemetry = self.car_telemetry.get_or_insert_with(Default::default);
 
@@ -350,7 +350,7 @@ impl PlayerTelemetry {
     /// # Returns
     ///
     /// An Option containing a new PlayerTelemetry instance with only the changed fields, or None if no changes.
-    #[inline(always)]
+    #[inline]
     pub fn diff(&self, last: &Self) -> Option<Self> {
         let mut diff = PlayerTelemetry::default();
         let mut has_changes = false;
@@ -512,7 +512,7 @@ impl F1GeneralInfo {
     /// # Arguments
     ///
     /// * `packet` - A reference to PacketSessionData containing new session information.
-    #[inline(always)]
+    #[inline]
     pub fn update_session(&mut self, packet: &PacketSessionData) {
         let session = self.session.get_or_insert_with(Default::default);
         session.weather = Some(packet.weather as u32);
@@ -551,7 +551,7 @@ impl F1GeneralInfo {
     /// # Returns
     ///
     /// An Option containing a new F1GeneralInfo instance with only the changed fields, or None if no changes.
-    #[inline(always)]
+    #[inline]
     pub fn diff(&self, last: &Self) -> Option<Self> {
         let mut diff = F1GeneralInfo::default();
         let mut has_changes = false;
@@ -734,7 +734,7 @@ impl EventData {
     /// # Returns
     ///
     /// An Option containing the new EventData, or None if the event should not be sent.
-    #[inline(always)]
+    #[inline]
     pub fn from_f1(
         f1_event: &F1PacketEventData,
         participants: &AHashMap<usize, DriverInfo>,
@@ -768,7 +768,7 @@ impl EventData {
     /// # Returns
     ///
     /// A String containing the Steam name of the driver, or a placeholder if not found.
-    #[inline(always)]
+    #[inline]
     fn get_steam_name(participants: &AHashMap<usize, DriverInfo>, vehicle_idx: u8) -> String {
         participants
             .get(&(vehicle_idx as usize))
@@ -790,7 +790,7 @@ impl EventData {
     /// # Returns
     ///
     /// An EventDataDetails instance containing the converted event information.
-    #[inline(always)]
+    #[inline]
     fn convert_event_data_details(
         event_code: &EventCode,
         event_data_details: &F1EventDataDetails,

@@ -14,7 +14,7 @@ use crate::{
 
 pub(crate) mod admin;
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
     let user = req.user()?;
     let championships = state.user_repo.championships(user.id).await?;
@@ -25,7 +25,7 @@ pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<H
     }))
 }
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn update(
     req: HttpRequest,
     state: State<AppState>,
@@ -40,7 +40,7 @@ pub(crate) async fn update(
     Ok(HttpResponse::Ok().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub async fn get_championships(
     req: HttpRequest,
     state: State<AppState>,

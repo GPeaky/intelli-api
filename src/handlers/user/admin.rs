@@ -12,7 +12,7 @@ use crate::{
     structs::UserId,
 };
 
-#[inline(always)]
+#[inline]
 pub async fn user_championships(
     state: State<AppState>,
     path: Path<UserId>,
@@ -25,7 +25,7 @@ pub async fn user_championships(
     Ok(HttpResponse::Ok().json(&championships))
 }
 
-#[inline(always)]
+#[inline]
 pub async fn remove_user(
     req: HttpRequest,
     state: State<AppState>,
@@ -49,7 +49,7 @@ pub async fn remove_user(
     Ok(HttpResponse::Ok().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub async fn deactivate_user_account(
     req: HttpRequest,
     state: State<AppState>,
@@ -77,7 +77,7 @@ pub async fn deactivate_user_account(
     Ok(HttpResponse::Ok().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub async fn reactivate_user_account(
     req: HttpRequest,
     state: State<AppState>,

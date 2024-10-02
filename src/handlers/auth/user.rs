@@ -19,7 +19,7 @@ use crate::{
 };
 
 // TODO: Add rate limiting to the register endpoint
-#[inline(always)]
+#[inline]
 pub(crate) async fn register(
     state: State<AppState>,
     Json(user_registration): Json<UserRegistrationData>,
@@ -54,7 +54,7 @@ pub(crate) async fn register(
     Ok(HttpResponse::Created().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn login(
     state: State<AppState>,
     Query(query): Query<ClientFingerprint>,
@@ -105,7 +105,7 @@ pub(crate) async fn login(
     Ok(HttpResponse::Ok().json(&auth_response))
 }
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn refresh_token(
     state: State<AppState>,
     Query(query): Query<RefreshTokenRequest>,
@@ -119,7 +119,7 @@ pub(crate) async fn refresh_token(
     Ok(HttpResponse::Ok().json(&refresh_response))
 }
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn logout(
     req: HttpRequest,
     state: State<AppState>,
@@ -134,7 +134,7 @@ pub(crate) async fn logout(
     Ok(HttpResponse::Ok().finish())
 }
 
-#[inline(always)]
+#[inline]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
     password_reset: Json<PasswordResetRequest>,
@@ -175,7 +175,7 @@ pub(crate) async fn forgot_password(
 }
 
 // TODO: Add rate limiting to the reset password endpoint
-#[inline(always)]
+#[inline]
 pub async fn reset_password(
     state: State<AppState>,
     Query(query): Query<TokenVerification>,

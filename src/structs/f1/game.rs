@@ -954,7 +954,7 @@ impl TryFrom<u8> for PacketIds {
 }
 
 impl ParticipantData {
-    #[inline(always)]
+    #[inline]
     pub fn steam_name(&self) -> Option<&str> {
         let nul_position = memchr::memchr(0, &self.name)?;
         str::from_utf8(&self.name[..nul_position])

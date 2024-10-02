@@ -138,7 +138,7 @@ impl UserService {
     }
 
     /// Internal method to create a user.
-    #[inline(always)]
+    #[inline]
     async fn _create(&self, registration_data: UserRegistrationData) -> AppResult<i32> {
         if self.user_repo.user_exists(&registration_data.email).await? {
             return Err(UserError::AlreadyExists)?;
@@ -189,7 +189,7 @@ impl UserService {
     }
 
     /// Internal method to update a user.
-    #[inline(always)]
+    #[inline]
     async fn _update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         let (query, params) = {
             let mut params_counter = 1u8;
@@ -232,7 +232,7 @@ impl UserService {
     }
 
     /// Internal method to delete a user.
-    #[inline(always)]
+    #[inline]
     async fn _delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -266,7 +266,7 @@ impl UserService {
     }
 
     /// Internal method to reset a user's password.
-    #[inline(always)]
+    #[inline]
     async fn _reset_password(&self, id: i32, password: String) -> AppResult<()> {
         let Some(user) = self.user_repo.find(id).await? else {
             Err(UserError::NotFound)?
@@ -300,7 +300,7 @@ impl UserService {
     }
 
     /// Internal method to activate a user's account.
-    #[inline(always)]
+    #[inline]
     async fn _activate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -323,7 +323,7 @@ impl UserService {
     }
 
     /// Internal method to deactivate a user's account.
-    #[inline(always)]
+    #[inline]
     async fn _deactivate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
         let deactivate_user_stmt = conn

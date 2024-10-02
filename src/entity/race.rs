@@ -21,7 +21,7 @@ pub struct Race {
 
 impl Race {
     /// Creates a Race from a database row
-    #[inline(always)]
+    #[inline]
     pub fn from_row(row: &Row) -> Self {
         Race {
             id: row.get(0),
@@ -33,6 +33,7 @@ impl Race {
         }
     }
 
+    #[inline]
     pub fn from_row_arc(row: &Row) -> Arc<Self> {
         Arc::new(Self::from_row(row))
     }

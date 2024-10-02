@@ -8,7 +8,7 @@ use crate::{
     middlewares::{Authentication, LoginLimit, VisitorData},
 };
 
-#[inline(always)]
+#[inline]
 pub(crate) fn api_routes(cfg: &mut ServiceConfig, visitors: &'static DashMap<IpAddr, VisitorData>) {
     cfg.service(
         scope("/auth")

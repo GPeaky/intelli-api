@@ -205,7 +205,7 @@ impl FirewallService {
     ///
     /// # Returns
     /// Boolean indicating whether the rule exists.
-    #[inline(always)]
+    #[inline]
     async fn rule_exists(&self, id: i32) -> bool {
         let rules = self.rules.read().await;
         rules.contains_key(&id)
@@ -215,7 +215,7 @@ impl FirewallService {
     ///
     /// # Returns
     /// String representation of the current ruleset or an error.
-    #[inline(always)]
+    #[inline]
     async fn ruleset() -> AppResult<String> {
         let output = Command::new("nft")
             .args(["-a", "list", "ruleset"])
@@ -238,7 +238,7 @@ impl FirewallService {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    #[inline(always)]
+    #[inline]
     async fn nft_command(args: &[&str]) -> AppResult<()> {
         let output = Command::new("nft")
             .args(args)
@@ -262,7 +262,7 @@ impl FirewallService {
     ///
     /// # Returns
     /// The extracted handle as a string or an error.
-    #[inline(always)]
+    #[inline]
     fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
         let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;

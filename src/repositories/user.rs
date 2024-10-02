@@ -186,7 +186,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// Boolean indicating if the user exists.
-    #[inline(always)]
+    #[inline]
     pub async fn user_exists(&self, email: &str) -> AppResult<bool> {
         Ok(self.find_by_email(email).await?.is_some())
     }

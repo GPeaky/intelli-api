@@ -20,7 +20,7 @@ pub(crate) mod core {
         },
     };
 
-    #[inline(always)]
+    #[inline]
     pub async fn create(
         req: HttpRequest,
         state: State<AppState>,
@@ -56,7 +56,7 @@ pub(crate) mod core {
         Ok(HttpResponse::Created().finish())
     }
 
-    #[inline(always)]
+    #[inline]
     pub async fn update(
         req: HttpRequest,
         state: State<AppState>,
@@ -76,7 +76,7 @@ pub(crate) mod core {
         Ok(HttpResponse::Ok().finish())
     }
 
-    #[inline(always)]
+    #[inline]
     pub async fn add_user(
         req: HttpRequest,
         state: State<AppState>,
@@ -96,7 +96,7 @@ pub(crate) mod core {
         Ok(HttpResponse::Ok().finish())
     }
 
-    #[inline(always)]
+    #[inline]
     pub async fn remove_user(
         req: HttpRequest,
         state: State<AppState>,
@@ -115,7 +115,7 @@ pub(crate) mod core {
         Ok(HttpResponse::Ok().finish())
     }
 
-    #[inline(always)]
+    #[inline]
     pub async fn get(
         state: State<AppState>,
         path: Path<ChampionshipId>,
