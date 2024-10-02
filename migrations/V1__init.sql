@@ -1,4 +1,3 @@
--- Enums
 CREATE TYPE user_provider AS ENUM ('Local', 'Discord');
 CREATE TYPE user_role AS ENUM ('User', 'Premium', 'Admin');
 CREATE TYPE championship_category AS ENUM ('F1', 'F2');
@@ -6,7 +5,7 @@ CREATE TYPE championship_role AS ENUM ('Visitor', 'Engineer', 'Admin');
 
 -- Tables
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
+    id INT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     username VARCHAR(20) NOT NULL,
     password VARCHAR(64),
@@ -22,24 +21,24 @@ CREATE TABLE users (
 CREATE TABLE drivers (
     steam_name VARCHAR(100) PRIMARY KEY,
     nationality SMALLINT NOT NULL,
-    user_id INTEGER UNIQUE REFERENCES users(id),
+    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE championships (
-    id INTEGER PRIMARY KEY,
+    id INT PRIMARY KEY,
     port INTEGER NOT NULL,
     name VARCHAR(50) NOT NULL UNIQUE,
+    owner_id INTEGER NOT NULL,
     category championship_category NOT NULL DEFAULT 'F1',
-    owner_id INTEGER NOT NULL REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE races (
-    id SERIAL PRIMARY KEY,
-    championship_id INTEGER NOT NULL REFERENCES championships(id),
+    id INT PRIMARY KEY,
+    championship_id INTEGER NOT NULL REFERENCES championships(id) ON DELETE CASCADE,
     track_id SMALLINT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -47,25 +46,26 @@ CREATE TABLE races (
 );
 
 CREATE TABLE results (
-    race_id INTEGER NOT NULL REFERENCES races(id),
+    race_id INTEGER NOT NULL REFERENCES races(id) ON DELETE CASCADE,
     session_type SMALLINT NOT NULL,
     data BYTEA NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (race_id, session_type)
 );
 
--- Link tables
 CREATE TABLE championship_users (
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    championship_id INTEGER NOT NULL REFERENCES championships(id),
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    championship_id INTEGER NOT NULL REFERENCES championships(id) ON DELETE CASCADE,
     role championship_role NOT NULL DEFAULT 'Visitor',
     team_id SMALLINT,
-    PRIMARY KEY (user_id, championship_id, role)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
+    PRIMARY KEY (user_id, championship_id)
 );
 
 CREATE TABLE championship_drivers (
-    steam_name VARCHAR(100) NOT NULL REFERENCES drivers(steam_name),
-    championship_id INTEGER NOT NULL REFERENCES championships(id),
+    steam_name VARCHAR(100) NOT NULL REFERENCES drivers(steam_name) ON DELETE CASCADE,
+    championship_id INTEGER NOT NULL REFERENCES championships(id) ON DELETE CASCADE,
     team_id SMALLINT NOT NULL,
     number SMALLINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

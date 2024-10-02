@@ -389,7 +389,6 @@ impl F1Service {
         Ok(())
     }
 
-    // TODO: Limit updates to 11hz or something
     #[inline]
     fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
         if now.duration_since(self.last_updates.car_damage) > TELEMETRY_INTERVAL {

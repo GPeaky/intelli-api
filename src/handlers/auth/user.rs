@@ -77,7 +77,6 @@ pub(crate) async fn login(
     }
 
     if user.provider != Provider::Local {
-        // TODO: Change the error type to a generic one for discord auth
         return Err(UserError::DiscordAuth)?;
     }
 

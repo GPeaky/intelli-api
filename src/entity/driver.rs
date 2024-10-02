@@ -3,6 +3,8 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
 
+pub type SharedDriver = Arc<Driver>;
+
 /// Represents a driver in the championship
 #[allow(unused)]
 pub struct Driver {

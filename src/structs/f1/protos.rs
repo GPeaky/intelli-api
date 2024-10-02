@@ -461,7 +461,7 @@ impl PlayerTelemetry {
             macro_rules! diff_damage_field {
                 ($field:ident) => {
                     if cur_damage.$field != last_damage.$field {
-                        diff_damage.$field = cur_damage.$field.clone();
+                        diff_damage.$field = cur_damage.$field.clone(); // Avoid clone in primitives traits
                         damage_changed = true;
                     }
                 };

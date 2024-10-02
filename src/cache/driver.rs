@@ -1,14 +1,11 @@
-use std::sync::Arc;
-
 use quick_cache::sync::Cache;
 
-use crate::entity::Driver;
+use crate::entity::SharedDriver;
 
 use super::CACHE_CAPACITY;
 
-// TODO: Check if the performance difference between saving in cache or not makes sense
 pub struct DriverCache {
-    inner: Cache<String, Arc<Driver>>,
+    inner: Cache<String, SharedDriver>,
 }
 
 impl DriverCache {
@@ -18,11 +15,11 @@ impl DriverCache {
         }
     }
 
-    pub fn get(&self, steam_name: &str) -> Option<Arc<Driver>> {
+    pub fn get(&self, steam_name: &str) -> Option<SharedDriver> {
         self.inner.get(steam_name)
     }
 
-    pub fn set(&self, entity: Arc<Driver>) {
+    pub fn set(&self, entity: SharedDriver) {
         self.inner.insert(entity.steam_name.clone(), entity)
     }
 

@@ -45,8 +45,9 @@ pub struct Championship {
     pub id: i32,
     pub port: i32,
     pub name: String,
-    pub category: Category,
+    #[serde(skip_serializing)]
     pub owner_id: i32,
+    pub category: Category,
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
@@ -60,8 +61,8 @@ impl Championship {
             id: row.get(0),
             port: row.get(1),
             name: row.get(2),
-            category: row.get(3),
-            owner_id: row.get(4),
+            owner_id: row.get(3),
+            category: row.get(4),
             created_at: row.get(5),
             updated_at: row.get(6),
         }

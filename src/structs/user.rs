@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use serde_trim::option_string_trim;
 
-use crate::entity::{Championship, SharedUser};
+use crate::entity::{SharedChampionship, SharedUser};
 
 // User Management
 #[derive(Debug, Deserialize, Validate)]
@@ -20,7 +18,7 @@ pub struct UserUpdateData {
 #[derive(Debug, Serialize)]
 pub struct UserProfileData {
     pub user: SharedUser,
-    pub championships: Vec<Arc<Championship>>,
+    pub championships: Vec<SharedChampionship>,
 }
 
 // Path Parameters

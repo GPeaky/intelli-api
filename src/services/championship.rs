@@ -504,7 +504,11 @@ impl ChampionshipServiceOperations for ChampionshipService {
     }
 
     async fn create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
-        // TODO: Maybe add checks for championship_id
+        // I don't know if this is necessary
+        // if self.championship_repo.find(id).await?.is_none() {
+        //     Err(ChampionshipError::NotFound)?
+        // }
+
         self._create_race(id, track_id, date).await
     }
 
