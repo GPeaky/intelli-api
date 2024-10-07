@@ -1,5 +1,4 @@
 use parking_lot::Mutex;
-use tracing_log::log::error;
 
 use crate::{config::constants::PORTS_RANGE, error::AppResult};
 
@@ -25,20 +24,13 @@ impl MachinePorts {
     }
 
     pub fn next(&self) -> Option<i32> {
-        let mut ports = self.ports.lock();
-        ports.pop()
+        self.ports.lock().pop()
     }
 
     pub fn return_port(&self, port: i32) {
-        if !PORTS_RANGE.contains(&port) {
-            error!("Port {} is not in the range", port);
-            return;
-        }
-
+        assert!(PORTS_RANGE.contains(&port));
         let mut ports = self.ports.lock();
-
-        if !ports.contains(&port) {
-            ports.push(port);
-        }
+        assert!(!ports.contains(&port));
+        ports.push(port);
     }
 }

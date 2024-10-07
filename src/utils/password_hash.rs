@@ -12,21 +12,23 @@ use crate::{
 
 pub struct PasswordHasher {
     semaphore: Semaphore,
+    rng: SystemRandom,
 }
 
 impl PasswordHasher {
     pub fn new(max_concurrent: usize) -> PasswordHasher {
         PasswordHasher {
             semaphore: Semaphore::new(max_concurrent),
+            rng: SystemRandom::new(),
         }
     }
 
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
         let _permit = self.semaphore.acquire().await.unwrap();
+        let rng = self.rng.clone();
 
         ntex::rt::spawn_blocking(move || {
             let mut salt = [0u8; PASS_SALT_LEN];
-            let rng = SystemRandom::new();
 
             rng.fill(&mut salt)
                 .map_err(|_| CommonError::HashingFailed)?;
@@ -60,7 +62,7 @@ impl PasswordHasher {
                 .decode_slice_unchecked(encoded, &mut combined) // Unchecked because the size of the hash is static
                 .map_err(|_| CommonError::HashingFailed)?;
 
-            let (salt, hash) = combined.split_at(PASS_SALT_LEN);
+            let (salt, hash) = unsafe { combined.split_at_unchecked(PASS_SALT_LEN) };
 
             Ok(pbkdf2::verify(PASS_ALG, PASS_ITERATIONS, salt, password.as_bytes(), hash).is_ok())
         })
