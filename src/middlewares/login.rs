@@ -5,7 +5,6 @@ use ntex::{
     service::{Middleware, Service, ServiceCtx},
     web::{Error, WebRequest, WebResponse},
 };
-use tracing::warn;
 
 use crate::{
     config::constants::{LOGIN_RATE_LIMIT, LOGIN_RATE_LIMIT_DUR},
@@ -78,8 +77,6 @@ where
             }
 
             entry.0 += 1;
-        } else {
-            warn!("No CF-Connecting-IP header, not rate limiting");
         }
 
         let res = ctx.call(&self.service, req).await?;

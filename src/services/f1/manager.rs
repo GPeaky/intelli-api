@@ -76,7 +76,6 @@ impl F1SessionDataManager {
         self.last_general_encoded.read().clone()
     }
 
-    #[allow(unused)]
     pub fn get_team_receiver(&self, team_id: u8) -> Option<Receiver<Bytes>> {
         self.team_senders
             .read()
@@ -87,6 +86,7 @@ impl F1SessionDataManager {
     #[inline]
     pub fn push_event(&self, event: &PacketEventData) {
         let driver_info = self.driver_info.read();
+
         if let Some(event_data) = EventData::from_f1(event, &driver_info) {
             let mut general = self.general.write();
             general

@@ -17,7 +17,7 @@ pub enum F1PacketData<'a> {
     CarTelemetry(&'a PacketCarTelemetryData),
 }
 
-impl<'a> F1PacketData<'a> {
+impl F1PacketData<'_> {
     pub fn parse_and_identify(data: &[u8]) -> AppResult<(&PacketHeader, F1PacketData)> {
         let header = header_cast(data)?;
         let packet_id = PacketIds::try_from(header.packet_id).unwrap();

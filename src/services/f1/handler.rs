@@ -32,15 +32,13 @@ impl F1ServiceHandler {
     /// A new F1ServiceHandler with initialized services and firewall.
     pub fn new(f1_state: &'static F1State) -> Self {
         let services = Box::leak(Box::new(DashMap::with_capacity(10)));
-
         Self { services, f1_state }
     }
 
     /// Subscribes to a team-specific channel for a championship service.
     pub fn subscribe_team(&self, championship_id: &i32, team_id: u8) -> Option<Receiver<Bytes>> {
-        self.services
-            .get(championship_id)
-            .and_then(|service| service.team_sub(team_id))
+        let service = self.services.get(championship_id)?;
+        service.team_sub(team_id)
     }
 
     /// Retrieves cache and subscribes to a channel for a specific championship service.
@@ -54,15 +52,15 @@ impl F1ServiceHandler {
         &self,
         championship_id: &i32,
     ) -> Option<(Option<Bytes>, Receiver<Bytes>)> {
-        self.services
-            .get(championship_id)
-            .map(|service| (service.cache(), service.global_sub()))
+        let service = self.services.get(championship_id)?;
+        Some((service.cache(), service.global_sub()))
     }
 
     /// Unsubscribes from a championship service.
     ///
     /// # Arguments
     /// - `championship_id`: The ID of the championship.
+    #[inline]
     pub fn unsubscribe(&self, championship_id: &i32) {
         if let Some(service) = self.services.get(championship_id) {
             service.global_unsub();
@@ -70,6 +68,7 @@ impl F1ServiceHandler {
     }
 
     /// Unsubscribes from the team-specific channel of a championship service.
+    #[inline]
     pub fn unsubscribe_team(&self, championship_id: &i32, team_id: u8) {
         if let Some(service) = self.services.get(championship_id) {
             service.team_unsub(team_id);
@@ -90,17 +89,6 @@ impl F1ServiceHandler {
         services
     }
 
-    /// Checks if a specific service is active.
-    ///
-    /// # Arguments
-    /// - `id`: The ID of the service to check.
-    ///
-    /// # Returns
-    /// true if the service is active, false otherwise.
-    pub fn service(&self, id: &i32) -> bool {
-        self.services.contains_key(id)
-    }
-
     /// Retrieves the status of a specific service.
     ///
     /// # Arguments
@@ -109,21 +97,17 @@ impl F1ServiceHandler {
     /// # Returns
     /// ServiceStatus containing activity status and connection count.
     pub fn service_status(&self, id: &i32) -> ServiceStatus {
-        let Some(service) = self.services.get(id) else {
-            return ServiceStatus {
+        match self.services.get(id) {
+            Some(service) => ServiceStatus {
+                active: true,
+                general_conn: service.global_count(),
+                engineer_conn: service.all_team_count(),
+            },
+            None => ServiceStatus {
                 active: false,
                 general_conn: 0,
                 engineer_conn: 0,
-            };
-        };
-
-        let general_conn = service.global_count();
-        let engineer_conn = service.all_team_count();
-
-        ServiceStatus {
-            active: true,
-            general_conn,
-            engineer_conn,
+            },
         }
     }
 
@@ -164,19 +148,32 @@ impl F1ServiceHandler {
     /// # Returns
     /// Result indicating success or failure.
     pub async fn stop(&self, championship_id: &i32) -> AppResult<()> {
-        if !self.service(championship_id) {
-            return Err(F1ServiceError::NotActive)?;
-        }
-
-        if let Some((_, mut service)) = self.services.remove(championship_id) {
-            if service.shutdown().is_err() {
-                return Err(F1ServiceError::Shutdown)?;
+        match self.services.remove(championship_id) {
+            Some((_, mut service)) => {
+                if service.shutdown().is_err() {
+                    Err(F1ServiceError::Shutdown)?
+                }
             }
-        } else {
-            warn!("Trying to remove a non existing service");
+
+            None => {
+                warn!("Trying to remove a non existing service");
+                Err(F1ServiceError::NotActive)?
+            }
         }
 
         info!("Service stopped for championship: {}", championship_id);
         Ok(())
+    }
+
+    /// Checks if a specific service is active.
+    ///
+    /// # Arguments
+    /// - `id`: The ID of the service to check.
+    ///
+    /// # Returns
+    /// true if the service is active, false otherwise.
+    #[inline]
+    fn service(&self, id: &i32) -> bool {
+        self.services.contains_key(id)
     }
 }

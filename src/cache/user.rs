@@ -21,11 +21,8 @@ impl UserCache {
 
     /// Retrieves a user by their email address.
     pub fn get_by_email(&self, email: &str) -> Option<SharedUser> {
-        if let Some(id) = self.email_to_id.get(email) {
-            return self.get(&id);
-        }
-
-        None
+        let id = self.email_to_id.get(email)?;
+        self.get(&id)
     }
 }
 
