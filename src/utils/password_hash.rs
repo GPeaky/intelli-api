@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64_simd::{Out, STANDARD};
 use ring::{
     pbkdf2,
     rand::{SecureRandom, SystemRandom},
@@ -46,7 +46,7 @@ impl PasswordHasher {
             hashed_password[..PASS_SALT_LEN].copy_from_slice(&salt);
             hashed_password[PASS_SALT_LEN..].copy_from_slice(&hash);
 
-            Ok(STANDARD.encode(hashed_password))
+            Ok(STANDARD.encode_to_string(hashed_password))
         })
         .await
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
@@ -59,7 +59,7 @@ impl PasswordHasher {
             let mut combined = [0u8; PASS_SALT_LEN + PASS_CREDENTIAL_LEN];
 
             STANDARD
-                .decode_slice_unchecked(encoded, &mut combined) // Unchecked because the size of the hash is static
+                .decode(encoded.as_bytes(), Out::from_slice(&mut combined)) // Unchecked because the size of the hash is static
                 .map_err(|_| CommonError::HashingFailed)?;
 
             let (salt, hash) = unsafe { combined.split_at_unchecked(PASS_SALT_LEN) };
