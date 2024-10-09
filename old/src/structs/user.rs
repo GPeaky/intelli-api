@@ -23,4 +23,5 @@ pub struct UserProfileData {
 
 // Path Parameters
 #[derive(Debug, Deserialize, Validate)]
+#[repr(transparent)]
 pub struct UserId(#[garde(range(min = 600000000, max = 699999999))] pub i32);

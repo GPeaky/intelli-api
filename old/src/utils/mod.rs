@@ -13,6 +13,7 @@ use std::mem;
 mod ids_generator;
 mod password_hash;
 mod ports;
+mod token;
 
 pub fn deserialize_i64_from_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
 where
