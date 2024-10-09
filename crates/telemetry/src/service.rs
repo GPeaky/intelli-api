@@ -27,12 +27,12 @@ use error::{AppResult, CommonError, F1ServiceError};
 use intelli_core::services::{ChampionshipServiceOperations, DriverServiceOperations};
 
 use crate::f1_structs::{
-    F1PacketData, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
+    F1PacketData, F1State, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
     PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
     PacketSessionData, PacketSessionHistoryData, SessionType,
 };
 
-use super::{manager::F1SessionDataManager, F1State};
+use super::manager::F1SessionDataManager;
 
 const BUFFER_SIZE: usize = 1460;
 const SOCKET_HOST: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));

@@ -1,3 +1,6 @@
+[workspace.lints.clippy]
+new_without_default = "allow"
+
 [workspace]
 resolver = "2"
 members = [
