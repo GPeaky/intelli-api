@@ -1,6 +1,42 @@
 [workspace]
 resolver = "2"
-members = ["crates/api", "crates/auth", "crates/cache", "crates/core", "crates/id-generator", "crates/telemetry"]
+members = [
+    "crates/api",
+    "crates/auth",
+    "crates/intelli-core",
+    "crates/db",
+    "crates/entities",
+    "crates/error",
+    "crates/id-generator",
+    "crates/structs",
+    "crates/telemetry",
+    "crates/utils",
+]
+
+[workspace.dependencies]
+ring = "0.17"
+tracing = "0.1"
+dotenvy = "0.15"
+sailfish = "0.9"
+base64-simd = "0.8"
+deadpool-postgres = "0.14"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+serde = { version = "1", features = ["rc", "unstable"] }
+ntex = { version = "2", features = ["tokio", "openssl"] }
+ahash = { version = "0.8", features = ["compile-time-rng"] }
+dashmap = { version = "6", features = ["inline", "raw-api"] }
+postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
+parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
+garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
+mimalloc = { version = "0.1", features = [
+    "extended",
+    "local_dynamic_tls",
+    "override",
+] }
+
 
 [profile.release]
 debug = false

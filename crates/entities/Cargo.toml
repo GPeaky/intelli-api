@@ -1,0 +1,17 @@
+[package]
+name = "entities"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+error = { path = "../error" }
+
+ntex = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+tokio-stream = { workspace = true }
+deadpool-postgres = { workspace = true }
+
+postgres-derive = "0.4"
+postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }

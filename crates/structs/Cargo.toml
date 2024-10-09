@@ -1,0 +1,17 @@
+[package]
+name = "structs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+utils = { path = "../utils" }
+entities = { path = "../entities" }
+
+garde = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+sailfish = { workspace = true }
+deadpool-postgres = { workspace = true }
+
+serde_trim = "1"

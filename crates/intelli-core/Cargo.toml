@@ -1,0 +1,33 @@
+[package]
+name = "intelli-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+db = { path = "../db" }
+auth = { path = "../auth" }
+error = { path = "../error" }
+utils = { path = "../utils" }
+structs = { path = "../structs" }
+entities = { path = "../entities" }
+id-generator = { path = "../id-generator" }
+
+ntex = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+dotenvy = { workspace = true }
+tracing = { workspace = true }
+reqwest = { workspace = true }
+sailfish = { workspace = true }
+tokio-stream = { workspace = true }
+postgres-types = { workspace = true }
+deadpool-postgres = { workspace = true }
+
+jsonwebtoken = "9"
+lettre = { version = "0.11", default-features = false, features = [
+    "tokio1-rustls-tls",
+    "smtp-transport",
+    "builder",
+    "pool",
+] }

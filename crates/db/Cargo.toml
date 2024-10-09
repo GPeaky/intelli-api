@@ -1,0 +1,18 @@
+[package]
+name = "db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+entities = { path = "../entities" }
+structs = { path = "../structs" }
+
+serde = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+dotenvy = { workspace = true }
+tracing = { workspace = true }
+deadpool-postgres = { workspace = true }
+
+quick_cache = "0.6"
+refinery = { version = "0.8", features = ["tokio-postgres"] }
