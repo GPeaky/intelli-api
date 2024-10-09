@@ -7,3 +7,6 @@ edition = "2021"
 ring = { workspace = true }
 ahash = { workspace = true }
 parking_lot = { workspace = true }
+
+[lints]
+workspace = true

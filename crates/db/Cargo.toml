@@ -16,3 +16,6 @@ deadpool-postgres = { workspace = true }
 
 quick_cache = "0.6"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
+
+[lints]
+workspace = true

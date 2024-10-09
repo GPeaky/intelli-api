@@ -19,7 +19,6 @@ tracing = { workspace = true }
 dotenvy = { workspace = true }
 mimalloc = { workspace = true }
 dashmap = { workspace = true }
-reqwest = { workspace = true }
 tokio-stream = { workspace = true }
 
 ntex-cors = "2"
@@ -29,3 +28,6 @@ tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
 ] }
+
+[lints]
+workspace = true

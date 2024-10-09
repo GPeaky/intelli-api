@@ -15,3 +15,6 @@ deadpool-postgres = { workspace = true }
 
 postgres-derive = "0.4"
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
+
+[lints]
+workspace = true

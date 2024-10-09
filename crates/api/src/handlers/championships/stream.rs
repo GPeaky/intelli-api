@@ -2,12 +2,13 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use garde::Validate;
-use ntex::web::HttpRequest;
-use ntex::web::{
-    types::{Path, State},
-    HttpResponse,
+use ntex::{
+    http::header::HeaderValue,
+    web::{
+        types::{Path, State},
+        HttpRequest, HttpResponse,
+    },
 };
-use reqwest::header::HeaderValue;
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 
 use entities::{ChampionshipRole, UserExtension};

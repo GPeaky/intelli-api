@@ -9,3 +9,6 @@ tracing = { workspace = true }
 reqwest = { workspace = true }
 sailfish = { workspace = true }
 deadpool-postgres = { workspace = true }
+
+[lints]
+workspace = true

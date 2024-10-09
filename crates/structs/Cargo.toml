@@ -15,3 +15,6 @@ sailfish = { workspace = true }
 deadpool-postgres = { workspace = true }
 
 serde_trim = "1"
+
+[lints]
+workspace = true

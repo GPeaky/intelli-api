@@ -9,3 +9,6 @@ error = { path = "../error" }
 serde = { workspace = true }
 parking_lot = { workspace = true }
 postgres-types = { workspace = true }
+
+[lints]
+workspace = true

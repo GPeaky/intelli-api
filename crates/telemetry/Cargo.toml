@@ -23,3 +23,6 @@ parking_lot = { workspace = true }
 memchr = "2"
 prost = "0.13"
 regex = { version = "1", features = ["unstable"] }
+
+[lints]
+workspace = true

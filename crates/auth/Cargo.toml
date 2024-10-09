@@ -9,3 +9,6 @@ error = { path = "../error" }
 ring = { workspace = true }
 tokio = { workspace = true }
 base64-simd = { workspace = true }
+
+[lints]
+workspace = true
