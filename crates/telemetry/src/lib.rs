@@ -4,9 +4,6 @@ mod manager;
 mod service;
 mod utils;
 
-pub use f1_structs::F1State;
-pub use manager::DriverInfo;
-
 use dashmap::DashMap;
 use manager::F1SessionDataManager;
 use ntex::util::Bytes;
@@ -19,6 +16,9 @@ use tracing::{info, warn};
 
 use error::{AppResult, F1ServiceError};
 use structs::ServiceStatus;
+
+pub use f1_structs::F1State;
+pub use manager::DriverInfo;
 
 /// Manages F1 championship services, including caching, subscriptions, and service lifecycle.
 #[derive(Clone)]
