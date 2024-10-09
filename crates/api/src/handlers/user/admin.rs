@@ -4,9 +4,9 @@ use ntex::web::{
     HttpRequest, HttpResponse,
 };
 
-use intelli_core::services::{UserAdminServiceOperations, UserServiceOperations};
 use entities::UserExtension;
 use error::{AppResult, CommonError, UserError};
+use intelli_core::services::{UserAdminServiceOperations, UserServiceOperations};
 use structs::UserId;
 
 use crate::states::AppState;
