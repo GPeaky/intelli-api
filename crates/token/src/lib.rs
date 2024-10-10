@@ -56,6 +56,7 @@ impl TokenManager {
 
         if let Some(entry) = self.tokens.get(token) {
             if entry.expiry <= now {
+                drop(entry);
                 self.tokens.remove(token);
                 return Err(TokenError::ExpiredToken)?;
             }
