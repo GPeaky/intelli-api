@@ -5,11 +5,12 @@ edition = "2021"
 
 [dependencies]
 db = { path = "../db" }
-auth = { path = "../auth" }
 error = { path = "../error" }
 utils = { path = "../utils" }
+# token = { path = "../token" }
 structs = { path = "../structs" }
 entities = { path = "../entities" }
+password-hash = { path = "../password-hash" }
 id-generator = { path = "../id-generator" }
 
 ntex = { workspace = true }

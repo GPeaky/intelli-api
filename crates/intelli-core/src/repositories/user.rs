@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use tokio_stream::StreamExt;
 
-use auth::PasswordHasher;
 use db::{Database, EntityCache};
 use entities::{Championship, SharedUser, User};
 use error::AppResult;
+use password_hash::PasswordHasher;
 use utils::slice_iter;
 
 /// Repository for managing user data with database and cache integration.

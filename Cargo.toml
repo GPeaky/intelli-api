@@ -5,14 +5,15 @@ new_without_default = "allow"
 resolver = "2"
 members = [
     "crates/api",
-    "crates/auth",
     "crates/intelli-core",
+    "crates/password-hash",
     "crates/db",
     "crates/entities",
     "crates/error",
     "crates/id-generator",
     "crates/structs",
     "crates/telemetry",
+    "crates/token",
     "crates/utils",
 ]
 

@@ -1,0 +1,14 @@
+[package]
+name = "password-hash"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+error = { path = "../error" }
+
+ring = { workspace = true }
+tokio = { workspace = true }
+base64-simd = { workspace = true }
+
+[lints]
+workspace = true
