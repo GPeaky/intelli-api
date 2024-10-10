@@ -2,18 +2,17 @@ use std::future::Future;
 
 use chrono::{Duration, Utc};
 use postgres_types::ToSql;
+use token::{Token, TokenIntent, TokenManager};
 use tracing::info;
 
 use db::{Database, EntityCache};
 use entities::{Provider, SharedUser};
-use error::{AppResult, TokenError, UserError};
+use error::{AppResult, UserError};
 use id_generator::IdsGenerator;
-use structs::{TokenPurpose, UserRegistrationData, UserUpdateData};
+use structs::{UserRegistrationData, UserUpdateData};
 use utils::slice_iter;
 
 use crate::repositories::UserRepository;
-
-use super::TokenService;
 
 /// Defines the core operations for managing users.
 pub trait UserServiceOperations {
@@ -115,7 +114,7 @@ pub trait UserAdminServiceOperations: UserServiceOperations {
 pub struct UserService {
     db: &'static Database,
     user_repo: &'static UserRepository,
-    token_svc: &'static TokenService,
+    token_mgr: &'static TokenManager,
     ids_generator: IdsGenerator,
 }
 
@@ -134,7 +133,7 @@ impl UserService {
     pub async fn new(
         db: &'static Database,
         user_repo: &'static UserRepository,
-        token_svc: &'static TokenService,
+        token_mgr: &'static TokenManager,
     ) -> Self {
         let ids_generator = {
             let used_ids = user_repo._used_ids().await.unwrap();
@@ -143,7 +142,7 @@ impl UserService {
 
         Self {
             db,
-            token_svc,
+            token_mgr,
             user_repo,
             ids_generator,
         }
@@ -376,45 +375,27 @@ impl UserServiceOperations for UserService {
     }
 
     async fn reset_password(&self, token: String, password: String) -> AppResult<i32> {
-        if !self
-            .db
-            .cache
-            .token
-            .get_token(token.clone(), TokenPurpose::PasswordReset)
-        {
-            return Err(TokenError::InvalidToken)?;
-        }
+        const TOKEN_INTENT: TokenIntent = TokenIntent::PasswordReset;
 
-        let user_id = self.token_svc.subject_id(&token)?;
+        let token = Token::from_base64(&token)?;
+        let user_id = self.token_mgr.validate(&token, TOKEN_INTENT)?;
 
         self._reset_password(user_id, password).await?;
 
-        self.db
-            .cache
-            .token
-            .remove_token(token, TokenPurpose::PasswordReset);
+        self.token_mgr.remove(&token, TOKEN_INTENT);
 
         Ok(user_id)
     }
 
     async fn activate(&self, token: String) -> AppResult<i32> {
-        if !self
-            .db
-            .cache
-            .token
-            .get_token(token.clone(), TokenPurpose::EmailVerification)
-        {
-            return Err(TokenError::InvalidToken)?;
-        }
+        const TOKEN_INTENT: TokenIntent = TokenIntent::EmailVerify;
 
-        let user_id = self.token_svc.subject_id(&token)?;
+        let token = Token::from_base64(&token)?;
+        let user_id = self.token_mgr.validate(&token, TOKEN_INTENT)?;
 
         self._activate(user_id).await?;
 
-        self.db
-            .cache
-            .token
-            .remove_token(token, TokenPurpose::EmailVerification);
+        self.token_mgr.remove(&token, TOKEN_INTENT);
 
         Ok(user_id)
     }

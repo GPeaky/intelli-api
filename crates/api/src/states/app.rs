@@ -6,9 +6,10 @@ use intelli_core::{
         ChampionshipRepository, DiscordRepository, DriverRepository, ServerRepository,
         UserRepository,
     },
-    services::{ChampionshipService, DriverService, EmailService, TokenService, UserService},
+    services::{ChampionshipService, DriverService, EmailService, UserService},
 };
 use telemetry::{F1ServiceHandler, F1State};
+use token::TokenManager;
 
 // F1ServiceHandler, FirewallService
 
@@ -16,7 +17,7 @@ use telemetry::{F1ServiceHandler, F1State};
 pub struct AppState {
     pub user_svc: &'static UserService,
     pub user_repo: &'static UserRepository,
-    pub token_svc: &'static TokenService,
+    pub token_mgr: &'static TokenManager,
     pub championship_svc: &'static ChampionshipService,
     pub championship_repo: &'static ChampionshipRepository,
     #[allow(unused)]
@@ -38,12 +39,14 @@ impl AppState {
         let driver_repo = Box::leak(Box::new(DriverRepository::new(db)));
 
         // Services
-        let token_svc = Box::leak(Box::from(TokenService::new(db)));
+        let token_mgr = Box::leak(Box::from(TokenManager::new()));
         let driver_svc = Box::leak(Box::new(DriverService::new(db, driver_repo).await));
-        let user_svc = Box::leak(Box::from(UserService::new(db, user_repo, token_svc).await));
+        let user_svc = Box::leak(Box::from(UserService::new(db, user_repo, token_mgr).await));
         let championship_svc = Box::leak(Box::from(
             ChampionshipService::new(db, user_repo, championship_repo).await?,
         ));
+
+        token_mgr.start_purge_thread();
 
         // Inner states
         let f1_state = Box::leak(Box::new(F1State::new(
@@ -57,7 +60,7 @@ impl AppState {
             user_svc,
             f1_svc: F1ServiceHandler::new(f1_state),
             user_repo,
-            token_svc,
+            token_mgr,
             championship_svc,
             championship_repo,
             driver_repo,

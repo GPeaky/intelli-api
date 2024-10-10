@@ -2,17 +2,18 @@ use chrono::{Duration, Utc};
 use garde::Validate;
 use ntex::web::{
     types::{Json, Query, State},
-    HttpRequest, HttpResponse,
+    HttpResponse,
 };
 
-use entities::{Provider, UserExtension};
+use entities::Provider;
 use error::{AppResult, CommonError, UserError};
 use intelli_core::services::UserServiceOperations;
 use structs::{
     AuthTokens, ClientFingerprint, EmailVerificationTemplate, LoginCredentials, NewAccessToken,
     PasswordChangeConfirmationTemplate, PasswordResetRequest, PasswordResetTemplate,
-    PasswordUpdateData, RefreshTokenRequest, TokenPurpose, TokenVerification, UserRegistrationData,
+    PasswordUpdateData, RefreshTokenRequest, TokenVerification, UserRegistrationData,
 };
+use token::{Token, TokenIntent};
 
 use crate::states::AppState;
 
@@ -28,11 +29,7 @@ pub(crate) async fn register(
 
     let user_id = state.user_svc.create(user_registration).await?;
 
-    let token = state
-        .token_svc
-        .generate_token(user_id, TokenPurpose::EmailVerification)?;
-
-    state.token_svc.save_email_token(token.clone());
+    let token = state.token_mgr.create(user_id, TokenIntent::EmailVerify);
 
     // Should be safe to unwrap the option because we just created the user above
     let user = state.user_repo.find(user_id).await?.unwrap();
@@ -40,7 +37,7 @@ pub(crate) async fn register(
     let template = EmailVerificationTemplate {
         verification_link: format!(
             "https://intellitelemetry.live/auth/verify-email?token={}",
-            token
+            token.as_base64()
         ),
     };
 
@@ -55,7 +52,7 @@ pub(crate) async fn register(
 #[inline]
 pub(crate) async fn login(
     state: State<AppState>,
-    Query(query): Query<ClientFingerprint>,
+    Query(_query): Query<ClientFingerprint>,
     Json(login_credentials): Json<LoginCredentials>,
 ) -> AppResult<HttpResponse> {
     if login_credentials.validate().is_err() {
@@ -86,17 +83,12 @@ pub(crate) async fn login(
         return Err(UserError::InvalidCredentials)?;
     }
 
-    let access_token = state
-        .token_svc
-        .generate_token(user.id, TokenPurpose::Authentication)?;
-
-    let refresh_token = state
-        .token_svc
-        .generate_refresh_token(user.id, query.fingerprint)?;
+    let access_token = state.token_mgr.create(user.id, TokenIntent::Auth);
+    let refresh_token = state.token_mgr.create(user.id, TokenIntent::RefreshAuth);
 
     let auth_response = AuthTokens {
-        access_token,
-        refresh_token,
+        access_token: access_token.as_base64(),
+        refresh_token: refresh_token.as_base64(),
     };
 
     Ok(HttpResponse::Ok().json(&auth_response))
@@ -107,26 +99,26 @@ pub(crate) async fn refresh_token(
     state: State<AppState>,
     Query(query): Query<RefreshTokenRequest>,
 ) -> AppResult<HttpResponse> {
-    let access_token = state
-        .token_svc
-        .refresh_access_token(&query.refresh_token, query.fingerprint)?;
+    let token = Token::from_base64(&query.refresh_token)?;
 
-    let refresh_response = NewAccessToken { access_token };
+    let user_id = state.token_mgr.validate(&token, TokenIntent::RefreshAuth)?;
+
+    let access_token = state.token_mgr.create(user_id, TokenIntent::Auth);
+
+    let refresh_response = NewAccessToken {
+        access_token: access_token.as_base64(),
+    };
 
     Ok(HttpResponse::Ok().json(&refresh_response))
 }
 
 #[inline]
 pub(crate) async fn logout(
-    req: HttpRequest,
     state: State<AppState>,
     Query(query): Query<RefreshTokenRequest>,
 ) -> AppResult<HttpResponse> {
-    let user_id = req.user_id()?;
-
-    state
-        .token_svc
-        .remove_refresh_token(user_id, query.fingerprint);
+    let token = Token::from_base64(&query.refresh_token)?;
+    state.token_mgr.remove(&token, TokenIntent::RefreshAuth);
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -150,18 +142,14 @@ pub(crate) async fn forgot_password(
         }
     }
 
-    let token = state
-        .token_svc
-        .generate_token(user.id, TokenPurpose::PasswordReset)?;
+    let token = state.token_mgr.create(user.id, TokenIntent::PasswordReset);
 
     let template = PasswordResetTemplate {
         reset_password_link: format!(
             "https://intellitelemetry.live/auth/reset-password?token={}",
-            token
+            token.as_base64()
         ),
     };
-
-    state.token_svc.save_reset_password_token(token);
 
     state
         .email_svc

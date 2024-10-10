@@ -6,7 +6,8 @@ use ntex::web::{
 use entities::Provider;
 use error::{AppResult, UserError};
 use intelli_core::services::UserServiceOperations;
-use structs::{OauthAuthorizationCode, TokenPurpose, UserRegistrationData};
+use structs::{OauthAuthorizationCode, UserRegistrationData};
+use token::TokenIntent;
 
 use crate::states::AppState;
 
@@ -39,11 +40,12 @@ pub async fn discord_callback(
         }
     };
 
-    let access_token = state
-        .token_svc
-        .generate_token(user.id, TokenPurpose::Authentication)?;
+    let access_token = state.token_mgr.create(user.id, TokenIntent::Auth);
 
-    let redirect_url = format!("{DISCORD_REDIRECT}?access_token={}", access_token);
+    let redirect_url = format!(
+        "{DISCORD_REDIRECT}?access_token={}",
+        access_token.as_base64()
+    );
 
     Ok(HttpResponse::Found()
         .set_header("Location", redirect_url)

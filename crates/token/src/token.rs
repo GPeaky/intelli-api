@@ -1,7 +1,8 @@
 use std::time::Instant;
 
-use base64_simd::URL_SAFE_NO_PAD;
+use base64_simd::{Out, URL_SAFE_NO_PAD};
 use chrono::Duration;
+use error::{AppResult, TokenError};
 use ring::rand::{SecureRandom, SystemRandom};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -46,5 +47,14 @@ impl Token {
 
     pub fn as_base64(&self) -> String {
         URL_SAFE_NO_PAD.encode_to_string(self.0)
+    }
+
+    pub fn from_base64(str: &str) -> AppResult<Token> {
+        let mut token = [0u8; 16];
+
+        match URL_SAFE_NO_PAD.decode(str.as_bytes(), Out::from_slice(&mut token)) {
+            Ok(_) => Ok(Self(token)),
+            _ => Err(TokenError::InvalidToken)?,
+        }
     }
 }

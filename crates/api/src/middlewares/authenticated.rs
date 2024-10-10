@@ -4,10 +4,9 @@ use ntex::{
 };
 
 use error::{CommonError, TokenError, UserError};
+use token::{Token, TokenIntent};
 
 use crate::states::AppState;
-
-const BEARER_PREFIX: &str = "Bearer ";
 
 pub struct Authentication;
 
@@ -41,19 +40,17 @@ where
             Err(TokenError::MissingToken)?
         };
 
-        let header = {
-            let header_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
+        let token = {
+            let token_str = header.to_str().map_err(|_| TokenError::InvalidToken)?;
 
-            header_str
-                .strip_prefix(BEARER_PREFIX)
-                .ok_or(TokenError::InvalidToken)?
+            Token::from_base64(token_str)?
         };
 
         let Some(state) = req.app_state::<AppState>() else {
             Err(CommonError::InternalServerError)?
         };
 
-        let id = state.token_svc.validate(header)?.claims.subject_id;
+        let id = state.token_mgr.validate(&token, TokenIntent::Auth)?;
         let user = state.user_repo.find(id).await?.ok_or(UserError::NotFound)?;
         req.extensions_mut().insert(user);
 

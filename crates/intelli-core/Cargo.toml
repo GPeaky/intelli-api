@@ -7,11 +7,11 @@ edition = "2021"
 db = { path = "../db" }
 error = { path = "../error" }
 utils = { path = "../utils" }
-# token = { path = "../token" }
+token = { path = "../token" }
 structs = { path = "../structs" }
 entities = { path = "../entities" }
-password-hash = { path = "../password-hash" }
 id-generator = { path = "../id-generator" }
+password-hash = { path = "../password-hash" }
 
 ntex = { workspace = true }
 tokio = { workspace = true }

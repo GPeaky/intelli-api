@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use driver::DriverCache;
 
-use self::{championship::ChampionshipCache, token::TokenCache, user::UserCache};
+use self::{championship::ChampionshipCache, user::UserCache};
 
 mod championship;
 mod driver;
-mod token;
 mod user;
 
 const CACHE_CAPACITY: usize = 2_000;
@@ -16,7 +15,6 @@ pub struct ServiceCache {
     pub user: UserCache,
     pub driver: DriverCache,
     pub championship: ChampionshipCache,
-    pub token: TokenCache,
 }
 
 impl ServiceCache {
@@ -26,7 +24,6 @@ impl ServiceCache {
             user: UserCache::new(),
             driver: DriverCache::new(),
             championship: ChampionshipCache::new(),
-            token: TokenCache::new(),
         }
     }
 }

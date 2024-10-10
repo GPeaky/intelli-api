@@ -12,6 +12,7 @@ use super::AppError;
 pub enum TokenError {
     InvalidToken,
     MissingToken,
+    ExpiredToken,
     TokenCreationError,
     InvalidTokenPurpose,
 }
@@ -29,6 +30,7 @@ impl TokenError {
         match self {
             TokenError::InvalidToken => StatusCode::UNAUTHORIZED,
             TokenError::MissingToken => StatusCode::BAD_REQUEST,
+            TokenError::ExpiredToken => StatusCode::BAD_REQUEST,
             TokenError::TokenCreationError => StatusCode::INTERNAL_SERVER_ERROR,
             TokenError::InvalidTokenPurpose => StatusCode::BAD_REQUEST,
         }
@@ -37,7 +39,8 @@ impl TokenError {
     pub const fn error_message(&self) -> &'static str {
         match self {
             TokenError::InvalidToken => "Invalid token",
-            TokenError::MissingToken => "Missing Bearer token",
+            TokenError::MissingToken => "Missing token",
+            TokenError::ExpiredToken => "Expired token",
             TokenError::TokenCreationError => "Token Validation Error",
             TokenError::InvalidTokenPurpose => "Invalid token type",
         }
