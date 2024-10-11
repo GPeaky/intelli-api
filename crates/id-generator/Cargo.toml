@@ -3,10 +3,14 @@ name = "id-generator"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-ring = { workspace = true }
-ahash = { workspace = true }
-parking_lot = { workspace = true }
-
 [lints]
 workspace = true
+
+[lib]
+path = "src/id_generator.rs"
+doctest = false
+
+[dependencies]
+ring.workspace = true
+ahash.workspace = true
+parking_lot.workspace = true

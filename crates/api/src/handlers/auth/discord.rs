@@ -7,7 +7,7 @@ use entities::Provider;
 use error::{AppResult, UserError};
 use intelli_core::services::UserServiceOperations;
 use structs::{OauthAuthorizationCode, UserRegistrationData};
-use token::TokenIntent;
+use token_manager::TokenIntent;
 
 use crate::states::AppState;
 

@@ -2,7 +2,7 @@ use std::future::Future;
 
 use chrono::{Duration, Utc};
 use postgres_types::ToSql;
-use token::{Token, TokenIntent, TokenManager};
+use token_manager::{Token, TokenIntent, TokenManager};
 use tracing::info;
 
 use db::{Database, EntityCache};

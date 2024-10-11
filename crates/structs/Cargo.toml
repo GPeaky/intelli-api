@@ -3,18 +3,20 @@ name = "structs"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-utils = { path = "../utils" }
-entities = { path = "../entities" }
-
-garde = { workspace = true }
-tokio = { workspace = true }
-serde = { workspace = true }
-chrono = { workspace = true }
-sailfish = { workspace = true }
-deadpool-postgres = { workspace = true }
-
-serde_trim = "1"
-
 [lints]
 workspace = true
+
+[lib]
+path = "src/structs.rs"
+doctest = false
+
+[dependencies]
+utils.workspace = true
+entities.workspace = true
+garde.workspace = true
+tokio.workspace = true
+serde.workspace = true
+chrono.workspace = true
+sailfish.workspace = true
+deadpool-postgres.workspace = true
+serde_trim.workspace = true

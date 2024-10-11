@@ -9,7 +9,7 @@ use intelli_core::{
     services::{ChampionshipService, DriverService, EmailService, UserService},
 };
 use telemetry::{F1ServiceHandler, F1State};
-use token::TokenManager;
+use token_manager::TokenManager;
 
 // F1ServiceHandler, FirewallService
 

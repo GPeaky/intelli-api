@@ -4,7 +4,7 @@ use ntex::{
 };
 
 use error::{CommonError, TokenError, UserError};
-use token::{Token, TokenIntent};
+use token_manager::{Token, TokenIntent};
 
 use crate::states::AppState;
 

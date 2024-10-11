@@ -13,7 +13,7 @@ use structs::{
     PasswordChangeConfirmationTemplate, PasswordResetRequest, PasswordResetTemplate,
     PasswordUpdateData, RefreshTokenRequest, TokenVerification, UserRegistrationData,
 };
-use token::{Token, TokenIntent};
+use token_manager::{Token, TokenIntent};
 
 use crate::states::AppState;
 

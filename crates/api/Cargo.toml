@@ -1,34 +1,36 @@
 [package]
 name = "api"
-version = "0.1.0"
 edition = "2021"
-
-[dependencies]
-db = { path = "../db" }
-token = { path = "../token" }
-error = { path = "../error" }
-structs = { path = "../structs" }
-entities = { path = "../entities" }
-telemetry = { path = "../telemetry" }
-intelli-core = { path = "../intelli-core" }
-
-ntex = { workspace = true }
-tokio = { workspace = true }
-garde = { workspace = true }
-chrono = { workspace = true }
-tracing = { workspace = true }
-dotenvy = { workspace = true }
-mimalloc = { workspace = true }
-dashmap = { workspace = true }
-tokio-stream = { workspace = true }
-
-ntex-cors = "2"
-openssl = { version = "0.10", features = ["v110"] }
-tracing-log = { version = "0.2", features = ["ahash"] }
-tracing-subscriber = { version = "0.3", features = [
-    "parking_lot",
-    "env-filter",
-] }
+version = "0.6.3"
+description = "Intelli telemetry public api"
+authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
+repository = "https://github.com/Intelli-Telemetry/api"
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
+
+[dependencies]
+db.workspace = true
+token_manager.workspace = true
+error.workspace = true
+structs.workspace = true
+entities.workspace = true
+telemetry.workspace = true
+intelli-core.workspace = true
+ntex.workspace = true
+tokio.workspace = true
+garde.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+dotenvy.workspace = true
+mimalloc.workspace = true
+dashmap.workspace = true
+tokio-stream.workspace = true
+ntex-cors.workspace = true
+openssl.workspace = true
+tracing-log.workspace = true
+tracing-subscriber.workspace = true

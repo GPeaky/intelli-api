@@ -3,26 +3,28 @@ name = "telemetry"
 version = "0.1.0"
 edition = "2021"
 
-[build-dependencies]
-prost-build = "0.13"
-
-[dependencies]
-error = { path = "../error" }
-structs = { path = "../structs" }
-intelli-core = { path = "../intelli-core" }
-
-serde = { workspace = true }
-chrono = { workspace = true }
-ntex = { workspace = true }
-tokio = { workspace = true }
-ahash = { workspace = true }
-tracing = { workspace = true }
-dashmap = { workspace = true }
-parking_lot = { workspace = true }
-
-memchr = "2"
-prost = "0.13"
-regex = { version = "1", features = ["unstable"] }
-
 [lints]
 workspace = true
+
+[lib]
+path = "src/telemetry.rs"
+doctest = false
+
+[build-dependencies]
+prost-build.workspace = true
+
+[dependencies]
+error.workspace = true
+structs.workspace = true
+intelli-core.workspace = true
+serde.workspace = true
+chrono.workspace = true
+ntex.workspace = true
+tokio.workspace = true
+ahash.workspace = true
+tracing.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+regex.workspace = true
+memchr.workspace = true
+prost.workspace = true

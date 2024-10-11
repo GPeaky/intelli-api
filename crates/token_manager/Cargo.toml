@@ -1,5 +1,5 @@
 [package]
-name = "password-hash"
+name = "token_manager"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,13 @@ edition = "2021"
 workspace = true
 
 [lib]
-path = "src/password_hash.rs"
+path = "src/token_manager.rs"
 doctest = false
 
 [dependencies]
+utils.workspace = true
 error.workspace = true
 ring.workspace = true
 tokio.workspace = true
+dashmap.workspace = true
 base64-simd.workspace = true
