@@ -39,7 +39,7 @@ impl AppState {
         let driver_repo = Box::leak(Box::new(DriverRepository::new(db)));
 
         // Services
-        let token_mgr = Box::leak(Box::from(TokenManager::new()));
+        let token_mgr = Box::leak(Box::from(TokenManager::load_from_file().unwrap()));
         let driver_svc = Box::leak(Box::new(DriverService::new(db, driver_repo).await));
         let user_svc = Box::leak(Box::from(UserService::new(db, user_repo, token_mgr).await));
         let championship_svc = Box::leak(Box::from(

@@ -1,19 +1,18 @@
-use std::{
-    collections::VecDeque,
-    time::{Duration, Instant},
-};
+use std::{collections::VecDeque, time::Duration};
 
 use dashmap::DashMap;
 use error::{AppResult, TokenError};
 use token::TokenEntry;
 
+mod persistance;
 mod token;
 
 pub use token::{Token, TokenIntent};
 use tokio::{task, time::sleep};
+use utils::current_timestamp_s;
 
 const MAX_TOKENS_PER_USER: usize = 10;
-const PURGE_INTERVAL: Duration = Duration::from_secs(3600);
+const PURGE_INTERVAL: Duration = Duration::from_secs(900);
 
 pub struct TokenManager {
     tokens: DashMap<Token, TokenEntry>,
@@ -29,6 +28,11 @@ impl TokenManager {
         }
     }
 
+    #[inline]
+    pub fn load_from_file() -> std::io::Result<Self> {
+        persistance::TokenManagerPersistence::load()
+    }
+
     pub fn create(&self, id: i32, intent: TokenIntent) -> Token {
         let mut user_tokens = self.user_tokens.entry(id).or_default();
 
@@ -41,7 +45,7 @@ impl TokenManager {
         let token = Token::new();
         let entry = TokenEntry {
             id,
-            expiry: Instant::now() + intent.lifespan().to_std().unwrap(),
+            expiry: current_timestamp_s() + intent.lifespan(),
             intent,
         };
 
@@ -52,7 +56,7 @@ impl TokenManager {
     }
 
     pub fn validate(&self, token: &Token, intent: TokenIntent) -> AppResult<i32> {
-        let now = Instant::now();
+        let now = current_timestamp_s();
 
         if let Some(entry) = self.tokens.get(token) {
             if entry.expiry <= now {
@@ -89,14 +93,20 @@ impl TokenManager {
                 sleep(PURGE_INTERVAL).await;
                 task::spawn_blocking(move || {
                     self.purge_expired();
+                    self.save_to_file().unwrap();
                 });
             }
         });
     }
 
     #[inline]
+    fn save_to_file(&self) -> std::io::Result<()> {
+        persistance::TokenManagerPersistence::save(self)
+    }
+
+    #[inline]
     fn purge_expired(&self) {
-        let now = Instant::now();
+        let now = current_timestamp_s();
         let expired_tokens: Vec<_> = self
             .tokens
             .iter()
