@@ -1,4 +1,5 @@
 use std::{
+    mem,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     ops::Deref,
     sync::{
@@ -26,14 +27,18 @@ use tracing::{error, info, info_span, warn};
 use error::{AppResult, CommonError, F1ServiceError};
 use intelli_core::services::{ChampionshipServiceOperations, DriverServiceOperations};
 
-use crate::f1_structs::{
-    F1PacketData, F1State, PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData,
-    PacketEventData, PacketFinalClassificationData, PacketMotionData, PacketParticipantsData,
-    PacketSessionData, PacketSessionHistoryData, SessionType,
+use crate::{
+    f1::{
+        PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData, PacketEventData,
+        PacketFinalClassificationData, PacketHeader, PacketIds, PacketMotionData,
+        PacketParticipantsData, PacketSessionData, PacketSessionHistoryData, SessionType,
+    },
+    F1State,
 };
 
 use super::manager::F1SessionDataManager;
 
+// Constants
 const BUFFER_SIZE: usize = 1460;
 const SOCKET_HOST: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(15 * 60);
@@ -41,9 +46,22 @@ const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 const HISTORY_INTERVAL: Duration = Duration::from_secs(1);
 const SESSION_INTERVAL: Duration = Duration::from_secs(10);
 const MOTION_INTERVAL: Duration = Duration::from_millis(700);
-const PARTICIPANTS_TICK_UPDATE: u8 = 6; // 6 * 10 seconds = 600 seconds (1 minute)
+const PARTICIPANTS_TICK_UPDATE: u8 = 6;
 
-/// Represents an F1 service that processes and manages F1 telemetry data.
+/// Enum representing different types of F1 packet data
+enum F1PacketData<'a> {
+    Motion(&'a PacketMotionData),
+    Session(&'a PacketSessionData),
+    Event(&'a PacketEventData),
+    Participants(&'a PacketParticipantsData),
+    FinalClassification(&'a PacketFinalClassificationData),
+    SessionHistory(&'a PacketSessionHistoryData),
+    CarDamage(&'a PacketCarDamageData),
+    CarStatus(&'a PacketCarStatusData),
+    CarTelemetry(&'a PacketCarTelemetryData),
+}
+
+/// Represents an F1 service that processes and manages F1 telemetry data
 pub struct F1Service {
     port: i32,
     race_id: i32,
@@ -59,28 +77,21 @@ pub struct F1Service {
     f1_state: &'static F1State,
 }
 
-pub struct F1ServiceDataInner {
-    global_channel: Sender<Bytes>,
-    global_subscribers: AtomicU32,
-    team_subscribers: RwLock<AHashMap<u8, u32>>,
-}
-
-/// Holds data related to an F1 service instance.
+/// Holds data related to an F1 service instance
 pub struct F1ServiceData {
     inner: Arc<F1ServiceDataInner>,
     session_manager: F1SessionDataManager,
     shutdown: Option<oneshot::Sender<()>>,
 }
 
-impl Deref for F1ServiceData {
-    type Target = F1ServiceDataInner;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
+/// Internal data structure for F1ServiceData
+pub struct F1ServiceDataInner {
+    global_channel: Sender<Bytes>,
+    global_subscribers: AtomicU32,
+    team_subscribers: RwLock<AHashMap<u8, u32>>,
 }
 
-/// Tracks the last update times for various packet types.
+/// Tracks the last update times for various packet types
 struct LastUpdates {
     session: Instant,
     car_motion: Instant,
@@ -91,18 +102,40 @@ struct LastUpdates {
     car_lap: [Instant; 22],
 }
 
+impl F1PacketData<'_> {
+    /// Attempts to create an F1PacketData from raw bytes and packet ID
+    #[inline]
+    pub fn try_from_bytes(data: &[u8], packet_id: u8) -> AppResult<F1PacketData> {
+        let packet_id = PacketIds::try_from(packet_id).unwrap();
+
+        let packet = match packet_id {
+            PacketIds::Event => cast::<PacketEventData>(data).map(F1PacketData::Event),
+            PacketIds::Motion => cast::<PacketMotionData>(data).map(F1PacketData::Motion),
+            PacketIds::Session => cast::<PacketSessionData>(data).map(F1PacketData::Session),
+            PacketIds::CarDamage => cast::<PacketCarDamageData>(data).map(F1PacketData::CarDamage),
+            PacketIds::CarStatus => cast::<PacketCarStatusData>(data).map(F1PacketData::CarStatus),
+            PacketIds::CarTelemetry => {
+                cast::<PacketCarTelemetryData>(data).map(F1PacketData::CarTelemetry)
+            }
+            PacketIds::Participants => {
+                cast::<PacketParticipantsData>(data).map(F1PacketData::Participants)
+            }
+            PacketIds::SessionHistory => {
+                cast::<PacketSessionHistoryData>(data).map(F1PacketData::SessionHistory)
+            }
+            PacketIds::FinalClassification => {
+                cast::<PacketFinalClassificationData>(data).map(F1PacketData::FinalClassification)
+            }
+
+            _ => Err(F1ServiceError::InvalidPacketType)?,
+        }?;
+
+        Ok(packet)
+    }
+}
+
 impl F1Service {
-    /// Creates a new F1Service instance.
-    ///
-    /// # Arguments
-    /// - `tx`: Sender for broadcasting data.
-    /// - `shutdown`: Receiver for shutdown signal.
-    /// - `cache`: Shared cache for packet data.
-    /// - `firewall`: Firewall service.
-    /// - `services`: Map of active services.
-    ///
-    /// # Returns
-    /// A new F1Service instance.
+    /// Creates a new F1Service instance
     pub async fn new(
         data_manager: F1SessionDataManager,
         shutdown: oneshot::Receiver<()>,
@@ -125,14 +158,7 @@ impl F1Service {
         }
     }
 
-    /// Initializes the F1 service with a specific port and championship ID.
-    ///
-    /// # Arguments
-    /// - `port`: Port number to bind the service to.
-    /// - `championship_id`: ID of the championship.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
+    /// Initializes the F1 service with a specific port and championship ID
     pub async fn initialize(
         &mut self,
         port: i32,
@@ -144,7 +170,6 @@ impl F1Service {
             return Err(CommonError::InternalServerError)?;
         };
 
-        // Only for testing this should send it in the initialize function
         let race_id = self
             .f1_state
             .championship_svc
@@ -164,7 +189,7 @@ impl F1Service {
         Ok(())
     }
 
-    /// Runs the main loop of the F1 service, processing incoming packets.
+    /// Runs the main loop of the F1 service, processing incoming packets
     pub async fn run(&mut self) {
         let span = info_span!("F1 Service", championship_id = self.championship_id);
         let _guard = span.enter();
@@ -228,18 +253,16 @@ impl F1Service {
         }
     }
 
-    /// Processes a single packet of F1 telemetry data.
-    ///
-    /// # Arguments
-    /// - `buf`: Buffer containing the packet data.
-    /// - `now`: Current timestamp.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
+    /// Processes a single packet of F1 telemetry data
     #[inline]
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
-        let (header, packet) = match F1PacketData::parse_and_identify(buf) {
-            Ok(result) => result,
+        let header = match header_cast(buf) {
+            Ok(h) => h,
+            Err(_) => return Ok(()),
+        };
+
+        let packet = match F1PacketData::try_from_bytes(buf, header.packet_id) {
+            Ok(p) => p,
             Err(_) => return Ok(()),
         };
 
@@ -379,12 +402,6 @@ impl F1Service {
             return Ok(());
         };
 
-        // Only testing, we should save last lastHistoryData with the final_classification as a tuple or something
-        // self.f1_state
-        //     .championship_svc
-        //     .add_race_result(self.race_id, session_type as i16, &[0, 0, 0])
-        //     .await?;
-
         self.data_manager
             .save_final_classification(final_classification);
 
@@ -416,6 +433,7 @@ impl F1Service {
         }
     }
 
+    /// Ensures all participants are registered in the system
     #[inline]
     async fn ensure_participants_registered(
         &self,
@@ -435,7 +453,6 @@ impl F1Service {
                 continue;
             };
 
-            // 255 means an online driver
             if participant.driver_id != 255 {
                 continue;
             }
@@ -445,7 +462,6 @@ impl F1Service {
                 continue;
             };
 
-            // Player have not enabled public names
             if steam_name == "Player" {
                 continue;
             }
@@ -476,7 +492,7 @@ impl F1Service {
         Ok(())
     }
 
-    /// Closes the F1 service, releasing resources and removing it from active services.
+    /// Closes the F1 service, releasing resources and removing it from active services
     async fn close(&self) {
         if self
             .f1_state
@@ -493,7 +509,7 @@ impl F1Service {
 }
 
 impl F1ServiceData {
-    /// Creates a new F1ServiceData instance.
+    /// Creates a new F1ServiceData instance
     pub fn new(
         session_manager: F1SessionDataManager,
         global_channel: Sender<Bytes>,
@@ -512,19 +528,19 @@ impl F1ServiceData {
         }
     }
 
-    /// Retrieves the cached data from the session manager.
+    /// Retrieves the cached data from the session manager
     #[inline]
     pub fn cache(&self) -> Option<Bytes> {
         self.session_manager.cache()
     }
 
-    /// Subscribes to the global broadcast channel.
+    /// Subscribes to the global broadcast channel
     pub fn global_sub(&self) -> Receiver<Bytes> {
         self.global_subscribers.fetch_add(1, Ordering::Relaxed);
         self.global_channel.subscribe()
     }
 
-    /// Subscribes to a team-specific broadcast channel.
+    /// Subscribes to a team-specific broadcast channel
     pub fn team_sub(&self, team_id: u8) -> Option<Receiver<Bytes>> {
         let receiver = self.session_manager.get_team_receiver(team_id)?;
         let mut team_subs = self.team_subscribers.write();
@@ -532,28 +548,28 @@ impl F1ServiceData {
         Some(receiver)
     }
 
-    /// Gets the current number of global subscribers.
+    /// Gets the current number of global subscribers
     pub fn global_count(&self) -> u32 {
         self.global_subscribers.load(Ordering::Relaxed)
     }
 
-    /// Gets the current number of subscribers for all teams.
+    /// Gets the current number of subscribers for all teams
     pub fn all_team_count(&self) -> u32 {
         self.team_subscribers.read().values().sum()
     }
 
-    /// Gets the current number of subscribers for a specific team.
+    /// Gets the current number of subscribers for a specific team
     #[allow(unused)]
     pub fn team_count(&self, team_id: u8) -> u32 {
         *self.team_subscribers.read().get(&team_id).unwrap_or(&0)
     }
 
-    /// Decrements the global subscriber count.
+    /// Decrements the global subscriber count
     pub fn global_unsub(&self) {
         self.global_subscribers.fetch_sub(1, Ordering::Relaxed);
     }
 
-    /// Decrements the team subscriber count.
+    /// Decrements the team subscriber count
     pub fn team_unsub(&self, team_id: u8) {
         let mut team_subs = self.team_subscribers.write();
         if let Some(count) = team_subs.get_mut(&team_id) {
@@ -563,14 +579,22 @@ impl F1ServiceData {
         }
     }
 
-    /// Initiates the shutdown process for the service.
+    /// Initiates the shutdown process for the service
     pub fn shutdown(&mut self) -> Result<(), ()> {
         self.shutdown.take().unwrap().send(())
     }
 }
 
+impl Deref for F1ServiceData {
+    type Target = F1ServiceDataInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl LastUpdates {
-    /// Creates a new LastUpdates instance with current time for all fields.
+    /// Creates a new LastUpdates instance with current time for all fields
     fn new() -> Self {
         let time = Instant::now();
 
@@ -584,4 +608,24 @@ impl LastUpdates {
             car_lap: [time; 22],
         }
     }
+}
+
+/// Casts raw bytes to a PacketHeader reference
+#[inline]
+fn header_cast(bytes: &[u8]) -> AppResult<&PacketHeader> {
+    if mem::size_of::<PacketHeader>() > bytes.len() {
+        Err(F1ServiceError::CastingError)?;
+    }
+
+    Ok(unsafe { &*(bytes.as_ptr() as *const PacketHeader) })
+}
+
+/// Casts raw bytes to a reference of type T
+#[inline]
+fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
+    if !mem::size_of::<T>() == bytes.len() {
+        Err(F1ServiceError::CastingError)?;
+    }
+
+    Ok(unsafe { &*(bytes.as_ptr() as *const T) })
 }

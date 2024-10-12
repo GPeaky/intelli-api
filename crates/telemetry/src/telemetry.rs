@@ -1,24 +1,28 @@
-mod f1_structs;
-mod firewall;
-mod manager;
-mod service;
-mod utils;
-
 use dashmap::DashMap;
-use manager::F1SessionDataManager;
+use intelli_core::{
+    repositories::{ChampionshipRepository, DriverRepository},
+    services::{ChampionshipService, DriverService},
+};
 use ntex::util::Bytes;
-use service::{F1Service, F1ServiceData};
 use tokio::sync::{
     broadcast::{channel, Receiver},
     oneshot,
 };
 use tracing::{info, warn};
 
+mod f1;
+mod firewall;
+mod manager;
+mod service;
+
+use firewall::FirewallService;
+use manager::F1SessionDataManager;
+use service::{F1Service, F1ServiceData};
+
+pub use manager::DriverInfo;
+
 use error::{AppResult, F1ServiceError};
 use structs::ServiceStatus;
-
-pub use f1_structs::F1State;
-pub use manager::DriverInfo;
 
 /// Manages F1 championship services, including caching, subscriptions, and service lifecycle.
 #[derive(Clone)]
@@ -27,11 +31,17 @@ pub struct F1ServiceHandler {
     f1_state: &'static F1State,
 }
 
+/// Represents the global state for F1 services.
+pub struct F1State {
+    pub driver_svc: &'static DriverService,
+    pub firewall: &'static FirewallService,
+    pub driver_repo: &'static DriverRepository,
+    pub championship_repo: &'static ChampionshipRepository,
+    pub championship_svc: &'static ChampionshipService,
+}
+
 impl F1ServiceHandler {
     /// Creates a new F1ServiceHandler instance.
-    ///
-    /// # Returns
-    /// A new F1ServiceHandler with initialized services and firewall.
     pub fn new(f1_state: &'static F1State) -> Self {
         let services = Box::leak(Box::new(DashMap::with_capacity(10)));
         Self { services, f1_state }
@@ -39,17 +49,10 @@ impl F1ServiceHandler {
 
     /// Subscribes to a team-specific channel for a championship service.
     pub fn subscribe_team(&self, championship_id: &i32, team_id: u8) -> Option<Receiver<Bytes>> {
-        let service = self.services.get(championship_id)?;
-        service.team_sub(team_id)
+        self.services.get(championship_id)?.team_sub(team_id)
     }
 
     /// Retrieves cache and subscribes to a channel for a specific championship service.
-    ///
-    /// # Arguments
-    /// - `championship_id`: The ID of the championship.
-    ///
-    /// # Returns
-    /// Some((Option<Bytes>, Receiver<Bytes>)) if service exists, None otherwise.
     pub fn cache_and_subscribe(
         &self,
         championship_id: &i32,
@@ -59,9 +62,6 @@ impl F1ServiceHandler {
     }
 
     /// Unsubscribes from a championship service.
-    ///
-    /// # Arguments
-    /// - `championship_id`: The ID of the championship.
     #[inline]
     pub fn unsubscribe(&self, championship_id: &i32) {
         if let Some(service) = self.services.get(championship_id) {
@@ -78,52 +78,30 @@ impl F1ServiceHandler {
     }
 
     /// Retrieves a list of all active service IDs.
-    ///
-    /// # Returns
-    /// A Vec<i32> containing IDs of active services.
     pub fn services(&self) -> Vec<i32> {
-        let mut services = Vec::with_capacity(self.services.len());
-
-        for item in self.services {
-            services.push(*item.key())
-        }
-
-        services
+        self.services.iter().map(|item| *item.key()).collect()
     }
 
     /// Retrieves the status of a specific service.
-    ///
-    /// # Arguments
-    /// - `id`: The ID of the service.
-    ///
-    /// # Returns
-    /// ServiceStatus containing activity status and connection count.
     pub fn service_status(&self, id: &i32) -> ServiceStatus {
-        match self.services.get(id) {
-            Some(service) => ServiceStatus {
+        self.services
+            .get(id)
+            .map(|service| ServiceStatus {
                 active: true,
                 general_conn: service.global_count(),
                 engineer_conn: service.all_team_count(),
-            },
-            None => ServiceStatus {
+            })
+            .unwrap_or(ServiceStatus {
                 active: false,
                 general_conn: 0,
                 engineer_conn: 0,
-            },
-        }
+            })
     }
 
     /// Starts a new F1 service for the given championship.
-    ///
-    /// # Arguments
-    /// - `port`: The port number to listen on.
-    /// - `championship_id`: The championship ID to associate with the service.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
     pub async fn start(&self, port: i32, championship_id: i32) -> AppResult<()> {
         if self.service(&championship_id) {
-            return Err(F1ServiceError::AlreadyExists)?;
+            return Err(F1ServiceError::AlreadyExists.into());
         }
 
         let (otx, orx) = oneshot::channel::<()>();
@@ -132,7 +110,6 @@ impl F1ServiceHandler {
         let service_data = F1ServiceData::new(session_manager.clone(), tx, otx);
         let mut service = F1Service::new(session_manager, orx, self.services, self.f1_state).await;
 
-        // TODO: Add real race_id
         service.initialize(port, championship_id, 0).await?;
 
         ntex::rt::spawn(async move { service.run().await });
@@ -143,23 +120,14 @@ impl F1ServiceHandler {
     }
 
     /// Stops the active F1 service for the given championship.
-    ///
-    /// # Arguments
-    /// - `championship_id`: The championship ID whose service is to be stopped.
-    ///
-    /// # Returns
-    /// Result indicating success or failure.
     pub async fn stop(&self, championship_id: &i32) -> AppResult<()> {
         match self.services.remove(championship_id) {
             Some((_, mut service)) => {
-                if service.shutdown().is_err() {
-                    Err(F1ServiceError::Shutdown)?
-                }
+                service.shutdown().map_err(|_| F1ServiceError::Shutdown)?;
             }
-
             None => {
-                warn!("Trying to remove a non existing service");
-                Err(F1ServiceError::NotActive)?
+                warn!("Trying to remove a non-existing service");
+                return Err(F1ServiceError::NotActive.into());
             }
         }
 
@@ -168,14 +136,28 @@ impl F1ServiceHandler {
     }
 
     /// Checks if a specific service is active.
-    ///
-    /// # Arguments
-    /// - `id`: The ID of the service to check.
-    ///
-    /// # Returns
-    /// true if the service is active, false otherwise.
     #[inline]
     fn service(&self, id: &i32) -> bool {
         self.services.contains_key(id)
+    }
+}
+
+impl F1State {
+    /// Creates a new F1State instance.
+    pub fn new(
+        driver_svc: &'static DriverService,
+        driver_repo: &'static DriverRepository,
+        championship_repo: &'static ChampionshipRepository,
+        championship_svc: &'static ChampionshipService,
+    ) -> Self {
+        let firewall = Box::leak(Box::new(FirewallService::new()));
+
+        Self {
+            firewall,
+            driver_svc,
+            driver_repo,
+            championship_repo,
+            championship_svc,
+        }
     }
 }
