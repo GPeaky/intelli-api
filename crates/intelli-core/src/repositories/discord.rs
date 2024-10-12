@@ -5,7 +5,6 @@ use error::AppResult;
 use structs::{DiscordAuth, DiscordExchangeRequest, DiscordUserInfo};
 
 const DISCORD_API_URL: &str = "https://discord.com/api/v10";
-// const DISCORD_REDIRECT: &str = "https://intellitelemetry.live/auth/discord/callback";
 
 /// Repository for interacting with the Discord API.
 #[derive(Clone)]

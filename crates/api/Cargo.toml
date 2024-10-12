@@ -1,7 +1,7 @@
 [package]
 name = "api"
 edition = "2021"
-version = "0.6.3"
+version = "0.6.4"
 description = "Intelli telemetry public api"
 authors = ["Gpeaky <gerardjoven2020@hotmail.com>"]
 repository = "https://github.com/Intelli-Telemetry/api"
