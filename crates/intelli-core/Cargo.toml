@@ -1,0 +1,33 @@
+[package]
+name = "intelli-core"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/intelli_core.rs"
+doctest = false
+
+[dependencies]
+db.workspace = true
+error.workspace = true
+utils.workspace = true
+token_manager.workspace = true
+structs.workspace = true
+entities.workspace = true
+id-generator.workspace = true
+password-hash.workspace = true
+ntex.workspace = true
+tokio.workspace = true
+serde.workspace = true
+chrono.workspace = true
+dotenvy.workspace = true
+tracing.workspace = true
+reqwest.workspace = true
+sailfish.workspace = true
+tokio-stream.workspace = true
+postgres-types.workspace = true
+deadpool-postgres.workspace = true
+lettre.workspace = true

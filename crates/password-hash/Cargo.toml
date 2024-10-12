@@ -1,0 +1,17 @@
+[package]
+name = "password-hash"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/password_hash.rs"
+doctest = false
+
+[dependencies]
+error.workspace = true
+ring.workspace = true
+tokio.workspace = true
+base64-simd.workspace = true

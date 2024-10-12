@@ -1,0 +1,18 @@
+[package]
+name = "error"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/error.rs"
+doctest = false
+
+[dependencies]
+ntex.workspace = true
+tracing.workspace = true
+reqwest.workspace = true
+sailfish.workspace = true
+deadpool-postgres.workspace = true

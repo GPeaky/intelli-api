@@ -1,0 +1,30 @@
+[package]
+name = "telemetry"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/telemetry.rs"
+doctest = false
+
+[build-dependencies]
+prost-build.workspace = true
+
+[dependencies]
+error.workspace = true
+structs.workspace = true
+intelli-core.workspace = true
+serde.workspace = true
+chrono.workspace = true
+ntex.workspace = true
+tokio.workspace = true
+ahash.workspace = true
+tracing.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+regex.workspace = true
+memchr.workspace = true
+prost.workspace = true

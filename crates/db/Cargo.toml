@@ -1,0 +1,23 @@
+[package]
+name = "db"
+edition = "2021"
+version = "0.1.0"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/db.rs"
+doctest = false
+
+[dependencies]
+entities.workspace = true
+structs.workspace = true
+serde.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+dotenvy.workspace = true
+tracing.workspace = true
+deadpool-postgres.workspace = true
+quick_cache.workspace = true
+refinery.workspace = true
