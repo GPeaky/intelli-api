@@ -2,8 +2,8 @@ name: Deployment
 
 on:
   workflow_run:
-    workflows: ["Rust CI"]
-    branches: [main]
+    workflows: [ "Rust CI" ]
+    branches: [ main ]
     types:
       - completed
 
@@ -28,7 +28,7 @@ jobs:
           sudo systemctl stop intelli-api
 
           # Copy the new binary to the deployment directory
-          mv target/release/api /home/fedora/deployments/intelli-api
+          mv target/release/api /home/fedora/deployments/intelli-api/intelli-api
 
           # Start the service
           sudo systemctl start intelli-api

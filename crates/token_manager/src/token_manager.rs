@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use error::{AppResult, TokenError};
 use token::TokenEntry;
 
-mod persistance;
+mod persistence;
 mod token;
 
 pub use token::{Token, TokenIntent};
@@ -30,7 +30,7 @@ impl TokenManager {
 
     #[inline]
     pub fn load_from_file() -> std::io::Result<Self> {
-        persistance::TokenManagerPersistence::load()
+        persistence::TokenManagerPersistence::load()
     }
 
     pub fn create(&self, id: i32, intent: TokenIntent) -> Token {
@@ -101,7 +101,7 @@ impl TokenManager {
 
     #[inline]
     fn save_to_file(&self) -> std::io::Result<()> {
-        persistance::TokenManagerPersistence::save(self)
+        persistence::TokenManagerPersistence::save(self)
     }
 
     #[inline]
