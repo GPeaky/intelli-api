@@ -8,7 +8,7 @@ use super::{EntityCache, CACHE_CAPACITY};
 
 pub struct UserCache {
     inner: Cache<i32, SharedUser>,
-    email_to_id: Cache<String, i32>,
+    email_to_id: Cache<Box<str>, i32>,
 }
 
 impl UserCache {

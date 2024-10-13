@@ -1,7 +1,7 @@
 use ahash::AHashMap;
 use error::{AppResult, FirewallError};
 use regex::Regex;
-use std::{str, sync::Arc};
+use std::{net::IpAddr, str, sync::Arc};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
@@ -9,8 +9,8 @@ use tracing::{error, warn};
 /// Represents a single firewall rule.
 struct FirewallRule {
     port: u16,
-    handle: String,
-    ip_address: Option<String>,
+    handle: Box<str>,
+    ip_address: Option<IpAddr>,
 }
 
 impl FirewallRule {
@@ -19,7 +19,7 @@ impl FirewallRule {
     /// # Arguments
     /// - `port`: The port number for the rule.
     /// - `handle`: A unique identifier for the rule.
-    pub fn new(port: u16, handle: String) -> Self {
+    pub fn new(port: u16, handle: Box<str>) -> Self {
         FirewallRule {
             port,
             handle,
@@ -71,7 +71,7 @@ impl FirewallService {
             &port.to_string(),
             "accept",
         ])
-        .await?;
+            .await?;
 
         let ruleset = Self::ruleset().await?;
         let handle =
@@ -91,7 +91,7 @@ impl FirewallService {
     ///
     /// # Returns
     /// Result indicating success or failure.
-    pub async fn restrict_to_ip(&self, id: i32, ip_address: String) -> AppResult<()> {
+    pub async fn restrict_to_ip(&self, id: i32, ip_address: IpAddr) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
             return Ok(());
@@ -109,7 +109,7 @@ impl FirewallService {
             "handle",
             &rule.handle,
         ])
-        .await?;
+            .await?;
 
         Self::nft_command(&[
             "add",
@@ -119,13 +119,13 @@ impl FirewallService {
             "allow",
             "ip",
             "saddr",
-            &ip_address,
+            &ip_address.to_string(),
             "udp",
             "dport",
             &rule.port.to_string(),
             "accept",
         ])
-        .await?;
+            .await?;
 
         let ruleset = Self::ruleset().await?;
         let new_handle = Self::extract_handle_from_ruleset(
@@ -168,7 +168,7 @@ impl FirewallService {
             "handle",
             &rule.handle,
         ])
-        .await?;
+            .await?;
 
         rules.remove(&id);
         Ok(())
@@ -214,9 +214,9 @@ impl FirewallService {
     /// Retrieves the current firewall ruleset.
     ///
     /// # Returns
-    /// String representation of the current ruleset or an error.
+    /// Box<str> representation of the current ruleset or an error.
     #[inline]
-    async fn ruleset() -> AppResult<String> {
+    async fn ruleset() -> AppResult<Box<str>> {
         let output = Command::new("nft")
             .args(["-a", "list", "ruleset"])
             .output()
@@ -227,7 +227,7 @@ impl FirewallService {
             Err(FirewallError::ExecutionError)?
         }
 
-        let ruleset = String::from_utf8(output.stdout).unwrap_or_default();
+        let ruleset = Box::from(str::from_utf8(&output.stdout).unwrap_or_default());
         Ok(ruleset)
     }
 
@@ -263,13 +263,13 @@ impl FirewallService {
     /// # Returns
     /// The extracted handle as a string or an error.
     #[inline]
-    fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<String> {
+    fn extract_handle_from_ruleset(ruleset: &str, search_pattern: &str) -> AppResult<Box<str>> {
         let pattern = format!(r"{}\s+#\s+handle\s+(\d+)", regex::escape(search_pattern));
         let re = Regex::new(&pattern).map_err(|_| FirewallError::ParseError)?;
 
         if let Some(caps) = re.captures(ruleset) {
             if let Some(handle) = caps.get(1) {
-                return Ok(handle.as_str().to_string());
+                return Ok(Box::from(handle.as_str()));
             }
         }
 

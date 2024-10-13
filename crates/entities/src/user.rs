@@ -37,11 +37,11 @@ pub enum Role {
 #[derive(Debug, Serialize)]
 pub struct User {
     pub id: i32,
-    pub email: String,
-    pub username: String,
+    pub email: Box<str>,
+    pub username: Box<str>,
     #[serde(skip_serializing)]
-    pub password: Option<String>,
-    pub avatar: String,
+    pub password: Option<Box<str>>,
+    pub avatar: Box<str>,
     #[serde(skip_serializing)]
     pub provider: Provider,
     pub role: Role,

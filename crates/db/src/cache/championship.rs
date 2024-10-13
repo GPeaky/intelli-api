@@ -9,7 +9,7 @@ use super::{EntityCache, CACHE_CAPACITY};
 pub struct ChampionshipCache {
     inner: Cache<i32, Arc<Championship>>,
     races: Cache<i32, Vec<Arc<Race>>>,
-    name_to_id: Cache<String, i32>,
+    name_to_id: Cache<Box<str>, i32>,
     user_championships: Cache<i32, Vec<Arc<Championship>>>,
 }
 

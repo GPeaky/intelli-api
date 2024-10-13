@@ -197,7 +197,7 @@ impl ChampionshipRepository {
         }
     }
 
-    pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<String>> {
+    pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<Box<str>>> {
         let stream = {
             let conn = self.db.pg.get().await?;
 

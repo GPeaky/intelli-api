@@ -58,7 +58,7 @@ impl EmailService {
                 Address::from_str(&dotenvy::var("EMAIL_FROM").unwrap()).unwrap(),
             ))
             .to(Mailbox::new(
-                Some(user.username.to_owned()),
+                Some(user.username.to_string()),
                 Address::from_str(&user.email).unwrap(),
             ))
             .subject(subject)

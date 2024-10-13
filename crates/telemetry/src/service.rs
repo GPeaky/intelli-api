@@ -216,7 +216,7 @@ impl F1Service {
                                 if self
                                     .f1_state
                                     .firewall
-                                    .restrict_to_ip(self.championship_id, address.ip().to_string())
+                                    .restrict_to_ip(self.championship_id, address.ip())
                                     .await
                                     .is_err()
                                 {
@@ -474,7 +474,7 @@ impl F1Service {
             }
 
             if drivers
-                .binary_search_by(|probe| probe.as_str().cmp(steam_name))
+                .binary_search_by(|probe| probe.as_ref().cmp(steam_name))
                 .is_err()
             {
                 self.f1_state

@@ -269,7 +269,7 @@ impl UserRepository {
     /// # Returns
     /// Boolean indicating if the password is valid.
     #[inline]
-    pub async fn validate_password(&self, pwd: String, hash: String) -> AppResult<bool> {
+    pub async fn validate_password(&self, pwd: String, hash: Box<str>) -> AppResult<bool> {
         self.password_hasher.verify_password(hash, pwd).await
     }
 }

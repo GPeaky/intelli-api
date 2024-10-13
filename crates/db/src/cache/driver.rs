@@ -5,7 +5,7 @@ use entities::SharedDriver;
 use super::CACHE_CAPACITY;
 
 pub struct DriverCache {
-    inner: Cache<String, SharedDriver>,
+    inner: Cache<Box<str>, SharedDriver>,
 }
 
 impl DriverCache {

@@ -8,7 +8,7 @@ pub type SharedDriver = Arc<Driver>;
 /// Represents a driver in the championship
 #[allow(unused)]
 pub struct Driver {
-    pub steam_name: String,
+    pub steam_name: Box<str>,
     pub nationality: i16,
     pub user_id: Option<i32>,
     pub created_at: DateTime<Utc>,

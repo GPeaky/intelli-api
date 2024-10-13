@@ -56,7 +56,7 @@ impl PasswordHasher {
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
     }
 
-    pub async fn verify_password(&self, encoded: String, password: String) -> AppResult<bool> {
+    pub async fn verify_password(&self, encoded: Box<str>, password: String) -> AppResult<bool> {
         let _permit = self.semaphore.acquire().await.unwrap();
 
         tokio::task::spawn_blocking(move || {
