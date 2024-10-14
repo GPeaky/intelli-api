@@ -75,7 +75,8 @@ impl UserRepository {
     ///
     /// # Returns
     /// An Option containing the user if found.
-    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<SharedUser>> {
+    pub async fn find_by_email(&self, email: impl AsRef<str>) -> AppResult<Option<SharedUser>> {
+        let email = email.as_ref();
         if let Some(user) = self.db.cache.user.get_by_email(email) {
             return Ok(Some(user));
         };
@@ -185,7 +186,7 @@ impl UserRepository {
     /// # Returns
     /// Boolean indicating if the user exists.
     #[inline]
-    pub async fn user_exists(&self, email: &str) -> AppResult<bool> {
+    pub async fn user_exists(&self, email: impl AsRef<str>) -> AppResult<bool> {
         Ok(self.find_by_email(email).await?.is_some())
     }
 

@@ -15,15 +15,15 @@ impl DriverCache {
         }
     }
 
-    pub fn get(&self, steam_name: &str) -> Option<SharedDriver> {
-        self.inner.get(steam_name)
+    pub fn get(&self, steam_name: impl AsRef<str>) -> Option<SharedDriver> {
+        self.inner.get(steam_name.as_ref())
     }
 
     pub fn set(&self, entity: SharedDriver) {
         self.inner.insert(entity.steam_name.clone(), entity)
     }
 
-    pub fn delete(&self, steam_name: &str) {
-        self.inner.remove(steam_name);
+    pub fn delete(&self, steam_name: impl AsRef<str>) {
+        self.inner.remove(steam_name.as_ref());
     }
 }

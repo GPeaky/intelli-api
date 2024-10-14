@@ -13,7 +13,8 @@ impl DriverRepository {
         DriverRepository { db }
     }
 
-    pub async fn find(&self, steam_name: &str) -> AppResult<Option<Arc<Driver>>> {
+    pub async fn find(&self, steam_name: impl AsRef<str>) -> AppResult<Option<Arc<Driver>>> {
+        let steam_name = steam_name.as_ref();
         if let Some(driver) = self.db.cache.driver.get(steam_name) {
             return Ok(Some(driver));
         }

@@ -20,8 +20,8 @@ impl UserCache {
     }
 
     /// Retrieves a user by their email address.
-    pub fn get_by_email(&self, email: &str) -> Option<SharedUser> {
-        let id = self.email_to_id.get(email)?;
+    pub fn get_by_email(&self, email: impl AsRef<str>) -> Option<SharedUser> {
+        let id = self.email_to_id.get(email.as_ref())?;
         self.get(&id)
     }
 }

@@ -77,10 +77,10 @@ impl Token {
     }
 
     #[inline]
-    pub fn from_base64(str: &str) -> AppResult<Token> {
+    pub fn from_base64(str: impl AsRef<str>) -> AppResult<Token> {
         let mut token = [0u8; 16];
 
-        match URL_SAFE_NO_PAD.decode(str.as_bytes(), Out::from_slice(&mut token)) {
+        match URL_SAFE_NO_PAD.decode(str.as_ref().as_bytes(), Out::from_slice(&mut token)) {
             Ok(_) => Ok(Self(token)),
             _ => Err(TokenError::InvalidToken)?,
         }

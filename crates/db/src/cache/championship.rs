@@ -39,8 +39,10 @@ impl ChampionshipCache {
         self.user_championships.get(user_id)
     }
 
-    pub fn get_by_name(&self, name: &str) -> Option<Arc<Championship>> {
-        self.name_to_id.get(name).and_then(|id| self.get(&id))
+    pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<Arc<Championship>> {
+        self.name_to_id
+            .get(name.as_ref())
+            .and_then(|id| self.get(&id))
     }
 
     pub fn set_user_championships(&self, user_id: i32, championships: Vec<Arc<Championship>>) {

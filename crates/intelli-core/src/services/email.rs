@@ -48,7 +48,12 @@ impl EmailService {
     ///
     /// # Returns
     /// `AppResult<()>`: Ok if successfully queued, Err otherwise.
-    pub async fn send_mail<T>(&self, user: SharedUser, subject: &str, body: T) -> AppResult<()>
+    pub async fn send_mail<T>(
+        &self,
+        user: SharedUser,
+        subject: impl AsRef<str>,
+        body: T,
+    ) -> AppResult<()>
     where
         T: TemplateSimple,
     {
@@ -61,7 +66,7 @@ impl EmailService {
                 Some(user.username.to_string()),
                 Address::from_str(&user.email).unwrap(),
             ))
-            .subject(subject)
+            .subject(subject.as_ref())
             .header(ContentType::TEXT_HTML)
             .body(body.render_once()?)
             .expect("Message builder error");

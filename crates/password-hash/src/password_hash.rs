@@ -92,12 +92,12 @@ mod tests {
 
         let hashed = hasher.hash_password(password.clone()).await.unwrap();
         assert!(hasher
-            .verify_password(hashed.clone(), password.clone())
+            .verify_password(hashed.clone().into(), password.clone())
             .await
             .unwrap());
 
         assert!(!hasher
-            .verify_password(hashed, "wrong_password".to_string())
+            .verify_password(hashed.into(), "wrong_password".to_string())
             .await
             .unwrap());
     }
@@ -176,7 +176,10 @@ mod tests {
     async fn invalid_encoded_password() {
         let hasher = Arc::new(PasswordHasher::new(1));
         let result = hasher
-            .verify_password("invalid_encoded_string".to_string(), "password".to_string())
+            .verify_password(
+                "invalid_encoded_string".to_string().into(),
+                "password".to_string(),
+            )
             .await;
         assert!(matches!(
             result,
@@ -195,11 +198,11 @@ mod tests {
         let strong_hash = hasher.hash_password(strong_password.clone()).await.unwrap();
 
         assert!(hasher
-            .verify_password(weak_hash.clone(), weak_password)
+            .verify_password(weak_hash.clone().into(), weak_password)
             .await
             .unwrap());
         assert!(hasher
-            .verify_password(strong_hash.clone(), strong_password)
+            .verify_password(strong_hash.clone().into(), strong_password)
             .await
             .unwrap());
 
