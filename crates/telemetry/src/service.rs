@@ -626,6 +626,6 @@ fn cast<T>(bytes: &[u8]) -> AppResult<&T> {
     if !mem::size_of::<T>() == bytes.len() {
         Err(F1ServiceError::CastingError)?;
     }
-
+    
     Ok(unsafe { &*(bytes.as_ptr() as *const T) })
 }

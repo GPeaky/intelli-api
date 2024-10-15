@@ -36,7 +36,7 @@ pub struct ChampionshipUpdateData {
 }
 
 // Service Status
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 pub struct ServiceStatus {
     pub active: bool,
     pub general_conn: u32,

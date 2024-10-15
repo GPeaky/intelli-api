@@ -91,11 +91,7 @@ impl F1ServiceHandler {
                 general_conn: service.global_count(),
                 engineer_conn: service.all_team_count(),
             })
-            .unwrap_or(ServiceStatus {
-                active: false,
-                general_conn: 0,
-                engineer_conn: 0,
-            })
+            .unwrap_or_default()
     }
 
     /// Starts a new F1 service for the given championship.

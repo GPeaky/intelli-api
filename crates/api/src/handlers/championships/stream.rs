@@ -32,6 +32,7 @@ struct CleanupStream<S> {
 impl<S: Stream + Unpin> Stream for CleanupStream<S> {
     type Item = S::Item;
 
+    #[inline]
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         Pin::new(&mut self.inner).poll_next(cx)
     }
