@@ -71,7 +71,7 @@ impl FirewallService {
             &port.to_string(),
             "accept",
         ])
-            .await?;
+        .await?;
 
         let ruleset = Self::ruleset().await?;
         let handle =
@@ -109,7 +109,7 @@ impl FirewallService {
             "handle",
             &rule.handle,
         ])
-            .await?;
+        .await?;
 
         Self::nft_command(&[
             "add",
@@ -125,7 +125,7 @@ impl FirewallService {
             &rule.port.to_string(),
             "accept",
         ])
-            .await?;
+        .await?;
 
         let ruleset = Self::ruleset().await?;
         let new_handle = Self::extract_handle_from_ruleset(
@@ -168,7 +168,7 @@ impl FirewallService {
             "handle",
             &rule.handle,
         ])
-            .await?;
+        .await?;
 
         rules.remove(&id);
         Ok(())

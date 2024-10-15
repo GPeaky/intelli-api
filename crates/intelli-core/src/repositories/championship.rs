@@ -102,7 +102,10 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// An Option containing the Championship if found.
-    pub async fn find_by_name(&self, name: impl AsRef<str>) -> AppResult<Option<Arc<Championship>>> {
+    pub async fn find_by_name(
+        &self,
+        name: impl AsRef<str>,
+    ) -> AppResult<Option<Arc<Championship>>> {
         let name = name.as_ref();
         if let Some(championship) = self.db.cache.championship.get_by_name(name) {
             return Ok(Some(championship));
