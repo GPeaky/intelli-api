@@ -23,7 +23,7 @@ pub fn initialize_tracing_and_telemetry(
         .with_trace_config(
             trace::config().with_resource(Resource::new(vec![KeyValue::new(
                 "service.name",
-                "f1-telemetry-api",
+                "intelli-api",
             )])),
         )
         .install_batch(Tokio)?;
