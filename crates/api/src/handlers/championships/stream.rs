@@ -55,6 +55,7 @@ impl<S> Drop for CleanupStream<S> {
 }
 
 #[inline]
+#[tracing::instrument(skip(state))]
 pub async fn stream_live_session(
     state: State<AppState>,
     path: Path<ChampionshipId>,
@@ -89,6 +90,7 @@ pub async fn stream_live_session(
     }
 }
 
+#[tracing::instrument(skip(req, state))]
 pub async fn stream_telemetry_session(
     req: HttpRequest,
     state: State<AppState>,
