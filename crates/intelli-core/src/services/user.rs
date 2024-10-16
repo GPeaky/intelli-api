@@ -150,6 +150,7 @@ impl UserService {
 
     /// Internal method to create a user.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _create(&self, registration_data: UserRegistrationData) -> AppResult<i32> {
         if self.user_repo.user_exists(&registration_data.email).await? {
             return Err(UserError::AlreadyExists)?;
@@ -201,6 +202,7 @@ impl UserService {
 
     /// Internal method to update a user.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         let (query, params) = {
             let mut params_counter = 1u8;
@@ -244,6 +246,7 @@ impl UserService {
 
     /// Internal method to delete a user.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -278,6 +281,7 @@ impl UserService {
 
     /// Internal method to reset a user's password.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _reset_password(&self, id: i32, password: String) -> AppResult<()> {
         let Some(user) = self.user_repo.find(id).await? else {
             Err(UserError::NotFound)?
@@ -312,6 +316,7 @@ impl UserService {
 
     /// Internal method to activate a user's account.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _activate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -335,6 +340,7 @@ impl UserService {
 
     /// Internal method to deactivate a user's account.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _deactivate(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
         let deactivate_user_stmt = conn
@@ -356,10 +362,12 @@ impl UserService {
 }
 
 impl UserServiceOperations for UserService {
+    #[tracing::instrument(skip_all, fields(email = %registration_data.email))]
     async fn create(&self, registration_data: UserRegistrationData) -> AppResult<i32> {
         self._create(registration_data).await
     }
 
+    #[tracing::instrument(skip_all, fields(email = %user.email))]
     async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         if let Some(last_update) = user.updated_at {
             if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
@@ -370,10 +378,12 @@ impl UserServiceOperations for UserService {
         self._update(user, form).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&self, id: i32) -> AppResult<()> {
         self._delete(id).await
     }
 
+    #[tracing::instrument(skip_all)]
     async fn reset_password(&self, token: String, password: String) -> AppResult<i32> {
         const TOKEN_INTENT: TokenIntent = TokenIntent::PasswordReset;
 
@@ -387,6 +397,7 @@ impl UserServiceOperations for UserService {
         Ok(user_id)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn activate(&self, token: String) -> AppResult<i32> {
         const TOKEN_INTENT: TokenIntent = TokenIntent::EmailVerify;
 
@@ -402,10 +413,12 @@ impl UserServiceOperations for UserService {
 }
 
 impl UserAdminServiceOperations for UserService {
+    #[tracing::instrument(skip(self))]
     async fn admin_activate(&self, id: i32) -> AppResult<()> {
         self._activate(id).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn admin_deactivate(&self, id: i32) -> AppResult<()> {
         self._deactivate(id).await
     }

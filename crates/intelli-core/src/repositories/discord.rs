@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use dotenvy::var;
 use reqwest::Client;
 
@@ -51,7 +53,8 @@ impl DiscordRepository {
     ///
     /// # Returns
     /// Discord user information wrapped in AppResult.
-    pub async fn account_info(&self, code: impl AsRef<str>) -> AppResult<DiscordUserInfo> {
+    #[tracing::instrument(skip(self))]
+    pub async fn account_info(&self, code: impl AsRef<str> + Debug) -> AppResult<DiscordUserInfo> {
         let discord_exchange = DiscordExchangeRequest {
             client_id: self.client_id,
             client_secret: self.client_secret,

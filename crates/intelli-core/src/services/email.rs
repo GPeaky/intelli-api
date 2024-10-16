@@ -48,6 +48,7 @@ impl EmailService {
     ///
     /// # Returns
     /// `AppResult<()>`: Ok if successfully queued, Err otherwise.
+    #[tracing::instrument(skip_all, fields(email = %user.email))]
     pub async fn send_mail<T>(
         &self,
         user: SharedUser,
