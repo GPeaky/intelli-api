@@ -1,13 +1,12 @@
-mod config;
 mod handlers;
 mod middlewares;
 mod routes;
 mod states;
 
-use config::initialize_tracing_subscriber;
 use dashmap::DashMap;
 use db::Database;
 use dotenvy::{dotenv, var};
+use metrics::initialize_tracing_and_telemetry;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -20,7 +19,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    initialize_tracing_subscriber();
+    initialize_tracing_and_telemetry().expect("Error initializing metrics");
 
     ntex::rt::System::new("intelli-api")
         .run_local(async {
