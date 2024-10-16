@@ -1,0 +1,18 @@
+[package]
+name = "metrics"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/metrics.rs"
+doctest = false
+
+[dependencies]
+opentelemetry.workspace = true
+tracing-opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+opentelemetry-otlp.workspace = true
+opentelemetry-semantic-conventions.workspace = true

@@ -8,6 +8,7 @@ use config::initialize_tracing_subscriber;
 use dashmap::DashMap;
 use db::Database;
 use dotenvy::{dotenv, var};
+use metrics::init_trace;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -21,6 +22,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
     initialize_tracing_subscriber();
+    init_trace().expect("Error initializing metrics");
 
     ntex::rt::System::new("intelli-api")
         .run_local(async {

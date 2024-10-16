@@ -2,7 +2,7 @@ use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 pub fn initialize_tracing_subscriber() {
-    let filter = EnvFilter::new("info,intelli=trace");
+    let filter = EnvFilter::new("info");
 
     let subscriber = FmtSubscriber::builder()
         .with_ansi(true)
