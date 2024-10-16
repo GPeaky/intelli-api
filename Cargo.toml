@@ -72,7 +72,7 @@ opentelemetry = "0.23"
 opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
-opentelemetry-otlp = { version = "0.16", features = ["grpc-tonic", "metrics"] }
+opentelemetry-otlp = { version = "0.26", features = ["grpc-tonic", "metrics"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
