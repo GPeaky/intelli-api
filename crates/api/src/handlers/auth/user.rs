@@ -51,7 +51,7 @@ pub(crate) async fn register(
 }
 
 #[inline]
-#[tracing::instrument(skip(state, _query), fields(email = %login_credentials.email))]
+#[tracing::instrument(skip(state, _query, login_credentials), fields(email = %login_credentials.email))]
 pub(crate) async fn login(
     state: State<AppState>,
     Query(_query): Query<ClientFingerprint>,

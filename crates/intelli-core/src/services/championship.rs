@@ -241,6 +241,7 @@ impl ChampionshipService {
 
     /// Internal method to create a championship.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         if self
             .championship_repo
@@ -299,6 +300,7 @@ impl ChampionshipService {
     }
 
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
         let conn = self.db.pg.get().await?;
 
@@ -324,6 +326,7 @@ impl ChampionshipService {
 
     /// Internal method to update a championship.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _update(&self, id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
         let (query, params) = {
             let mut params_counter = 1u8;
@@ -372,6 +375,7 @@ impl ChampionshipService {
 
     /// Internal method to add a user to a championship.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _add_user(&self, id: i32, form: ChampionshipUserAddForm) -> AppResult<()> {
         let bind_user_id = {
             let Some(bind_user) = self.user_repo.find_by_email(&form.email).await? else {
@@ -403,6 +407,8 @@ impl ChampionshipService {
         Ok(())
     }
 
+    #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _add_driver(
         &self,
         id: i32,
@@ -427,6 +433,8 @@ impl ChampionshipService {
         Ok(())
     }
 
+    #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _add_race_result(
         &self,
         race_id: i32,
@@ -452,6 +460,7 @@ impl ChampionshipService {
 
     /// Internal method to remove a user from a championship.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _remove_user(&self, id: i32, remove_user_id: i32) -> AppResult<()> {
         if self.user_repo.find(remove_user_id).await?.is_none() {
             Err(UserError::NotFound)?
@@ -477,6 +486,7 @@ impl ChampionshipService {
     }
 
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -497,6 +507,7 @@ impl ChampionshipService {
 
     /// Internal method to delete a championship.
     #[inline]
+    #[tracing::instrument(skip_all)]
     async fn _delete(&self, id: i32) -> AppResult<()> {
         let conn = self.db.pg.get().await?;
 
@@ -531,10 +542,12 @@ impl ChampionshipService {
 }
 
 impl ChampionshipServiceOperations for ChampionshipService {
+    #[tracing::instrument(skip(self))]
     async fn create(&self, payload: ChampionshipCreationData, user_id: i32) -> AppResult<()> {
         self._create(payload, user_id).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn create_race(&self, id: i32, track_id: i16, date: DateTime<Utc>) -> AppResult<i32> {
         // I don't know if this is necessary
         // if self.championship_repo.find(id).await?.is_none() {
@@ -544,6 +557,7 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._create_race(id, track_id, date).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn update(&self, id: i32, user_id: i32, form: &ChampionshipUpdateData) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
@@ -564,6 +578,7 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._update(id, form).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn add_user(
         &self,
         id: i32,
@@ -583,6 +598,7 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._add_user(id, form).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn add_driver(
         &self,
         id: i32,
@@ -594,11 +610,13 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._add_driver(id, steam_name, team_id, number).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn add_race_result(&self, race_id: i32, session_type: i16, data: &[u8]) -> AppResult<()> {
         // TODO: Maybe add checks for race_id
         self._add_race_result(race_id, session_type, data).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn remove_user(&self, id: i32, user_id: i32, remove_user_id: i32) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
@@ -617,11 +635,13 @@ impl ChampionshipServiceOperations for ChampionshipService {
         self._remove_user(id, remove_user_id).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn remove_driver(&self, id: i32, steam_name: &str) -> AppResult<()> {
         // Maybe do some checks
         self._remove_driver(id, steam_name).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&self, id: i32, user_id: i32) -> AppResult<()> {
         {
             let Some(championship) = self.championship_repo.find(id).await? else {
