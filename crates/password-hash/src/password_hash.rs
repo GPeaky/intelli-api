@@ -27,7 +27,7 @@ impl PasswordHasher {
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip_all)]
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
         let _permit = self.semaphore.acquire().await.unwrap();
         let rng = self.rng.clone();
@@ -57,7 +57,7 @@ impl PasswordHasher {
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip_all)]
     pub async fn verify_password(&self, encoded: Box<str>, password: String) -> AppResult<bool> {
         let _permit = self.semaphore.acquire().await.unwrap();
 
@@ -234,7 +234,6 @@ mod tests {
             "Empty password should be handled gracefully"
         );
 
-        // Test con una contraseña muy larga
         let long_password = "a".repeat(10000);
         let result = hasher.hash_password(long_password).await;
         assert!(result.is_ok(), "Long password should be handled gracefully");

@@ -7,6 +7,7 @@ use dashmap::DashMap;
 use db::Database;
 use dotenvy::{dotenv, var};
 use metrics::initialize_tracing_and_telemetry;
+use middlewares::Tracing;
 use ntex::{http::header, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -42,6 +43,7 @@ async fn main() -> std::io::Result<()> {
                     .configure(|svc| routes::api_routes(svc, login_limit_visitors))
                     .configure(routes::admin_routes)
                     .state(app_state.clone())
+                    .wrap(Tracing)
                     .wrap(
                         Cors::new()
                             .allowed_origin("https://intellitelemetry.live")

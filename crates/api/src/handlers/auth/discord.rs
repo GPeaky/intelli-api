@@ -13,7 +13,6 @@ use crate::states::AppState;
 
 const DISCORD_REDIRECT: &str = "https://intellitelemetry.live/auth/discord/callback";
 
-#[tracing::instrument(skip(state))]
 pub async fn discord_callback(
     state: State<AppState>,
     query: Query<OauthAuthorizationCode>,

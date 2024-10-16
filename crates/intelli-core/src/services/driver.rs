@@ -33,7 +33,6 @@ impl DriverService {
     }
 
     #[inline]
-    #[tracing::instrument(skip_all)]
     async fn _create(
         &self,
         steam_name: &str,

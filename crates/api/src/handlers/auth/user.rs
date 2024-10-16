@@ -19,7 +19,6 @@ use crate::states::AppState;
 
 // TODO: Add rate limiting to the register endpoint
 #[inline]
-#[tracing::instrument(skip(state), fields(email = %user_registration.email))]
 pub(crate) async fn register(
     state: State<AppState>,
     Json(user_registration): Json<UserRegistrationData>,
@@ -51,7 +50,6 @@ pub(crate) async fn register(
 }
 
 #[inline]
-#[tracing::instrument(skip(state, _query, login_credentials), fields(email = %login_credentials.email))]
 pub(crate) async fn login(
     state: State<AppState>,
     Query(_query): Query<ClientFingerprint>,
@@ -97,7 +95,6 @@ pub(crate) async fn login(
 }
 
 #[inline]
-#[tracing::instrument(skip(state))]
 pub(crate) async fn refresh_token(
     state: State<AppState>,
     Query(query): Query<RefreshTokenRequest>,
@@ -127,7 +124,6 @@ pub(crate) async fn logout(
 }
 
 #[inline]
-#[tracing::instrument(skip(state))]
 pub(crate) async fn forgot_password(
     state: State<AppState>,
     password_reset: Json<PasswordResetRequest>,
@@ -165,7 +161,6 @@ pub(crate) async fn forgot_password(
 
 // TODO: Add rate limiting to the reset password endpoint
 #[inline]
-#[tracing::instrument(skip(state, password_update))]
 pub async fn reset_password(
     state: State<AppState>,
     Query(query): Query<TokenVerification>,

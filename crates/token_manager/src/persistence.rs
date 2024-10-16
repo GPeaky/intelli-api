@@ -14,6 +14,7 @@ pub struct TokenManagerPersistence;
 
 impl TokenManagerPersistence {
     #[inline]
+    #[tracing::instrument(skip_all)]
     pub fn save(token_manager: &TokenManager) -> std::io::Result<()> {
         let mut buffer = Vec::with_capacity(Self::calculate_total_size(token_manager));
 
@@ -54,6 +55,7 @@ impl TokenManagerPersistence {
     }
 
     #[inline]
+    #[tracing::instrument(skip_all)]
     pub fn load() -> std::io::Result<TokenManager> {
         let mut buffer: Vec<u8>;
 
@@ -141,6 +143,7 @@ impl TokenManagerPersistence {
 
     // Calculate the total size needed for the file
     #[inline]
+    #[tracing::instrument(skip_all)]
     fn calculate_total_size(token_manager: &TokenManager) -> usize {
         size_of::<Header>()
             + token_manager.tokens.len() * (size_of::<Token>() + size_of::<TokenEntry>())

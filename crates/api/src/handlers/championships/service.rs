@@ -9,7 +9,6 @@ use error::{AppResult, ChampionshipError, CommonError};
 use structs::ChampionshipId;
 
 #[inline]
-#[tracing::instrument(skip(state))]
 pub async fn start(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -28,7 +27,6 @@ pub async fn start(state: State<AppState>, path: Path<ChampionshipId>) -> AppRes
 }
 
 #[inline]
-#[tracing::instrument(skip(state))]
 pub async fn status(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
@@ -44,7 +42,6 @@ pub async fn status(state: State<AppState>, path: Path<ChampionshipId>) -> AppRe
 }
 
 #[inline]
-#[tracing::instrument(skip(state))]
 pub async fn stop(state: State<AppState>, path: Path<ChampionshipId>) -> AppResult<HttpResponse> {
     if path.validate().is_err() {
         Err(CommonError::ValidationFailed)?
