@@ -19,7 +19,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    initialize_tracing_and_telemetry().expect("Error initializing metrics");
+    let _tracer = initialize_tracing_and_telemetry().expect("Error initializing metrics");
 
     ntex::rt::System::new("intelli-api")
         .run_local(async {
@@ -61,5 +61,9 @@ async fn main() -> std::io::Result<()> {
             .run()
             .await
         })
-        .await
+        .await?;
+
+    opentelemetry::global::shutdown_tracer_provider();
+
+    Ok(())
 }
