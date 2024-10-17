@@ -27,25 +27,17 @@ where
 
     ntex::forward_ready!(service);
 
-    #[tracing::instrument(
-        name = "http_request",
-        skip(self, req, ctx),
-        fields(
-            http.version = ?req.version(),
-            http.user_agent = req.headers().get("user-agent").map(|h| h.to_str().unwrap_or("")).unwrap_or(""),
-        ),
-        target = "ntex::http"
-    )]
+    #[tracing::instrument(skip(self, req, ctx), fields(
+        http.method = %req.method(),
+        http.uri = %req.uri(),
+        http.version = ?req.version(),
+        http.user_agent = req.headers().get("user-agent").map(|h| h.to_str().unwrap_or("")).unwrap_or(""),
+    ))]
     async fn call(
         &self,
         req: WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
-        let method = req.method().as_str();
-        let uri = req.uri().to_string();
-
-        Span::current().record("name", format!("{} {}", method, uri));
-
         let res = ctx.call(&self.service, req).await?;
 
         Span::current().record(
