@@ -66,7 +66,6 @@ dashmap = { version = "6", features = ["inline", "raw-api"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
-opentelemetry-otlp = { version = "0.26", features = ["tonic", "metrics"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
