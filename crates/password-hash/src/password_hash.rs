@@ -27,7 +27,6 @@ impl PasswordHasher {
         }
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn hash_password(&self, password: String) -> AppResult<String> {
         let _permit = self.semaphore.acquire().await.unwrap();
         let rng = self.rng.clone();
@@ -57,7 +56,6 @@ impl PasswordHasher {
         .unwrap_or_else(|_| Err(CommonError::InternalServerError)?)
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn verify_password(&self, encoded: Box<str>, password: String) -> AppResult<bool> {
         let _permit = self.semaphore.acquire().await.unwrap();
 

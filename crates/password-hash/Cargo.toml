@@ -15,4 +15,3 @@ error.workspace = true
 ring.workspace = true
 tokio.workspace = true
 base64-simd.workspace = true
-tracing.workspace = true

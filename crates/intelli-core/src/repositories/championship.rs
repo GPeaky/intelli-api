@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use tokio_stream::StreamExt;
 
@@ -32,7 +32,6 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// An Option containing the Championship if found.
-    #[tracing::instrument(skip(self))]
     pub async fn find(&self, id: i32) -> AppResult<Option<Arc<Championship>>> {
         if let Some(championship) = self.db.cache.championship.get(&id) {
             return Ok(Some(championship));
@@ -64,7 +63,6 @@ impl ChampionshipRepository {
         }
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn races(&self, id: i32) -> AppResult<Vec<Arc<Race>>> {
         if let Some(races) = self.db.cache.championship.get_races(&id) {
             return Ok(races);
@@ -104,10 +102,9 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// An Option containing the Championship if found.
-    #[tracing::instrument(skip(self))]
     pub async fn find_by_name(
         &self,
-        name: impl AsRef<str> + Debug,
+        name: impl AsRef<str>,
     ) -> AppResult<Option<Arc<Championship>>> {
         let name = name.as_ref();
         if let Some(championship) = self.db.cache.championship.get_by_name(name) {
@@ -147,7 +144,6 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// A vector of user IDs.
-    #[tracing::instrument(skip(self))]
     pub async fn users(&self, id: i32) -> AppResult<Vec<i32>> {
         let stream = {
             let conn = self.db.pg.get().await?;
@@ -175,7 +171,6 @@ impl ChampionshipRepository {
     }
 
     /// Returns the relation between the user and the championship
-    #[tracing::instrument(skip(self))]
     pub async fn user_relation(
         &self,
         id: i32,
@@ -206,7 +201,6 @@ impl ChampionshipRepository {
         }
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn drivers_linked(&self, id: i32) -> AppResult<Vec<Box<str>>> {
         let stream = {
             let conn = self.db.pg.get().await?;
@@ -240,7 +234,6 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// A vector of all used championship IDs.
-    #[tracing::instrument(skip(self))]
     pub async fn _used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 
@@ -270,7 +263,6 @@ impl ChampionshipRepository {
     ///
     /// # Returns
     /// A vector of port numbers in use.
-    #[tracing::instrument(skip(self))]
     pub async fn _ports_in_use(&self) -> AppResult<Vec<i32>> {
         let stream = {
             let conn = self.db.pg.get().await?;

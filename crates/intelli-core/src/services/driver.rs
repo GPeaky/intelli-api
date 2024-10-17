@@ -32,8 +32,6 @@ impl DriverService {
         DriverService { db, driver_repo }
     }
 
-    #[inline]
-    #[tracing::instrument(skip_all)]
     async fn _create(
         &self,
         steam_name: &str,
@@ -88,7 +86,6 @@ impl DriverService {
 }
 
 impl DriverServiceOperations for DriverService {
-    #[tracing::instrument(skip(self))]
     async fn create(
         &self,
         steam_name: &str,

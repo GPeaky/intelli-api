@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use db::Database;
 use entities::Driver;
@@ -13,11 +13,7 @@ impl DriverRepository {
         DriverRepository { db }
     }
 
-    #[tracing::instrument(skip(self))]
-    pub async fn find(
-        &self,
-        steam_name: impl AsRef<str> + Debug,
-    ) -> AppResult<Option<Arc<Driver>>> {
+    pub async fn find(&self, steam_name: impl AsRef<str>) -> AppResult<Option<Arc<Driver>>> {
         let steam_name = steam_name.as_ref();
         if let Some(driver) = self.db.cache.driver.get(steam_name) {
             return Ok(Some(driver));

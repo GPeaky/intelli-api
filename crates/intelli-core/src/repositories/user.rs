@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use tokio_stream::StreamExt;
 
@@ -37,7 +37,6 @@ impl UserRepository {
     ///
     /// # Returns
     /// An Option containing the user if found.
-    #[tracing::instrument(skip(self))]
     pub async fn find(&self, id: i32) -> AppResult<Option<SharedUser>> {
         if let Some(user) = self.db.cache.user.get(&id) {
             return Ok(Some(user));
@@ -76,11 +75,7 @@ impl UserRepository {
     ///
     /// # Returns
     /// An Option containing the user if found.
-    #[tracing::instrument(skip(self))]
-    pub async fn find_by_email(
-        &self,
-        email: impl AsRef<str> + Debug,
-    ) -> AppResult<Option<SharedUser>> {
+    pub async fn find_by_email(&self, email: impl AsRef<str>) -> AppResult<Option<SharedUser>> {
         let email = email.as_ref();
         if let Some(user) = self.db.cache.user.get_by_email(email) {
             return Ok(Some(user));
@@ -119,7 +114,6 @@ impl UserRepository {
     ///
     /// # Returns
     /// A vector of Championships associated with the user.
-    #[tracing::instrument(skip(self))]
     pub async fn championships(&self, id: i32) -> AppResult<Vec<Arc<Championship>>> {
         if let Some(championships) = self.db.cache.championship.get_user_championships(&id) {
             return Ok(championships);
@@ -159,7 +153,6 @@ impl UserRepository {
     ///
     /// # Returns
     /// The count of championships associated with the user.
-    #[tracing::instrument(skip(self))]
     pub async fn championship_len(&self, id: i32) -> AppResult<usize> {
         let stream = {
             let conn = self.db.pg.get().await?;
@@ -193,8 +186,7 @@ impl UserRepository {
     /// # Returns
     /// Boolean indicating if the user exists.
     #[inline]
-    #[tracing::instrument(skip(self))]
-    pub async fn user_exists(&self, email: impl AsRef<str> + Debug) -> AppResult<bool> {
+    pub async fn user_exists(&self, email: impl AsRef<str>) -> AppResult<bool> {
         Ok(self.find_by_email(email).await?.is_some())
     }
 
@@ -205,7 +197,6 @@ impl UserRepository {
     ///
     /// # Returns
     /// An Option containing the user's active status if found.
-    #[tracing::instrument(skip(self))]
     pub async fn status(&self, id: i32) -> AppResult<Option<bool>> {
         let row = {
             let conn = self.db.pg.get().await?;
@@ -235,7 +226,6 @@ impl UserRepository {
     ///
     /// # Returns
     /// A vector of all used user IDs.
-    #[tracing::instrument(skip(self))]
     pub async fn _used_ids(&self) -> AppResult<Vec<i32>> {
         let conn = self.db.pg.get().await?;
 
