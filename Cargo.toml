@@ -68,7 +68,7 @@ ahash = { version = "0.8", features = ["compile-time-rng"] }
 dashmap = { version = "6", features = ["inline", "raw-api"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
-opentelemetry = "0.23"
+opentelemetry = "0.26"
 opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
