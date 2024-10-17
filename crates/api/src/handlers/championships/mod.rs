@@ -20,6 +20,7 @@ pub(crate) mod core {
     use crate::states::AppState;
 
     #[inline]
+    #[tracing::instrument(skip(req, state))]
     pub async fn create(
         req: HttpRequest,
         state: State<AppState>,
@@ -56,6 +57,7 @@ pub(crate) mod core {
     }
 
     #[inline]
+    #[tracing::instrument(skip(req, state))]
     pub async fn update(
         req: HttpRequest,
         state: State<AppState>,
@@ -76,6 +78,7 @@ pub(crate) mod core {
     }
 
     #[inline]
+    #[tracing::instrument(skip(req, state))]
     pub async fn add_user(
         req: HttpRequest,
         state: State<AppState>,
@@ -96,6 +99,7 @@ pub(crate) mod core {
     }
 
     #[inline]
+    #[tracing::instrument(skip(req, state))]
     pub async fn remove_user(
         req: HttpRequest,
         state: State<AppState>,
@@ -115,6 +119,7 @@ pub(crate) mod core {
     }
 
     #[inline]
+    #[tracing::instrument(skip(state))]
     pub async fn get(
         state: State<AppState>,
         path: Path<ChampionshipId>,

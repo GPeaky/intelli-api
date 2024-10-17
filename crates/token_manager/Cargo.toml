@@ -17,4 +17,3 @@ ring.workspace = true
 tokio.workspace = true
 dashmap.workspace = true
 base64-simd.workspace = true
-tracing.workspace = true

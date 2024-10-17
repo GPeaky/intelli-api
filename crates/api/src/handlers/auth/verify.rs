@@ -9,6 +9,7 @@ use intelli_core::services::UserServiceOperations;
 use structs::{EmailVerificationConfirmationTemplate, TokenVerification};
 
 #[inline]
+#[tracing::instrument(skip(state))]
 pub async fn verify_email(
     state: State<AppState>,
     Query(query): Query<TokenVerification>,
