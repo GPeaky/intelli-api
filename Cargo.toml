@@ -15,7 +15,6 @@ members = [
     "crates/telemetry",
     "crates/token_manager",
     "crates/utils",
-    "crates/metrics",
 ]
 
 default-members = ["crates/api"]
@@ -31,7 +30,6 @@ entities = { path = "crates/entities" }
 error = { path = "crates/error" }
 id-generator = { path = "crates/id-generator" }
 intelli-core = { path = "crates/intelli-core" }
-metrics = { path = "crates/metrics" }
 password-hash = { path = "crates/password-hash" }
 structs = { path = "crates/structs" }
 telemetry = { path = "crates/telemetry" }
@@ -54,7 +52,6 @@ quick_cache = "0.6"
 prost-build = "0.13"
 postgres-derive = "0.4"
 deadpool-postgres = "0.14"
-tracing-opentelemetry = "0.24"
 tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
@@ -68,11 +65,8 @@ ahash = { version = "0.8", features = ["compile-time-rng"] }
 dashmap = { version = "6", features = ["inline", "raw-api"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
-opentelemetry = "0.23"
-opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }
-opentelemetry-otlp = { version = "0.16", features = ["grpc-tonic", "metrics"] }
 tracing-subscriber = { version = "0.3", features = [
     "parking_lot",
     "env-filter",
