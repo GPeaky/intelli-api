@@ -78,6 +78,7 @@ impl F1ServiceHandler {
     }
 
     /// Retrieves a list of all active service IDs.
+    #[inline]
     pub fn services(&self) -> Vec<i32> {
         self.services.iter().map(|item| *item.key()).collect()
     }
