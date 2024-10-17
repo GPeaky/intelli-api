@@ -78,6 +78,7 @@ impl Championship {
     #[inline]
     pub async fn from_row_stream(it: RowStream) -> AppResult<Vec<Arc<Self>>> {
         tokio::pin!(it);
+
         let mut championships = Vec::new();
 
         while let Some(row) = it.try_next().await? {

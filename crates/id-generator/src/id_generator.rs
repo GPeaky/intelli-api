@@ -179,7 +179,6 @@ impl IdsGenerator {
     ///
     /// This method should be used sparingly, primarily for debugging or logging purposes.
     /// Frequent calls may impact performance due to locking.
-    #[allow(unused)]
     pub fn container_type(&self) -> ContainerType {
         let data = self.data.lock();
         data.container.container_type()
