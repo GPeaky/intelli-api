@@ -6,7 +6,7 @@ use entities::Provider;
 use utils::deserialize_i64_from_string;
 
 // Authentication Structures
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Deserialize, Validate)]
 pub struct LoginCredentials {
     #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
@@ -61,7 +61,7 @@ impl UserRegistrationData {
 }
 
 // Password Management
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Deserialize, Validate)]
 pub struct PasswordResetRequest {
     #[garde(email)]
     #[serde(deserialize_with = "string_trim")]
@@ -92,7 +92,7 @@ pub struct ClientFingerprint {
     pub fingerprint: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct OauthAuthorizationCode {
     pub code: String,
 }

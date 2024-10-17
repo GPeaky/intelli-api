@@ -33,4 +33,3 @@ dashmap.workspace = true
 tokio-stream.workspace = true
 ntex-cors.workspace = true
 openssl.workspace = true
-opentelemetry.workspace = true

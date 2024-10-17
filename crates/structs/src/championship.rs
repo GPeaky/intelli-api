@@ -14,7 +14,7 @@ pub struct ChampionshipCreationData {
     pub category: Category,
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Deserialize, Validate)]
 pub struct ChampionshipUserAddForm {
     #[serde(deserialize_with = "string_trim")]
     #[garde(email)]
@@ -44,10 +44,10 @@ pub struct ServiceStatus {
 }
 
 // Path Parameters
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Deserialize, Validate)]
 pub struct ChampionshipId(#[garde(range(min = 700000000, max = 799999999))] pub i32);
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Deserialize, Validate)]
 pub struct ChampionshipAndUserId {
     #[garde(range(min = 700000000, max = 799999999))]
     pub championship_id: i32,

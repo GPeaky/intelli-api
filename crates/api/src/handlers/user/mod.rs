@@ -14,7 +14,6 @@ use crate::states::AppState;
 pub(crate) mod admin;
 
 #[inline]
-#[tracing::instrument(skip(req, state))]
 pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {
     let user = req.user()?;
     let championships = state.user_repo.championships(user.id).await?;
@@ -26,7 +25,6 @@ pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<H
 }
 
 #[inline]
-#[tracing::instrument(skip(req, state))]
 pub(crate) async fn update(
     req: HttpRequest,
     state: State<AppState>,
@@ -42,7 +40,6 @@ pub(crate) async fn update(
 }
 
 #[inline]
-#[tracing::instrument(skip(req, state))]
 pub async fn get_championships(
     req: HttpRequest,
     state: State<AppState>,
