@@ -15,4 +15,5 @@ ntex.workspace = true
 tracing.workspace = true
 reqwest.workspace = true
 sailfish.workspace = true
+twilight-http.workspace = true
 deadpool-postgres.workspace = true

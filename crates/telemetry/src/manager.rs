@@ -5,7 +5,7 @@ use ntex::{
 };
 use parking_lot::{Mutex, RwLock};
 use prost::Message;
-use std::{ops::Deref, ptr::addr_of, sync::Arc, time::Duration};
+use std::{ops::Deref, sync::Arc, time::Duration};
 use tokio::sync::{
     broadcast::{Receiver, Sender},
     oneshot,
@@ -545,13 +545,12 @@ impl PlayerTelemetry {
         let car_damage = self.car_damage.get_or_insert_with(Default::default);
 
         car_damage.tyres_wear.clear();
-        unsafe {
-            let brakes_temp_ptr = addr_of!(data.tyres_wear);
 
-            car_damage
-                .tyres_wear
-                .extend_from_slice(&brakes_temp_ptr.read_unaligned());
-        }
+        let brakes_temp_ptr = &raw const data.tyres_wear;
+
+        car_damage
+            .tyres_wear
+            .extend_from_slice(unsafe { &brakes_temp_ptr.read_unaligned() });
 
         car_damage.tyres_damage.clear();
         car_damage
@@ -623,14 +622,12 @@ impl PlayerTelemetry {
         telemetry.engine_temperature = Some(data.engine_temperature as u32);
 
         telemetry.brakes_temperature.clear();
-        unsafe {
-            let brakes_temp_ptr = addr_of!(data.brakes_temperature);
-            let brakes_temp = brakes_temp_ptr.read_unaligned();
+        let brakes_temp_ptr = &raw const data.brakes_temperature;
+        let brakes_temp = unsafe { brakes_temp_ptr.read_unaligned() };
 
-            telemetry
-                .brakes_temperature
-                .extend(brakes_temp.iter().map(|&x| x as u32));
-        }
+        telemetry
+            .brakes_temperature
+            .extend(brakes_temp.iter().map(|&x| x as u32));
 
         telemetry.tyres_surface_temperature.clear();
         telemetry
@@ -643,13 +640,12 @@ impl PlayerTelemetry {
             .extend(data.tyres_inner_temperature.iter().map(|&x| x as u32));
 
         telemetry.tyres_pressure.clear();
-        unsafe {
-            let tyres_pressure_ptr = addr_of!(data.tyres_pressure);
 
-            telemetry
-                .tyres_pressure
-                .extend_from_slice(&tyres_pressure_ptr.read_unaligned());
-        }
+        let tyres_pressure_ptr = &raw const data.tyres_pressure;
+
+        telemetry
+            .tyres_pressure
+            .extend_from_slice(unsafe { &tyres_pressure_ptr.read_unaligned() });
     }
 
     /// Computes the difference between two PlayerTelemetry instances
