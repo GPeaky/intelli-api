@@ -37,11 +37,19 @@ pub struct RaceData {
 impl Deref for DiscordClient {
     type Target = DiscordClientInner;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
+// TODO: Enhance race notifications system
+// 1. For drivers: Implement "send_race_notifications_drivers" function
+//    - Send a message with the URL to access general race data
+// 2. For engineers: Implement "send_race_notifications_engineers" function
+//    - Send a message with the URL to access real-time telemetry data
+// 3. Update the main "send_race_notifications" function to differentiate between user roles
+//    and call the appropriate notification function for each user
 impl DiscordClient {
     pub fn new(token: String) -> Self {
         let inner = DiscordClientInner {
@@ -54,21 +62,7 @@ impl DiscordClient {
         }
     }
 
-    pub async fn send_race_notification(&self, user_id: i64, race_data: RaceData) -> AppResult<()> {
-        let id = Self::to_user_id(user_id);
-        let channel_id = self.get_or_create_dm_channel(id).await?;
-        let embed = Self::embed_message(race_data);
-
-        self.client
-            .create_message(channel_id)
-            .embeds(&[embed])
-            .unwrap()
-            .await?;
-
-        Ok(())
-    }
-
-    //TODO: Capture all errors
+    //TODO: Capture all errors & return it as a map with the user_id and the error
     pub async fn send_race_notifications(
         &self,
         user_ids: &[i64],
@@ -96,6 +90,20 @@ impl DiscordClient {
         Ok(())
     }
 
+    async fn send_race_notification(&self, user_id: i64, race_data: RaceData) -> AppResult<()> {
+        let id = Self::to_user_id(user_id);
+        let channel_id = self.get_or_create_dm_channel(id).await?;
+        let embed = Self::embed_message(race_data);
+
+        self.client
+            .create_message(channel_id)
+            .embeds(&[embed])
+            .unwrap()
+            .await?;
+
+        Ok(())
+    }
+
     #[inline]
     async fn get_or_create_dm_channel(
         &self,
@@ -118,6 +126,7 @@ impl DiscordClient {
     }
 
     #[inline]
+    // TODO: Create a real embeded message & add the possibility of use a custom embeded for every championship
     fn embed_message(race_data: RaceData) -> Embed {
         Embed {
             author: Some(EmbedAuthor {

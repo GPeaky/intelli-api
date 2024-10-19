@@ -14,10 +14,9 @@ pub enum ChampionshipError {
     LimitReached,
     NotOwner,
     CannotRemoveOwner,
-    IntervalNotReached,
     NoPortsAvailable,
     InvalidTeamId,
-    NotEngineer,
+    NotAnEngineer,
 }
 
 impl std::error::Error for ChampionshipError {}
@@ -36,10 +35,9 @@ impl ChampionshipError {
             ChampionshipError::LimitReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NotOwner => StatusCode::UNAUTHORIZED,
             ChampionshipError::CannotRemoveOwner => StatusCode::BAD_REQUEST,
-            ChampionshipError::IntervalNotReached => StatusCode::BAD_REQUEST,
             ChampionshipError::NoPortsAvailable => StatusCode::SERVICE_UNAVAILABLE,
             ChampionshipError::InvalidTeamId => StatusCode::BAD_REQUEST,
-            ChampionshipError::NotEngineer => StatusCode::UNAUTHORIZED,
+            ChampionshipError::NotAnEngineer => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -50,10 +48,9 @@ impl ChampionshipError {
             ChampionshipError::LimitReached => "Championship limit reached",
             ChampionshipError::NotOwner => "Not Owner of Championship",
             ChampionshipError::CannotRemoveOwner => "Cannot remove owner of Championship",
-            ChampionshipError::IntervalNotReached => "Interval update time not reached",
             ChampionshipError::NoPortsAvailable => "No ports available",
             ChampionshipError::InvalidTeamId => "Invalid Team Id",
-            ChampionshipError::NotEngineer => "Not an engineer",
+            ChampionshipError::NotAnEngineer => "Not an engineer",
         }
     }
 }

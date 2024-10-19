@@ -77,7 +77,7 @@ where
             if now > entry.1 {
                 *entry = (0, now + LOGIN_RATE_LIMIT_DUR);
             } else if entry.0 > LOGIN_RATE_LIMIT {
-                return Err(CommonError::LoginRateLimited)?;
+                return Err(CommonError::RateLimited)?;
             }
 
             entry.0 += 1;

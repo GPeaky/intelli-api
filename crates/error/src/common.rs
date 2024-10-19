@@ -11,7 +11,8 @@ pub enum CommonError {
     InternalServerError,
     HashingFailed,
     NotValidUpdate,
-    LoginRateLimited,
+    RateLimited,
+    UpdateLimit,
 }
 
 impl CommonError {
@@ -21,17 +22,19 @@ impl CommonError {
             CommonError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::HashingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             CommonError::NotValidUpdate => StatusCode::BAD_REQUEST,
-            CommonError::LoginRateLimited => StatusCode::TOO_MANY_REQUESTS,
+            CommonError::RateLimited => StatusCode::TOO_MANY_REQUESTS,
+            CommonError::UpdateLimit => StatusCode::TOO_MANY_REQUESTS,
         }
     }
 
     pub const fn error_message(&self) -> &'static str {
         match self {
             CommonError::ValidationFailed => "Data validation failed",
-            CommonError::InternalServerError => "Internal Server Error",
+            CommonError::InternalServerError => "Internal server error",
             CommonError::HashingFailed => "Hashing Failed",
             CommonError::NotValidUpdate => "Not valid Update",
-            CommonError::LoginRateLimited => "Rate limited",
+            CommonError::RateLimited => "Rate limited",
+            CommonError::UpdateLimit => "Update limit exceeded",
         }
     }
 }

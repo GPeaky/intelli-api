@@ -13,8 +13,6 @@ pub enum TokenError {
     InvalidToken,
     MissingToken,
     ExpiredToken,
-    TokenCreationError,
-    InvalidTokenPurpose,
 }
 
 impl std::error::Error for TokenError {}
@@ -31,8 +29,6 @@ impl TokenError {
             TokenError::InvalidToken => StatusCode::UNAUTHORIZED,
             TokenError::MissingToken => StatusCode::BAD_REQUEST,
             TokenError::ExpiredToken => StatusCode::BAD_REQUEST,
-            TokenError::TokenCreationError => StatusCode::INTERNAL_SERVER_ERROR,
-            TokenError::InvalidTokenPurpose => StatusCode::BAD_REQUEST,
         }
     }
 
@@ -41,8 +37,6 @@ impl TokenError {
             TokenError::InvalidToken => "Invalid token",
             TokenError::MissingToken => "Missing token",
             TokenError::ExpiredToken => "Expired token",
-            TokenError::TokenCreationError => "Token Validation Error",
-            TokenError::InvalidTokenPurpose => "Invalid token type",
         }
     }
 }

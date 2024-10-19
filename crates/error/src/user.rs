@@ -16,12 +16,11 @@ pub enum UserError {
     NotVerified,
     DiscordAuth,
     Unauthorized,
-    AutoDelete,
+    SelfDelete,
     AlreadyActive,
     AlreadyInactive,
     WrongProvider,
     InvalidUpdate,
-    UpdateLimitExceeded,
 }
 
 impl UserError {
@@ -33,12 +32,11 @@ impl UserError {
             UserError::NotVerified => StatusCode::UNAUTHORIZED,
             UserError::DiscordAuth => StatusCode::BAD_REQUEST,
             UserError::Unauthorized => StatusCode::UNAUTHORIZED,
-            UserError::AutoDelete => StatusCode::BAD_REQUEST,
+            UserError::SelfDelete => StatusCode::BAD_REQUEST,
             UserError::AlreadyActive => StatusCode::BAD_REQUEST,
             UserError::AlreadyInactive => StatusCode::BAD_REQUEST,
             UserError::WrongProvider => StatusCode::BAD_REQUEST,
             UserError::InvalidUpdate => StatusCode::BAD_REQUEST,
-            UserError::UpdateLimitExceeded => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -50,12 +48,11 @@ impl UserError {
             UserError::NotVerified => "Not verified user",
             UserError::DiscordAuth => "Use discord auth",
             UserError::Unauthorized => "Unauthorized user",
-            UserError::AutoDelete => "Cannot Delete Yourself",
+            UserError::SelfDelete => "Cannot Delete Yourself",
             UserError::AlreadyActive => "User Already Active",
             UserError::AlreadyInactive => "User is not active",
             UserError::WrongProvider => "Using wrong provider",
             UserError::InvalidUpdate => "Invalid Update",
-            UserError::UpdateLimitExceeded => "Update Limit Exceeded",
         }
     }
 }
