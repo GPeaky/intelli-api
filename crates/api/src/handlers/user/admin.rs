@@ -41,7 +41,7 @@ pub async fn remove_user(
     };
 
     if path.0 == user_id {
-        Err(UserError::AutoDelete)?
+        Err(UserError::SelfDelete)?
     }
 
     state.user_svc.delete(path.0).await?;
@@ -69,7 +69,7 @@ pub async fn deactivate_user_account(
     let user_id = req.user_id()?;
 
     if path.0 == user_id {
-        Err(UserError::AutoDelete)?
+        Err(UserError::SelfDelete)?
     }
 
     state.user_svc.admin_deactivate(path.0).await?;
@@ -97,7 +97,7 @@ pub async fn reactivate_user_account(
     let user_id = req.user_id()?;
 
     if path.0 == user_id {
-        Err(UserError::AutoDelete)?
+        Err(UserError::SelfDelete)?
     }
 
     state.user_svc.admin_activate(path.0).await?;

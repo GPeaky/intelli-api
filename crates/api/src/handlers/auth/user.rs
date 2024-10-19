@@ -138,7 +138,7 @@ pub(crate) async fn forgot_password(
 
     if let Some(last_update) = user.updated_at {
         if Utc::now().signed_duration_since(last_update) > Duration::hours(1) {
-            return Err(UserError::UpdateLimitExceeded)?;
+            return Err(CommonError::UpdateLimit)?;
         }
     }
 

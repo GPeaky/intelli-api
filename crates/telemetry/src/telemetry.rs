@@ -98,7 +98,7 @@ impl F1ServiceHandler {
     /// Starts a new F1 service for the given championship.
     pub async fn start(&self, port: i32, championship_id: i32) -> AppResult<()> {
         if self.service(&championship_id) {
-            return Err(F1ServiceError::AlreadyExists.into());
+            return Err(F1ServiceError::AlreadyStarted)?;
         }
 
         let (otx, orx) = oneshot::channel::<()>();

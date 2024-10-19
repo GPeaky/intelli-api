@@ -37,6 +37,7 @@ pub struct RaceData {
 impl Deref for DiscordClient {
     type Target = DiscordClientInner;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.inner
     }

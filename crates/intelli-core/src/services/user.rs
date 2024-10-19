@@ -7,7 +7,7 @@ use tracing::info;
 
 use db::{Database, EntityCache};
 use entities::{Provider, SharedUser};
-use error::{AppResult, UserError};
+use error::{AppResult, CommonError, UserError};
 use id_generator::IdsGenerator;
 use structs::{UserRegistrationData, UserUpdateData};
 use utils::slice_iter;
@@ -285,7 +285,7 @@ impl UserService {
 
         if let Some(last_update) = user.updated_at {
             if Utc::now().signed_duration_since(last_update) > Duration::minutes(15) {
-                return Err(UserError::UpdateLimitExceeded)?;
+                return Err(CommonError::UpdateLimit)?;
             }
         }
 
@@ -363,7 +363,7 @@ impl UserServiceOperations for UserService {
     async fn update(&self, user: SharedUser, form: &UserUpdateData) -> AppResult<()> {
         if let Some(last_update) = user.updated_at {
             if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
-                return Err(UserError::UpdateLimitExceeded)?;
+                return Err(CommonError::UpdateLimit)?;
             }
         }
 

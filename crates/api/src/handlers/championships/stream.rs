@@ -108,7 +108,7 @@ pub async fn stream_telemetry_session(
     match relation {
         Some(relation) => {
             if relation.role != ChampionshipRole::Engineer || relation.team_id.is_none() {
-                Err(ChampionshipError::NotEngineer)?
+                Err(ChampionshipError::NotAnEngineer)?
             }
 
             let team_id = relation.team_id.unwrap() as u8;

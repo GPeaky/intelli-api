@@ -556,7 +556,7 @@ impl ChampionshipServiceOperations for ChampionshipService {
 
             if let Some(last_update) = championship.updated_at {
                 if Utc::now().signed_duration_since(last_update) <= Duration::days(7) {
-                    Err(ChampionshipError::IntervalNotReached)?
+                    Err(CommonError::UpdateLimit)?
                 };
             }
         }
