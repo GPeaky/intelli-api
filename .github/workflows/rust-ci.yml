@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  RUSTFLAGS: "-C target-cpu=native -C target-feature=+sse,+sse2,+sse3,+sse4.1,+sse4.2,+avx,+avx2"
+
 jobs:
   check:
     name: Check
