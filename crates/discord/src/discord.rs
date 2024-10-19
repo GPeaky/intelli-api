@@ -55,21 +55,7 @@ impl DiscordClient {
         }
     }
 
-    pub async fn send_race_notification(&self, user_id: i64, race_data: RaceData) -> AppResult<()> {
-        let id = Self::to_user_id(user_id);
-        let channel_id = self.get_or_create_dm_channel(id).await?;
-        let embed = Self::embed_message(race_data);
-
-        self.client
-            .create_message(channel_id)
-            .embeds(&[embed])
-            .unwrap()
-            .await?;
-
-        Ok(())
-    }
-
-    //TODO: Capture all errors
+    //TODO: Capture all errors & return it as a map with the user_id and the error
     pub async fn send_race_notifications(
         &self,
         user_ids: &[i64],
@@ -93,6 +79,20 @@ impl DiscordClient {
         for result in results {
             result??;
         }
+
+        Ok(())
+    }
+
+    async fn send_race_notification(&self, user_id: i64, race_data: RaceData) -> AppResult<()> {
+        let id = Self::to_user_id(user_id);
+        let channel_id = self.get_or_create_dm_channel(id).await?;
+        let embed = Self::embed_message(race_data);
+
+        self.client
+            .create_message(channel_id)
+            .embeds(&[embed])
+            .unwrap()
+            .await?;
 
         Ok(())
     }
