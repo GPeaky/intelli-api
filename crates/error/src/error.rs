@@ -37,6 +37,7 @@ pub enum AppError {
     Common(CommonError),
     F1(F1ServiceError),
     Firewall(FirewallError),
+    Twilight,
     PgError,
     PgPool,
     Reqwest,
@@ -78,6 +79,20 @@ impl From<sailfish::RenderError> for AppError {
     }
 }
 
+impl From<twilight_http::Error> for AppError {
+    fn from(value: twilight_http::Error) -> Self {
+        error!("Twilight error: {:?}", value);
+        AppError::Twilight
+    }
+}
+
+impl From<twilight_http::response::DeserializeBodyError> for AppError {
+    fn from(value: twilight_http::response::DeserializeBodyError) -> Self {
+        error!("Twilight Deserialize error: {:?}", value);
+        AppError::Twilight
+    }
+}
+
 impl AppError {
     const fn error_status(&self) -> StatusCode {
         match self {
@@ -92,6 +107,7 @@ impl AppError {
             AppError::PgPool => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Reqwest => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Sailfish => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Twilight => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -108,6 +124,7 @@ impl AppError {
             AppError::PgPool => "Pool error",
             AppError::Reqwest => "Reqwest error",
             AppError::Sailfish => "Email Render Error",
+            AppError::Twilight => "Twilight error",
         }
     }
 }

@@ -15,6 +15,7 @@ members = [
     "crates/telemetry",
     "crates/token_manager",
     "crates/utils",
+    "crates/discord",
 ]
 
 default-members = ["crates/api"]
@@ -26,6 +27,7 @@ default-members = ["crates/api"]
 #
 api = { path = "crates/api" }
 db = { path = "crates/db" }
+discord = { path = "crates/discord" }
 entities = { path = "crates/entities" }
 error = { path = "crates/error" }
 id-generator = { path = "crates/id-generator" }
@@ -39,10 +41,12 @@ utils = { path = "crates/utils" }
 #
 # External Crates
 #
+regex = "1"
 memchr = "2"
 ring = "0.17"
 prost = "0.13"
 tracing = "0.1"
+futures = "0.3"
 ntex-cors = "2"
 dotenvy = "0.15"
 sailfish = "0.9"
@@ -50,13 +54,13 @@ serde_trim = "1"
 base64-simd = "0.8"
 quick_cache = "0.6"
 prost-build = "0.13"
+twilight-model = "0.15"
 postgres-derive = "0.4"
 deadpool-postgres = "0.14"
 tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 openssl = { version = "0.10", features = ["v110"] }
-regex = { version = "1", features = ["unstable"] }
 tracing-log = { version = "0.2", features = ["ahash"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 serde = { version = "1", features = ["rc", "unstable"] }
@@ -64,6 +68,7 @@ ntex = { version = "2", features = ["tokio", "openssl"] }
 ahash = { version = "0.8", features = ["compile-time-rng"] }
 dashmap = { version = "6", features = ["inline", "raw-api"] }
 refinery = { version = "0.8", features = ["tokio-postgres"] }
+twilight-http = { version = "0.15", features = ["simd-json"] }
 postgres-types = { version = "0.2", features = ["with-chrono-0_4"] }
 parking_lot = { version = "0.12", features = ["arc_lock", "nightly"] }
 garde = { version = "0.20", features = ["derive", "email", "email-idna"] }

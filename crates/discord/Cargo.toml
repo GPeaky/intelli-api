@@ -1,0 +1,20 @@
+[package]
+name = "discord"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+
+[lib]
+path = "src/discord.rs"
+doctest = false
+
+[dependencies]
+tokio.workspace = true
+error.workspace = true
+futures.workspace = true
+dashmap.workspace = true
+twilight-http.workspace = true
+twilight-model.workspace = true
