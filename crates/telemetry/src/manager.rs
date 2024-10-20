@@ -26,6 +26,8 @@ use crate::f1::{
 use event_data_details::Details;
 
 // Constants
+const GENERAL_INTERVAL: Duration = Duration::from_millis(700);
+const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 const NOT_SEND_EVENTS: [EventCode; 9] = [
     EventCode::ButtonStatus,
     EventCode::TeamMateInPits,
@@ -37,8 +39,6 @@ const NOT_SEND_EVENTS: [EventCode; 9] = [
     EventCode::RedFlag,
     EventCode::LightsOut,
 ];
-const GENERAL_INTERVAL: Duration = Duration::from_millis(700);
-const TELEMETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 include!(concat!(env!("OUT_DIR"), "/f1telemetry.rs"));
 

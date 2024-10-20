@@ -20,7 +20,7 @@ use tokio::{
         broadcast::{Receiver, Sender},
         oneshot,
     },
-    time::{timeout, Instant},
+    time::{timeout_at, Instant},
 };
 use tracing::{error, info, info_span, warn};
 
@@ -199,6 +199,8 @@ impl F1Service {
         let mut buf = [0u8; BUFFER_SIZE];
 
         loop {
+            let now = Instant::now();
+
             tokio::select! {
                 _ = &mut self.shutdown => {
                     info!("Shutting down service");
@@ -206,12 +208,12 @@ impl F1Service {
                     break;
                 }
 
-                result = timeout(SOCKET_TIMEOUT, self.socket.recv_from(&mut buf)) => {
+                result = timeout_at(now + SOCKET_TIMEOUT, self.socket.recv_from(&mut buf)) => {
                     match result {
                         Ok(Ok((size, address))) => {
                             let buf = &buf[..size];
-                            let now = Instant::now();
 
+                            // Probably use unlikely
                             if !self.port_partially_opened {
                                 if self
                                     .f1_state

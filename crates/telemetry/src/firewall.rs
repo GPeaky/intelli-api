@@ -1,7 +1,7 @@
 use ahash::AHashMap;
 use error::{AppResult, FirewallError};
 use regex::Regex;
-use std::{net::IpAddr, str, sync::Arc};
+use std::{net::IpAddr, str};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
@@ -29,17 +29,17 @@ impl FirewallRule {
 }
 
 /// Manages firewall rules for the application.
+// Not using Arc cause it's wrapped into a static reference
 pub struct FirewallService {
-    rules: Arc<RwLock<AHashMap<i32, FirewallRule>>>,
+    rules: RwLock<AHashMap<i32, FirewallRule>>,
 }
 
 // TODO: this must check on initialization if the server has de firewall service installed and active to use it
 impl FirewallService {
     /// Creates a new FirewallService instance.
     pub fn new() -> Self {
-        Self {
-            rules: Arc::from(RwLock::from(AHashMap::with_capacity(10))),
-        }
+        let rules = RwLock::from(AHashMap::with_capacity(10));
+        Self { rules }
     }
 
     /// Opens a port in the firewall.

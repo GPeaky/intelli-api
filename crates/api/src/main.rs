@@ -4,14 +4,17 @@ mod middlewares;
 mod routes;
 mod states;
 
-use config::initialize_tracing_subscriber;
 use dashmap::DashMap;
-use db::Database;
 use dotenvy::{dotenv, var};
-use ntex::{http::header, web};
+use ntex::{http::header, time::Seconds, web};
 use ntex_cors::Cors;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use tracing::info;
+
+use config::{initialize_tracing_subscriber, setup_panic_handler};
+use db::Database;
 use states::AppState;
+use telemetry::FirewallService;
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -22,11 +25,14 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     initialize_tracing_subscriber();
 
+    let firewall_svc = Box::leak(Box::new(FirewallService::new()));
+    setup_panic_handler(firewall_svc);
+
     ntex::rt::System::new("intelli-api")
         .run_local(async {
             let app_state = {
                 let db = Box::leak(Box::from(Database::new().await));
-                AppState::new(db).await.unwrap()
+                AppState::new(db, firewall_svc).await.unwrap()
             };
 
             let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
@@ -58,9 +64,15 @@ async fn main() -> std::io::Result<()> {
                             .finish(),
                     )
             })
+            .shutdown_timeout(Seconds::new(10))
             .bind_openssl(var("HOST").unwrap(), builder)?
             .run()
             .await
         })
-        .await
+        .await?;
+
+    info!("Stoping service, cleaning up firewall rules");
+    firewall_svc.close_all().await.unwrap();
+
+    Ok(())
 }

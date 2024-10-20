@@ -8,7 +8,7 @@ use intelli_core::{
     },
     services::{ChampionshipService, DriverService, EmailService, UserService},
 };
-use telemetry::{F1ServiceHandler, F1State};
+use telemetry::{F1ServiceHandler, F1State, FirewallService};
 use token_manager::TokenManager;
 
 // F1ServiceHandler, FirewallService
@@ -31,7 +31,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(db: &'static Database) -> AppResult<Self> {
+    pub async fn new(db: &'static Database, firewall: &'static FirewallService) -> AppResult<Self> {
         // Repositories
         let user_repo = Box::leak(Box::new(UserRepository::new(db)));
         let discord_repo = Box::leak(Box::new(DiscordRepository::new()));
@@ -54,6 +54,7 @@ impl AppState {
             driver_repo,
             championship_repo,
             championship_svc,
+            firewall,
         )));
 
         Ok(Self {

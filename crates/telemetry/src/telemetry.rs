@@ -1,3 +1,8 @@
+mod f1;
+mod firewall;
+mod manager;
+mod service;
+
 use dashmap::DashMap;
 use intelli_core::{
     repositories::{ChampionshipRepository, DriverRepository},
@@ -10,19 +15,13 @@ use tokio::sync::{
 };
 use tracing::{info, warn};
 
-mod f1;
-mod firewall;
-mod manager;
-mod service;
-
-use firewall::FirewallService;
+use error::{AppResult, F1ServiceError};
 use manager::F1SessionDataManager;
 use service::{F1Service, F1ServiceData};
-
-pub use manager::DriverInfo;
-
-use error::{AppResult, F1ServiceError};
 use structs::ServiceStatus;
+
+pub use firewall::FirewallService;
+pub use manager::DriverInfo;
 
 /// Manages F1 championship services, including caching, subscriptions, and service lifecycle.
 #[derive(Clone)]
@@ -146,9 +145,8 @@ impl F1State {
         driver_repo: &'static DriverRepository,
         championship_repo: &'static ChampionshipRepository,
         championship_svc: &'static ChampionshipService,
+        firewall: &'static FirewallService,
     ) -> Self {
-        let firewall = Box::leak(Box::new(FirewallService::new()));
-
         Self {
             firewall,
             driver_svc,

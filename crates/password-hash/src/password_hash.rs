@@ -222,7 +222,6 @@ mod tests {
 
     #[tokio::test]
     #[cfg_attr(miri, ignore)]
-
     async fn error_propagation() {
         let hasher = Arc::new(PasswordHasher::new(1));
 
@@ -232,7 +231,6 @@ mod tests {
             "Empty password should be handled gracefully"
         );
 
-        // Test con una contraseña muy larga
         let long_password = "a".repeat(10000);
         let result = hasher.hash_password(long_password).await;
         assert!(result.is_ok(), "Long password should be handled gracefully");
