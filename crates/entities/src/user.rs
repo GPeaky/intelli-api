@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{num::NonZeroI64, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
@@ -46,7 +46,7 @@ pub struct User {
     pub provider: Provider,
     pub role: Role,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub discord_id: Option<i64>,
+    pub discord_id: Option<NonZeroI64>,
     #[serde(skip_serializing)]
     pub active: bool,
     pub created_at: DateTime<Utc>,
@@ -66,7 +66,7 @@ impl User {
             avatar: row.get(4),
             provider: row.get(5),
             role: row.get(6),
-            discord_id: row.get(7),
+            discord_id: row.get::<_, Option<i64>>(7).and_then(NonZeroI64::new),
             active: row.get(8),
             created_at: row.get(9),
             updated_at: row.get(10),

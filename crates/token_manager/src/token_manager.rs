@@ -13,7 +13,7 @@ use utils::current_timestamp_s;
 pub use token::{Token, TokenIntent};
 
 const MAX_TOKENS_PER_USER: usize = 10;
-const PURGE_INTERVAL: Duration = Duration::from_secs(900);
+const PURGE_INTERVAL: Duration = Duration::from_secs(600);
 
 pub struct TokenManager {
     tokens: DashMap<Token, TokenEntry>,

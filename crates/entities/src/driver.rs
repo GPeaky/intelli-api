@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{num::NonZeroI32, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use deadpool_postgres::tokio_postgres::Row;
@@ -10,7 +10,7 @@ pub type SharedDriver = Arc<Driver>;
 pub struct Driver {
     pub steam_name: Box<str>,
     pub nationality: i16,
-    pub user_id: Option<i32>,
+    pub user_id: Option<NonZeroI32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -22,7 +22,7 @@ impl Driver {
         Driver {
             steam_name: row.get(0),
             nationality: row.get(1),
-            user_id: row.get(2),
+            user_id: row.get::<_, Option<i32>>(2).and_then(NonZeroI32::new),
             created_at: row.get(3),
             updated_at: row.get(4),
         }

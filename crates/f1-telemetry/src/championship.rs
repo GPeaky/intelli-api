@@ -42,7 +42,7 @@ pub struct F1State {
 impl F1ChampionshipManager {
     /// Creates a new F1ServiceHandler instance.
     pub fn new(f1_state: &'static F1State) -> Self {
-        let services = Box::leak(Box::new(DashMap::with_capacity(10)));
+        let services = Box::leak(Box::new(DashMap::with_capacity(5)));
         Self { services, f1_state }
     }
 

@@ -270,6 +270,7 @@ impl F1TelemetryPacketHandler {
         }
     }
 
+    // TODO: Add more idiomatic name
     /// Spawns the update task for sending updates
     #[inline]
     fn spawn_update_task(&mut self, tx: Sender<Bytes>) {

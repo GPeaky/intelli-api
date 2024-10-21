@@ -17,11 +17,9 @@ members = [
     "crates/utils",
     "crates/discord",
 ]
-
 default-members = ["crates/api"]
 
 [workspace.dependencies]
-
 #
 # Workspace member crates
 #

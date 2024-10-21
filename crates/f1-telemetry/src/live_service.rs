@@ -68,11 +68,11 @@ pub struct F1LiveTelemetryService {
     tick_counter: u8,
     championship_id: i32,
     port_partially_opened: bool,
-    last_updates: PacketProcessingTimestamps,
+    timestamps: PacketProcessingTimestamps,
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    data_manager: F1TelemetryPacketHandler,
+    packet_handler: F1TelemetryPacketHandler,
     services: &'static DashMap<i32, F1SessionBroadcaster>,
     f1_state: &'static F1State,
 }
@@ -80,7 +80,7 @@ pub struct F1LiveTelemetryService {
 /// Holds data related to an F1 service instance
 pub struct F1SessionBroadcaster {
     inner: Arc<F1SessionBroadcasterInner>,
-    session_manager: F1TelemetryPacketHandler,
+    packet_handler: F1TelemetryPacketHandler,
     shutdown: Option<oneshot::Sender<()>>,
 }
 
@@ -140,7 +140,7 @@ impl F1TelemetryPacket<'_> {
 impl F1LiveTelemetryService {
     /// Creates a new F1LiveTelemetryService instance
     pub async fn new(
-        data_manager: F1TelemetryPacketHandler,
+        packet_handler: F1TelemetryPacketHandler,
         shutdown: oneshot::Receiver<()>,
         services: &'static DashMap<i32, F1SessionBroadcaster>,
         f1_state: &'static F1State,
@@ -151,11 +151,11 @@ impl F1LiveTelemetryService {
             championship_id: 0,
             tick_counter: 10,
             port_partially_opened: false,
-            last_updates: PacketProcessingTimestamps::new(),
+            timestamps: PacketProcessingTimestamps::new(),
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
-            data_manager,
+            packet_handler,
             services,
             f1_state,
         }
@@ -312,17 +312,17 @@ impl F1LiveTelemetryService {
 
     #[inline]
     fn handle_motion_packet(&mut self, motion_data: &PacketMotionData, now: Instant) {
-        if now.duration_since(self.last_updates.car_motion) < MOTION_INTERVAL {
+        if now.duration_since(self.timestamps.car_motion) < MOTION_INTERVAL {
             return;
         }
 
-        self.data_manager.save_motion(motion_data);
-        self.last_updates.car_motion = now;
+        self.packet_handler.save_motion(motion_data);
+        self.timestamps.car_motion = now;
     }
 
     #[inline]
     async fn handle_session_packet(&mut self, session_data: &PacketSessionData, now: Instant) {
-        if now.duration_since(self.last_updates.session) < SESSION_INTERVAL {
+        if now.duration_since(self.timestamps.session) < SESSION_INTERVAL {
             return;
         }
 
@@ -339,8 +339,8 @@ impl F1LiveTelemetryService {
         };
 
         self.session_type = Some(session_type);
-        self.data_manager.save_session(session_data);
-        self.last_updates.session = now;
+        self.packet_handler.save_session(session_data);
+        self.timestamps.session = now;
     }
 
     #[inline]
@@ -349,7 +349,7 @@ impl F1LiveTelemetryService {
         participants_data: &PacketParticipantsData,
         now: Instant,
     ) -> AppResult<()> {
-        if now.duration_since(self.last_updates.participants) < SESSION_INTERVAL {
+        if now.duration_since(self.timestamps.participants) < SESSION_INTERVAL {
             return Ok(());
         }
 
@@ -362,8 +362,8 @@ impl F1LiveTelemetryService {
                 .await?;
         }
 
-        self.data_manager.save_participants(participants_data);
-        self.last_updates.participants = now;
+        self.packet_handler.save_participants(participants_data);
+        self.timestamps.participants = now;
         Ok(())
     }
 
@@ -377,7 +377,7 @@ impl F1LiveTelemetryService {
             return;
         }
 
-        self.data_manager.push_event(event_data);
+        self.packet_handler.push_event(event_data);
     }
 
     #[inline]
@@ -387,7 +387,7 @@ impl F1LiveTelemetryService {
         now: Instant,
     ) {
         let Some(last_update) = self
-            .last_updates
+            .timestamps
             .car_lap
             .get_mut(history_data.car_idx as usize)
         else {
@@ -396,7 +396,7 @@ impl F1LiveTelemetryService {
         };
 
         if now.duration_since(*last_update) > HISTORY_INTERVAL {
-            self.data_manager.save_lap_history(history_data);
+            self.packet_handler.save_lap_history(history_data);
             *last_update = now;
         }
     }
@@ -411,7 +411,7 @@ impl F1LiveTelemetryService {
             return Ok(());
         };
 
-        self.data_manager
+        self.packet_handler
             .save_final_classification(final_classification);
 
         Ok(())
@@ -419,15 +419,15 @@ impl F1LiveTelemetryService {
 
     #[inline]
     fn handle_car_damage_packet(&mut self, car_damage: &PacketCarDamageData, now: Instant) {
-        if now.duration_since(self.last_updates.car_damage) > TELEMETRY_INTERVAL {
-            self.data_manager.save_car_damage(car_damage);
+        if now.duration_since(self.timestamps.car_damage) > TELEMETRY_INTERVAL {
+            self.packet_handler.save_car_damage(car_damage);
         }
     }
 
     #[inline]
     fn handle_car_status_packet(&mut self, car_status: &PacketCarStatusData, now: Instant) {
-        if now.duration_since(self.last_updates.car_status) > TELEMETRY_INTERVAL {
-            self.data_manager.save_car_status(car_status);
+        if now.duration_since(self.timestamps.car_status) > TELEMETRY_INTERVAL {
+            self.packet_handler.save_car_status(car_status);
         }
     }
 
@@ -437,8 +437,8 @@ impl F1LiveTelemetryService {
         car_telemetry: &PacketCarTelemetryData,
         now: Instant,
     ) {
-        if now.duration_since(self.last_updates.car_telemetry) > TELEMETRY_INTERVAL {
-            self.data_manager.save_car_telemetry(car_telemetry);
+        if now.duration_since(self.timestamps.car_telemetry) > TELEMETRY_INTERVAL {
+            self.packet_handler.save_car_telemetry(car_telemetry);
         }
     }
 
@@ -520,7 +520,7 @@ impl F1LiveTelemetryService {
 impl F1SessionBroadcaster {
     /// Creates a new F1SessionBroadcaster instance
     pub fn new(
-        session_manager: F1TelemetryPacketHandler,
+        packet_handler: F1TelemetryPacketHandler,
         global_channel: Sender<Bytes>,
         shutdown: oneshot::Sender<()>,
     ) -> Self {
@@ -532,7 +532,7 @@ impl F1SessionBroadcaster {
 
         Self {
             inner,
-            session_manager,
+            packet_handler,
             shutdown: Some(shutdown),
         }
     }
@@ -540,45 +540,52 @@ impl F1SessionBroadcaster {
     /// Retrieves the cached data from the session manager
     #[inline]
     pub fn cache(&self) -> Option<Bytes> {
-        self.session_manager.cache()
+        self.packet_handler.cache()
     }
 
     /// Subscribes to the global broadcast channel
+    #[inline]
     pub fn global_sub(&self) -> Receiver<Bytes> {
         self.global_subscribers.fetch_add(1, Ordering::Relaxed);
         self.global_channel.subscribe()
     }
 
     /// Subscribes to a team-specific broadcast channel
+    #[inline]
     pub fn team_sub(&self, team_id: u8) -> Option<Receiver<Bytes>> {
-        let receiver = self.session_manager.get_team_receiver(team_id)?;
+        let receiver = self.packet_handler.get_team_receiver(team_id)?;
         let mut team_subs = self.team_subscribers.write();
         *team_subs.entry(team_id).or_insert(0) += 1;
         Some(receiver)
     }
 
     /// Gets the current number of global subscribers
+    #[inline]
     pub fn global_count(&self) -> u32 {
         self.global_subscribers.load(Ordering::Relaxed)
     }
 
     /// Gets the current number of subscribers for all teams
+    #[inline]
     pub fn all_team_count(&self) -> u32 {
         self.team_subscribers.read().values().sum()
     }
 
     /// Gets the current number of subscribers for a specific team
+    #[inline]
     #[allow(unused)]
     pub fn team_count(&self, team_id: u8) -> u32 {
         *self.team_subscribers.read().get(&team_id).unwrap_or(&0)
     }
 
     /// Decrements the global subscriber count
+    #[inline]
     pub fn global_unsub(&self) {
         self.global_subscribers.fetch_sub(1, Ordering::Relaxed);
     }
 
     /// Decrements the team subscriber count
+    #[inline]
     pub fn team_unsub(&self, team_id: u8) {
         let mut team_subs = self.team_subscribers.write();
         if let Some(count) = team_subs.get_mut(&team_id) {
