@@ -21,21 +21,18 @@ impl TokenManagerPersistence {
     pub fn save(token_manager: &TokenManager) -> std::io::Result<()> {
         let mut buffer = Vec::with_capacity(Self::calculate_total_size(token_manager));
 
-        // Write header
         let header = Header {
             tokens_count: token_manager.tokens.len() as u64,
             user_tokens_count: token_manager.user_tokens.len() as u64,
         };
         buffer.extend_from_slice(header.as_bytes());
 
-        // Write tokens
         for entry in token_manager.tokens.iter() {
             let (token, token_entry) = entry.pair();
             buffer.extend_from_slice(token.as_bytes());
             buffer.extend_from_slice(token_entry.as_bytes());
         }
 
-        // Write user_tokens
         for entry in token_manager.user_tokens.iter() {
             let (user_id, tokens) = entry.pair();
             buffer.extend_from_slice(&user_id.to_le_bytes());
@@ -45,7 +42,6 @@ impl TokenManagerPersistence {
             }
         }
 
-        // Write the entire buffer to file in one go
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -63,16 +59,13 @@ impl TokenManagerPersistence {
 
         match File::open(PATH) {
             Ok(mut file) => {
-                // Get the file size
                 let file_size = file.metadata()?.len() as usize;
 
-                // Read the entire file into a single buffer
                 buffer = vec![0u8; file_size];
                 file.read_exact(&mut buffer)?;
             }
 
             Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
-                // Create new file with header initialized to zeros
                 let mut file = File::create(PATH)?;
                 let header = Header {
                     tokens_count: 0,
@@ -81,7 +74,6 @@ impl TokenManagerPersistence {
                 let header_bytes = header.as_bytes();
                 file.write_all(header_bytes)?;
 
-                // Return an empty TokenManager since there's nothing else to load
                 return Ok(TokenManager {
                     tokens: DashMap::new(),
                     user_tokens: DashMap::new(),
@@ -92,7 +84,6 @@ impl TokenManagerPersistence {
 
         let mut offset = 0;
 
-        // Read header
         let header = Header::from_bytes(&buffer[offset..offset + size_of::<Header>()]);
         offset += size_of::<Header>();
 
@@ -101,7 +92,6 @@ impl TokenManagerPersistence {
 
         let now = current_timestamp_s();
 
-        // Read tokens
         for _ in 0..header.tokens_count {
             let token = *Token::from_bytes(&buffer[offset..offset + size_of::<Token>()]);
             offset += size_of::<Token>();
@@ -115,7 +105,6 @@ impl TokenManagerPersistence {
             }
         }
 
-        // Read user_tokens
         for _ in 0..header.user_tokens_count {
             let user_id = i32::from_le_bytes(buffer[offset..offset + 4].try_into().unwrap());
             offset += 4;

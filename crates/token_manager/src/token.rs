@@ -5,7 +5,7 @@ use ring::rand::{SecureRandom, SystemRandom};
 
 use error::{AppResult, TokenError};
 
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Token([u8; 16]);
 

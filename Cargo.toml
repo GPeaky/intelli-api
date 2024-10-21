@@ -12,7 +12,7 @@ members = [
     "crates/error",
     "crates/id-generator",
     "crates/structs",
-    "crates/telemetry",
+    "crates/f1-telemetry",
     "crates/token_manager",
     "crates/utils",
     "crates/discord",
@@ -34,7 +34,7 @@ id-generator = { path = "crates/id-generator" }
 intelli-core = { path = "crates/intelli-core" }
 password-hash = { path = "crates/password-hash" }
 structs = { path = "crates/structs" }
-telemetry = { path = "crates/telemetry" }
+f1-telemetry = { path = "crates/f1-telemetry" }
 token_manager = { path = "crates/token_manager" }
 utils = { path = "crates/utils" }
 

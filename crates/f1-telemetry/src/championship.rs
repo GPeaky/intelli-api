@@ -1,7 +1,7 @@
-mod f1;
 mod firewall;
-mod manager;
-mod service;
+mod handler;
+mod live_service;
+mod types;
 
 use dashmap::DashMap;
 use intelli_core::{
@@ -16,17 +16,17 @@ use tokio::sync::{
 use tracing::{info, warn};
 
 use error::{AppResult, F1ServiceError};
-use manager::F1SessionDataManager;
-use service::{F1Service, F1ServiceData};
+use handler::F1TelemetryPacketHandler;
+use live_service::{F1LiveTelemetryService, F1SessionBroadcaster};
 use structs::ServiceStatus;
 
 pub use firewall::FirewallService;
-pub use manager::DriverInfo;
+pub use handler::DriverInfo;
 
 /// Manages F1 championship services, including caching, subscriptions, and service lifecycle.
 #[derive(Clone)]
-pub struct F1ServiceHandler {
-    services: &'static DashMap<i32, F1ServiceData>,
+pub struct F1ChampionshipManager {
+    services: &'static DashMap<i32, F1SessionBroadcaster>,
     f1_state: &'static F1State,
 }
 
@@ -39,7 +39,7 @@ pub struct F1State {
     pub championship_svc: &'static ChampionshipService,
 }
 
-impl F1ServiceHandler {
+impl F1ChampionshipManager {
     /// Creates a new F1ServiceHandler instance.
     pub fn new(f1_state: &'static F1State) -> Self {
         let services = Box::leak(Box::new(DashMap::with_capacity(10)));
@@ -102,9 +102,10 @@ impl F1ServiceHandler {
 
         let (otx, orx) = oneshot::channel::<()>();
         let (tx, _) = channel::<Bytes>(50);
-        let session_manager = F1SessionDataManager::new(tx.clone());
-        let service_data = F1ServiceData::new(session_manager.clone(), tx, otx);
-        let mut service = F1Service::new(session_manager, orx, self.services, self.f1_state).await;
+        let session_manager = F1TelemetryPacketHandler::new(tx.clone());
+        let service_data = F1SessionBroadcaster::new(session_manager.clone(), tx, otx);
+        let mut service =
+            F1LiveTelemetryService::new(session_manager, orx, self.services, self.f1_state).await;
 
         service.initialize(port, championship_id, 0).await?;
 

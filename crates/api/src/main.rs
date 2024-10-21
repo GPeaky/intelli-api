@@ -13,8 +13,8 @@ use tracing::info;
 
 use config::{initialize_tracing_subscriber, setup_panic_handler};
 use db::Database;
+use f1_telemetry::FirewallService;
 use states::AppState;
-use telemetry::FirewallService;
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -71,7 +71,7 @@ async fn main() -> std::io::Result<()> {
         })
         .await?;
 
-    info!("Stoping service, cleaning up firewall rules");
+    info!("Stopping service, cleaning up firewall rules");
     firewall_svc.close_all().await.unwrap();
 
     Ok(())

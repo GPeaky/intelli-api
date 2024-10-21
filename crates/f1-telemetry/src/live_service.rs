@@ -28,7 +28,7 @@ use error::{AppResult, CommonError, F1ServiceError};
 use intelli_core::services::{ChampionshipServiceOperations, DriverServiceOperations};
 
 use crate::{
-    f1::{
+    types::{
         PacketCarDamageData, PacketCarStatusData, PacketCarTelemetryData, PacketEventData,
         PacketFinalClassificationData, PacketHeader, PacketIds, PacketMotionData,
         PacketParticipantsData, PacketSessionData, PacketSessionHistoryData, SessionType,
@@ -36,7 +36,7 @@ use crate::{
     F1State,
 };
 
-use super::manager::F1SessionDataManager;
+use super::handler::F1TelemetryPacketHandler;
 
 // Constants
 const BUFFER_SIZE: usize = 1460;
@@ -49,7 +49,7 @@ const MOTION_INTERVAL: Duration = Duration::from_millis(700);
 const PARTICIPANTS_TICK_UPDATE: u8 = 6;
 
 /// Enum representing different types of F1 packet data
-enum F1PacketData<'a> {
+enum F1TelemetryPacket<'a> {
     Motion(&'a PacketMotionData),
     Session(&'a PacketSessionData),
     Event(&'a PacketEventData),
@@ -62,37 +62,37 @@ enum F1PacketData<'a> {
 }
 
 /// Represents an F1 service that processes and manages F1 telemetry data
-pub struct F1Service {
+pub struct F1LiveTelemetryService {
     port: i32,
     race_id: i32,
     tick_counter: u8,
     championship_id: i32,
     port_partially_opened: bool,
-    last_updates: LastUpdates,
+    last_updates: PacketProcessingTimestamps,
     socket: UdpSocket,
     shutdown: oneshot::Receiver<()>,
     session_type: Option<SessionType>,
-    data_manager: F1SessionDataManager,
-    services: &'static DashMap<i32, F1ServiceData>,
+    data_manager: F1TelemetryPacketHandler,
+    services: &'static DashMap<i32, F1SessionBroadcaster>,
     f1_state: &'static F1State,
 }
 
 /// Holds data related to an F1 service instance
-pub struct F1ServiceData {
-    inner: Arc<F1ServiceDataInner>,
-    session_manager: F1SessionDataManager,
+pub struct F1SessionBroadcaster {
+    inner: Arc<F1SessionBroadcasterInner>,
+    session_manager: F1TelemetryPacketHandler,
     shutdown: Option<oneshot::Sender<()>>,
 }
 
-/// Internal data structure for F1ServiceData
-pub struct F1ServiceDataInner {
+/// Internal data structure for F1SessionBroadcaster
+pub struct F1SessionBroadcasterInner {
     global_channel: Sender<Bytes>,
     global_subscribers: AtomicU32,
     team_subscribers: RwLock<AHashMap<u8, u32>>,
 }
 
 /// Tracks the last update times for various packet types
-struct LastUpdates {
+struct PacketProcessingTimestamps {
     session: Instant,
     car_motion: Instant,
     car_status: Instant,
@@ -102,30 +102,33 @@ struct LastUpdates {
     car_lap: [Instant; 22],
 }
 
-impl F1PacketData<'_> {
-    /// Attempts to create an F1PacketData from raw bytes and packet ID
+impl F1TelemetryPacket<'_> {
+    /// Attempts to create an F1TelemetryPacket from raw bytes and packet ID
     #[inline]
-    pub fn try_from_bytes(data: &[u8], packet_id: u8) -> AppResult<F1PacketData> {
+    pub fn try_from_bytes(data: &[u8], packet_id: u8) -> AppResult<F1TelemetryPacket> {
         let packet_id = PacketIds::try_from(packet_id).unwrap();
 
         let packet = match packet_id {
-            PacketIds::Event => cast::<PacketEventData>(data).map(F1PacketData::Event),
-            PacketIds::Motion => cast::<PacketMotionData>(data).map(F1PacketData::Motion),
-            PacketIds::Session => cast::<PacketSessionData>(data).map(F1PacketData::Session),
-            PacketIds::CarDamage => cast::<PacketCarDamageData>(data).map(F1PacketData::CarDamage),
-            PacketIds::CarStatus => cast::<PacketCarStatusData>(data).map(F1PacketData::CarStatus),
+            PacketIds::Event => cast::<PacketEventData>(data).map(F1TelemetryPacket::Event),
+            PacketIds::Motion => cast::<PacketMotionData>(data).map(F1TelemetryPacket::Motion),
+            PacketIds::Session => cast::<PacketSessionData>(data).map(F1TelemetryPacket::Session),
+            PacketIds::CarDamage => {
+                cast::<PacketCarDamageData>(data).map(F1TelemetryPacket::CarDamage)
+            }
+            PacketIds::CarStatus => {
+                cast::<PacketCarStatusData>(data).map(F1TelemetryPacket::CarStatus)
+            }
             PacketIds::CarTelemetry => {
-                cast::<PacketCarTelemetryData>(data).map(F1PacketData::CarTelemetry)
+                cast::<PacketCarTelemetryData>(data).map(F1TelemetryPacket::CarTelemetry)
             }
             PacketIds::Participants => {
-                cast::<PacketParticipantsData>(data).map(F1PacketData::Participants)
+                cast::<PacketParticipantsData>(data).map(F1TelemetryPacket::Participants)
             }
             PacketIds::SessionHistory => {
-                cast::<PacketSessionHistoryData>(data).map(F1PacketData::SessionHistory)
+                cast::<PacketSessionHistoryData>(data).map(F1TelemetryPacket::SessionHistory)
             }
-            PacketIds::FinalClassification => {
-                cast::<PacketFinalClassificationData>(data).map(F1PacketData::FinalClassification)
-            }
+            PacketIds::FinalClassification => cast::<PacketFinalClassificationData>(data)
+                .map(F1TelemetryPacket::FinalClassification),
 
             _ => Err(F1ServiceError::InvalidPacketType)?,
         }?;
@@ -134,21 +137,21 @@ impl F1PacketData<'_> {
     }
 }
 
-impl F1Service {
-    /// Creates a new F1Service instance
+impl F1LiveTelemetryService {
+    /// Creates a new F1LiveTelemetryService instance
     pub async fn new(
-        data_manager: F1SessionDataManager,
+        data_manager: F1TelemetryPacketHandler,
         shutdown: oneshot::Receiver<()>,
-        services: &'static DashMap<i32, F1ServiceData>,
+        services: &'static DashMap<i32, F1SessionBroadcaster>,
         f1_state: &'static F1State,
     ) -> Self {
-        F1Service {
+        F1LiveTelemetryService {
             port: 0,
             race_id: 0,
             championship_id: 0,
             tick_counter: 10,
             port_partially_opened: false,
-            last_updates: LastUpdates::new(),
+            last_updates: PacketProcessingTimestamps::new(),
             shutdown,
             socket: UdpSocket::bind("0.0.0.0:0").await.unwrap(),
             session_type: None,
@@ -263,7 +266,7 @@ impl F1Service {
             Err(_) => return Ok(()),
         };
 
-        let packet = match F1PacketData::try_from_bytes(buf, header.packet_id) {
+        let packet = match F1TelemetryPacket::try_from_bytes(buf, header.packet_id) {
             Ok(p) => p,
             Err(_) => return Ok(()),
         };
@@ -277,25 +280,29 @@ impl F1Service {
         }
 
         match packet {
-            F1PacketData::Motion(motion_data) => self.handle_motion_packet(motion_data, now),
-            F1PacketData::Session(session_data) => {
+            F1TelemetryPacket::Motion(motion_data) => self.handle_motion_packet(motion_data, now),
+            F1TelemetryPacket::Session(session_data) => {
                 self.handle_session_packet(session_data, now).await
             }
-            F1PacketData::Participants(participants_data) => {
+            F1TelemetryPacket::Participants(participants_data) => {
                 self.handle_participants_packet(participants_data, now)
                     .await?
             }
-            F1PacketData::Event(event_data) => self.handle_event_packet(event_data),
-            F1PacketData::SessionHistory(session_history_data) => {
+            F1TelemetryPacket::Event(event_data) => self.handle_event_packet(event_data),
+            F1TelemetryPacket::SessionHistory(session_history_data) => {
                 self.handle_session_history_packet(session_history_data, now)
             }
-            F1PacketData::FinalClassification(final_classification) => {
+            F1TelemetryPacket::FinalClassification(final_classification) => {
                 self.handle_final_classification_packet(final_classification)
                     .await?
             }
-            F1PacketData::CarDamage(car_damage) => self.handle_car_damage_packet(car_damage, now),
-            F1PacketData::CarStatus(car_status) => self.handle_car_status_packet(car_status, now),
-            F1PacketData::CarTelemetry(car_telemetry) => {
+            F1TelemetryPacket::CarDamage(car_damage) => {
+                self.handle_car_damage_packet(car_damage, now)
+            }
+            F1TelemetryPacket::CarStatus(car_status) => {
+                self.handle_car_status_packet(car_status, now)
+            }
+            F1TelemetryPacket::CarTelemetry(car_telemetry) => {
                 self.handle_car_telemetry_packet(car_telemetry, now)
             }
         }
@@ -510,14 +517,14 @@ impl F1Service {
     }
 }
 
-impl F1ServiceData {
-    /// Creates a new F1ServiceData instance
+impl F1SessionBroadcaster {
+    /// Creates a new F1SessionBroadcaster instance
     pub fn new(
-        session_manager: F1SessionDataManager,
+        session_manager: F1TelemetryPacketHandler,
         global_channel: Sender<Bytes>,
         shutdown: oneshot::Sender<()>,
     ) -> Self {
-        let inner = Arc::new(F1ServiceDataInner {
+        let inner = Arc::new(F1SessionBroadcasterInner {
             global_channel,
             global_subscribers: AtomicU32::new(0),
             team_subscribers: RwLock::new(AHashMap::new()),
@@ -587,16 +594,16 @@ impl F1ServiceData {
     }
 }
 
-impl Deref for F1ServiceData {
-    type Target = F1ServiceDataInner;
+impl Deref for F1SessionBroadcaster {
+    type Target = F1SessionBroadcasterInner;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl LastUpdates {
-    /// Creates a new LastUpdates instance with current time for all fields
+impl PacketProcessingTimestamps {
+    /// Creates a new PacketProcessingTimestamps instance with current time for all fields
     fn new() -> Self {
         let time = Instant::now();
 

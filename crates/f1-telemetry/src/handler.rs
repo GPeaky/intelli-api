@@ -13,7 +13,7 @@ use tokio::sync::{
 };
 use tracing::{error, warn};
 
-use crate::f1::{
+use crate::types::{
     CarDamageData as F1CarDamageData, CarMotionData as F1CarMotionData,
     CarStatusData as F1CarStatusData, CarTelemetryData as F1CarTelemetryData, EventCode,
     EventDataDetails as F1EventDataDetails, FinalClassificationData as F1FinalClassificationData,
@@ -50,8 +50,13 @@ pub struct DriverInfo {
     pub team_id: u8,
 }
 
+#[derive(Clone)]
+pub struct F1TelemetryPacketHandler {
+    inner: Arc<F1TelemetryPacketHandlerInner>,
+}
+
 #[derive(Debug)]
-pub struct F1SessionDataManagerInner {
+pub struct F1TelemetryPacketHandlerInner {
     driver_info: RwLock<AHashMap<usize, DriverInfo>>,
     general: RwLock<F1GeneralInfo>,
     telemetry: RwLock<F1TelemetryInfo>,
@@ -62,24 +67,19 @@ pub struct F1SessionDataManagerInner {
     stop_sender: Mutex<Option<oneshot::Sender<()>>>,
 }
 
-#[derive(Clone)]
-pub struct F1SessionDataManager {
-    inner: Arc<F1SessionDataManagerInner>,
-}
-
 // Implementations
-impl Deref for F1SessionDataManager {
-    type Target = F1SessionDataManagerInner;
+impl Deref for F1TelemetryPacketHandler {
+    type Target = F1TelemetryPacketHandlerInner;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl F1SessionDataManager {
-    /// Creates a new F1SessionDataManager instance
+impl F1TelemetryPacketHandler {
+    /// Creates a new F1TelemetryPacketHandler instance
     pub fn new(tx: Sender<Bytes>) -> Self {
-        let inner = Arc::new(F1SessionDataManagerInner {
+        let inner = Arc::new(F1TelemetryPacketHandlerInner {
             driver_info: RwLock::new(AHashMap::new()),
             general: RwLock::new(F1GeneralInfo::default()),
             telemetry: RwLock::new(F1TelemetryInfo::default()),
@@ -298,7 +298,7 @@ impl F1SessionDataManager {
 
     /// Sends general updates
     #[inline]
-    fn send_general_updates(inner: &Arc<F1SessionDataManagerInner>, tx: &Sender<Bytes>) {
+    fn send_general_updates(inner: &Arc<F1TelemetryPacketHandlerInner>, tx: &Sender<Bytes>) {
         if tx.receiver_count() == 0 {
             return;
         }
@@ -319,7 +319,7 @@ impl F1SessionDataManager {
 
     /// Sends telemetry updates
     #[inline]
-    fn send_telemetry_updates(inner: &Arc<F1SessionDataManagerInner>) {
+    fn send_telemetry_updates(inner: &Arc<F1TelemetryPacketHandlerInner>) {
         let driver_info = inner.driver_info.read();
         let telemetry = inner.telemetry.read();
         let mut last_telemetry = inner.last_telemetry.write();
@@ -391,7 +391,7 @@ impl F1SessionDataManager {
     }
 }
 
-impl Drop for F1SessionDataManager {
+impl Drop for F1TelemetryPacketHandler {
     fn drop(&mut self) {
         if let Some(sender) = self.stop_sender.lock().take() {
             let _ = sender.send(());

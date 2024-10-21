@@ -1,4 +1,4 @@
-use telemetry::FirewallService;
+use f1_telemetry::FirewallService;
 use tokio::runtime::Builder;
 use tracing::error;
 use tracing_log::LogTracer;

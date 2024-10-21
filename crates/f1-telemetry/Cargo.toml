@@ -1,5 +1,5 @@
 [package]
-name = "telemetry"
+name = "f1-telemetry"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 workspace = true
 
 [lib]
-path = "src/telemetry.rs"
+path = "src/championship.rs"
 doctest = false
 
 [build-dependencies]

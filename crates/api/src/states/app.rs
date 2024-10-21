@@ -1,6 +1,7 @@
 use db::Database;
 use error::AppResult;
 
+use f1_telemetry::{F1ChampionshipManager, F1State, FirewallService};
 use intelli_core::{
     repositories::{
         ChampionshipRepository, DiscordRepository, DriverRepository, ServerRepository,
@@ -8,10 +9,7 @@ use intelli_core::{
     },
     services::{ChampionshipService, DriverService, EmailService, UserService},
 };
-use telemetry::{F1ServiceHandler, F1State, FirewallService};
 use token_manager::TokenManager;
-
-// F1ServiceHandler, FirewallService
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,7 +23,7 @@ pub struct AppState {
     #[allow(unused)]
     pub driver_svc: &'static DriverService,
     pub email_svc: EmailService,
-    pub f1_svc: F1ServiceHandler,
+    pub f1_svc: F1ChampionshipManager,
     pub discord_repo: &'static DiscordRepository,
     pub server_repo: ServerRepository,
 }
@@ -59,7 +57,7 @@ impl AppState {
 
         Ok(Self {
             user_svc,
-            f1_svc: F1ServiceHandler::new(f1_state),
+            f1_svc: F1ChampionshipManager::new(f1_state),
             user_repo,
             token_mgr,
             championship_svc,
