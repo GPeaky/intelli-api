@@ -54,7 +54,7 @@ pub enum ContainerType {
 
 /// Enum to represent the internal container for storing IDs.
 enum IdsContainer {
-    HashSet(AHashSet<i32>, Range<i32>, usize),
+    HashSet(AHashSet<i32>),
     BitSet(Bitset),
 }
 
@@ -89,14 +89,14 @@ impl IdsContainer {
             for id in in_use_ids {
                 hashset.insert(id);
             }
-            IdsContainer::HashSet(hashset, range, threshold)
+            IdsContainer::HashSet(hashset)
         }
     }
 
     /// Checks if the number of used IDs exceeds a threshold and converts to BitSet if necessary.
-    fn check_threshold(&mut self) {
-        if let IdsContainer::HashSet(ref hashset, range, threshold) = self {
-            if hashset.len() * 9 > *threshold {
+    fn check_threshold(&mut self, range: Range<i32>, threshold: usize) {
+        if let IdsContainer::HashSet(ref hashset) = self {
+            if hashset.len() * 9 > threshold {
                 let mut bitset = Bitset::new(range.clone());
                 for id in hashset {
                     unsafe {
@@ -112,7 +112,7 @@ impl IdsContainer {
     fn insert(&mut self, id: i32) -> bool {
         match self {
             IdsContainer::BitSet(bitset) => unsafe { bitset.insert(id) },
-            IdsContainer::HashSet(hashset, _, _) => hashset.insert(id),
+            IdsContainer::HashSet(hashset) => hashset.insert(id),
         }
     }
 
@@ -198,7 +198,8 @@ impl IdsGenerator {
 
         rng.fill(byte_buf).expect("Failed to generate random byte");
 
-        data.container.check_threshold();
+        data.container
+            .check_threshold(self.range.clone(), self.valid_range as usize);
 
         let valid_range_simd = Simd::splat(self.valid_range);
         let range_start_simd = Simd::splat(self.range.start);

@@ -1,7 +1,7 @@
 use ahash::AHashMap;
 use error::{AppResult, FirewallError};
 use regex::Regex;
-use std::{net::IpAddr, str};
+use std::{net::IpAddr, process::Command as StdCommand, str};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};
@@ -34,10 +34,13 @@ pub struct FirewallService {
     rules: RwLock<AHashMap<i32, FirewallRule>>,
 }
 
-// TODO: this must check on initialization if the server has de firewall service installed and active to use it
 impl FirewallService {
     /// Creates a new FirewallService instance.
     pub fn new() -> Self {
+        if cfg!(target_os = "linux") {
+            Self::check_nft();
+        }
+
         let rules = RwLock::from(AHashMap::with_capacity(10));
         Self { rules }
     }
@@ -179,7 +182,6 @@ impl FirewallService {
     /// # Returns
     /// Result indicating success or failure.
     #[allow(unused)]
-    // TODO: Use it when the server instance goes down to clear all the firewall rules seated
     pub async fn close_all(&self) -> AppResult<()> {
         if cfg!(not(target_os = "linux")) {
             warn!("Firewall not supported on this platform");
@@ -274,5 +276,18 @@ impl FirewallService {
         }
 
         Err(FirewallError::RuleNotFound)?
+    }
+
+    /// Check if nft is installed in the system and if it's not panics
+    fn check_nft() {
+        let nft_available = StdCommand::new("nft")
+            .arg("-v")
+            .output()
+            .map(|op| op.status.success())
+            .unwrap_or(false);
+
+        if !nft_available {
+            panic!("NFT is not available. The firewall cannot function correctly.");
+        }
     }
 }
