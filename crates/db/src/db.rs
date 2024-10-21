@@ -1,3 +1,5 @@
+mod cache;
+
 use std::{ops::DerefMut, str::FromStr};
 
 use cache::ServiceCache;
@@ -10,8 +12,6 @@ use refinery::embed_migrations;
 use tracing::info;
 
 pub use cache::EntityCache;
-
-mod cache;
 
 embed_migrations!("migrations");
 

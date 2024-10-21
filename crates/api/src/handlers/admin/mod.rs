@@ -1,3 +1,3 @@
-pub(crate) use conn::*;
-
 mod conn;
+
+pub(crate) use conn::*;

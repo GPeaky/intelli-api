@@ -1,11 +1,12 @@
 #![feature(portable_simd)]
-use ahash::AHashSet;
-use parking_lot::Mutex;
-use ring::rand::{SecureRandom, SystemRandom};
 use std::{
     ops::Range,
     simd::{i32x16, num::SimdInt, Simd},
 };
+
+use ahash::AHashSet;
+use parking_lot::Mutex;
+use ring::rand::{SecureRandom, SystemRandom};
 
 const IDS_POOL_SIZE: usize = 1024;
 

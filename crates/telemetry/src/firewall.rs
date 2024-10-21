@@ -1,7 +1,8 @@
+use std::{net::IpAddr, process::Command as StdCommand, str};
+
 use ahash::AHashMap;
 use error::{AppResult, FirewallError};
 use regex::Regex;
-use std::{net::IpAddr, process::Command as StdCommand, str};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tracing::{error, warn};

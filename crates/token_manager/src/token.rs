@@ -1,8 +1,9 @@
 use std::slice;
 
 use base64_simd::{Out, URL_SAFE_NO_PAD};
-use error::{AppResult, TokenError};
 use ring::rand::{SecureRandom, SystemRandom};
+
+use error::{AppResult, TokenError};
 
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

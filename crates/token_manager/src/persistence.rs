@@ -1,8 +1,12 @@
+use std::{
+    collections::VecDeque,
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    mem::size_of,
+};
+
 use dashmap::DashMap;
-use std::collections::VecDeque;
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
-use std::mem::size_of;
+
 use utils::current_timestamp_s;
 
 use crate::token::{Header, Token, TokenEntry};

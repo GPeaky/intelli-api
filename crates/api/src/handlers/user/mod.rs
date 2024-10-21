@@ -1,3 +1,5 @@
+pub(crate) mod admin;
+
 use garde::Validate;
 use ntex::web::{
     types::{Json, State},
@@ -10,8 +12,6 @@ use intelli_core::services::UserServiceOperations;
 use structs::{UserProfileData, UserUpdateData};
 
 use crate::states::AppState;
-
-pub(crate) mod admin;
 
 #[inline]
 pub(crate) async fn get(req: HttpRequest, state: State<AppState>) -> AppResult<HttpResponse> {

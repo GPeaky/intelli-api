@@ -1,12 +1,12 @@
+mod championship;
+mod driver;
+mod user;
+
 use std::sync::Arc;
 
 use driver::DriverCache;
 
 use self::{championship::ChampionshipCache, user::UserCache};
-
-mod championship;
-mod driver;
-mod user;
 
 const CACHE_CAPACITY: usize = 2_000;
 

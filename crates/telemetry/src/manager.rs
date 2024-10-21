@@ -1,3 +1,5 @@
+use std::{ops::Deref, sync::Arc, time::Duration};
+
 use ahash::{AHashMap, AHashSet};
 use ntex::{
     time::interval,
@@ -5,7 +7,6 @@ use ntex::{
 };
 use parking_lot::{Mutex, RwLock};
 use prost::Message;
-use std::{ops::Deref, sync::Arc, time::Duration};
 use tokio::sync::{
     broadcast::{Receiver, Sender},
     oneshot,

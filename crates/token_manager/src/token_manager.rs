@@ -1,15 +1,16 @@
+mod persistence;
+mod token;
+
 use std::{collections::VecDeque, time::Duration};
 
 use dashmap::DashMap;
 use error::{AppResult, TokenError};
 use token::TokenEntry;
 
-mod persistence;
-mod token;
-
-pub use token::{Token, TokenIntent};
 use tokio::{task, time::sleep};
 use utils::current_timestamp_s;
+
+pub use token::{Token, TokenIntent};
 
 const MAX_TOKENS_PER_USER: usize = 10;
 const PURGE_INTERVAL: Duration = Duration::from_secs(900);

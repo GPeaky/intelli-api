@@ -1,3 +1,11 @@
+mod championship;
+mod common;
+mod driver;
+mod f1;
+mod firewall;
+mod token;
+mod user;
+
 use deadpool_postgres::{tokio_postgres::Error as PgError, PoolError};
 use ntex::{
     http::{
@@ -16,14 +24,6 @@ pub use f1::*;
 pub use firewall::*;
 pub use token::*;
 pub use user::*;
-
-mod championship;
-mod common;
-mod driver;
-mod f1;
-mod firewall;
-mod token;
-mod user;
 
 pub type AppResult<T> = Result<T, AppError>;
 

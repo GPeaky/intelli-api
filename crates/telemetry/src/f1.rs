@@ -2,7 +2,7 @@
 // -------------- ORIGINAL GAME ----------------
 // ---------------------------------------------
 
-use core::str;
+use std::str;
 
 use error::{AppError, ChampionshipError};
 
