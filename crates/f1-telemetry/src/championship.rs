@@ -107,6 +107,7 @@ impl F1ChampionshipManager {
         let mut service =
             F1LiveTelemetryService::new(session_manager, orx, self.services, self.f1_state).await;
 
+        // TODO: give a real race_id
         service.initialize(port, championship_id, 0).await?;
 
         ntex::rt::spawn(async move { service.run().await });

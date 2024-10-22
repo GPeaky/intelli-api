@@ -10,7 +10,6 @@ use std::{
 };
 
 use ahash::AHashMap;
-use chrono::Utc;
 use dashmap::DashMap;
 use ntex::util::Bytes;
 use parking_lot::RwLock;
@@ -67,6 +66,7 @@ pub struct F1LiveTelemetryService {
     race_id: i32,
     tick_counter: u8,
     championship_id: i32,
+    error_count: u8,
     port_partially_opened: bool,
     timestamps: PacketProcessingTimestamps,
     socket: UdpSocket,
@@ -105,39 +105,47 @@ struct PacketProcessingTimestamps {
 impl F1TelemetryPacket<'_> {
     /// Attempts to create an F1TelemetryPacket from raw bytes and packet ID
     #[inline]
-    pub fn try_from_bytes(data: &[u8], packet_id: u8) -> AppResult<F1TelemetryPacket> {
+    pub fn try_from_bytes(data: &[u8], packet_id: u8) -> AppResult<Option<F1TelemetryPacket>> {
         let packet_id = PacketIds::try_from(packet_id).unwrap();
 
         let packet = match packet_id {
-            PacketIds::Event => cast::<PacketEventData>(data).map(F1TelemetryPacket::Event),
-            PacketIds::Motion => cast::<PacketMotionData>(data).map(F1TelemetryPacket::Motion),
-            PacketIds::Session => cast::<PacketSessionData>(data).map(F1TelemetryPacket::Session),
+            PacketIds::Event => Some(cast::<PacketEventData>(data).map(F1TelemetryPacket::Event)?),
+            PacketIds::Motion => {
+                Some(cast::<PacketMotionData>(data).map(F1TelemetryPacket::Motion)?)
+            }
+            PacketIds::Session => {
+                Some(cast::<PacketSessionData>(data).map(F1TelemetryPacket::Session)?)
+            }
             PacketIds::CarDamage => {
-                cast::<PacketCarDamageData>(data).map(F1TelemetryPacket::CarDamage)
+                Some(cast::<PacketCarDamageData>(data).map(F1TelemetryPacket::CarDamage)?)
             }
             PacketIds::CarStatus => {
-                cast::<PacketCarStatusData>(data).map(F1TelemetryPacket::CarStatus)
+                Some(cast::<PacketCarStatusData>(data).map(F1TelemetryPacket::CarStatus)?)
             }
             PacketIds::CarTelemetry => {
-                cast::<PacketCarTelemetryData>(data).map(F1TelemetryPacket::CarTelemetry)
+                Some(cast::<PacketCarTelemetryData>(data).map(F1TelemetryPacket::CarTelemetry)?)
             }
             PacketIds::Participants => {
-                cast::<PacketParticipantsData>(data).map(F1TelemetryPacket::Participants)
+                Some(cast::<PacketParticipantsData>(data).map(F1TelemetryPacket::Participants)?)
             }
-            PacketIds::SessionHistory => {
-                cast::<PacketSessionHistoryData>(data).map(F1TelemetryPacket::SessionHistory)
-            }
-            PacketIds::FinalClassification => cast::<PacketFinalClassificationData>(data)
-                .map(F1TelemetryPacket::FinalClassification),
+            PacketIds::SessionHistory => Some(
+                cast::<PacketSessionHistoryData>(data).map(F1TelemetryPacket::SessionHistory)?,
+            ),
+            PacketIds::FinalClassification => Some(
+                cast::<PacketFinalClassificationData>(data)
+                    .map(F1TelemetryPacket::FinalClassification)?,
+            ),
 
-            _ => Err(F1ServiceError::InvalidPacketType)?,
-        }?;
+            _ => None,
+        };
 
         Ok(packet)
     }
 }
 
 impl F1LiveTelemetryService {
+    const MAX_CAST_ERRORS: u8 = 20;
+
     /// Creates a new F1LiveTelemetryService instance
     pub async fn new(
         packet_handler: F1TelemetryPacketHandler,
@@ -150,6 +158,7 @@ impl F1LiveTelemetryService {
             race_id: 0,
             championship_id: 0,
             tick_counter: 10,
+            error_count: 0,
             port_partially_opened: false,
             timestamps: PacketProcessingTimestamps::new(),
             shutdown,
@@ -166,18 +175,12 @@ impl F1LiveTelemetryService {
         &mut self,
         port: i32,
         championship_id: i32,
-        _race_id: i32,
+        race_id: i32,
     ) -> AppResult<()> {
         let Ok(socket) = UdpSocket::bind(SocketAddr::new(SOCKET_HOST, port as u16)).await else {
             error!("There was an error binding to the socket");
             return Err(CommonError::InternalServerError)?;
         };
-
-        let race_id = self
-            .f1_state
-            .championship_svc
-            .create_race(championship_id, 10, Utc::now())
-            .await?;
 
         self.port = port;
         self.socket = socket;
@@ -263,12 +266,31 @@ impl F1LiveTelemetryService {
     async fn process_packet(&mut self, buf: &[u8], now: Instant) -> AppResult<()> {
         let header = match header_cast(buf) {
             Ok(h) => h,
-            Err(_) => return Ok(()),
+            Err(e) => {
+                warn!("Malformed packet header received: {e}");
+
+                if self.increment_error_count() {
+                    error!("Session terminated - Stream integrity compromised");
+                    return Err(e);
+                }
+
+                return Ok(());
+            }
         };
 
         let packet = match F1TelemetryPacket::try_from_bytes(buf, header.packet_id) {
-            Ok(p) => p,
-            Err(_) => return Ok(()),
+            Ok(Some(p)) => p,
+            Ok(None) => return Ok(()),
+            Err(e) => {
+                warn!("Invalid packet structure detected: {e}");
+
+                if self.increment_error_count() {
+                    error!("Session terminated - Stream integrity compromised");
+                    return Err(e);
+                }
+
+                return Ok(());
+            }
         };
 
         if header.packet_format != 2024 {
@@ -499,6 +521,13 @@ impl F1LiveTelemetryService {
         }
 
         Ok(())
+    }
+
+    /// Increment error count a returns true if we passed the max cast errors
+    #[inline]
+    fn increment_error_count(&mut self) -> bool {
+        self.error_count += 1;
+        self.error_count >= Self::MAX_CAST_ERRORS
     }
 
     /// Closes the F1 service, releasing resources and removing it from active services
